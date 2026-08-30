@@ -1,0 +1,22 @@
+const fs=require('fs');
+const path=require('path');
+const root=path.resolve(__dirname,'..');
+const code=fs.readFileSync(path.join(root,'apps-script','Code.gs'),'utf8');
+const dist=fs.readFileSync(path.join(root,'distribution','Code.gs'),'utf8');
+function ok(cond,msg){if(!cond){console.error('FAIL:',msg);process.exit(1)}}
+ok(code.includes("const SBM_VERSION = '5.10.0-RC8.9';"),'RC8 version');
+ok(!code.includes("ui.createMenu('結果登録')"),'standalone result menu removed');
+ok(code.includes("1．今日の改善を開く")&&code.includes("3．今日の改善の表示件数を設定"),'numbered daily workflow menu');
+ok(!code.includes("6．Doctor対応一覧を確認する")&&code.includes('sbmRetireDoctorWorklistSheets_'),'obsolete Doctor worklist retired');
+ok(code.includes("var headers=['選択','重症度','記事タイトル','傾向','クリック','表示','順位','CTR'"),'current candidate view is eight-column comparison');
+ok(code.includes('cand.hideColumns(9,2)'),'candidate machine identity columns hidden');
+ok(code.includes('function sbmDoctorIsUntreatedCurrentCandidate_'),'untreated-only candidate filtering');
+ok(!code.includes("headers=['選択','重症度','記事タイトル','傾向','クリック','表示','順位','CTR','状態'"),'candidate state column removed');
+ok(code.includes("set('作業状態','👀 モニター中')"),'normal monitoring state retained');
+ok(code.includes("rec.values[rec.hm['状態コード']-1]='MONITORING'"),'Doctor treatment enters monitoring');
+ok(code.includes('sbmDoctorTreatmentResultAsFeedback_'),'Doctor treatment result adapts to monitoring history');
+ok(code.includes("fetchedQuery < maxMeta && url && !mainQuery && imps > 0"),'missing real main query replenishment');
+ok(code.includes('var needsMeta = !articleTitle'),'missing H1/title replenishment');
+ok(code.includes('sbmPolishDoctorHealthReportView_')||code.includes('sbmDoctorPolishHealthReportView_'),'health report polish retained');
+ok(code===dist,'distribution code identical');
+console.log('PASS product5100_rc7_human_view_workflow_test');

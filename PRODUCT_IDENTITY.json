@@ -1,0 +1,8 @@
+{
+  "product_name": "SIMS-Blog-Manager",
+  "current_version": "5.21.0",
+  "release_status": "MINOR",
+  "notes": "Product UI consolidation: SIMS Manager naming, task-oriented menus, article/site diagnosis separation, five-item fixed daily improvement view, and site terminology on primary user-facing surfaces. Internal identifiers and contracts remain unchanged.",
+  "version": "5.21.0",
+  "display_name": "SIMS Manager"
+}
