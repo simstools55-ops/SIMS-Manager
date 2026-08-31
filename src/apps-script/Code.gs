@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.4
+ * SIMS Manager Product v5.21.5
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.4';
+const SBM_VERSION = '5.21.5';
 // User-facing naming: Article Doctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -521,7 +521,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
   try {
     sbmSetDailyProgress_('FINALIZE',90,'改善の推移を更新し、日次処理の完了状態を確定しています。');
 
-    // Product v5.21.4:
+    // Product v5.21.5:
     // STEP3では修復・再装飾・Home再集計を行わない高速経路を使う。
     var tEffect3 = new Date();
     var effectResult = sbmUpdateEffectivenessDailyFast_() || {};
@@ -551,6 +551,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
     // Home全体を再集計すると改善の推移更新が再実行され得るため、
     // 日次処理完了時は状態表示だけを軽量更新する。
     try {
+      sbmBuildHomeSnapshot_();
       sbmSyncHomeVersionOnly_();
       sbmRefreshHomeDailyStatusOnly_();
     } catch(eHome) {
@@ -1050,7 +1051,7 @@ function sbmGetArticleInfoBatch_() {
 }
 
 function sbmGetTodayDisplayCount_() {
-  // Product v5.21.4: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
+  // Product v5.21.5: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
   return 5;
 }
 
@@ -1133,7 +1134,7 @@ function sbmBuildHomeSheet_() {
   sh.getRange('A23:H24').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
 
-  // Product v5.21.4: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
+  // Product v5.21.5: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
   var fixedMonitorLabels=[
     ['E15','F15','測定待ち'],['G15','H15','追加経過観察'],
     ['E16','F16','経過観察'],['G16','H16','改善傾向'],
@@ -4739,7 +4740,7 @@ function sbmEnsureHeaders_(sh, headers) {
 }
 
 /**
- * Product v5.21.4 Home高速化:
+ * Product v5.21.5 Home高速化:
  * Home表示用にシートを1回だけ読み、同じ配列を複数集計で再利用する。
  */
 function sbmHomeReadRowsOnce_(sheetName){
@@ -9230,28 +9231,13 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
   }
 }
 
-function sbmRefreshHome_(options) {
-  options=options||{};
-  var light=options.light===true;
 
-  // Product v5.21.4:
-  // Homeは表示画面。重い修復・測定・Doctor再照合は原則ここでは実行しない。
-  // 明示的に maintenance:true を指定した保守処理だけ従来整合処理を許可する。
-  if(options.maintenance===true){
-    try{sbmMigrateLegacyMonitoringLabels_();}catch(eLegacyLabels){}
-    try{sbmDoctorReconcileExtendedMonitoringCases_();}catch(eMonHome){}
-    try{sbmUpdateEffectivenessCore_(false);}catch(eEffectHome){}
-  }
-
-  var ss=SpreadsheetApp.getActiveSpreadsheet();
-  var sh=ss.getSheetByName(SBM_SHEETS.HOME);
-  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
-    sbmBuildHomeSheet_();
-    sh=ss.getSheetByName(SBM_SHEETS.HOME);
-  }
-
-  // 必要な4データソースは各1回だけ読む。
-  var settingsMap=sbmGetSettingsMap_();
+/**
+ * Product v5.21.5 Home Snapshot
+ * Home表示に必要な集計だけをDocumentPropertiesへ保存し、
+ * Homeを開く操作では記事管理・改善履歴・改善の推移を再読込しない。
+ */
+function sbmBuildHomeSnapshot_(){
   var rows=[],effectRows=[],historyRows=[];
   try{rows=sbmHomeReadRowsOnce_(SBM_SHEETS.ARTICLE_DB)||[];}catch(eArticle){}
   try{effectRows=sbmHomeReadRowsOnce_(SBM_SHEETS.EFFECT)||[];}catch(eEffect){}
@@ -9259,7 +9245,7 @@ function sbmRefreshHome_(options) {
 
   var counts=sbmRankCountsFromRows_(rows);
   var work={unstarted:0,today:0,progress:0,monitor:0,done:0,newArticles:0,unfilled:0,needsReview:0};
-  var missingCount=0;
+  var missingCount=0,clicks=0,impressions=0;
   rows.forEach(function(r){
     var w=String(r['作業状態']||'未着手');
     if(w.indexOf('今日の改善')>=0)work.today++;
@@ -9269,7 +9255,83 @@ function sbmRefreshHome_(options) {
     if(String(r['管理フラグ']||'').indexOf('新規記事')>=0)work.newArticles++;
     if(String(r['記事情報補完済み']||'')!=='○')work.unfilled++;
     if(String(r['管理フラグ']||'')==='要確認'){work.needsReview++;missingCount++;}
+    clicks+=sbmNumber_(r['クリック数'])||0;
+    impressions+=sbmNumber_(r['表示回数'])||0;
   });
+
+  var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
+  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows);
+  var weekly=sbmHomeWeeklyActivity_(historyRows);
+
+  var snapshot={
+    version:1,
+    generatedAt:Date.now(),
+    total:rows.length,
+    counts:counts,
+    work:work,
+    missingCount:missingCount,
+    currentTreatment:currentTreatment,
+    historyStats:historyStats,
+    weekly:weekly,
+    clicks:clicks,
+    impressions:impressions
+  };
+  PropertiesService.getDocumentProperties().setProperty('SBM_HOME_SNAPSHOT_V1',JSON.stringify(snapshot));
+  return snapshot;
+}
+
+function sbmGetHomeSnapshot_(){
+  try{
+    var raw=PropertiesService.getDocumentProperties().getProperty('SBM_HOME_SNAPSHOT_V1');
+    if(!raw)return null;
+    var obj=JSON.parse(raw);
+    return obj&&obj.version===1?obj:null;
+  }catch(e){return null;}
+}
+
+function sbmInvalidateHomeSnapshot_(){
+  try{PropertiesService.getDocumentProperties().deleteProperty('SBM_HOME_SNAPSHOT_V1');}catch(e){}
+}
+
+function sbmEnsureHomeSnapshot_(){
+  return sbmGetHomeSnapshot_()||sbmBuildHomeSnapshot_();
+}
+
+function sbmRefreshHome_(options) {
+  options=options||{};
+  var light=options.light===true;
+
+  // 保守処理を明示した場合だけ旧データ整合を実行。
+  if(options.maintenance===true){
+    try{sbmMigrateLegacyMonitoringLabels_();}catch(eLegacyLabels){}
+    try{sbmDoctorReconcileExtendedMonitoringCases_();}catch(eMonHome){}
+    try{sbmUpdateEffectivenessCore_(false);}catch(eEffectHome){}
+    sbmInvalidateHomeSnapshot_();
+  }
+
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
+    sbmBuildHomeSheet_();
+    sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  }
+
+  // Homeを開くだけなら保存済みスナップショットを利用。
+  // データ変更後の通常refreshはスナップショットを再構築する。
+  var snap;
+  if(light){
+    snap=sbmEnsureHomeSnapshot_();
+  }else{
+    snap=sbmBuildHomeSnapshot_();
+  }
+
+  var settingsMap=sbmGetSettingsMap_();
+  var counts=snap.counts||{'🏆 エース':0,'✅ 安定':0,'📈 成長':0,'🌱 育成':0,'⚠️ 低迷':0};
+  var work=snap.work||{unstarted:0,today:0,progress:0,monitor:0,done:0,newArticles:0,unfilled:0,needsReview:0};
+  var missingCount=Number(snap.missingCount||0);
+  var currentTreatment=snap.currentTreatment||{total:0,counts:{}};
+  var historyStats=snap.historyStats||{targets:0,improved:0,assessed:0,reworked:0,rate:0};
+  var weekly=snap.weekly||{improved:0,completed:0};
 
   var blogName=String(settingsMap['BlogName']||''),blogUrl=String(settingsMap['BlogUrl']||'');
   var dailyStatus=sbmDailyUpdateStatus_(settingsMap),runtimeState=sbmGetDailyRuntimeState_(settingsMap);
@@ -9280,49 +9342,62 @@ function sbmRefreshHome_(options) {
     return current>prev?'↗':(current<prev?'↘':'→');
   }
 
-  var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
-  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows);
-  var weekly=sbmHomeWeeklyActivity_(historyRows);
-  var snapshot=sbmHomeRankSnapshot_(rows,counts,work);
-  var candidateCount=Math.max(0,Math.min(SBM_DEFAULTS.ANALYSIS_CANDIDATE_LIMIT,work.unstarted));
-  var adviceWork=Object.assign({},work,{monitor:currentTreatment.total});
+  var total=Number(snap.total||0);
+  var snapshot={
+    total:total,
+    leading:Number(counts['🏆 エース']||0),
+    steady:Number(counts['✅ 安定']||0),
+    rising:Number(counts['📈 成長']||0),
+    early:Number(counts['🌱 育成']||0),
+    weak:Number(counts['⚠️ 低迷']||0),
+    trusted:Number(counts['🏆 エース']||0)+Number(counts['✅ 安定']||0),
+    clicks:Number(snap.clicks||0),
+    impressions:Number(snap.impressions||0),
+    work:work
+  };
+  snapshot.trustedRate=total?snapshot.trusted/total:0;
+  snapshot.risingRate=total?snapshot.rising/total:0;
+  snapshot.earlyRate=total?snapshot.early/total:0;
+  snapshot.weakRate=total?snapshot.weak/total:0;
 
-  // 値だけ更新。レイアウト・判定色等の固定装飾はsbmBuildHomeSheet_で設定する。
+  var candidateCount=Math.max(0,Math.min(SBM_DEFAULTS.ANALYSIS_CANDIDATE_LIMIT,work.unstarted||0));
+  var adviceWork=Object.assign({},work,{monitor:Number(currentTreatment.total||0)});
+
   sh.getRange('B2').setValue(blogName||'未設定');
   sh.getRange('F2').setValue(dailyStatus.displayText==='未更新'?'ー':dailyStatus.displayText);
-  sh.getRange('B3').setValue(rows.length+'件');
+  sh.getRange('B3').setValue(total+'件');
   if(blogUrl)sh.getRange('D3').setFormula('=HYPERLINK("'+blogUrl.replace(/"/g,'""')+'","'+blogUrl.replace(/"/g,'""')+'")');
   else sh.getRange('D3').clearContent();
   sh.getRange('B4').setValue(statusText);
 
-  sh.getRange('C6').setValue(counts['🏆 エース']+'件 '+arrow(counts['🏆 エース'],'PrevAceCount'));
-  sh.getRange('G6').setValue(counts['🌱 育成']+'件 '+arrow(counts['🌱 育成'],'PrevNurtureCount'));
-  sh.getRange('C7').setValue(counts['✅ 安定']+'件 '+arrow(counts['✅ 安定'],'PrevStableCount'));
-  sh.getRange('G7').setValue(counts['⚠️ 低迷']+'件 '+arrow(counts['⚠️ 低迷'],'PrevLowCount'));
-  sh.getRange('C8').setValue(counts['📈 成長']+'件 '+arrow(counts['📈 成長'],'PrevGrowthCount'));
+  sh.getRange('C6').setValue(Number(counts['🏆 エース']||0)+'件 '+arrow(Number(counts['🏆 エース']||0),'PrevAceCount'));
+  sh.getRange('G6').setValue(Number(counts['🌱 育成']||0)+'件 '+arrow(Number(counts['🌱 育成']||0),'PrevNurtureCount'));
+  sh.getRange('C7').setValue(Number(counts['✅ 安定']||0)+'件 '+arrow(Number(counts['✅ 安定']||0),'PrevStableCount'));
+  sh.getRange('G7').setValue(Number(counts['⚠️ 低迷']||0)+'件 '+arrow(Number(counts['⚠️ 低迷']||0),'PrevLowCount'));
+  sh.getRange('C8').setValue(Number(counts['📈 成長']||0)+'件 '+arrow(Number(counts['📈 成長']||0),'PrevGrowthCount'));
   sh.getRange('G8').setValue(missingCount+'件 '+arrow(missingCount,'PrevMissingCount'));
 
   sh.getRange('A11').setValue(sbmHomeOverallMessage_(blogName,snapshot));
-  sh.getRange('C15').setValue(currentTreatment.total+'件');
-  sh.getRange('C16').setValue(historyStats.targets+'件');
-  sh.getRange('C17').setValue(historyStats.improved+'件');
-  sh.getRange('C18').setValue(historyStats.rate+'%');
+  sh.getRange('C15').setValue(Number(currentTreatment.total||0)+'件');
+  sh.getRange('C16').setValue(Number(historyStats.targets||0)+'件');
+  sh.getRange('C17').setValue(Number(historyStats.improved||0)+'件');
+  sh.getRange('C18').setValue(Number(historyStats.rate||0)+'%');
   sh.getRange('C19').setValue(missingCount+'件');
 
-  var mc=currentTreatment.counts;
-  sh.getRange('F15').setValue((mc['測定待ち']||0)+'件');
-  sh.getRange('H15').setValue((mc['追加経過観察']||0)+'件');
-  sh.getRange('F16').setValue((mc['経過観察']||0)+'件');
-  sh.getRange('H16').setValue((mc['改善傾向']||0)+'件');
-  sh.getRange('F17').setValue((mc['改善']||0)+'件');
-  sh.getRange('H17').setValue((mc['大きく改善']||0)+'件');
-  sh.getRange('F18').setValue((mc['要確認']||0)+'件');
-  sh.getRange('H18').setValue((mc['見直し候補']||0)+'件');
-  sh.getRange('F19').setValue((mc['変化小']||0)+'件');
-  sh.getRange('H19').setValue((mc['データ不足']||0)+'件');
+  var mc=currentTreatment.counts||{};
+  sh.getRange('F15').setValue(Number(mc['測定待ち']||0)+'件');
+  sh.getRange('H15').setValue(Number(mc['追加経過観察']||0)+'件');
+  sh.getRange('F16').setValue(Number(mc['経過観察']||0)+'件');
+  sh.getRange('H16').setValue(Number(mc['改善傾向']||0)+'件');
+  sh.getRange('F17').setValue(Number(mc['改善']||0)+'件');
+  sh.getRange('H17').setValue(Number(mc['大きく改善']||0)+'件');
+  sh.getRange('F18').setValue(Number(mc['要確認']||0)+'件');
+  sh.getRange('H18').setValue(Number(mc['見直し候補']||0)+'件');
+  sh.getRange('F19').setValue(Number(mc['変化小']||0)+'件');
+  sh.getRange('H19').setValue(Number(mc['データ不足']||0)+'件');
+
   sh.getRange('A23').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
 
-  // 状態行だけは値に応じて色が変わるため更新する。
   sh.getRange('A4:H4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
 }
@@ -10530,7 +10605,7 @@ function sbmSortArticlesByUpdated(){ return sbmSortArticleDbBy_('updated','最�
 
 
 /**
- * Product v5.21.4
+ * Product v5.21.5
  * スクリプト差替え直後でもHomeの版表示だけを軽量同期する。
  * Home全体の再集計は行わない。
  */
@@ -10546,7 +10621,7 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v5.21.4: 利用者が「何をするか」でメニューを整理。
+  // Product v5.21.5: 利用者が「何をするか」でメニューを整理。
   // 内部関数名・シート物理名・契約識別子は互換性維持のため変更しない。
   var ui = SpreadsheetApp.getUi();
 
@@ -11453,7 +11528,7 @@ function sbmEffectFinalOutcomeForRow_(effectRow){
 
 
 /**
- * Product v5.21.4
+ * Product v5.21.5
  * STEP 3高速化用。Doctor_Cases を1回だけ読み、ArticleID / URL から最新Caseを引ける索引を作る。
  * 改善の推移更新で記事ごとに Doctor_Cases 全体を再読込しない。
  */
