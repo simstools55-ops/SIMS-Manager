@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.5
+ * SIMS Manager Product v5.21.6
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.5';
+const SBM_VERSION = '5.21.6';
 // User-facing naming: Article Doctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -521,7 +521,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
   try {
     sbmSetDailyProgress_('FINALIZE',90,'改善の推移を更新し、日次処理の完了状態を確定しています。');
 
-    // Product v5.21.5:
+    // Product v5.21.6:
     // STEP3では修復・再装飾・Home再集計を行わない高速経路を使う。
     var tEffect3 = new Date();
     var effectResult = sbmUpdateEffectivenessDailyFast_() || {};
@@ -1051,7 +1051,7 @@ function sbmGetArticleInfoBatch_() {
 }
 
 function sbmGetTodayDisplayCount_() {
-  // Product v5.21.5: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
+  // Product v5.21.6: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
   return 5;
 }
 
@@ -1134,7 +1134,7 @@ function sbmBuildHomeSheet_() {
   sh.getRange('A23:H24').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
 
-  // Product v5.21.5: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
+  // Product v5.21.6: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
   var fixedMonitorLabels=[
     ['E15','F15','測定待ち'],['G15','H15','追加経過観察'],
     ['E16','F16','経過観察'],['G16','H16','改善傾向'],
@@ -4740,7 +4740,7 @@ function sbmEnsureHeaders_(sh, headers) {
 }
 
 /**
- * Product v5.21.5 Home高速化:
+ * Product v5.21.6 Home高速化:
  * Home表示用にシートを1回だけ読み、同じ配列を複数集計で再利用する。
  */
 function sbmHomeReadRowsOnce_(sheetName){
@@ -5312,13 +5312,19 @@ function sbmRefreshTodayQueueFast_() {
   }
 
   // 記事管理はURL列と作業状態列だけを読む。全列読み込み・全行書換えはしない。
+  // 過去の「完了」は再候補化を許可し、進行中の改善サイクルだけをブロックする。
   var dh=sbmHeaderMap_(db), dn=db.getLastRow()-1;
   if(dh['記事URL']&&dh['作業状態']){
     var du=db.getRange(2,dh['記事URL'],dn,1).getDisplayValues();
     var dw=db.getRange(2,dh['作業状態'],dn,1).getDisplayValues();
     for(var j=0;j<dn;j++){
       var state=String(dw[j][0]||'');
-      if(state.indexOf('モニター中')>=0 || state.indexOf('完了')>=0){
+      // Product v5.21.6:
+      // 「完了」は過去の改善サイクルが完了した状態であり、現在のGSC指標に
+      // 再び改善余地があれば今日の改善候補へ戻してよい。
+      // 候補抽出本体 sbmSelectTodayRecommendations_() と同じく、
+      // 現在進行中の「改善中」「モニター中」だけを除外する。
+      if(state.indexOf('改善中')>=0 || state.indexOf('モニター中')>=0){
         var key=sbmNormalizeUrl_(du[j][0]||''); if(key)blocked[key]=true;
       }
     }
@@ -9233,7 +9239,7 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
 
 
 /**
- * Product v5.21.5 Home Snapshot
+ * Product v5.21.6 Home Snapshot
  * Home表示に必要な集計だけをDocumentPropertiesへ保存し、
  * Homeを開く操作では記事管理・改善履歴・改善の推移を再読込しない。
  */
@@ -10605,7 +10611,7 @@ function sbmSortArticlesByUpdated(){ return sbmSortArticleDbBy_('updated','最�
 
 
 /**
- * Product v5.21.5
+ * Product v5.21.6
  * スクリプト差替え直後でもHomeの版表示だけを軽量同期する。
  * Home全体の再集計は行わない。
  */
@@ -10621,7 +10627,7 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v5.21.5: 利用者が「何をするか」でメニューを整理。
+  // Product v5.21.6: 利用者が「何をするか」でメニューを整理。
   // 内部関数名・シート物理名・契約識別子は互換性維持のため変更しない。
   var ui = SpreadsheetApp.getUi();
 
@@ -11528,7 +11534,7 @@ function sbmEffectFinalOutcomeForRow_(effectRow){
 
 
 /**
- * Product v5.21.5
+ * Product v5.21.6
  * STEP 3高速化用。Doctor_Cases を1回だけ読み、ArticleID / URL から最新Caseを引ける索引を作る。
  * 改善の推移更新で記事ごとに Doctor_Cases 全体を再読込しない。
  */
