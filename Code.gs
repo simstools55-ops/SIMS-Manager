@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.7
+ * SIMS Manager Product v5.21.8
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.7';
+const SBM_VERSION = '5.21.8';
 // User-facing naming: Article Doctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -521,7 +521,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
   try {
     sbmSetDailyProgress_('FINALIZE',90,'改善の推移を更新し、日次処理の完了状態を確定しています。');
 
-    // Product v5.21.7:
+    // Product v5.21.8:
     // STEP3では修復・再装飾・Home再集計を行わない高速経路を使う。
     var tEffect3 = new Date();
     var effectResult = sbmUpdateEffectivenessDailyFast_() || {};
@@ -1051,7 +1051,7 @@ function sbmGetArticleInfoBatch_() {
 }
 
 function sbmGetTodayDisplayCount_() {
-  // Product v5.21.7: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
+  // Product v5.21.8: 「今日の改善」は5件固定。旧設定キーは互換用に残す。
   return 5;
 }
 
@@ -1134,7 +1134,7 @@ function sbmBuildHomeSheet_() {
   sh.getRange('A23:H24').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
 
-  // Product v5.21.7: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
+  // Product v5.21.8: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
   var fixedMonitorLabels=[
     ['E15','F15','測定待ち'],['G15','H15','追加経過観察'],
     ['E16','F16','経過観察'],['G16','H16','改善傾向'],
@@ -4740,7 +4740,7 @@ function sbmEnsureHeaders_(sh, headers) {
 }
 
 /**
- * Product v5.21.7 Home高速化:
+ * Product v5.21.8 Home高速化:
  * Home表示用にシートを1回だけ読み、同じ配列を複数集計で再利用する。
  */
 function sbmHomeReadRowsOnce_(sheetName){
@@ -4852,7 +4852,7 @@ function sbmBriefHtml_(b) {
     + '<h3>FAQ候補</h3><p>' + esc(b['FAQ候補']) + '</p>'
     + '<h3>別記事候補</h3><p>' + esc(b['別記事候補']) + '</p>'
     + '<h3>改善に使わない除外クエリ</h3><p>' + esc(b['除外クエリ']) + '</p>'
-    + '<h3>AIでリライトするための依頼文</h3>'
+    + '<h3>aWriterへの改善依頼文</h3>'
     + '<textarea style="width:100%;height:230px;font-family:monospace;font-size:12px;white-space:pre-wrap">' + String(request || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>'
     + '<hr><p>推定時間: ' + esc(b['推定時間']) + '分 / Score: ' + esc(b.Score) + '</p>'
     + '</div>';
@@ -5319,7 +5319,7 @@ function sbmRefreshTodayQueueFast_() {
     var dw=db.getRange(2,dh['作業状態'],dn,1).getDisplayValues();
     for(var j=0;j<dn;j++){
       var state=String(dw[j][0]||'');
-      // Product v5.21.7:
+      // Product v5.21.8:
       // 「完了」は過去の改善サイクルが完了した状態であり、現在のGSC指標に
       // 再び改善余地があれば今日の改善候補へ戻してよい。
       // 候補抽出本体 sbmSelectTodayRecommendations_() と同じく、
@@ -6046,7 +6046,7 @@ function sbmShowImprovementNaviDialog_(a, kind, reason) {
   var queryListHtml=topQueries.length
     ? '<details class="query-details"><summary>取得したクエリを見る（依頼文使用 '+topQueries.length+'件）</summary><div class="query-table-wrap"><table class="query-table"><thead><tr><th>クエリ</th><th>クリック</th><th>表示回数</th><th>CTR</th><th>順位</th></tr></thead><tbody>'+topQueries.map(function(q){return '<tr><td>'+((query&&sbmNormalizeQueryText_(q.query)===normalizedMainQuery)?'★ ':'')+esc(q.query)+'</td><td>'+Number(q.clicks||0).toLocaleString()+'</td><td>'+Number(q.imps||0).toLocaleString()+'</td><td>'+((Number(q.ctr||0))*100).toFixed(2)+'%</td><td>'+Number(q.position||0).toFixed(1)+'</td></tr>';}).join('')+'</tbody></table></div></details>'
     : '<div style="margin-top:8px;color:#5f6368">表示できるクエリはありません。</div>';
-  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}h2{margin:0 0 8px;color:#0b8043}.tag{display:inline-block;padding:4px 10px;border-radius:14px;background:#e6f4ea;color:#137333;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;text-align:center}.sec{margin-top:16px;border-top:1px solid #dadce0;padding-top:12px}.p{background:#fff8e1;border-left:4px solid #fbbc04;padding:10px;margin:7px 0}.reason{white-space:pre-wrap;background:#eef5ff;padding:12px;border-radius:8px}.prompt{white-space:pre-wrap;background:#f1f3f4;padding:12px;border-radius:8px;font-size:12px;max-height:300px;overflow:auto}.btn{display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:9px 14px;border-radius:6px;font-weight:700;margin-right:8px;border:0;cursor:pointer}.source-ok{background:#e6f4ea;color:#137333;padding:10px;border-radius:8px}.source-ng{background:#fef7e0;color:#7a4d00;padding:10px;border-radius:8px}.link-candidate{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;margin:8px 0;font-size:13px}.link-candidate a{color:#1a73e8;word-break:break-all}.query-details{margin-top:10px;border:1px solid #dadce0;border-radius:8px;background:#fff}.query-details summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#1a73e8}.query-table-wrap{max-height:260px;overflow:auto;border-top:1px solid #dadce0}.query-table{width:100%;border-collapse:collapse;font-size:12px}.query-table th,.query-table td{padding:7px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap}.query-table th:first-child,.query-table td:first-child{text-align:left;white-space:normal;min-width:220px}.query-table thead th{position:sticky;top:0;background:#f8f9fa}textarea{width:100%;height:150px;box-sizing:border-box;padding:10px;margin-top:8px;font-family:monospace}</style></head><body>'+ 
+  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}h2{margin:0 0 8px;color:#0b8043}.tag{display:inline-block;padding:4px 10px;border-radius:14px;background:#e6f4ea;color:#137333;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;text-align:center}.sec{margin-top:16px;border-top:1px solid #dadce0;padding-top:12px}.p{background:#fff8e1;border-left:4px solid #fbbc04;padding:10px;margin:7px 0}.reason{white-space:pre-wrap;background:#eef5ff;padding:12px;border-radius:8px}.prompt{white-space:pre-wrap;background:#f1f3f4;padding:12px;border-radius:8px;font-size:12px;max-height:300px;overflow:auto}.btn{display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:9px 14px;border-radius:6px;font-weight:700;margin-right:8px;border:0;cursor:pointer}.source-ok{background:#e6f4ea;color:#137333;padding:10px;border-radius:8px}.source-ng{background:#fef7e0;color:#7a4d00;padding:10px;border-radius:8px}.link-candidate{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;margin:8px 0;font-size:13px}.link-candidate a{color:#1a73e8;word-break:break-all}.query-details{margin-top:10px;border:1px solid #dadce0;border-radius:8px;background:#fff}.query-details summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#1a73e8}.query-table-wrap{max-height:260px;overflow:auto;border-top:1px solid #dadce0}.query-table{width:100%;border-collapse:collapse;font-size:12px}.query-table th,.query-table td{padding:7px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap}.query-table th:first-child,.query-table td:first-child{text-align:left;white-space:normal;min-width:220px}.query-table thead th{position:sticky;top:0;background:#f8f9fa}textarea{width:100%;height:150px;box-sizing:border-box;padding:10px;margin-top:8px;font-family:monospace}.writerBox{background:#e6f4ea;border:1px solid #b7dfc2;border-radius:8px;padding:14px}.writerBox textarea{height:220px;background:#fff;border:1px solid #c8d5cb;border-radius:6px;resize:vertical}.registerStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:7px;font-weight:700;white-space:pre-wrap}.registerStatus.busy{display:block;background:#eef5ff;color:#174ea6}.registerStatus.ok{display:block;background:#e6f4ea;color:#137333}.registerStatus.error{display:block;background:#fce8e6;color:#b3261e}.miniSpinner{display:inline-block;width:14px;height:14px;margin-right:8px;border:2px solid #c7d7f7;border-top-color:#1a73e8;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}button:disabled{opacity:.65;cursor:default}</style></head><body>'+ 
     '<h2>改善ナビ</h2><span class="tag">'+esc(kind)+'</span><h3>'+esc(title)+'</h3><div>'+esc(rank)+' ／ '+esc(work)+'</div>'+ 
     '<div class="grid"><div class="card"><b>クリック</b><br>'+clicks.toLocaleString()+'</div><div class="card"><b>表示回数</b><br>'+imps.toLocaleString()+'</div><div class="card"><b>CTR</b><br>'+(ctr*100).toFixed(1)+'%</div><div class="card"><b>順位</b><br>'+pos.toFixed(1)+'</div></div>'+ 
     '<div class="sec"><b>Search Console最新クエリ</b>'+queryStatusHtml+queryListHtml+'</div>'+ 
@@ -6056,10 +6056,10 @@ function sbmShowImprovementNaviDialog_(a, kind, reason) {
     '<div class="sec"><b>改善ポイント</b>'+advice.map(function(x){return '<div class="p">'+esc(x)+'</div>';}).join('')+'</div>'+ 
     '<div class="sec"><b>内部リンク候補（'+internalLinkCandidates.length+'件）</b><p style="color:#5f6368;font-size:13px">記事DBとSearch Console上位クエリから抽出しています。推奨アンカー・関連クエリ・関連度を確認してからAIへ送信します。</p>'+sbmInternalLinkCandidatesHtml_(internalLinkCandidates)+'</div>'+ 
     '<div class="sec"><b>作業時間の目安</b><p>'+(kind.indexOf('即効性')>=0?'約15～20分':'約20分')+'</p></div>'+ 
-    '<div class="sec"><b>AIでリライトするための依頼文</b><div class="prompt" id="prompt">'+esc(prompt)+'</div><button class="btn" onclick="copyPrompt()">依頼文をコピー</button></div>'+ 
+    '<div class="sec"><b>aWriterへの改善依頼文</b><div class="prompt" id="prompt">'+esc(prompt)+'</div><button class="btn" onclick="copyPrompt()">aWriter依頼文をコピー</button></div>'+ 
     '<div class="sec"><a class="btn" href="'+esc(url)+'" target="_blank">記事を開く</a></div>'+ 
-    '<div class="sec" style="background:#e6f4ea;border:1px solid #b7dfc2;border-radius:8px;padding:14px"><b>記事の修正が完了したら、改善結果を登録してください。</b><p style="margin:6px 0 10px;color:#5f6368">Claudeの回答末尾にあるSIMS向けJSONを貼り付けて登録します。</p><button class="btn" style="background:#0b8043" onclick="registerFeedback()">✅ 改善完了を登録</button></div>'+ 
-    '<script>var meta='+JSON.stringify(meta).replace(/</g,'\\u003c')+';function copyPrompt(){var t=document.getElementById("prompt").innerText;navigator.clipboard.writeText(t).then(function(){alert("コピーしました")})}function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return;}document.getElementById("prompt").innerText=r.prompt;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）";}).sbmAnalyzePastedArticleSource(el.value,meta)}function registerFeedback(){google.script.run.withFailureHandler(function(e){alert((e&&e.message)||String(e));}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenImprovementFeedbackDialog();}</script></body></html>';
+    '<div class="sec writerBox"><b>aWriterの回答を登録</b><p style="margin:6px 0 8px;color:#5f6368">aWriterの回答全文、または回答末尾のSIMS向けJSONを貼り付けてください。内容の解析・照合はSIMS Managerが内部で行います。</p><textarea id="writerResponse" placeholder="ここへaWriterの回答を貼り付けます"></textarea><br><button id="registerFeedbackBtn" class="btn" style="background:#0b8043;margin-top:10px" onclick="registerFeedback()">✅ 改善結果を登録</button><div id="registerStatus" class="registerStatus"></div></div>'+ 
+    '<script>var meta='+JSON.stringify(meta).replace(/</g,'\\u003c')+';function copyPrompt(){var t=document.getElementById("prompt").innerText;navigator.clipboard.writeText(t).then(function(){alert("aWriter依頼文をコピーしました")})}function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return;}document.getElementById("prompt").innerText=r.prompt;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）";}).sbmAnalyzePastedArticleSource(el.value,meta)}function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return;}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善結果を登録しています。記事管理・改善履歴・モニター情報を更新しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return;}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.textContent="✓ 登録しました";document.getElementById("writerResponse").disabled=true;}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録";}).sbmRegisterImprovementFeedbackRaw_(raw,meta.articleId,meta.url);}</script></body></html>';
   try {
     var rawSheet = ss.getSheetByName(SBM_SHEETS.RAW_DATA);
     if (originalSheet) {
@@ -6083,6 +6083,40 @@ function sbmShowImprovementNaviDialog_(a, kind, reason) {
  * SIMS Feedback Protocol (Forward Compatible)
  * Claude等が返したJSONを貼り付け、記事DB・改善履歴・モニター状態へ反映します。
  */
+
+/**
+ * Product v5.21.8
+ * 改善ナビ内の貼付欄からaWriter回答を直接登録する。
+ * 解析・正規化・対象記事照合は内部で行い、利用者へ中間確認を要求しない。
+ */
+function sbmRegisterImprovementFeedbackRaw_(raw, expectedArticleId, expectedArticleUrl) {
+  try {
+    var data = sbmNormalizeImprovementFeedback_(raw);
+    var article = sbmFindArticleDbByIdentity_(data.article_id, data.article_url);
+    if (!article) {
+      return {ok:false,message:'記事DBに対象記事が見つかりません。aWriter回答のArticleIDまたはURLを確認してください。'};
+    }
+
+    var actualId = String(article['ArticleID'] || data.article_id || '').trim();
+    var actualUrl = String(article['記事URL'] || data.article_url || '').trim();
+    var expectedId = String(expectedArticleId || '').trim();
+    var expectedUrl = String(expectedArticleUrl || '').trim();
+
+    if (expectedId && actualId && expectedId !== actualId) {
+      return {ok:false,message:'現在開いている記事とaWriter回答のArticleIDが一致しません。誤登録防止のため登録を中止しました。'};
+    }
+    if (expectedUrl && actualUrl && sbmNormalizeUrl_(expectedUrl) !== sbmNormalizeUrl_(actualUrl)) {
+      return {ok:false,message:'現在開いている記事とaWriter回答のURLが一致しません。誤登録防止のため登録を中止しました。'};
+    }
+
+    data.article_id = actualId;
+    data.article_url = actualUrl;
+    return sbmRegisterImprovementFeedback(data);
+  } catch (e) {
+    return {ok:false,message:String(e && e.message || e)};
+  }
+}
+
 function sbmOpenImprovementFeedbackDialog() {
   var context = sbmSelectedArticleContext_();
   var selected = context ? ('選択中：' + (context.articleTitle || context.articleUrl || '記事')) : '記事を選択していない場合も、JSON内のArticleIDまたはURLから照合します。';
@@ -6091,8 +6125,8 @@ function sbmOpenImprovementFeedbackDialog() {
     'textarea{width:100%;height:260px;box-sizing:border-box;font-family:monospace;font-size:12px;padding:10px;border:1px solid #dadce0;border-radius:6px}'+
     '.note{background:#eef5ff;border-radius:8px;padding:10px;margin:10px 0}.error{color:#b3261e;white-space:pre-wrap}.preview{display:none;background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:12px;margin-top:12px;white-space:pre-wrap}'+
     'button{border:0;border-radius:6px;padding:9px 14px;margin:10px 6px 0 0;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:white}.success{background:#0b8043;color:white}.secondary{background:#f1f3f4;color:#202124}.registerStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:7px;background:#eef5ff;color:#174ea6;font-weight:700}.registerStatus.busy{display:block}.miniSpinner{display:inline-block;width:14px;height:14px;margin-right:8px;border:2px solid #c7d7f7;border-top-color:#1a73e8;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}button:disabled{opacity:.65;cursor:default}</style></head><body>'+
-    '<h2>改善結果を登録</h2><div class="note">'+sbmEscapeHtml_(selected)+'<br>AIの回答末尾にある <b>SIMS_FEEDBACK_V1以降のJSON</b>を、そのまま貼り付けてください。未知の追加項目が含まれていても登録できます。</div>'+
-    '<textarea id="json" placeholder="ここへSIMS改善結果のJSONを貼り付けます"></textarea><br>'+
+    '<h2>改善結果を登録</h2><div class="note">'+sbmEscapeHtml_(selected)+'<br>aWriterの回答末尾にある <b>SIMS_FEEDBACK_V1以降のJSON</b>を、そのまま貼り付けてください。未知の追加項目が含まれていても登録できます。</div>'+
+    '<textarea id="json" placeholder="ここへaWriterのSIMS改善結果JSONを貼り付けます"></textarea><br>'+
     '<button class="primary" onclick="analyze()">内容を解析</button><button class="secondary" onclick="google.script.host.close()">キャンセル</button>'+
     '<div id="error" class="error"></div><div id="preview" class="preview"></div><button id="register" class="success" style="display:none" onclick="registerData()">この内容で登録</button><div id="registerStatus" class="registerStatus"></div>'+
     '<script>var normalized=null;function analyze(){document.getElementById("error").textContent="";document.getElementById("preview").style.display="none";document.getElementById("register").style.display="none";google.script.run.withSuccessHandler(function(r){if(!r.ok){document.getElementById("error").textContent=r.message;return;}normalized=r.data;document.getElementById("preview").textContent=r.preview;document.getElementById("preview").style.display="block";document.getElementById("register").style.display="inline-block";}).withFailureHandler(function(e){document.getElementById("error").textContent=e.message||String(e);}).sbmAnalyzeImprovementFeedback(document.getElementById("json").value);}function registerData(){if(!normalized)return;var b=document.getElementById("register"),st=document.getElementById("registerStatus");document.getElementById("error").textContent="";b.disabled=true;b.textContent="登録中...";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善結果を登録しています。記事管理・改善履歴・Personal Knowledgeを更新しています…";google.script.run.withSuccessHandler(function(r){if(!r.ok){document.getElementById("error").textContent=r.message;b.disabled=false;b.textContent="この内容で登録";st.className="registerStatus";st.textContent="";return;}b.textContent="登録しました";st.className="registerStatus busy";st.textContent="登録が完了しました。";alert(r.message);google.script.host.close();}).withFailureHandler(function(e){document.getElementById("error").textContent=e.message||String(e);b.disabled=false;b.textContent="この内容で登録";st.className="registerStatus";st.textContent="";}).sbmRegisterImprovementFeedback(normalized);}</script></body></html>';
@@ -9239,7 +9273,7 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
 
 
 /**
- * Product v5.21.7 Home Snapshot
+ * Product v5.21.8 Home Snapshot
  * Home表示に必要な集計だけをDocumentPropertiesへ保存し、
  * Homeを開く操作では記事管理・改善履歴・改善の推移を再読込しない。
  */
@@ -10611,7 +10645,7 @@ function sbmSortArticlesByUpdated(){ return sbmSortArticleDbBy_('updated','最�
 
 
 /**
- * Product v5.21.7
+ * Product v5.21.8
  * スクリプト差替え直後でもHomeの版表示だけを軽量同期する。
  * Home全体の再集計は行わない。
  */
@@ -10627,7 +10661,7 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v5.21.7: 利用者が「何をするか」でメニューを整理。
+  // Product v5.21.8: 利用者が「何をするか」でメニューを整理。
   // 内部関数名・シート物理名・契約識別子は互換性維持のため変更しない。
   var ui = SpreadsheetApp.getUi();
 
@@ -11534,7 +11568,7 @@ function sbmEffectFinalOutcomeForRow_(effectRow){
 
 
 /**
- * Product v5.21.7
+ * Product v5.21.8
  * STEP 3高速化用。Doctor_Cases を1回だけ読み、ArticleID / URL から最新Caseを引ける索引を作る。
  * 改善の推移更新で記事ごとに Doctor_Cases 全体を再読込しない。
  */
