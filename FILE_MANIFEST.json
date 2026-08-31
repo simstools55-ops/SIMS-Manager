@@ -1,7 +1,7 @@
 {
   "product": "SIMS Manager",
   "internal_product_id": "SIMS-Blog-Manager",
-  "version": "5.21.0",
+  "version": "5.21.1",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -734,7 +734,7 @@
       "sha256": "aa89f37762a5834808bb7f53b783bd35cde8c60a3dd8818033ef892bdcf316c8"
     },
     {
-      "path": "RELEASE-NOTES-v5.21.0.md",
+      "path": "RELEASE-NOTES-v5.21.1.md",
       "size": 1143,
       "sha256": "3cb1f4afa7acaa8572018b44200c60ecc515d88701916cb1720fce20d917c990"
     },
