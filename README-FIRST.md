@@ -1,4 +1,4 @@
-# SIMS Manager v5.21.2
+# SIMS Manager v5.21.3
 
 **最初にこのファイルをお読みください。**  
 このZIPは、SIMS Managerを新しいGoogleスプレッドシートへ導入するための利用者向け製品版です。
@@ -86,11 +86,11 @@ SIMS Managerは、継続利用に必要な利用者固有・サイト固有の�
 
 ## バージョン確認
 
-この配布版の正式バージョンは **v5.21.2** です。
+この配布版の正式バージョンは **v5.21.3** です。
 
 スプレッドシートでは **「SIMS Manager」→「SIMS Managerについて」** から現在のバージョンを確認できます。
 
 ---
 
 SIMS Manager Product Edition  
-Version 5.21.2
+Version 5.21.3
