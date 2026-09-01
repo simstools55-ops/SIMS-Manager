@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.9",
+  "current_version": "5.21.16",
   "release_status": "PATCH",
-  "notes": "Improvement registration performance fix: avoid destructive full schema migration on every aWriter registration; use lightweight schema validation and add phase timing logs. Canonical VERSION synchronized.",
-  "version": "5.21.9",
+  "notes": "aWriter feedback registration performance fix: public HTML-service bridge, fast history append, deferred Home refresh, low-I/O consolidated tracing, and history consistency fixes.",
+  "version": "5.21.16",
   "display_name": "SIMS Manager"
 }

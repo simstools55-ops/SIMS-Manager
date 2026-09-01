@@ -6089,6 +6089,7 @@ function sbmAnalyzeImprovementFeedback(raw) {
   try {
     var data = sbmNormalizeImprovementFeedback_(raw);
     var article = sbmFindArticleDbByIdentity_(data.article_id, data.article_url);
+    sbmFeedbackTrace_('RAW_ARTICLE_FOUND','elapsed=' + ((new Date().getTime()-rawStarted.getTime())/1000).toFixed(2) + 's / found=' + (!!article));
     if (!article) return {ok:false,message:'記事DBに対象記事が見つかりません。ArticleIDまたはURLを確認してください。'};
     var selected = sbmSelectedArticleContext_();
     if (selected && selected.articleId && data.article_id && selected.articleId !== data.article_id) {
@@ -6137,6 +6138,7 @@ function sbmRegisterImprovementFeedback(data, options) {
     data = sbmNormalizeImprovementFeedback_(JSON.stringify(data));
     // v5.19.2: 同一Writer回答の再送は冪等に扱う。タイムアウト後の再試行で履歴を二重作成しない。
     var existing=sbmFindExistingImprovementFeedback_(data);
+    sbmFeedbackTrace_('REGISTER_DUP_CHECK','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / found=' + (!!existing.found));
     if(existing.found){
       return {ok:true,alreadyRegistered:true,historyId:existing.historyId||'',message:'このWriter回答はすでに登録済みです。\n改善履歴の二重登録は行いませんでした。'+(existing.historyId?'\n改善履歴ID：'+existing.historyId:'')};
     }
@@ -6153,6 +6155,7 @@ function sbmRegisterImprovementFeedback(data, options) {
           (data.article_url && urlCol>=0 && sbmNormalizeUrl_(values[i][urlCol])===sbmNormalizeUrl_(data.article_url))) { rowIndex=i; break; }
     }
     if (rowIndex<0) throw new Error('対象記事が記事DBに見つかりません。');
+    sbmFeedbackTrace_('REGISTER_DB_ROW_FOUND','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / row=' + (rowIndex+2));
     var row = values[rowIndex];
     function get(name){var c=headers.indexOf(name);return c>=0?row[c]:'';}
     function set(name,val){var c=headers.indexOf(name);if(c>=0 && val!==undefined && val!==null && val!=='') row[c]=val;}
@@ -6171,6 +6174,7 @@ function sbmRegisterImprovementFeedback(data, options) {
     var historyId = sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
     sbmAppendLegacyImprovementLog_(data,row,before);
     var pkIngest={ok:true,total:0,written:0,candidate:0,accepted:0,rejected:0,error:0};
+    sbmFeedbackTrace_('REGISTER_PK_START','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / candidates=' + ((data.knowledge_candidates||[]).length));
     try{pkIngest=sbmPersonalKnowledgeIngestPayload_(data,'SIMS Writer',{site_id:data.site_id||'',article_id:data.article_id||'',article_url:data.article_url||''});}
     catch(ePkWriter){sbmLog_('PersonalKnowledgeWriter','Warning','Writer candidate ingest failed: '+String(ePkWriter&&ePkWriter.message||ePkWriter));}
     sbmSetSetting_('LastImprovementRegisteredAt',sbmNowText_(),'最後に改善結果を登録した日時');
