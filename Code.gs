@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.8
+ * SIMS Manager Product v5.21.9
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.8';
+const SBM_VERSION = '5.21.9';
 // User-facing naming: Article Doctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -6181,6 +6181,8 @@ function sbmFindExistingImprovementFeedback_(data) {
 
 function sbmRegisterImprovementFeedback(data, options) {
   try {
+    var registerStarted = new Date();
+    var registerLap = function(label){ try{ sbmLog_('FeedbackRegisterTiming','Info',label+': '+((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2)+'s'); }catch(eLog){} };
     options = options || {};
     data = sbmNormalizeImprovementFeedback_(JSON.stringify(data));
     // v5.19.2: 同一Writer回答の再送は冪等に扱う。タイムアウト後の再試行で履歴を二重作成しない。
@@ -6216,11 +6218,15 @@ function sbmRegisterImprovementFeedback(data, options) {
     // タイムアウトで記事DB更新だけ完了していた場合も同じ概要の備考を重複させない。
     if(!oldNote || oldNote.indexOf('：'+data.summary)<0) set('備考',oldNote?oldNote+'\n'+note:note);
     sh.getRange(rowIndex+2,1,1,headers.length).setValues([row]);
+    registerLap('article_db_written');
     var historyId = sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
+    registerLap('history_written');
     sbmAppendLegacyImprovementLog_(data,row,before);
+    registerLap('legacy_log_written');
     var pkIngest={ok:true,total:0,written:0,candidate:0,accepted:0,rejected:0,error:0};
     try{pkIngest=sbmPersonalKnowledgeIngestPayload_(data,'SIMS Writer',{site_id:data.site_id||'',article_id:data.article_id||'',article_url:data.article_url||''});}
     catch(ePkWriter){sbmLog_('PersonalKnowledgeWriter','Warning','Writer candidate ingest failed: '+String(ePkWriter&&ePkWriter.message||ePkWriter));}
+    registerLap('personal_knowledge_done');
     sbmSetSetting_('LastImprovementRegisteredAt',sbmNowText_(),'最後に改善結果を登録した日時');
     try { sbmMarkTodayImprovementCompleted_(data.article_id, data.article_url); } catch (e) {}
     // v5.19.2: 登録待ち時間を短縮。全シート再装飾・全記事の効果再計算は同期処理から外す。
@@ -6229,6 +6235,7 @@ function sbmRegisterImprovementFeedback(data, options) {
     if(!options.deferDerivedRefresh){
       try{sbmRefreshHome_({light:true});}catch(eHomeLight){sbmLog_('FeedbackHomeLightRefresh','Warning',String(eHomeLight));}
     }
+    registerLap('completed');
     return {ok:true,historyId:historyId||'',message:'改善結果を登録しました。\n・記事管理を「モニター中」に更新しました\n・改善履歴を作成しました\n・今日の改善を完了表示にしました\n・'+data.recommended_review_days+'日後を効果確認予定に設定しました'+(pkIngest.total?'\n・Personal Knowledge：候補'+pkIngest.total+'件 / 保存'+pkIngest.written+'件':'')};
   } catch(e) { return {ok:false,message:String(e.message||e)}; }
 }
@@ -6406,6 +6413,50 @@ function sbmMigrateSheetByHeaderNames_(sheetName, newHeaders, aliases) {
 }
 
 
+
+
+/**
+ * Product v5.21.9: 改善結果の1件登録では、履歴/効果シートを毎回全消去・全再構築しない。
+ * ヘッダーが正しい場合は読み取りだけで終了し、互換性修復が必要な場合だけ従来migrationを実行する。
+ */
+function sbmEnsureHistoryAndEffectSchemasFast_() {
+  function ensureOne(sheetName, headers, aliases) {
+    var sh = sbmGetOrCreateSheet_(sheetName);
+    if (sh.getLastRow() < 1) {
+      if (sh.getMaxColumns() < headers.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length - sh.getMaxColumns());
+      sh.getRange(1,1,1,headers.length).setValues([headers]);
+      sh.setFrozenRows(1);
+      return;
+    }
+    var width = Math.min(sh.getLastColumn(), headers.length);
+    var current = sh.getRange(1,1,1,width).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+    var exact = sh.getLastColumn() >= headers.length;
+    if (exact) {
+      for (var i=0;i<headers.length;i++) {
+        if (String(current[i]||'') !== String(headers[i]||'')) { exact=false; break; }
+      }
+    }
+    if (!exact) sbmMigrateSheetByHeaderNames_(sheetName, headers, aliases);
+  }
+  ensureOne(SBM_SHEETS.FEEDBACK_HISTORY, SBM_HISTORY_HEADERS_V2, {
+    '選択':['選択'], '改善日':['改善日','登録日時'], '記事タイトル':['記事タイトル'], '改善概要':['改善概要'], '改善経路':['改善経路','改善方法'], '使用AI':['使用AI'],
+    '1週':['1週','1回目判定'], '2週':['2週','2回目判定'], '3週':['3週','3回目判定'], '4週':['4週','4回目判定'],
+    '最終判定':['最終判定','最新判定','効果判定'], '状態':['状態'], 'モニター状態':['モニター状態'],
+    '1回目測定日時':['1回目測定日時'], '1回目SIMS寸評':['1回目SIMS寸評'], '2回目測定日時':['2回目測定日時'], '2回目SIMS寸評':['2回目SIMS寸評'],
+    '3回目測定日時':['3回目測定日時'], '3回目SIMS寸評':['3回目SIMS寸評'], '4回目測定日時':['4回目測定日時'], '4回目SIMS寸評':['4回目SIMS寸評'],
+    '最終総括':['最終総括'], '最終改善提案':['最終改善提案'], 'ArticleID':['ArticleID'], '記事URL':['記事URL'], '変更箇所':['変更箇所'],
+    '変更後タイトル':['変更後タイトル'], '変更後SEOタイトル':['変更後SEOタイトル'], '変更後メタディスクリプション':['変更後メタディスクリプション'], 'メインクエリ':['メインクエリ'],
+    '改善規模':['改善規模'], '確信度':['確信度'], '期待CTR効果':['期待CTR効果'], '期待クリック効果':['期待クリック効果'], '次のアクション':['次のアクション'],
+    '維持した項目':['維持した項目'], '作業時間（分）':['作業時間（分）'], '注意事項':['注意事項'], '改善前クリック':['改善前クリック'], '改善前表示回数':['改善前表示回数'],
+    '改善前CTR':['改善前CTR'], '改善前順位':['改善前順位'], 'AI改善結果JSON':['AI改善結果JSON'], '改善履歴ID':['改善履歴ID'], '改善計画JSON':['改善計画JSON'],
+    '公開OK変更JSON':['公開OK変更JSON'], '利用者判断変更JSON':['利用者判断変更JSON'], '変更サマリーJSON':['変更サマリーJSON'],
+    'Feedback Format':['Feedback Format','フィードバック形式'], 'Writer Version':['Writer Version','SIMS Writer Version','Writerバージョン']
+  });
+  ensureOne(SBM_SHEETS.EFFECT, SBM_EFFECT_HEADERS_V2, {
+    '改善・治療開始日':['改善・治療開始日','改善実施日','改善日','登録日時'], '経過日数':['経過日数'], '改善経路':['改善経路','改善方法'],
+    '次回測定予定日':['次回測定予定日','測定予定日'], '最新測定日時':['最新測定日時','測定日時']
+  });
+}
 
 function sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,headers){ if(sh.getLastRow()===0 || String(sh.getRange(1,1).getValue())!==headers[0]){sh.clear();sh.getRange(1,1,1,headers.length).setValues([headers]);} }
 
@@ -6758,7 +6809,7 @@ function sbmSetMonitoringLifecycleByHistoryId_(historyId,lifecycle){
 
 function sbmAppendImprovementHistory_(data,row,before,options) {
   options=options||{};
-  sbmEnsureHistoryAndEffectSchemas_();
+  sbmEnsureHistoryAndEffectSchemasFast_();
   var identityId=String(data.article_id||'').trim(), identityUrl=String(data.article_url||'').trim();
   if(!identityId && !identityUrl){
     sbmLog_('AppendImprovementHistory','Error','ArticleID and article URL are both missing. History registration was stopped.');
