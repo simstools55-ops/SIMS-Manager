@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.16",
+  "current_version": "5.21.21",
   "release_status": "PATCH",
-  "notes": "aWriter feedback registration performance fix: public HTML-service bridge, fast history append, deferred Home refresh, low-I/O consolidated tracing, and history consistency fixes.",
-  "version": "5.21.16",
+  "notes": "Menu/UX refinement: fast progress-sheet display formatting, article-list history navigation fix, streamlined menu structure, standard article enrichment batch limit 150.",
+  "version": "5.21.21",
   "display_name": "SIMS Manager"
 }

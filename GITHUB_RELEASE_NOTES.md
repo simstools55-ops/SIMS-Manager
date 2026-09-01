@@ -1,6 +1,6 @@
-# SIMS Manager v5.21.0
+# SIMS Manager v5.21.21
 
-利用者向け名称とメニュー構成を製品版向けに整理しました。内部契約・内部識別子は維持しています。
+メニュー再編、記事一覧の標準フィルター運用、記事情報補完の標準上限150件化、改善の進捗表示の高速化と表示整形、記事一覧からの改善履歴表示を改善しました。
 
 Recommended commit:
-`feat(sbm): consolidate product UI as SIMS Manager (v5.21.0)`
+`fix(sbm): refine navigation and progress views (v5.21.21)`
