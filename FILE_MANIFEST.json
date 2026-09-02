@@ -1,7 +1,7 @@
 {
   "product": "SIMS Manager",
   "internal_product_id": "SIMS-Blog-Manager",
-  "version": "5.21.35",
+  "version": "5.21.36",
   "release_status": "DEV",
   "files": [
     {
@@ -8775,7 +8775,7 @@
       "sha256": "53386f3c15760644ecbf37180a4d52f713a24542d628bd2457608c009c416576"
     },
     {
-      "path": "RELEASE_NOTES_v5.21.35.md",
+      "path": "RELEASE_NOTES_v5.21.36.md",
       "size": 847,
       "sha256": "fc8c41310a240d54405dc7af05d668fd9469bb12a3f08b41fec01d40c54bcc14"
     },

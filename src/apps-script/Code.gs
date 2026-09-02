@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.35
+ * SIMS Manager Product v5.21.36
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.35';
+const SBM_VERSION = '5.21.36';
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -8278,20 +8278,57 @@ function onEdit(e){
   }catch(err2){console.error(err2);}
 }
 
+/**
+ * v5.21.36: 旧表示が残っているときだけ一度自己修復します。
+ * 通常閲覧では従来どおり再計算しないため、表示速度への影響を避けます。
+ */
+function sbmEffectViewNeedsOneTimeRefresh_(sh){
+  if(!sh||sh.getLastRow()<2)return false;
+  var hm=sbmHeaderMap_(sh), n=sh.getLastRow()-1;
+  try{
+    if(hm['測定回数']){
+      var mv=sh.getRange(2,hm['測定回数'],n,1).getDisplayValues();
+      for(var i=0;i<mv.length;i++){
+        var m=String(mv[i][0]||'');
+        if(/\d+回\s*[／\/]\s*\d+回/.test(m))return true;
+      }
+    }
+    if(hm['次回測定予定日']){
+      var dv=sh.getRange(2,hm['次回測定予定日'],n,1).getDisplayValues();
+      for(var j=0;j<dv.length;j++){
+        var d=String(dv[j][0]||'');
+        if(d.indexOf('【測定完了】')>=0)return true;
+      }
+    }
+    if(hm['次のアクション']){
+      var av=sh.getRange(2,hm['次のアクション'],n,1).getDisplayValues();
+      for(var k=0;k<av.length;k++){
+        var a=String(av[k][0]||'');
+        if(a.indexOf('観察終了後の処置を進める')>=0||a.indexOf('4．観察終了後')>=0)return true;
+      }
+    }
+  }catch(ignore){}
+  return false;
+}
+
 function sbmOpenEffectiveness(){
-  // Product v5.21.28: 「見る」と「更新」を分離しつつ、軽量な表示整形と判定色だけを適用。
-  // 日次処理・登録処理で生成済みの改善の推移をそのまま表示し、
-  // 閲覧のたびにDoctor整合・履歴全件読込・再計算・再整形を行わない。
+  // 通常は表示だけ。v5.21.36では旧ラベルが残る既存シートに限り一度だけ再生成し、
+  // v5.21.35導入前に登録済みのaDoctor追加経過観察も新ACTIVEサイクルへ切り替えます。
   sbmMigrateEffectSheetName_();
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
   if(!sh){
-    // 初期導入直後などシートがまだない場合だけ空シートを用意する。
-    // データ生成は日次処理または明示的な更新処理に委ねる。
     sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
     try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}
   }
-  // データ再計算は行わず、一覧として必要な最低限の見栄えだけを軽量に整える。
+  if(sbmEffectViewNeedsOneTimeRefresh_(sh)){
+    try{
+      sbmUpdateEffectivenessCore_(false);
+      sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;
+    }catch(eRefresh){
+      sbmLog_('EffectViewOneTimeRefresh','Warning',String(eRefresh));
+    }
+  }
   try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreViewStyle){}
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
 }
