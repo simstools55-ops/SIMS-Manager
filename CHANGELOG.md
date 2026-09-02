@@ -1,3 +1,10 @@
+# v5.21.39-dev
+
+- aCreator公開登録 (`sbmRegisterCreatorPublicationResponse`) の処理時間を短縮。
+- Creator Direct / Doctor→Creator の両経路で、登録中に `sbmDoctorEnsureMonitoringSync_()` を呼ばないよう変更。
+- 同関数が内部で行っていた全件改善経路同期、`sbmUpdateEffectivenessCore_(false)`、Home再生成を登録トランザクションから分離。
+- 改善履歴と記事管理の保存は従来どおり維持。
+
 # CHANGELOG
 
 ## 5.20.0

@@ -1,4 +1,4 @@
-# SIMS Manager v5.21.37
+# SIMS Manager v5.21.40
 
 **最初にこのファイルをお読みください。**  
 このZIPは、SIMS Managerを新しいGoogleスプレッドシートへ導入するための利用者向け製品版です。
@@ -94,3 +94,16 @@ SIMS Managerは、継続利用に必要な利用者固有・サイト固有の�
 
 SIMS Manager Product Edition  
 Version 5.21.21
+
+
+## v5.21.40-dev
+
+- 日次処理 STEP2 からタイトル/H1/メインクエリの外部補完を分離しました。
+- `sbmEnsureArticleListDisplayCompleteness_()` は日次分析中に実行しません。
+- STEP2 は取得済みGSCデータの記事DB反映、ランク更新、今日の改善候補選定に集中します。
+- 記事情報補完機能そのものは削除せず、日次処理以外から利用できます。
+
+
+## v5.21.39-dev
+- aCreator新規記事登録時の全件モニター同期・改善の推移再生成・Home再生成を除去。
+- 登録1件の確定処理を対象記事・改善履歴・案件状態の保存に限定し、数分停止する問題を修正。

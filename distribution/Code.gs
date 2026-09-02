@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.37
+ * SIMS Manager Product v5.21.40
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.37';
+const SBM_VERSION = '5.21.38';
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -442,10 +442,10 @@ function sbmRunDailyAnalysisStageFromDialog() {
 
     var tMerge2 = new Date();
     var mergeResult = sbmMergeArticleDbDaily_(rows);
-    // v5.21.34: 現行3STEP日次処理でも、H1/記事タイトル取得待ちを実ページから自動修復する。
-    // GSCクエリが返らない低サンプル記事は、取得できたタイトルから推定クエリを表示する。
-    var completenessResult={};
-    try{completenessResult=sbmEnsureArticleListDisplayCompleteness_(20,25)||{};}catch(eCompleteness){sbmLog_('DailyArticleListCompleteness','Warning',String(eCompleteness));}
+    // v5.21.40: 日次STEP2は取得済みGSCデータのDB反映と候補選定だけに限定する。
+    // タイトル/H1/メインクエリ補完は外部HTTP/GSC個別照会を伴うため、日次処理から切り離す。
+    // これにより記事数が多いサイトでもSTEP2が外部応答待ちで360秒上限へ到達するのを防ぐ。
+    var completenessResult={skipped:true,reason:'DEFERRED_FROM_DAILY_STEP2'};
     var step2MergeSec = sbmSecondsSince_(tMerge2);
 
     // RC8 Final: 今日の改善はこの後に全件再選定・再描画するため、旧キューの事前掃除は不要。
@@ -14950,9 +14950,11 @@ function sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId){
   var directId='CREATOR-DIRECT-'+Utilities.formatDate(new Date(),SBM_DEFAULTS.TIMEZONE,'yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().substring(0,6).toUpperCase();
   var publication={format:'SIMS_CREATOR_PUBLICATION_V1',source_mode:'CREATOR_DIRECT',case_id:'',creator_direct_id:directId,site_id:siteId||String(sbmGetSetting_('SiteID','')||''),article_id:articleId,article_url:url,article_title:effectiveTitle||effectiveKeyword,main_keyword:effectiveKeyword,published_at:now,creator_response:o};
   var data={format:'SIMS_FEEDBACK_V2',article_id:articleId,article_url:url,completed_at:now,ai_name:'aCreator',changes:{body:true},new_values:{article_title:effectiveTitle||effectiveKeyword,seo_title:'',description:'',main_query:effectiveKeyword},improvement_type:'new_article',improvement_method:'Creator Direct',confidence:'',expected_effect:{},next_action:'monitor',kept_sections:[],summary:'aCreator単独作成の新記事を公開・SIMS登録',warnings:[],estimated_minutes:0,recommended_review_days:30,public_ok_changes:{body:true},user_decision_changes:[],change_summary:'aCreator新記事公開',writer_version:'',raw_json:JSON.stringify(publication)};
-  try{sbmAppendImprovementHistory_(data,row,before);sbmAppendLegacyImprovementLog_(data,row,before);}catch(eHist){sbmLog_('CreatorDirectHistory','Warning',String(eHist));}
-  try{sbmDoctorEnsureMonitoringSync_(articleId,url);}catch(eSync){sbmLog_('CreatorDirectMonitoringSync','Warning',String(eSync));}
-  try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}try{sbmRefreshHome_({light:true});}catch(ignoreHome){}
+  try{sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});sbmAppendLegacyImprovementLog_(data,row,before);}catch(eHist){sbmLog_('CreatorDirectHistory','Warning',String(eHist));}
+  // v5.21.39: Creator公開登録は対象記事・改善履歴の保存で確定し、改善の推移の全件再生成は遅延する。
+  // ここで全件モニター同期／改善の推移再生成／Home再生成を行うと、
+  // 登録1件のために全シート再計算が走り数分停止するため実行しない。
+  try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}
   return {ok:true,directRegistration:true,creatorDirectId:directId,articleId:articleId,articleUrl:url,monitorDays:30,message:'aCreator単独作成の新記事をSIMSへ登録しました。\nArticleID：'+articleId+'\n記事管理：モニター中\n状態：検索露出待ち\nSearch Consoleで初観測後、同じURLへ実績データを合流します。'};
 }
 
@@ -15015,12 +15017,14 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
     var rowObj=sbmFindArticleDbByIdentity_(articleId,url)||{},row=SBM_HEADERS.ARTICLE_DB.map(function(k){return rowObj[k]!==undefined?rowObj[k]:'';}),before={clicks:0,impressions:0,ctr:0,position:0,title:title||keyword};
     var publication={format:'SIMS_CREATOR_PUBLICATION_V1',case_id:caseId,article_id:articleId,article_url:url,article_title:title||keyword,main_keyword:keyword,published_at:sbmNowText_(),monitor_days:monitorDays,creator_plan:plan};
     var data={format:'SIMS_FEEDBACK_V2',article_id:articleId,article_url:url,completed_at:sbmNowText_(),ai_name:'aCreator',changes:{body:true},new_values:{article_title:title||keyword,seo_title:'',description:'',main_query:keyword},improvement_type:'new_article',improvement_method:'Site Doctor→Creator',confidence:String(doctor&&doctor.diagnosis&&doctor.diagnosis.confidence||''),expected_effect:{},next_action:'monitor',kept_sections:[],summary:'aCreatorで新記事を作成・公開',warnings:[],estimated_minutes:0,recommended_review_days:monitorDays,public_ok_changes:{body:true},user_decision_changes:[],change_summary:'新記事公開',writer_version:'',raw_json:JSON.stringify(publication)};
-    sbmAppendImprovementHistory_(data,row,before);sbmAppendLegacyImprovementLog_(data,row,before);histId=sbmDoctorLatestHistoryIdForArticle_(articleId,url);
+    sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});sbmAppendLegacyImprovementLog_(data,row,before);histId=sbmDoctorLatestHistoryIdForArticle_(articleId,url);
   }
   var review=new Date();review.setDate(review.getDate()+monitorDays);var reviewText=Utilities.formatDate(review,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');
   if(rec.hm['記事ID'])rec.values[rec.hm['記事ID']-1]=articleId;if(rec.hm['記事URL'])rec.values[rec.hm['記事URL']-1]=url;if(rec.hm['記事タイトル'])rec.values[rec.hm['記事タイトル']-1]=title||keyword;if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]='MONITORING';if(rec.hm['状態'])rec.values[rec.hm['状態']-1]='モニター中';if(rec.hm['再診予定日'])rec.values[rec.hm['再診予定日']-1]=reviewText;if(rec.hm['改善履歴ID'])rec.values[rec.hm['改善履歴ID']-1]=histId;if(rec.hm['更新日時'])rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
-  try{sbmDoctorEnsureMonitoringSync_(articleId,url);}catch(eSync){sbmLog_('CreatorMonitoringSync','Warning',String(eSync));}
-  try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}try{sbmRefreshHome_({light:true});}catch(ignoreHome){}
+  // v5.21.39: Creator公開登録は改善履歴の派生再計算も遅延し、保存済み対象行だけで完結させる。
+  // sbmDoctorEnsureMonitoringSync_ は全件の改善経路同期・改善の推移再生成・Home更新まで
+  // 実行するため、Creator登録トランザクション内では呼ばない。
+  try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}
   return {ok:true,caseId:caseId,articleId:articleId,articleUrl:url,monitorDays:monitorDays,reviewDate:reviewText,message:'aCreator新記事の公開を登録しました。\nArticleID：'+articleId+'\n記事管理：モニター中\n再診予定：'+monitorDays+'日後（'+reviewText+'）'};
 }
 function sbmDoctorCompleteSiteDiagnosisCreatorTreatment(caseId,articleUrl,articleTitle){try{return sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle);}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
