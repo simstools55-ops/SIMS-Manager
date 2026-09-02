@@ -1,1 +1,1 @@
-fix: 日次DBマージの性能回帰を撤回して安定書込へ戻す（SIMS Manager v5.21.42）
+fix: 日次STEP2の性能回帰を全面撤回して安定版ロジックへ復帰（SIMS Manager v5.21.43）
