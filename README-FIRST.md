@@ -1,4 +1,4 @@
-# SIMS Manager v5.21.21
+# SIMS Manager v5.21.35
 
 **最初にこのファイルをお読みください。**  
 このZIPは、SIMS Managerを新しいGoogleスプレッドシートへ導入するための利用者向け製品版です。

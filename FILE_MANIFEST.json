@@ -1,7 +1,8 @@
 {
   "product": "SIMS Manager",
   "internal_product_id": "SIMS-Blog-Manager",
-  "version": "5.21.11",
+  "version": "5.21.35",
+  "release_status": "DEV",
   "files": [
     {
       "path": ".git/COMMIT_EDITMSG",
@@ -7325,8 +7326,8 @@
     },
     {
       "path": ".pytest_cache/v/cache/nodeids",
-      "size": 394,
-      "sha256": "ef05cc889b4b8e4a4e571754f8eb3bf1542af7d5bd766ad731c21c0222895938"
+      "size": 1046,
+      "sha256": "5a05b20281666edd60990c508eb15a9d4014aab00ac5fe58109355e66cc1de37"
     },
     {
       "path": "APPLY-INSTRUCTIONS.md",
@@ -7374,19 +7375,29 @@
       "sha256": "b2c46c0781c8c9d7c3b295d84d0a555e1d219899308d2269ebd457de079e0221"
     },
     {
+      "path": "COMMIT_MESSAGE.txt",
+      "size": 102,
+      "sha256": "49d410ff8a962a924318a2264e6cfbf84e5b9c15a14968a3b746c52839188293"
+    },
+    {
       "path": "Code.base.gs",
       "size": 1054754,
       "sha256": "65dfa71671f92a8e16b1b7df9c2ca136d0138df871495716a2e823d71b8784ed"
     },
     {
       "path": "Code.gs",
-      "size": 1072045,
-      "sha256": "7d3e3a2d8dc47293e3ef1a0d902294158850c0f540e9b63baed6e591a2d084c3"
+      "size": 1117417,
+      "sha256": "d8490481dcc786f17e58ba97f2b787c0ff349f6b3500a6da4168925dfa0e5d0f"
+    },
+    {
+      "path": "FILE_MANIFEST.txt",
+      "size": 135578,
+      "sha256": "b778db5a433ce6007c8c60572c265b311eda5cfea6ef10cda04e57b2760fa79c"
     },
     {
       "path": "GITHUB_RELEASE_NOTES.md",
-      "size": 249,
-      "sha256": "e52e55bc9468157cb59514e43c7745b685b91b95c2c0093406d573cbc056c332"
+      "size": 332,
+      "sha256": "c78954475753e2f99da64d7c094930661c824ad9d0e79407a4fcd2d13af6f309"
     },
     {
       "path": "HOW_TO_PUBLISH.md",
@@ -7415,8 +7426,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "size": 397,
-      "sha256": "e1db766d198086247df37f973e4c17706fdfcb9fd02fd214341fd4ec16564bcc"
+      "size": 339,
+      "sha256": "19b095b05a6ccc8fa066964a6eb12a7e40c0eadfd41d7ba115cc7f57074014ef"
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -7655,8 +7666,8 @@
     },
     {
       "path": "README-FIRST.md",
-      "size": 4887,
-      "sha256": "f797fa247e6bc4789bf34f85aedeb67344409202083454af350395b056490c9d"
+      "size": 4890,
+      "sha256": "af20283adb4484905ddf881032c5cb9f625b24d0e118c7187045b1ee71793a22"
     },
     {
       "path": "README-RC8.17.txt",
@@ -8694,14 +8705,79 @@
       "sha256": "549c337e9c62f7bda01288034ea5113b1b297a4f01f9ba0725d708dfc316d713"
     },
     {
+      "path": "RELEASE_NOTES_v5.21.11.md",
+      "size": 655,
+      "sha256": "95d611ce34851e7fb0cb6e030ac7aad47d8e0b5d970f182ccff4071dfce77215"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.12.md",
+      "size": 579,
+      "sha256": "cde603e75bbb91c9534cd11a941f48b2c470567d01152980f8c9b456363f3f15"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.13.md",
+      "size": 920,
+      "sha256": "be257e3aafff3ce4fc94bf6a5cba539c64e6f5576f120130e925d3a04a47206c"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.14.md",
+      "size": 363,
+      "sha256": "6f69f0b399589e9ca0090ea23475a35d14947718043b47707ffc678f918cafc7"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.15.md",
+      "size": 530,
+      "sha256": "12d4cd73cc22545174a6549214b90beb64ce17502c6f9a6ccb9bc69bd78d75a4"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.16.md",
+      "size": 1448,
+      "sha256": "21a2c3d08e4851bbf4e70c711a4e40c77b64eb4454b5fc704c883cd257f3b206"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.17.md",
+      "size": 1086,
+      "sha256": "0719ab9fe1395379d92bf50a781f08a993d1ee381e076d5e68961f2fd9ebf2d0"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.18.md",
+      "size": 895,
+      "sha256": "d7054ecf6938cb535390ac7c5c918291570b21817948b0f3c04c053753da2c54"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.19.md",
+      "size": 615,
+      "sha256": "9df24de3448b86f7e804b1802911d255d564336c1a11e866e2ba8e70a137857a"
+    },
+    {
       "path": "RELEASE_NOTES_v5.21.2.md",
       "size": 511,
       "sha256": "d0b108da5389fdd77f0fbeed188bd074bbe88e2acf11b1b57734aa7d7330b4fc"
     },
     {
+      "path": "RELEASE_NOTES_v5.21.20.md",
+      "size": 731,
+      "sha256": "06d43199398dc75fa8cc3529c1f2a50f3cb8ceb274e6f140fab5512ab6d13f7f"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.21.md",
+      "size": 418,
+      "sha256": "2d5f8881bc5095008548e89d366ee8540b162eb20fb0cf407bb2acd07234bacb"
+    },
+    {
       "path": "RELEASE_NOTES_v5.21.3.md",
       "size": 937,
       "sha256": "93762750c778a5b4a791d9bdf66e707e92e7ba8c0fa0694db78b46f325937247"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.34.md",
+      "size": 1022,
+      "sha256": "53386f3c15760644ecbf37180a4d52f713a24542d628bd2457608c009c416576"
+    },
+    {
+      "path": "RELEASE_NOTES_v5.21.35.md",
+      "size": 847,
+      "sha256": "fc8c41310a240d54405dc7af05d668fd9469bb12a3f08b41fec01d40c54bcc14"
     },
     {
       "path": "RELEASE_NOTES_v5.21.4.md",
@@ -8864,6 +8940,11 @@
       "sha256": "fd1f89870a9020873c9ca6cb86bf193fccb0cb6fb0a6e960111fdb274243142f"
     },
     {
+      "path": "SHA256SUMS.txt",
+      "size": 317804,
+      "sha256": "d0cc7468e98fd02654fca3609d5eb6fdde2bef0e3b2610037c0ab2369628e0d9"
+    },
+    {
       "path": "SHARED_VERSION",
       "size": 6,
       "sha256": "76120c1f2c4311c2154c22a6b58e00e411e0ebe76afae0daf608d9196c61f114"
@@ -8896,7 +8977,7 @@
     {
       "path": "VERSION",
       "size": 8,
-      "sha256": "b844c7192746e3be07dece8ee39fd73b00125d1b0da733c18e9745dc2583add1"
+      "sha256": "1ed5dbfb76a9a31e2a7bfb95f1fbd8b8d4ca74ef8b0cc40e5ea487ba938accef"
     },
     {
       "path": "VERSION-AUDIT-v5.10.1.md",
@@ -8925,8 +9006,8 @@
     },
     {
       "path": "apps-script/Code.gs",
-      "size": 1072045,
-      "sha256": "7d3e3a2d8dc47293e3ef1a0d902294158850c0f540e9b63baed6e591a2d084c3"
+      "size": 1117417,
+      "sha256": "d8490481dcc786f17e58ba97f2b787c0ff349f6b3500a6da4168925dfa0e5d0f"
     },
     {
       "path": "apps-script/appsscript.json",
@@ -9245,13 +9326,13 @@
     },
     {
       "path": "distribution/Code.gs",
-      "size": 1054754,
-      "sha256": "ec54e2cd37683da88b3c5ab1eae37945bef22654d3fdb61cc4214a1cd98a4652"
+      "size": 1117417,
+      "sha256": "d8490481dcc786f17e58ba97f2b787c0ff349f6b3500a6da4168925dfa0e5d0f"
     },
     {
       "path": "distribution/README-FIRST.md",
-      "size": 4887,
-      "sha256": "7f3fa0549a08e1a474d37f60f96720369f62e1987f161307e9ffcd14c209e02c"
+      "size": 4890,
+      "sha256": "af20283adb4484905ddf881032c5cb9f625b24d0e118c7187045b1ee71793a22"
     },
     {
       "path": "distribution/SIMS-Blog-Manager-template-Product5.0-Official.xlsx",
@@ -12065,13 +12146,13 @@
     },
     {
       "path": "src/apps-script/Code.gs",
-      "size": 1072045,
-      "sha256": "7d3e3a2d8dc47293e3ef1a0d902294158850c0f540e9b63baed6e591a2d084c3"
+      "size": 1117417,
+      "sha256": "d8490481dcc786f17e58ba97f2b787c0ff349f6b3500a6da4168925dfa0e5d0f"
     },
     {
       "path": "src/distribution/Code.gs",
-      "size": 1054754,
-      "sha256": "65dfa71671f92a8e16b1b7df9c2ca136d0138df871495716a2e823d71b8784ed"
+      "size": 1117417,
+      "sha256": "d8490481dcc786f17e58ba97f2b787c0ff349f6b3500a6da4168925dfa0e5d0f"
     },
     {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",
@@ -12217,6 +12298,16 @@
       "path": "tests/__pycache__/conftest.cpython-313-pytest-9.0.2.pyc",
       "size": 667,
       "sha256": "aec1158b2cdfb8d569accf0bd3d44b433b7e6603247a2a80e9bce32bac5bc466"
+    },
+    {
+      "path": "tests/__pycache__/test_v5_21_11_feedback_transport.cpython-313-pytest-9.0.2.pyc",
+      "size": 5711,
+      "sha256": "fc22369c5a14c16536b1e54651b36afa4e232cb8a0deaea82bf5d46646de2ba8"
+    },
+    {
+      "path": "tests/__pycache__/test_v5_21_12_public_feedback_bridge.cpython-313-pytest-9.0.2.pyc",
+      "size": 4777,
+      "sha256": "5fdb9f80246a754187281f1a6d6c900a45b543c7b697cc541d46e55511eca416"
     },
     {
       "path": "tests/__pycache__/test_v5_21_9_feedback_registration_performance.cpython-313-pytest-9.0.2.pyc",
@@ -13557,6 +13648,21 @@
       "path": "tests/test_rc8_final_freeze_contract.py",
       "size": 2181,
       "sha256": "cd68305071e5b8d9a9722174c8bd6df96a244cf7db8107b79363f815628a89dd"
+    },
+    {
+      "path": "tests/test_v5_21_11_feedback_transport.py",
+      "size": 847,
+      "sha256": "f0fe2adcbe0da4c1357d8e9d9693a5b2ec44a22457e032a4ef78baca4d08d416"
+    },
+    {
+      "path": "tests/test_v5_21_12_public_feedback_bridge.py",
+      "size": 789,
+      "sha256": "89f9c1c9703f32822d2f86e9555d60a2e166c063185d4e69b85e4214f7e582b1"
+    },
+    {
+      "path": "tests/test_v5_21_14_feedback_post_registration.py",
+      "size": 595,
+      "sha256": "46e83325d1fee8c020f523db98f08e958a8af050225dd3d782d94844604dfb46"
     },
     {
       "path": "tests/test_v5_21_9_feedback_registration_performance.py",

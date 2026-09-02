@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.21",
-  "release_status": "PATCH",
-  "notes": "Menu/UX refinement: fast progress-sheet display formatting, article-list history navigation fix, streamlined menu structure, standard article enrichment batch limit 150.",
-  "version": "5.21.21",
+  "current_version": "5.21.35",
+  "release_status": "DEV",
+  "notes": "Dev: refresh additional aDoctor monitoring immediately in Improvement Progress, display weekly progress as n週／N週, and unify observation-completion terminology.",
+  "version": "5.21.35",
   "display_name": "SIMS Manager"
 }
