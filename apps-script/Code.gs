@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.36
+ * SIMS Manager Product v5.21.37
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.36';
+const SBM_VERSION = '5.21.37';
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -8027,7 +8027,7 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     var ctrDelta=currentCtr-beforeCtr,posDelta=beforePos-currentPos,clickDelta=currentClicks-beforeClicks,impDelta=currentImp-beforeImp;
     var state=sbmHistoryMeasurementState_(h), due=sbmNextWeeklyDueDate_(h), dueReached=!!due&&now>=due;
     var currentJudgment=sbmJudgeEffectV2_(ctrDelta,posDelta,clickDelta,impDelta,elapsed,beforeClicks,beforeImp,currentImp);
-    if(dueReached&&!state.complete){
+    if(!options.viewOnly&&dueReached&&!state.complete){
       var rec=sbmRecordWeeklyMeasurement_(h,currentJudgment,now,{beforeCtr:beforeCtr,currentCtr:currentCtr,beforePos:beforePos,currentPos:currentPos,beforeClicks:beforeClicks,currentClicks:currentClicks,beforeImp:beforeImp,currentImp:currentImp,ctrDelta:ctrDelta,posDelta:posDelta,clickDelta:clickDelta,impDelta:impDelta},measurementContext);
       if(rec.recorded){recordedCount++;if(rec.count<=4){h[(rec.count)+'回目測定日時']=now;h[(rec.count)+'週']=currentJudgment;h[(rec.count)+'回目SIMS寸評']=rec.observation;}else if(rec.extraJson){h['追加測定JSON']=rec.extraJson;}h['最終判定']=sbmFinalImprovementOutcome_(currentJudgment,rec.complete);h['状態']=rec.complete?'完了':'モニター中';h['モニター状態']=rec.complete?(h['最終判定']==='改善完了'?'COMPLETED':'REVIEW_REQUIRED'):'ACTIVE';}
       state=sbmHistoryMeasurementState_(h);due=sbmNextWeeklyDueDate_(h);
@@ -8279,8 +8279,8 @@ function onEdit(e){
 }
 
 /**
- * v5.21.36: 旧表示が残っているときだけ一度自己修復します。
- * 通常閲覧では従来どおり再計算しないため、表示速度への影響を避けます。
+ * v5.21.37: 旧表示が残っているときだけ、軽量な表示データ再生成で一度自己修復します。
+ * 通常閲覧では再計算せず、旧表示検出時も重い修復・全書式更新・測定記録は行いません。
  */
 function sbmEffectViewNeedsOneTimeRefresh_(sh){
   if(!sh||sh.getLastRow()<2)return false;
@@ -8312,7 +8312,7 @@ function sbmEffectViewNeedsOneTimeRefresh_(sh){
 }
 
 function sbmOpenEffectiveness(){
-  // 通常は表示だけ。v5.21.36では旧ラベルが残る既存シートに限り一度だけ再生成し、
+  // 通常は表示だけ。v5.21.37では旧ラベルが残る既存シートに限り軽量再生成し、
   // v5.21.35導入前に登録済みのaDoctor追加経過観察も新ACTIVEサイクルへ切り替えます。
   sbmMigrateEffectSheetName_();
   var ss=SpreadsheetApp.getActiveSpreadsheet();
@@ -8323,7 +8323,10 @@ function sbmOpenEffectiveness(){
   }
   if(sbmEffectViewNeedsOneTimeRefresh_(sh)){
     try{
-      sbmUpdateEffectivenessCore_(false);
+      // v5.21.37: 閲覧時の自己修復は「表示データの再生成」だけに限定する。
+      // Doctor整合・ライフサイクル全件修復・全書式再設定・autoResizeRows・flushは実行しない。
+      // また、閲覧操作で週次測定を記録しない。
+      sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});
       sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;
     }catch(eRefresh){
       sbmLog_('EffectViewOneTimeRefresh','Warning',String(eRefresh));
