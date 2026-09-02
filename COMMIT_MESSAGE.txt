@@ -1,1 +1,1 @@
-perf: 日次STEP2の全件再描画と重複I/Oを削減（SIMS Manager v5.21.41）
+fix: 日次DBマージの性能回帰を撤回して安定書込へ戻す（SIMS Manager v5.21.42）

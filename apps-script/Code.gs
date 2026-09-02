@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.41
+ * SIMS Manager Product v5.21.42
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.41';
+const SBM_VERSION = '5.21.42';
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -2420,44 +2420,37 @@ function sbmRepairFalseMassMissingFlags_() {
 
 
 function sbmWriteArticleDb_(rows, options) {
+  // v5.21.42: v5.21.41 dailyFast書込の実運用回帰を撤回。v5.21.40の実測安定方式へ戻す。
   options = options || {};
   var sh = sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
+  // 値だけを書き換え、既存の列幅・行高・色・入力規則は保持する。
   var previousLastRow = Math.max(sh.getLastRow(), 1);
-  sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
-  var normalized = sbmNormalizeRowsToWidth_(sbmSortArticleDbRows_(rows || []), SBM_HEADERS.ARTICLE_DB.length);
-
-  if (options.dailyFast === true) {
-    // v5.21.41: 日次更新では全消去・全背景色再描画を行わない。
-    // 値は1回のsetValuesで更新し、件数が減った場合だけ余剰行の内容を消す。
-    if (normalized.length) sh.getRange(2, 1, normalized.length, SBM_HEADERS.ARTICLE_DB.length).setValues(normalized);
-    var newLastRow = normalized.length + 1;
-    if (previousLastRow > newLastRow) {
-      sh.getRange(newLastRow + 1, 1, previousLastRow - newLastRow, SBM_HEADERS.ARTICLE_DB.length).clearContent();
-    }
-    // 新規追加行にだけチェックボックスと数値書式を補う。既存429件等の再装飾はしない。
-    if (newLastRow > previousLastRow) {
-      var hmFast = sbmHeaderMap_(sh);
-      var startRow = Math.max(2, previousLastRow + 1);
-      var addRows = newLastRow - startRow + 1;
-      if (addRows > 0) {
-        try { if (hmFast['選択']) sh.getRange(startRow,hmFast['選択'],addRows,1).insertCheckboxes().setValue(false); } catch(eCheck) {}
-        try { if (hmFast['クリック数']) sh.getRange(startRow,hmFast['クリック数'],addRows,1).setNumberFormat('#,##0'); } catch(eFmt1) {}
-        try { if (hmFast['表示回数']) sh.getRange(startRow,hmFast['表示回数'],addRows,1).setNumberFormat('#,##0'); } catch(eFmt2) {}
-        try { if (hmFast['CTR']) sh.getRange(startRow,hmFast['CTR'],addRows,1).setNumberFormat('0.0%'); } catch(eFmt3) {}
-        try { if (hmFast['掲載順位']) sh.getRange(startRow,hmFast['掲載順位'],addRows,1).setNumberFormat('0.0'); } catch(eFmt4) {}
-      }
-    }
-    return;
-  }
-
-  // 手動メンテナンス／初期構築では従来どおり完全再構築を許可する。
   var clearRows = previousLastRow;
   var clearCols = Math.max(sh.getLastColumn(), SBM_HEADERS.ARTICLE_DB.length);
   sh.getRange(1, 1, clearRows, clearCols).clearContent();
   sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
+  var normalized = sbmNormalizeRowsToWidth_(sbmSortArticleDbRows_(rows || []), SBM_HEADERS.ARTICLE_DB.length);
   if (normalized.length) sh.getRange(2, 1, normalized.length, SBM_HEADERS.ARTICLE_DB.length).setValues(normalized);
+
+  if (options.dailyFast === true) {
+    // 日次処理では全件装飾をしない。必要な数値書式・状態色だけを一括更新。
+    var hm = sbmHeaderMap_(sh), n = normalized.length;
+    if (n) {
+      if (hm['クリック数']) sh.getRange(2,hm['クリック数'],n,1).setNumberFormat('#,##0');
+      if (hm['表示回数']) sh.getRange(2,hm['表示回数'],n,1).setNumberFormat('#,##0');
+      if (hm['CTR']) sh.getRange(2,hm['CTR'],n,1).setNumberFormat('0.0%');
+      if (hm['掲載順位']) sh.getRange(2,hm['掲載順位'],n,1).setNumberFormat('0.0');
+      try { sbmApplyArticleDbRowColors_(sh); } catch(eColor) {}
+      // 記事数が増えた場合だけ、新しい末尾行へ選択チェックを補います。
+      if (n + 1 > previousLastRow && hm['選択']) {
+        try { sh.getRange(Math.max(2,previousLastRow+1),hm['選択'],(n+1)-Math.max(2,previousLastRow+1)+1,1).insertCheckboxes().setValue(false); } catch(eCheck) {}
+      }
+    }
+    return;
+  }
   sbmStyleArticleDbSheet_(sh);
 }
+
 
 function sbmSupplementArticleDbMetaManual(silent) {
   silent = silent === true;
