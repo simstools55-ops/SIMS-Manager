@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.38",
+  "current_version": "5.21.41",
   "release_status": "DEV",
-  "notes": "Dev: self-heal stale Improvement Progress display on first open, preserving latest aDoctor ACTIVE monitoring cycle and unified weekly/observation terminology.",
-  "version": "5.21.40",
+  "notes": "Dev: daily STEP2 performance optimization by removing full clear/repaint, reusing in-memory Article DB rows, and batching Settings writes.",
+  "version": "5.21.41",
   "display_name": "SIMS Manager"
 }

@@ -1,4 +1,4 @@
-# SIMS Manager v5.21.40
+# SIMS Manager v5.21.41
 
 **最初にこのファイルをお読みください。**  
 このZIPは、SIMS Managerを新しいGoogleスプレッドシートへ導入するための利用者向け製品版です。
@@ -86,14 +86,23 @@ SIMS Managerは、継続利用に必要な利用者固有・サイト固有の�
 
 ## バージョン確認
 
-この配布版の正式バージョンは **v5.21.21** です。
+この開発正本の現在バージョンは **v5.21.41-dev** です。
 
 スプレッドシートでは **「SIMS Manager」→「SIMS Managerについて」** から現在のバージョンを確認できます。
 
 ---
 
-SIMS Manager Product Edition  
-Version 5.21.21
+SIMS Manager Product Edition (DEV)  
+Version 5.21.41
+
+
+## v5.21.41-dev
+
+- 日次処理STEP2の速度改善。記事DBの `clearContent()` → 全件再書込を廃止し、既存表を保持したまま1回の一括書込へ変更しました。
+- 日次処理では記事DB全行の背景色再描画・全行再書式設定を行いません。新規追加行だけ必要な書式とチェックボックスを補います。
+- DBマージ直後のメモリ上データを「今日の改善」候補選定へ直接渡し、記事DBの再読込を省略しました。
+- 日次処理中のSettings個別読込・個別書込を一括処理へ変更しました。
+- `SBM_VERSION`、VERSION、PRODUCT_IDENTITY、README、リリースノート、CHANGELOG、ZIP名をv5.21.41へ同期しました。
 
 
 ## v5.21.40-dev

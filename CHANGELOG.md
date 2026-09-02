@@ -1,3 +1,11 @@
+# Changelog
+
+## 5.21.41-dev - 2026-09-03
+- 日次STEP2の全消去・全背景色再描画を廃止。
+- 記事DBマージ結果を候補選定へメモリ渡しし、再読込を削減。
+- Settingsの多数の個別I/Oを一括更新へ変更。
+- バージョン表示・メタデータ一式を5.21.41へ同期。
+
 # v5.21.39-dev
 
 - aCreator公開登録 (`sbmRegisterCreatorPublicationResponse`) の処理時間を短縮。

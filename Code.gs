@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v5.21.40
+ * SIMS Manager Product v5.21.41
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.21.38';
+const SBM_VERSION = '5.21.41';
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -450,15 +450,17 @@ function sbmRunDailyAnalysisStageFromDialog() {
 
     // RC8 Final: 今日の改善はこの後に全件再選定・再描画するため、旧キューの事前掃除は不要。
     var tSelect2 = new Date();
-    var candidates = sbmSelectTodayRecommendations_();
+    var candidates = sbmSelectTodayRecommendations_(mergeResult.objects || []);
     var step2SelectSec = sbmSecondsSince_(tSelect2);
     var candidateCount = candidates.length;
     var displayedCount = 0;
     var step2TodayWriteSec = 0, step2WorkStateSec = 0;
     if (candidateCount > 0) {
       displayedCount = Math.min(sbmGetTodayDisplayCount_(), candidateCount);
-      sbmSetSetting_('TodayRecommendationJson', JSON.stringify(candidates), '日次処理で作成した今日の改善候補');
-      sbmSetSetting_('DisplayedImprovementCount', String(displayedCount), '今日の改善の初期表示件数');
+      sbmSetSettingsBatch_([
+        {key:'TodayRecommendationJson',value:JSON.stringify(candidates),desc:'日次処理で作成した今日の改善候補'},
+        {key:'DisplayedImprovementCount',value:String(displayedCount),desc:'今日の改善の初期表示件数'}
+      ]);
       var tTodayWrite2 = new Date();
       sbmWriteTodayRecommendations_(candidates, displayedCount);
       var step2TodayWriteSec = sbmSecondsSince_(tTodayWrite2);
@@ -467,23 +469,30 @@ function sbmRunDailyAnalysisStageFromDialog() {
       var step2WorkStateSec = sbmSecondsSince_(tWorkState2);
     } else {
       sbmBuildTodayImprovementSheet_();
-      sbmSetSetting_('TodayRecommendationJson', '[]', '日次処理で改善候補なし');
-      sbmSetSetting_('DisplayedImprovementCount', '0', '今日の改善の表示件数');
+      sbmSetSettingsBatch_([
+        {key:'TodayRecommendationJson',value:'[]',desc:'日次処理で改善候補なし'},
+        {key:'DisplayedImprovementCount',value:'0',desc:'今日の改善の表示件数'}
+      ]);
     }
 
-    sbmSetSetting_('LastArticleDbRows', String(mergeResult.total || 0), '記事DBの直近行数');
-    sbmSetSetting_('LastArticleDbExcluded', String(sbmGetSetting_('DailyFetchStageExcluded', 0) || 0), '日次処理で除外したURL数');
-    sbmSetSetting_('LastArticleDbRawRows', String(sbmGetSetting_('DailyFetchStageRawRows', 0) || 0), '日次処理のSearch Console元行数');
+    var dailySettings = sbmGetSettingsMap_();
+    sbmSetSettingsBatch_([
+      {key:'LastArticleDbRows',value:String(mergeResult.total || 0),desc:'記事DBの直近行数'},
+      {key:'LastArticleDbExcluded',value:String(dailySettings.DailyFetchStageExcluded || 0),desc:'日次処理で除外したURL数'},
+      {key:'LastArticleDbRawRows',value:String(dailySettings.DailyFetchStageRawRows || 0),desc:'日次処理のSearch Console元行数'}
+    ]);
     var analysisElapsed = sbmSecondsSince_(started);
-    var flowStarted = Number(sbmGetSetting_('DailyStepFlowStartedEpoch', started.getTime()) || started.getTime());
+    var flowStarted = Number(dailySettings.DailyStepFlowStartedEpoch || started.getTime());
     var totalElapsed = Math.max(0, Math.round((Date.now() - flowStarted) / 1000));
-    var fetchElapsed = Number(sbmGetSetting_('DailyFetchStageElapsedSeconds', 0) || 0);
-    var rawRows = Number(sbmGetSetting_('DailyFetchStageRawRows', 0) || 0);
-    var validRows = Number(sbmGetSetting_('DailyFetchStageValidRows', rows.length) || rows.length);
-    var excluded = Number(sbmGetSetting_('DailyFetchStageExcluded', 0) || 0);
+    var fetchElapsed = Number(dailySettings.DailyFetchStageElapsedSeconds || 0);
+    var rawRows = Number(dailySettings.DailyFetchStageRawRows || 0);
+    var validRows = Number(dailySettings.DailyFetchStageValidRows || rows.length);
+    var excluded = Number(dailySettings.DailyFetchStageExcluded || 0);
 
-    sbmSetSetting_('DailyAnalysisStageElapsedSeconds', String(analysisElapsed), '日次処理STEP2の所要時間（秒）');
-    sbmSetSetting_('DailyTotalElapsedSeconds', String(totalElapsed), '日次処理全体の所要時間（秒）');
+    sbmSetSettingsBatch_([
+      {key:'DailyAnalysisStageElapsedSeconds',value:String(analysisElapsed),desc:'日次処理STEP2の所要時間（秒）'},
+      {key:'DailyTotalElapsedSeconds',value:String(totalElapsed),desc:'日次処理全体の所要時間（秒）'}
+    ]);
     var step2TimingSummary = '進捗保存 ' + Number(step2ProgressSec||0) + '秒 / 作業読込 ' + Number(step2ReadWorkSec||0) +
       '秒 / DBマージ ' + Number(step2MergeSec||0) + '秒 / 候補選定 ' + Number(step2SelectSec||0) +
       '秒 / 今日シート ' + Number(step2TodayWriteSec||0) + '秒 / 作業状態 ' + Number(step2WorkStateSec||0) + '秒';
@@ -2020,16 +2029,18 @@ function sbmUpdateHomeArticleDbCounts_(rows, skipRefresh) {
     if (work.indexOf('今日の改善') >= 0) counts.today++;
     else if (work.indexOf('モニター中') >= 0) counts.monitoring++;
   });
-  sbmSetSetting_('TotalArticleCount', total, '記事DBの総記事数');
-  sbmSetSetting_('AceArticleCount', counts.ace, '記事DBのエース記事数');
-  sbmSetSetting_('GrowthArticleCount', counts.growth, '記事DBの成長記事数');
-  sbmSetSetting_('StableArticleCount', counts.stable, '記事DBの安定記事数');
-  sbmSetSetting_('NurtureArticleCount', counts.nurture, '記事DBの育成記事数');
-  sbmSetSetting_('LowArticleCount', counts.low, '記事DBの低迷記事数');
-  sbmSetSetting_('TodayWorkCount', counts.today, '今日の改善件数');
-  sbmSetSetting_('InProgressArticleCount', 0, '旧改善中記事数（RC8 Finalではモニター中へ統合）');
-  sbmSetSetting_('MonitoringArticleCount', counts.monitoring, 'モニター中記事数');
-  sbmSetSetting_('LastArticleDbRows', total, '記事DBの直近行数');
+  sbmSetSettingsBatch_([
+    {key:'TotalArticleCount',value:total,desc:'記事DBの総記事数'},
+    {key:'AceArticleCount',value:counts.ace,desc:'記事DBのエース記事数'},
+    {key:'GrowthArticleCount',value:counts.growth,desc:'記事DBの成長記事数'},
+    {key:'StableArticleCount',value:counts.stable,desc:'記事DBの安定記事数'},
+    {key:'NurtureArticleCount',value:counts.nurture,desc:'記事DBの育成記事数'},
+    {key:'LowArticleCount',value:counts.low,desc:'記事DBの低迷記事数'},
+    {key:'TodayWorkCount',value:counts.today,desc:'今日の改善件数'},
+    {key:'InProgressArticleCount',value:0,desc:'旧改善中記事数（RC8 Finalではモニター中へ統合）'},
+    {key:'MonitoringArticleCount',value:counts.monitoring,desc:'モニター中記事数'},
+    {key:'LastArticleDbRows',value:total,desc:'記事DBの直近行数'}
+  ]);
   if (!skipRefresh) sbmRefreshHome_();
 }
 
@@ -2358,6 +2369,7 @@ function sbmMergeArticleDbDaily_(freshRows) {
   });
   sbmStorePreviousRankCounts_(existingRows);
   sbmApplyArticleRanksToObjectMap_(map);
+  var objectRows = Object.keys(map).map(function(url){ return map[url]; });
   var rows = Object.keys(map).map(function(url){
     var r = map[url];
     var displayUrl=r['記事URL']||url||'';
@@ -2374,11 +2386,13 @@ function sbmMergeArticleDbDaily_(freshRows) {
   });
   sbmWriteArticleDb_(rows,{dailyFast:true});
   sbmUpdateHomeArticleDbCounts_(rows,true);
-  sbmSetSetting_('LastDailyUpdatedCount', updated, '日次更新で数値を更新した既存記事数');
-  sbmSetSetting_('LastDailyAddedCount', added, '日次更新で追加した新規記事数');
-  sbmSetSetting_('LastDailyStale30Count', stale30, '30日以上データ未取得の記事数');
-  sbmSetSetting_('LastDailyNeedsReviewCount', needsReview, '要確認記事数');
-  return {updated:updated, added:added, total:rows.length, stale30:stale30, needsReview:needsReview};
+  sbmSetSettingsBatch_([
+    {key:'LastDailyUpdatedCount',value:updated,desc:'日次更新で数値を更新した既存記事数'},
+    {key:'LastDailyAddedCount',value:added,desc:'日次更新で追加した新規記事数'},
+    {key:'LastDailyStale30Count',value:stale30,desc:'30日以上データ未取得の記事数'},
+    {key:'LastDailyNeedsReviewCount',value:needsReview,desc:'要確認記事数'}
+  ]);
+  return {updated:updated, added:added, total:rows.length, stale30:stale30, needsReview:needsReview, objects:objectRows};
 }
 
 
@@ -2408,34 +2422,42 @@ function sbmRepairFalseMassMissingFlags_() {
 function sbmWriteArticleDb_(rows, options) {
   options = options || {};
   var sh = sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
-  // 値だけを書き換え、既存の列幅・行高・色・入力規則は保持する。
   var previousLastRow = Math.max(sh.getLastRow(), 1);
-  var clearRows = previousLastRow;
-  var clearCols = Math.max(sh.getLastColumn(), SBM_HEADERS.ARTICLE_DB.length);
-  sh.getRange(1, 1, clearRows, clearCols).clearContent();
   sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
   var normalized = sbmNormalizeRowsToWidth_(sbmSortArticleDbRows_(rows || []), SBM_HEADERS.ARTICLE_DB.length);
-  if (normalized.length) sh.getRange(2, 1, normalized.length, SBM_HEADERS.ARTICLE_DB.length).setValues(normalized);
 
   if (options.dailyFast === true) {
-    // 日次処理では全件装飾をしない。必要な数値書式・状態色だけを一括更新。
-    var hm = sbmHeaderMap_(sh), n = normalized.length;
-    if (n) {
-      if (hm['クリック数']) sh.getRange(2,hm['クリック数'],n,1).setNumberFormat('#,##0');
-      if (hm['表示回数']) sh.getRange(2,hm['表示回数'],n,1).setNumberFormat('#,##0');
-      if (hm['CTR']) sh.getRange(2,hm['CTR'],n,1).setNumberFormat('0.0%');
-      if (hm['掲載順位']) sh.getRange(2,hm['掲載順位'],n,1).setNumberFormat('0.0');
-      try { sbmApplyArticleDbRowColors_(sh); } catch(eColor) {}
-      // 記事数が増えた場合だけ、新しい末尾行へ選択チェックを補います。
-      if (n + 1 > previousLastRow && hm['選択']) {
-        try { sh.getRange(Math.max(2,previousLastRow+1),hm['選択'],(n+1)-Math.max(2,previousLastRow+1)+1,1).insertCheckboxes().setValue(false); } catch(eCheck) {}
+    // v5.21.41: 日次更新では全消去・全背景色再描画を行わない。
+    // 値は1回のsetValuesで更新し、件数が減った場合だけ余剰行の内容を消す。
+    if (normalized.length) sh.getRange(2, 1, normalized.length, SBM_HEADERS.ARTICLE_DB.length).setValues(normalized);
+    var newLastRow = normalized.length + 1;
+    if (previousLastRow > newLastRow) {
+      sh.getRange(newLastRow + 1, 1, previousLastRow - newLastRow, SBM_HEADERS.ARTICLE_DB.length).clearContent();
+    }
+    // 新規追加行にだけチェックボックスと数値書式を補う。既存429件等の再装飾はしない。
+    if (newLastRow > previousLastRow) {
+      var hmFast = sbmHeaderMap_(sh);
+      var startRow = Math.max(2, previousLastRow + 1);
+      var addRows = newLastRow - startRow + 1;
+      if (addRows > 0) {
+        try { if (hmFast['選択']) sh.getRange(startRow,hmFast['選択'],addRows,1).insertCheckboxes().setValue(false); } catch(eCheck) {}
+        try { if (hmFast['クリック数']) sh.getRange(startRow,hmFast['クリック数'],addRows,1).setNumberFormat('#,##0'); } catch(eFmt1) {}
+        try { if (hmFast['表示回数']) sh.getRange(startRow,hmFast['表示回数'],addRows,1).setNumberFormat('#,##0'); } catch(eFmt2) {}
+        try { if (hmFast['CTR']) sh.getRange(startRow,hmFast['CTR'],addRows,1).setNumberFormat('0.0%'); } catch(eFmt3) {}
+        try { if (hmFast['掲載順位']) sh.getRange(startRow,hmFast['掲載順位'],addRows,1).setNumberFormat('0.0'); } catch(eFmt4) {}
       }
     }
     return;
   }
+
+  // 手動メンテナンス／初期構築では従来どおり完全再構築を許可する。
+  var clearRows = previousLastRow;
+  var clearCols = Math.max(sh.getLastColumn(), SBM_HEADERS.ARTICLE_DB.length);
+  sh.getRange(1, 1, clearRows, clearCols).clearContent();
+  sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
+  if (normalized.length) sh.getRange(2, 1, normalized.length, SBM_HEADERS.ARTICLE_DB.length).setValues(normalized);
   sbmStyleArticleDbSheet_(sh);
 }
-
 
 function sbmSupplementArticleDbMetaManual(silent) {
   silent = silent === true;
@@ -4476,11 +4498,13 @@ function sbmRankCountsFromRows_(rows) {
 
 function sbmStorePreviousRankCounts_(rows) {
   var c = sbmRankCountsFromRows_(rows || []);
-  sbmSetSetting_('PrevAceCount', c['🏆 エース'], '前回日次更新時のエース件数');
-  sbmSetSetting_('PrevStableCount', c['✅ 安定'], '前回日次更新時の安定件数');
-  sbmSetSetting_('PrevGrowthCount', c['📈 成長'], '前回日次更新時の成長件数');
-  sbmSetSetting_('PrevNurtureCount', c['🌱 育成'], '前回日次更新時の育成件数');
-  sbmSetSetting_('PrevLowCount', c['⚠️ 低迷'], '前回日次更新時の低迷件数');
+  sbmSetSettingsBatch_([
+    {key:'PrevAceCount',value:c['🏆 エース'],desc:'前回日次更新時のエース件数'},
+    {key:'PrevStableCount',value:c['✅ 安定'],desc:'前回日次更新時の安定件数'},
+    {key:'PrevGrowthCount',value:c['📈 成長'],desc:'前回日次更新時の成長件数'},
+    {key:'PrevNurtureCount',value:c['🌱 育成'],desc:'前回日次更新時の育成件数'},
+    {key:'PrevLowCount',value:c['⚠️ 低迷'],desc:'前回日次更新時の低迷件数'}
+  ]);
 }
 
 function sbmSignedDelta_(n) { n = Number(n || 0); return n > 0 ? '+' + n : String(n); }
@@ -5585,8 +5609,8 @@ function sbmBuildTodayRecommendationsManual() {
   }
 }
 
-function sbmSelectTodayRecommendations_() {
-  var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || [];
+function sbmSelectTodayRecommendations_(sourceRows) {
+  var rows = (sourceRows && sourceRows.length) ? sourceRows : (sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || []);
   var minImps = Math.max(20, sbmNumber_(sbmGetSetting_('MinImpressions', 50)) || 50);
   var pool = rows.map(function(r){
     var url = String(r['記事URL'] || '').trim();

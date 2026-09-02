@@ -1,6 +1,5 @@
-# SIMS Manager v5.21.21
+# SIMS Manager v5.21.41-dev
 
-メニュー再編、記事一覧の標準フィルター運用、記事情報補完の標準上限150件化、改善の進捗表示の高速化と表示整形、記事一覧からの改善履歴表示を改善しました。
+日次処理STEP2のSheet I/Oを重点的に軽量化しました。429記事規模で残っていた全消去・全背景再描画・記事DB再読込・Settings個別I/Oを削減しています。
 
-Recommended commit:
-`fix(sbm): refine navigation and progress views (v5.21.21)`
+正式リリースではなく、実運用試験用DEV正本です。
