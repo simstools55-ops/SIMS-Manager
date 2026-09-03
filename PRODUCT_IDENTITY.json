@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.45",
-  "release_status": "DEV",
-  "notes": "Dev: daily processing redesigned as narrow-column diff updates, resumable initial Article DB build, and safe STEP2 continuation; unchanged static fields and full row repaint are excluded from daily execution.",
-  "version": "5.21.45",
+  "current_version": "5.21.21",
+  "release_status": "PATCH",
+  "notes": "Menu/UX refinement: fast progress-sheet display formatting, article-list history navigation fix, streamlined menu structure, standard article enrichment batch limit 150.",
+  "version": "5.22.0",
   "display_name": "SIMS Manager"
 }

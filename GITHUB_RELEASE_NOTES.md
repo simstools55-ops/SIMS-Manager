@@ -1,9 +1,13 @@
-# SIMS Manager v5.21.45-dev
+# GitHub Release Notes
 
-日次処理の責務を見直し、通常日次では変更する必要がある列だけを更新します。記事DBがない初回は100記事単位で分割構築し、途中状態を保存して継続できます。STEP2も安全時間を超えそうな場合は次の実行へ継続します。
+## v5.22.0
+- Repository baseline updated from validated v5.21.63 runtime.
+- No new runtime feature change in the version rollover.
+- All synchronized Code.gs copies updated to v5.22.0.
 
-# SIMS Manager v5.21.42-dev
+# SIMS Manager v5.21.21
 
-日次処理STEP2のSheet I/Oを重点的に軽量化しました。429記事規模で残っていた全消去・全背景再描画・記事DB再読込・Settings個別I/Oを削減しています。
+メニュー再編、記事一覧の標準フィルター運用、記事情報補完の標準上限150件化、改善の進捗表示の高速化と表示整形、記事一覧からの改善履歴表示を改善しました。
 
-正式リリースではなく、実運用試験用DEV正本です。
+Recommended commit:
+`fix(sbm): refine navigation and progress views (v5.21.21)`
