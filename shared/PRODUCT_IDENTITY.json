@@ -5,7 +5,8 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "5.21.43",
-  "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "SBM compatibility snapshot based on Shared v3.5.0 with the v3.5.3 personal-knowledge separation boundary backported. Machine contracts remain on the existing SBM Shared baseline."
+  "current_version": "5.21.45",
+  "release_status": "DEV",
+  "notes": "Dev: daily processing redesigned as narrow-column diff updates, resumable initial Article DB build, and safe STEP2 continuation; unchanged static fields and full row repaint are excluded from daily execution.",
+  "version": "5.21.45"
 }

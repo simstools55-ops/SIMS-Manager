@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.43",
+  "current_version": "5.21.45",
   "release_status": "DEV",
-  "notes": "Dev: daily STEP2 performance optimization by removing full clear/repaint, reusing in-memory Article DB rows, and batching Settings writes.",
-  "version": "5.21.43",
+  "notes": "Dev: daily processing redesigned as narrow-column diff updates, resumable initial Article DB build, and safe STEP2 continuation; unchanged static fields and full row repaint are excluded from daily execution.",
+  "version": "5.21.45",
   "display_name": "SIMS Manager"
 }

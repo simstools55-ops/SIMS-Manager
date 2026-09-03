@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v5.21.0  
+> **Current product:** SIMS Manager v5.21.45  
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `5.21.0`
+- Product Version: `5.21.45`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `PATCH`
-- Main feature: Home表示を軽量化し、起動時の日次処理状態を日付境界で正しく更新。Personal Knowledgeの一時指標フィルターも精密化します。
+- Main feature: 日次処理を差分更新・初回分割構築・途中継続へ再設計し、変更のない静的記事情報と全件装飾の毎日再書込を廃止します。
 
-> Current release: SIMS Manager Product v5.21.0
+> Current release: SIMS Manager Product v5.21.45
 
 ## Product 5.6.12 — 改善推移指標・Homeモニター表示
 
