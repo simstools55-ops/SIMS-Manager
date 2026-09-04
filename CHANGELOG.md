@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v5.22.3 - 2026-09-05
+
+- Repository正本をDrive上の検証済みv5.22.3 runtimeへ同期。
+- v5.22.1: aDoctor WAIT / MONITORを新規モニターとして開始可能にし、効果測定を7日目・14日目・21日目・28日目（1週間ごと）へ標準化。
+- v5.22.2: Creator新規記事登録で公開URLを必須化し、「SIMS Managerについて」を情報ダイアログ化。
+- v5.22.3: 「SIMS Managerについて」の二重「閉じる」ボタンを解消。
+- VERSION / PRODUCT_IDENTITY / README / distribution / Code.gs各配置をv5.22.3へ同期。
+
 ## 5.20.0
 - Personal Knowledgeの過剰なCTR/クリック拒否を修正。
 - Home表示時の重いDoctor/効果測定再計算を省略。

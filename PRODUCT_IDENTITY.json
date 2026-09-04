@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.21.21",
+  "current_version": "5.22.3",
   "release_status": "PATCH",
-  "notes": "Menu/UX refinement: fast progress-sheet display formatting, article-list history navigation fix, streamlined menu structure, standard article enrichment batch limit 150.",
-  "version": "5.22.0",
+  "notes": "Operational test patch: standardize WAIT/MONITOR measurement schedule, require published URL for Creator registration, and remove duplicate close button in About dialog.",
+  "version": "5.22.3",
   "display_name": "SIMS Manager"
 }

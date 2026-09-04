@@ -1,10 +1,13 @@
 /**
- * SIMS Manager Product v5.22.0
+ * SIMS Manager Product v5.22.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '5.22.0';
+const SBM_VERSION = '5.22.3';
+// v5.22.3: 「SIMS Managerについて」ダイアログ内の独自「閉じる」ボタンを削除し、共通ダイアログフッターの「閉じる」だけに統一。二重表示を解消。
+// v5.22.2: Creator新規記事登録で公開URLを最上部の必須項目へ変更し、公開済みURLがない記事は登録不可と明示。あわせて「SIMS Managerについて」を情報ダイアログ化し、SIMS = SEO Improvement Master System、製品概要、効果測定基準を表示。
+// v5.22.1: aDoctorのWAIT/MONITORを、既存の改善履歴がない記事でも新規モニターとして開始可能に修正。Doctorの約30日指定は目安として保持し、SBMの効果測定は7日目・14日目・21日目・28日目の4回を標準とする。
 // v5.22.0: 実運用試験の管理番号更新。v5.21.63で確認済みのaDoctor精密診断同期処理とDoctor Case保存軽量化を新しい管理基準版へ繰り上げ。機能ロジックの追加変更は行わない。
 // v5.21.63: aDoctor精密診断はv5.21.60の同期処理構造を維持し、Doctor Case保存時に全Doctor管理シートを毎回再装飾していた不要処理だけを廃止。v5.21.61のダイアログ先行非同期化および保留中v5.21.62のEvidence取得方式変更は取り込まない。
 // v5.21.60: 改善履歴の旧データ互換修復。改善日列に残るISO日時文字列だけをDate型へ軽量変換し、yyyy/M/d表示へ統一。既存Date型・空欄・解釈不能値は変更せず、全体再計算や並べ替えは行わない。
@@ -6566,9 +6569,24 @@ function sbmApplyProduct5OfficialMeasurementSchema_() {
 }
 
 function sbmShowVersionInfo() {
-  sbmAlert_(
-    'SIMS Manager バージョン',
-    '製品バージョン：v' + SBM_VERSION + '\n効果測定：7日・14日・21日・28日の4回測定'
+  var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
+    + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65;background:#fff}'
+    + 'h2{margin:0 0 14px;color:#0b8043;font-size:22px}.card{border:1px solid #dadce0;border-radius:10px;padding:15px 17px;margin:12px 0;background:#f8fbf8}'
+    + '.label{font-size:12px;color:#5f6368;font-weight:700;margin-top:10px}.value{font-size:15px;font-weight:700}.desc{font-size:13px;color:#3c4043}'
+    + '.sims{font-size:18px;color:#0b8043;font-weight:700}.note{font-size:12px;color:#5f6368;margin-top:12px}'
+        + '</style></head><body>'
+    + '<h2>SIMS Managerについて</h2>'
+    + '<div class="card"><div class="sims">SIMS = SEO Improvement Master System</div>'
+    + '<div class="desc">ブログ記事の診断・改善・効果測定・履歴管理を一連の流れで支援するSIMSシリーズの管理中核です。</div></div>'
+    + '<div class="label">製品名</div><div class="value">SIMS Manager</div>'
+    + '<div class="label">製品バージョン</div><div class="value">v' + SBM_VERSION + '</div>'
+    + '<div class="label">主な役割</div><div class="desc">記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。</div>'
+    + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Doctorの「約30日後」などの指定は再診時期の目安として扱います。</div>'
+    + '<div class="note">SIMS Managerは、個別のAI診断結果だけでなく、その後の実施・観察・再判定までを一元管理します。</div>'
+        + '</body></html>';
+  SpreadsheetApp.getUi().showModalDialog(
+    sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(580).setHeight(520)),
+    'SIMS Managerについて'
   );
 }
 
@@ -12372,7 +12390,7 @@ function sbmDoctorApplyExtendedMonitoringToSelectedEffect_(effectSheet,effectRow
 
   var caseId=String(doctorCase['CaseID']||doctor.case_id||'').trim();
   var days=sbmDoctorMonitoringReviewDays_(doctor,{reviewDate:String(doctorCase['再診予定日']||'').trim()});
-  var targetCount=Math.max(1,Math.min(26,Math.ceil(days/7)));
+  var targetCount=4; // v5.22.1: SBM標準は7日目・14日目・21日目・28日目の4回測定。Doctor指定日数は再診目安として別保持。
   var reviewDate=String(doctorCase['再診予定日']||doctor.next_review_date||'').trim()||sbmDateAfterDaysText_(days);
   var linkedHistoryId=String(doctorCase['改善履歴ID']||'').trim();
   var linkedHistory=linkedHistoryId?sbmDoctorFindHistoryByIdForSelectedEffect_(linkedHistoryId):null;
@@ -12392,8 +12410,8 @@ function sbmDoctorApplyExtendedMonitoringToSelectedEffect_(effectSheet,effectRow
       '選択':false,'改善日':sbmNowText_(),'記事タイトル':title,'改善概要':summary,'改善経路':'Doctor再診→経過観察','使用AI':'aDoctor',
       '1週':'測定待ち','2週':'測定待ち','3週':'測定待ち','4週':'測定待ち','最終判定':'経過観察中','状態':'モニター中','モニター状態':'ACTIVE',
       'ArticleID':articleId,'記事URL':url,'変更箇所':'変更なし（WAIT / MONITOR）','変更後タイトル':title,'変更後SEOタイトル':'','変更後メタディスクリプション':'',
-      'メインクエリ':mainQuery,'改善規模':'WAIT','確信度':confidence,'期待CTR効果':'','期待クリック効果':'','次のアクション':'aDoctor指定期間まで追加観察',
-      '維持した項目':'記事本文・タイトル・URLを維持','作業時間（分）':0,'注意事項':'aDoctor再診で追加観察 '+days+'日（'+targetCount+'週予定）',
+      'メインクエリ':mainQuery,'改善規模':'WAIT','確信度':confidence,'期待CTR効果':'','期待クリック効果':'','次のアクション':'7日目・14日目・21日目・28日目に効果測定し、28日目で再判定',
+      '維持した項目':'記事本文・タイトル・URLを維持','作業時間（分）':0,'注意事項':'aDoctorの約'+days+'日指定は再診目安。SBMでは7日目・14日目・21日目・28日目の4回測定を実施',
       '改善前クリック':clicks,'改善前表示回数':impressions,'改善前CTR':ctr,'改善前順位':position,'AI改善結果JSON':JSON.stringify(doctor),'改善履歴ID':historyId,
       '改善計画JSON':JSON.stringify(plan),'公開OK変更JSON':'{}','利用者判断変更JSON':'[]','変更サマリーJSON':'{}','Feedback Format':String(doctor.format||''),'Writer Version':'',
       '観察予定回数':targetCount,'追加測定JSON':'[]'
@@ -12543,7 +12561,7 @@ function sbmDoctorReconcileExtendedMonitoringCases_(){
     var history=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
     var linked=history.find(function(h){return hid&&String(h['改善履歴ID']||'').trim()===hid;});
     var linkedIsMonitor=!!linked &&
-      String(linked['改善経路']||linked['改善方法']||'').trim()==='Doctor再診→経過観察' &&
+      ['Doctor再診→経過観察','Doctor診断→経過観察'].indexOf(String(linked['改善経路']||linked['改善方法']||'').trim())>=0 &&
       sbmMonitoringLifecycleFromHistory_(linked)==='ACTIVE';
     if(linkedIsMonitor)return;
 
@@ -12600,7 +12618,7 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
         sameCase=rawIdem.indexOf('"case_id"')>=0 && rawIdem.indexOf(caseId)>=0;
       }
       var sameArticle=(articleId&&String(idem['ArticleID']||'').trim()===articleId)||(url&&sbmNormalizeUrl_(idem['記事URL']||'')===sbmNormalizeUrl_(url));
-      if(sameCase&&sameArticle&&String(idem['改善経路']||'').trim()==='Doctor再診→経過観察'){
+      if(sameCase&&sameArticle&&['Doctor再診→経過観察','Doctor診断→経過観察'].indexOf(String(idem['改善経路']||'').trim())>=0){
         var existingId=String(idem['改善履歴ID']||'').trim();
         if(existingId){
           try{sbmSetArticleWorkStateByIdentity_(articleId,url,'👀 モニター中');}catch(ignoreIdemState){}
@@ -12618,22 +12636,23 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
     }
   }
 
-  // 元の改善履歴はArticleID / URLで検索する。旧版履歴には改善履歴IDが無い場合があるため、IDを必須条件にしない。
+  // v5.22.1: 既存の改善履歴があれば再診後サイクルとして参照する。
+  // 改善履歴が無い場合はエラーにせず、aDoctor精密診断を起点とする新規モニターを開始する。
   var prior=null;
   for(var j=historyRows.length-1;j>=0;j--){
     var h=historyRows[j]||{};
     var same=(articleId&&String(h['ArticleID']||'').trim()===articleId)||(url&&sbmNormalizeUrl_(h['記事URL']||'')===sbmNormalizeUrl_(url));
     if(same){prior=h;break;}
   }
-  if(!prior)throw new Error('追加経過観察の元となる改善履歴が見つかりません。');
 
-  // 再診後のWAIT/MONITORは旧サイクルを延命せず、新しい観察サイクルとして開始する。
+  // WAIT/MONITORは旧サイクルを延命せず、新しい観察サイクルとして開始する。
   // これにより旧履歴が改善履歴IDを持たない場合でも互換性を保ち、改善の推移では最新ACTIVEサイクルを表示できる。
   var days=sbmDoctorMonitoringReviewDays_(doctor,n);
-  var targetCount=Math.max(1,Math.min(26,Math.ceil(days/7)));
+  var targetCount=4; // v5.22.1: SBM標準は7日目・14日目・21日目・28日目の4回測定。Doctor指定日数は再診目安として別保持。
   var newHistoryId=sbmNextImprovementHistoryIdFast_();
-  var title=String(article.title||db['記事タイトル']||db['H1タイトル']||prior['記事タイトル']||'').trim();
-  var mainQuery=String(article.main_query||db['メインクエリ']||prior['メインクエリ']||'').trim();
+  var monitorRoute=prior?'Doctor再診→経過観察':'Doctor診断→経過観察';
+  var title=String(article.title||db['記事タイトル']||db['H1タイトル']||(prior&&prior['記事タイトル'])||'').trim();
+  var mainQuery=String(article.main_query||db['メインクエリ']||(prior&&prior['メインクエリ'])||'').trim();
   var clicks=sbmNumber_(db['クリック数']); if(!isFinite(clicks))clicks=0;
   var impressions=sbmNumber_(db['表示回数']); if(!isFinite(impressions))impressions=0;
   var ctr=sbmNormalizeCtrNumber_(db['CTR']); if(!isFinite(ctr))ctr=0;
@@ -12647,6 +12666,8 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
     review_after_days:days,
     review_date:reviewDate,
     monitor_target_count:targetCount,
+    sbm_measurement_days:[7,14,21,28],
+    doctor_review_after_days_reference:days,
     created_at:sbmNowText_()
   };
   var record={
@@ -12654,7 +12675,7 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
     '改善日':sbmNowText_(),
     '記事タイトル':title,
     '改善概要':summary,
-    '改善経路':'Doctor再診→経過観察',
+    '改善経路':monitorRoute,
     '使用AI':'aDoctor',
     '1週':'測定待ち','2週':'測定待ち','3週':'測定待ち','4週':'測定待ち',
     '最終判定':'経過観察中','状態':'モニター中','モニター状態':'ACTIVE',
@@ -15323,16 +15344,16 @@ function sbmDoctorProcessSiteDiagnosisCreator_(o){
 function sbmOpenCreatorPublicationRegisterDialog(){
   var html=HtmlService.createHtmlOutput(
     '<!doctype html><html><head><base target="_top"><style>'+
-    'html,body{height:100%;margin:0}body{font-family:Arial,"Noto Sans JP",sans-serif;color:#202124;display:flex;flex-direction:column;overflow:hidden}.content{padding:18px 18px 8px;overflow:auto;flex:1}h2{font-size:18px;margin:0 0 8px}.note{font-size:13px;line-height:1.65;color:#5f6368;margin-bottom:10px}label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}textarea{width:100%;height:280px;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-family:monospace;font-size:12px;resize:vertical}input[type=url]{width:100%;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-size:13px}.hint{font-size:12px;color:#5f6368;line-height:1.5;margin-top:5px}.footer{flex:none;border-top:1px solid #e8eaed;background:#fff;padding:10px 18px 14px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{border:0;border-radius:5px;padding:9px 16px;cursor:pointer}.secondary{background:#f1f3f4}.primary{background:#1a73e8;color:white}.primary:disabled{opacity:.55;cursor:default}.status{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:9px;border-radius:5px;background:#f8f9fa}.ok{background:#e6f4ea;color:#137333}.err{background:#fce8e6;color:#b3261e}</style></head><body>'+
+    'html,body{height:100%;margin:0}body{font-family:Arial,"Noto Sans JP",sans-serif;color:#202124;display:flex;flex-direction:column;overflow:hidden}.content{padding:18px 18px 8px;overflow:auto;flex:1}h2{font-size:18px;margin:0 0 8px}.note{font-size:13px;line-height:1.65;color:#5f6368;margin-bottom:10px}label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}textarea{width:100%;height:280px;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-family:monospace;font-size:12px;resize:vertical}input[type=url]{width:100%;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-size:13px}.required{color:#b3261e}.hint{font-size:12px;color:#5f6368;line-height:1.5;margin-top:5px}.footer{flex:none;border-top:1px solid #e8eaed;background:#fff;padding:10px 18px 14px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{border:0;border-radius:5px;padding:9px 16px;cursor:pointer}.secondary{background:#f1f3f4}.primary{background:#1a73e8;color:white}.primary:disabled{opacity:.55;cursor:default}.status{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:9px;border-radius:5px;background:#f8f9fa}.ok{background:#e6f4ea;color:#137333}.err{background:#fce8e6;color:#b3261e}</style></head><body>'+
     '<div class="content"><h2>aCreatorで作成した新記事をSIMS Managerへ登録</h2>'+
-    '<div class="note">aCreatorの回答全文（JSONを含む）をそのまま貼り付けてください。Diagnosis/SIMSから作成したaCreator案件でも、aCreator単独で作成した記事でも登録できます。公開URLがaCreator回答に含まれていない場合だけ、下のURL欄へ公開後の記事URLを貼り付けてください。SIMSはSearch Console反映前でも「検索露出待ち／モニター中」として登録します。</div>'+
-    '<label for="raw">aCreator回答全文</label><textarea id="raw" placeholder="aCreatorの回答全文を貼り付け"></textarea>'+
-    '<label for="publishedUrl">公開した記事のURL（回答内にURLがない場合のみ）</label>'+
+    '<div class="note">この登録は、aCreatorで作成した記事を実際に公開した後に行います。最初に公開済みの記事URLを入力し、その下にaCreatorの回答全文（JSONを含む）を貼り付けてください。公開URLがない記事は登録できません。SIMSはSearch Console反映前でも「検索露出待ち／モニター中」として登録します。</div>'+
+    '<label for="publishedUrl">公開した記事のURL <span class="required">（必須）</span></label>'+
     '<input id="publishedUrl" type="url" inputmode="url" placeholder="https://example.com/entry/...">'+
-    '<div class="hint">aCreator回答内に公開URLが含まれていれば空欄で構いません。URL欄を入力した場合は、そのURLを公開先として優先します。aCreator回答内に公開URLが含まれている場合は空欄で構いません。</div></div>'+
-    '<div class="footer"><div id="status" class="status">公開済みの記事だけを登録してください。</div>'+
+    '<div class="hint">公開後のURLを入力してください。aCreator回答内にURLが含まれている場合でも、この欄への入力を必須とします。</div>'+
+    '<label for="raw">aCreator回答全文</label><textarea id="raw" placeholder="aCreatorの回答全文を貼り付け"></textarea></div>'+
+    '<div class="footer"><div id="status" class="status">公開した記事のURLを入力してから登録してください。</div>'+
     '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button id="submit" class="primary" onclick="submitCreator()">新記事を登録</button></div></div>'+
-    '<script>function st(t,c){var e=document.getElementById("status");e.textContent=t||"";e.className="status "+(c||"")}function submitCreator(){var raw=document.getElementById("raw").value||"",manualUrl=document.getElementById("publishedUrl").value||"",b=document.getElementById("submit");if(!raw.trim()){st("aCreatorの回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="登録中…";st("aCreator回答と公開URLを確認しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="新記事を登録";st(r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";document.getElementById("raw").disabled=true;document.getElementById("publishedUrl").disabled=true;st(r.message||"登録しました。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent="新記事を登録";st(e&&e.message?e.message:String(e),"err")}).sbmRegisterCreatorPublicationResponse(raw,manualUrl)}</script>'+
+    '<script>function st(t,c){var e=document.getElementById("status");e.textContent=t||"";e.className="status "+(c||"")}function submitCreator(){var raw=document.getElementById("raw").value||"",manualUrl=(document.getElementById("publishedUrl").value||"").trim(),b=document.getElementById("submit");if(!manualUrl){st("公開した記事のURLは必須です。記事を公開してURLを入力してから登録してください。","err");return}if(!/^https?:\\/\\//i.test(manualUrl)){st("公開URLは http:// または https:// から始まるURLを入力してください。","err");return}if(!raw.trim()){st("aCreatorの回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="登録中…";st("公開URLとaCreator回答を確認しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="新記事を登録";st(r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";document.getElementById("raw").disabled=true;document.getElementById("publishedUrl").disabled=true;st(r.message||"登録しました。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent="新記事を登録";st(e&&e.message?e.message:String(e),"err")}).sbmRegisterCreatorPublicationResponse(raw,manualUrl)}</script>'+
     '</body></html>'
   ).setWidth(740).setHeight(620);
   SpreadsheetApp.getUi().showModalDialog(html,'Creator新規記事登録');

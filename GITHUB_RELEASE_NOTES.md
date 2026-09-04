@@ -1,5 +1,15 @@
 # GitHub Release Notes
 
+## v5.22.3
+- Synchronize the repository to the validated v5.22.3 operational-test runtime.
+- Standardize WAIT / MONITOR effect measurement on 7日目・14日目・21日目・28日目（1週間ごと）.
+- Require a published URL for Creator new-article registration.
+- Remove the duplicate close button from the About dialog.
+- Synchronize all Code.gs mirrors and release metadata.
+
+Recommended commit:
+`chore(release): sync SIMS Manager v5.22.3 repository`
+
 ## v5.22.0
 - Repository baseline updated from validated v5.21.63 runtime.
 - No new runtime feature change in the version rollover.
