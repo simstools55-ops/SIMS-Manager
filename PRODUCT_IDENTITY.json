@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.22.3",
-  "release_status": "PATCH",
-  "notes": "Operational test patch: standardize WAIT/MONITOR measurement schedule, require published URL for Creator registration, and remove duplicate close button in About dialog.",
-  "version": "5.22.3",
+  "current_version": "5.23.0",
+  "release_status": "FEATURE",
+  "notes": "Single-keyword SERP entry opportunity check, pre-SERP cannibalization guard, aCreator handoff, and cumulative aDoctor workflow fixes through v5.22.8.",
+  "version": "5.23.0",
   "display_name": "SIMS Manager"
 }

@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v5.23.0 - 2026-09-06
+
+- 1件SERP参入余地チェックを追加。
+- Manager内の既存クエリ・記事情報によるカニバリ事前ゲートを追加。
+- Claude/Gemini向け上位30件SERP精査依頼と回答検証を追加。
+- 到達順位からGREEN / YELLOW / PALE_PINK / REDをManager側で判定。
+- PALE_PINK以上からaCreator紹介状を生成可能にした。
+- v5.22.4〜v5.22.8のaDoctor実運用修正をRepository全配置へ同期。
+- 利用者向け精密診断候補名をaDoctorへ統一。
+
+
 ## v5.22.3 - 2026-09-05
 
 - Repository正本をDrive上の検証済みv5.22.3 runtimeへ同期。

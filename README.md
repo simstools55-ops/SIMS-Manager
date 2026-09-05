@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v5.21.0  
+> **Current product:** SIMS Manager v5.23.0  
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `5.21.0`
+- Product Version: `5.23.0`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
-- Release type: `PATCH`
-- Main feature: Home表示を軽量化し、起動時の日次処理状態を日付境界で正しく更新。Personal Knowledgeの一時指標フィルターも精密化します。
+- Release type: `FEATURE`
+- Main feature: 1件SERP参入余地チェック、Manager内カニバリ事前判定、上位30件AI精査、aCreator紹介状連携。
 
-> Current release: SIMS Manager Product v5.21.0
+> Current release: SIMS Manager Product v5.23.0
 
 ## Product 5.6.12 — 改善推移指標・Homeモニター表示
 
@@ -31,13 +31,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v5.21.0
+# SIMS Manager v5.23.0
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日・14日・21日・28日の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`5.18.2`
+`5.23.0`
 
 ## Creatorで作った新記事の登録
 
