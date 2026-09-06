@@ -1,5 +1,14 @@
 # GitHub Release Notes
 
+## v5.24.0
+- Establish the formal Full Manager repository baseline from the validated v5.23.1 runtime.
+- Include SERP/aCreator copy-completion feedback and the direct aCreator-to-new-article-registration flow.
+- Synchronize active Code.gs copies and current repository metadata to v5.24.0.
+- Preserve existing spreadsheet data compatibility.
+
+Suggested commit:
+`chore(release): establish SIMS Manager v5.24.0 repository baseline`
+
 ## v5.22.3
 - Synchronize the repository to the validated v5.22.3 operational-test runtime.
 - Standardize WAIT / MONITOR effect measurement on 7日目・14日目・21日目・28日目（1週間ごと）.

@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v5.24.0 - 2026-09-07
+
+- v5.23.1の検証済み実運用Code.gsを正式Repository正本へ昇格。
+- SERP参入余地チェックのAI依頼文／aCreator紹介状コピー完了表示を継承。
+- aCreator紹介状コピー後、新記事作成・公開後のManager新記事登録へ直接進む導線を継承。
+- Code.gs全配置、VERSION、PRODUCT_IDENTITY、README、README-FIRST、Release Notes、Manifestをv5.24.0へ同期。
+- Starter Edition設計の派生元となるFull Manager正本を確定。
+
 ## v5.23.0 - 2026-09-06
 
 - 1件SERP参入余地チェックを追加。

@@ -1,1 +1,1 @@
-chore(release): sync SIMS Manager v5.22.3 repository
+chore(release): establish SIMS Manager v5.24.0 repository baseline
