@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.0
+ * SIMS Manager Product v6.1.2
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.0';
+const SBM_VERSION = '6.1.2';
 const SBM_EDITION = 'STARTER';
+// v6.1.2: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
 // v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
 // v6.0.0: Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。
@@ -6603,7 +6604,9 @@ function sbmShowVersionInfo() {
     + '<div class="label">製品名</div><div class="value">SIMS Manager</div>'
     + '<div class="label">製品バージョン</div><div class="value">v' + SBM_VERSION + '</div>'
     + '<div class="label">Edition</div><div class="value">' + SBM_EDITION + '</div>'
-    + '<div class="label">主な役割</div><div class="desc">記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。</div>'
+    + '<div class="label">主な役割</div><div class="desc">' + (String(SBM_EDITION || '').toUpperCase() === 'FULL'
+    ? '記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。'
+    : '記事管理、今日の改善、サイト健康診断、aDoctorによる精密診断、改善履歴と経過観察の管理を行います。') + '</div>'
     + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Doctorの「約30日後」などの指定は再診時期の目安として扱います。</div>'
     + '<div class="note">SIMS Managerは、個別のAI診断結果だけでなく、その後の実施・観察・再判定までを一元管理します。</div>'
         + '</body></html>';
@@ -11319,7 +11322,7 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v6.1.0: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
+  // Product v6.1.1: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
   var isFullEdition = String(SBM_EDITION || '').toUpperCase() === 'FULL';

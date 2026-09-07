@@ -1,4 +1,4 @@
-# SIMS Manager v6.1.0
+# SIMS Manager v6.1.2
 
 Starter Edition is now included in the same repository as the Full canonical source.
 

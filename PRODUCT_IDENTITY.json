@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.0",
+  "current_version": "6.1.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.0 Edition baseline: Full is canonical and Starter Code.gs is now included under editions/starter. Both Editions share one schema/version line; Starter hides Full-only new-article, aWriter/aMerge/Creator Direct and advanced Site Doctor treatment routes.",
-  "version": "6.1.0",
+  "notes": "v6.1.1 canonicalizes the common Full/Starter spreadsheet template. Legacy Product5 spreadsheet templates were retired; one v6.1.1 common spreadsheet schema is now the repository source of truth. v6.1.2: Edition別の製品情報表示を同期し、Starterの「SIMS Managerについて」からFull専用役割を除外。",
+  "version": "6.1.2",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

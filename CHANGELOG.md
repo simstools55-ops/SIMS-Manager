@@ -1,3 +1,17 @@
+## v6.1.2 - 2026-09-07
+
+- Full / Starter の製品バージョン表示を v6.1.2 に同期。
+- 「SIMS Managerについて」の主な役割をEdition別表示に変更。
+- StarterではaWriter / aCreator / aMergeなどFull専用機能を製品説明に表示しない。
+- Spreadsheetスキーマ、メニュー構成、appsscript.jsonはv6.1.1から変更なし。
+
+# v6.1.1
+
+- Full / Starter共通Spreadsheet正本をv6.1.1へ統一。
+- 旧Product5.0 / Product5.4.3 Spreadsheetテンプレートを正本から廃止。
+- distribution配下の旧Spreadsheetテンプレートを削除。
+- 現行Code.gsスキーマに合わせた `SIMS-Manager-Template-v6.1.1-Official.xlsx` を追加。
+
 # v6.1.0
 
 - Starter Editionの実コードを `editions/starter/Code.gs` として追加。

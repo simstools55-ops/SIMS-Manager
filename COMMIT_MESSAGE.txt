@@ -1,1 +1,1 @@
-feat(edition): add Starter Edition baseline for v6.1.0
+fix(edition): sync v6.1.2 product info for Starter and Full
