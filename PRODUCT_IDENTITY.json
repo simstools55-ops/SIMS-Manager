@@ -1,8 +1,10 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "5.24.0",
+  "current_version": "6.0.0",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "Repository baseline synchronized to the validated v5.23.1 runtime, including SERP copy-completion feedback and direct aCreator-to-new-article-registration flow.",
-  "version": "5.24.0",
-  "display_name": "SIMS Manager"
+  "notes": "v6 product baseline: Full is the canonical implementation; Starter is managed as a derived Edition in the same repository with shared data/schema and menu philosophy.",
+  "version": "6.0.0",
+  "display_name": "SIMS Manager",
+  "edition": "FULL",
+  "edition_model": "FULL_CANONICAL_STARTER_DERIVED"
 }

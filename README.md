@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v5.24.0  
+> **Current product:** SIMS Manager v6.0.0  
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `5.24.0`
+- Product Version: `6.0.0`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
-- Main feature: v5.23.1の検証済み実運用コードをRepository正本へ同期。SERPコピー完了表示とaCreatorから新記事登録への直接導線を含む。
+- Main feature: Starter / Full Edition構成を正式な製品ベースラインとして導入。Fullを機能正本、Starterを同一リポジトリ内の派生Editionとして管理。
 
-> Current release: SIMS Manager Product v5.24.0
+> Current release: SIMS Manager Product v6.0.0
 
 ## Product 5.6.12 — 改善推移指標・Homeモニター表示
 
@@ -31,37 +31,40 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v5.24.0
+# SIMS Manager v6.0.0
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`5.24.0`
+`6.0.0`
 
 ## Creatorで作った新記事の登録
 
 Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作った新記事を登録` を開き、Creatorの回答全文（JSONを含む）を貼り付けて登録します。SBMは公開URL・Creator案件・SiteIDを検証し、Search Consoleにまだ現れていない記事も `検索露出待ち` / `👀 モニター中` として管理します。後日GSCに同じURLが現れたときは、既存ArticleIDへ実績を合流させます。
 
-## 毎日の基本操作
+## v6標準メニュー
 
 上部メニューは、左から次の順に並びます。
 
-1. **SIMS-Blog-Manager**：Home、日次処理、セットアップ、修復、設定
-2. **記事改善スタート**：今日改善する記事の選択と改善詳細の確認
-3. **結果登録**：改善結果JSONの登録
-4. **推移確認**：改善中の記事と4週間の測定状況の確認
-5. **記事一覧**：全記事の確認と並び替え
-6. **改善履歴**：終了済みの改善履歴と詳細の確認
+1. **今日の作業**：Home、日次処理、今日の改善、選択記事の改善内容
+2. **改善の推移・履歴**：改善効果、観察終了後の処置、改善履歴
+3. **記事管理**：記事一覧、記事詳細、aDoctor精密診断、管理状態
+4. **診断**：記事の精密診断候補、サイト全体の健康診断
+5. **新記事関連**：新記事キーワードの参入余地確認、aCreator新記事登録（Full）
+6. **設定・メンテナンス**：設定、修復、途中再開、製品情報
 
-## 利用者向け配布物
+番号は日常的に順番を意識して操作する項目だけに付けます。参照・任意操作・設定・メンテナンスには原則として番号を付けません。
 
-`distribution/`には、利用開始に必要なファイルだけを収録しています。
+## Edition管理と配布物
 
-- `Code.gs`
-- `appsscript.json`
-- `SIMS-Blog-Manager-template-Product5.3-Official.xlsx`
-- `README-FIRST.md`
+- GitHubリポジトリは1つだけを使用します。
+- ルート `Code.gs` は **Full Editionの機能正本**です。
+- Starter Editionは `editions/starter/` 配下でFull正本から派生管理します。
+- Starter / Fullは同一バージョン体系・同一Spreadsheetデータ構造を共有します。
+- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.0.0はRepository Baselineであり、配布版リリースではありません。
+
+詳細は `EDITION_POLICY.md` を参照してください。
 
 ## 初回導入
 

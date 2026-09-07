@@ -1,96 +1,28 @@
-# SIMS Manager v5.24.0
+# SIMS Manager v6.0.0 Repository Baseline
 
-**最初にこのファイルをお読みください。**  
-このZIPは、SIMS Managerを新しいGoogleスプレッドシートへ導入するための利用者向け製品版です。
+このZIPは **GitHubリポジトリへ登録するための正本**です。利用者向け配布ZIPではありません。
 
-## ZIPに入っているファイル
+## v6.0.0の位置付け
 
-- `Code.gs` — SIMS Manager本体
-- `appsscript.json` — Google Apps Scriptの権限・実行設定
-- `README-FIRST.md` — この導入ガイド
+SIMS Managerに Starter / Full Edition構成を正式導入する新しい製品ベースラインです。
 
-開発用リポジトリや `distribution` フォルダーは必要ありません。このZIPの3ファイルだけで導入します。
+- ルート `Code.gs`：Full Editionの機能正本
+- `editions/starter/`：Starter Edition派生ソースの管理場所
+- Starter / Full：同一バージョン体系、同一Spreadsheetデータ構造、同一基本UI思想
+- 共通修正：必ずFull正本からStarterへ反映
+- 配布物：必要な時だけ別途生成
 
-## 導入前に用意するもの
+## 現在の状態
 
-- Googleアカウント
-- 管理したいサイトを登録しているGoogle Search Consoleへの閲覧権限
-- 新しい空のGoogleスプレッドシート
+Full Editionはv5.24.1の実運用正本を継承し、v6.0.0としてEdition管理基盤を追加しています。Starterの実行用 `Code.gs` は、Starter機能境界を確定・検証した後にFull正本から生成します。未検証のStarterコードは正本に含めません。
 
-SIMS Managerは、導入したスプレッドシートにサイト管理用のシートを自動作成します。最初は、既存の業務用シートではなく新しい空のスプレッドシートを使用してください。
+## GitHubへの反映
 
-## 正式な導入手順
+このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。既存の履歴ファイルは保持し、同名の現行正本ファイルはv6.0.0で更新します。
 
-### 1．新しいGoogleスプレッドシートを作成する
+## 参照
 
-Google Driveで新しいGoogleスプレッドシートを1つ作成します。ファイル名は、管理するサイトが分かる名前にして構いません。
-
-### 2．Apps Scriptを開く
-
-スプレッドシート上部の **「拡張機能」→「Apps Script」** を開きます。
-
-### 3．`Code.gs`を登録する
-
-Apps Scriptエディタで既存の `Code.gs` を開き、最初から入っているコードをすべて削除します。
-
-このZIPの `Code.gs` をテキストエディタで開き、**内容をすべてコピーしてApps Scriptの `Code.gs` へ貼り付け**、保存します。
-
-### 4．`appsscript.json`を登録する
-
-Apps Script画面左側の **「プロジェクトの設定」** を開き、**「エディタで『appsscript.json』マニフェスト ファイルを表示する」** をオンにします。
-
-エディタへ戻って `appsscript.json` を開き、内容をすべて削除します。このZIPの `appsscript.json` の内容をすべて貼り付け、保存します。
-
-### 5．スプレッドシートを再読み込みする
-
-Apps Scriptを保存したら、元のGoogleスプレッドシートへ戻り、ブラウザを再読み込みします。
-
-上部メニューに **「SIMS Manager」** が表示されれば、本体の導入は完了です。
-
-### 6．初期設定を開始する
-
-スプレッドシート上部の **「SIMS Manager」→「初期設定」** を選びます。
-
-初回はGoogleから権限の確認画面が表示されることがあります。画面の内容を確認し、SIMS Managerを導入したご自身のApps Scriptプロジェクトに対して必要な権限を許可してください。
-
-その後は、SIMS Managerの初回セットアップ画面に表示されるSTEPを上から順番に進めます。
-
-### 7．初回セットアップを完了する
-
-初回セットアップでは、主に次の処理を行います。
-
-1. サイト情報を登録する
-2. Google CloudでGoogle Search Console APIの設定を確認する
-3. Google Search Consoleとの接続を確認する
-4. Search Consoleから記事管理の初回データを作成する
-5. 記事タイトルなどの記事情報を補完する
-6. セットアップ結果を確認する
-
-画面に **「初回セットアップが完了しました。Homeから日々の改善作業を開始できます。」** と表示されれば、導入完了です。
-
-## 導入後の通常運用
-
-通常は **「SIMS Manager」→「Homeを開く」** から開始します。日々の作業前に **「日次処理を実行」** を行い、その後「今日の改善」や記事診断など必要な作業へ進みます。
-
-通常運用でApps Scriptエディタを開く必要はありません。
-
-## Personal Knowledgeについて
-
-SIMS Managerは、継続利用に必要な利用者固有・サイト固有の情報をGoogle Drive上の `SIMS-Personal-Knowledge` フォルダーへ保存する場合があります。通常はSIMS Managerが自動管理するため、利用者が内容を編集する必要はありません。
-
-接続確認が必要な場合だけ、**「設定・メンテナンス」→「Personal Knowledge接続を確認」** を使用してください。
-
-## 更新するとき
-
-新しいSIMS Manager製品版へ更新する場合は、新版ZIPの案内に従って `Code.gs` と、必要な場合は `appsscript.json` を更新します。既存のスプレッドシートやPersonal Knowledgeを削除・初期化しないでください。
-
-## バージョン確認
-
-この配布版の正式バージョンは **v5.24.0** です。
-
-スプレッドシートでは **「SIMS Manager」→「SIMS Managerについて」** から現在のバージョンを確認できます。
-
----
-
-SIMS Manager Product Edition  
-Version 5.24.0
+- `EDITION_POLICY.md` — Edition管理原則
+- `RELEASE-NOTES-v6.0.0.md` — v6.0.0の変更内容
+- `PRODUCT_IDENTITY.json` — 製品識別情報
+- `COMMIT_MESSAGE.txt` — 推奨コミットメッセージ

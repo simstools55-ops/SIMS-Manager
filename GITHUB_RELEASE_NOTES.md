@@ -1,32 +1,14 @@
-# GitHub Release Notes
+# SIMS Manager Release Notes
 
-## v5.24.0
-- Establish the formal Full Manager repository baseline from the validated v5.23.1 runtime.
-- Include SERP/aCreator copy-completion feedback and the direct aCreator-to-new-article-registration flow.
-- Synchronize active Code.gs copies and current repository metadata to v5.24.0.
-- Preserve existing spreadsheet data compatibility.
+## v6.0.0
 
-Suggested commit:
-`chore(release): establish SIMS Manager v5.24.0 repository baseline`
+SIMS Manager v6.0.0 establishes the product baseline for the Starter / Full Edition model.
 
-## v5.22.3
-- Synchronize the repository to the validated v5.22.3 operational-test runtime.
-- Standardize WAIT / MONITOR effect measurement on 7日目・14日目・21日目・28日目（1週間ごと）.
-- Require a published URL for Creator new-article registration.
-- Remove the duplicate close button from the About dialog.
-- Synchronize all Code.gs mirrors and release metadata.
+- Full Edition remains the canonical implementation in the repository root `Code.gs`.
+- Starter Edition is managed as a derived Edition inside the same repository, not as a separate repository.
+- Both Editions share one version line, the same Spreadsheet data/schema, and the same core menu philosophy.
+- The v5.24.1 menu UX and improvement guidance become the standard UI baseline for the v6 generation.
+- Distribution packages are not generated as part of this repository-baseline release.
 
-Recommended commit:
-`chore(release): sync SIMS Manager v5.22.3 repository`
-
-## v5.22.0
-- Repository baseline updated from validated v5.21.63 runtime.
-- No new runtime feature change in the version rollover.
-- All synchronized Code.gs copies updated to v5.22.0.
-
-# SIMS Manager v5.21.21
-
-メニュー再編、記事一覧の標準フィルター運用、記事情報補完の標準上限150件化、改善の進捗表示の高速化と表示整形、記事一覧からの改善履歴表示を改善しました。
-
-Recommended commit:
-`fix(sbm): refine navigation and progress views (v5.21.21)`
+Commit message:
+`chore(release): establish SIMS Manager v6.0.0 edition baseline`
