@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.13
+ * SIMS Manager Product v6.1.14
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.13';
+const SBM_VERSION = '6.1.14';
 const SBM_EDITION = 'STARTER';
+// v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
 // v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
 // v6.1.11: 改善ポイントの重複候補を抑止し、次点クエリへ切替。Starter改善完了登録は専用の軽量upsertで改善の推移へ確実に即時反映。
 // v6.1.10: 記事管理表示を軽量再整形し、タイトル正規化のSettings反復I/Oを除去。内部リンク候補タイトルも正規化。Starter改善完了登録後は対象1件の改善の推移を即時同期。
@@ -8021,7 +8022,30 @@ function sbmOpenSelectedHistoryArticleAll(){
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(680),'記事の全改善履歴');
 }
 
-function sbmOpenSelectedImprovementNavi(){var sh=SpreadsheetApp.getActiveSheet();if(!sh||(sh.getName()!==SBM_SHEETS.TODAY&&sh.getName()!==SBM_SHEETS.ARTICLE_DB))return sbmAlert_('改善ナビ','今日の改善または記事管理を開いてください。');var row=sbmGetCheckedRow_(sh);if(!row)return;var record=sbmRowRecord_(sh,row),url=String(record['記事URL']||'').trim();if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');var article=(sh.getName()===SBM_SHEETS.ARTICLE_DB?record:(sbmFindArticleDbByUrlFast_(url)||record));sbmShowImprovementNaviDialog_(article,record['区分']||'改善候補',record['改善理由・期待効果']||'');}
+function sbmOpenSelectedImprovementNavi(){
+  var sh=null,row=0,record=null,url='',started=new Date();
+  try{
+    sh=SpreadsheetApp.getActiveSheet();
+    if(!sh||(sh.getName()!==SBM_SHEETS.TODAY&&sh.getName()!==SBM_SHEETS.ARTICLE_DB)){
+      return sbmAlert_('改善ナビ','今日の改善または記事管理を開いてください。');
+    }
+    row=sbmGetCheckedRow_(sh);if(!row)return;
+    record=sbmRowRecord_(sh,row);
+    url=String(record['記事URL']||'').trim();
+    if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
+    try{sbmLog_('ImprovementNaviLaunch','Info','stage=selected / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogStart){}
+
+    // v6.1.14: ダイアログ表示前の同期的な記事DB再検索を廃止する。
+    // 今日の改善行だけで改善ナビの枠を即時表示し、記事DB・GSC・本文の詳細は
+    // ダイアログ表示後の既存google.script.run経路で取得する。
+    sbmShowImprovementNaviDialog_(record,record['区分']||'改善候補',record['改善理由・期待効果']||'');
+    try{sbmLog_('ImprovementNaviLaunch','Done','stage=dialog_shown / elapsed='+(((new Date()).getTime()-started.getTime())/1000).toFixed(2)+'s / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogDone){}
+  }catch(e){
+    var msg=String(e&&e.message||e);
+    try{sbmLog_('ImprovementNaviLaunch','Error','stage=launch / sheet='+(sh?sh.getName():'')+' / row='+row+' / url='+url+' / error='+msg);}catch(ignoreLogError){}
+    return sbmAlert_('改善ナビを起動できませんでした','改善ナビの起動中にエラーが発生しました。\n\n'+msg+'\n\n設定・メンテナンスのシステムログに ImprovementNaviLaunch として記録しました。');
+  }
+}
 
 /** 改善実施日と今日を日本時間の日付単位で比較し、時刻差による1日ずれを防ぎます。 */
 function sbmElapsedDaysFromImprovementDate_(value) {

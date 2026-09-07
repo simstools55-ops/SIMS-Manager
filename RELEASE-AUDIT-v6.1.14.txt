@@ -1,0 +1,21 @@
+SIMS Manager v6.1.14 Release Audit
+Date: 2026-09-08
+Scope: V6 operational-test hotfix / Full + Starter common Improvement Navi launch
+
+PASS: root Code.gs version = 6.1.14 / edition FULL
+PASS: editions/starter/Code.gs version = 6.1.14 / edition STARTER
+PASS: Full and Starter code are byte-equivalent except SBM_EDITION
+PASS: apps-script/distribution/src mirrors synchronized with Full canonical
+PASS: JavaScript syntax check passed for Full and Starter (Node syntax parser via .js copy)
+PASS: VERSION / PRODUCT_IDENTITY / current README files synchronized to 6.1.14
+PASS: Improvement Navi no longer performs article DB lookup before dialog display
+PASS: ImprovementNaviLaunch Info/Done/Error logging added
+PASS: launch exceptions now surface an alert instead of silent no-response
+
+Operational verification required in Google Sheets:
+1. Replace Full Code.gs with v6.1.14 and reload spreadsheet.
+2. In 今日の改善, check exactly one row and open 選択記事の改善内容を見る.
+3. Confirm 改善ナビ shell appears promptly.
+4. Confirm query/source loading proceeds after dialog opens.
+5. Close dialog, select another row, repeat consecutively.
+6. If failure occurs, inspect System_Log Action=ImprovementNaviLaunch.
