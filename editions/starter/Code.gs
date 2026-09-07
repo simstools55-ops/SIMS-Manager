@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.5
+ * SIMS Manager Product v6.1.6
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.5';
+const SBM_VERSION = '6.1.6';
 const SBM_EDITION = 'STARTER';
+// v6.1.6: 初回セットアップ全ダイアログの生成後JavaScriptを構文監査。HTML文字列内の引用符崩壊で全ボタンが無反応になる根本原因を修正し、冗長なイベント処理を整理。
 // v6.1.5: 初回セットアップ関連ダイアログのボタンイベントを監査・修正。イベント登録を明示化し、失敗時の再操作も保証。
 // v6.1.3: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
@@ -1722,97 +1723,23 @@ function sbmEnsureSiteIdentity_() {
 }
 
 function sbmSetupStep1BlogInfo() {
-  sbmInitializeSheets(false);
-  var ui = SpreadsheetApp.getUi();
-  sbmAlert_('STEP1 サイト情報', 'サイト名、サイトURL、Search Consoleプロパティを登録します。\n\n初回のみGoogleの承認画面が出ることがあります。承認後に止まった場合は、このSTEP1をもう一度実行してください。');
-
-  var blogName = sbmPromptRequired_('サイト名を入力', '管理するサイト名を入力してください。\n例：サンプルサイト', sbmGetSetting_('BlogName',''));
-  if (blogName === null) return;
-  var blogUrl = sbmPromptRequired_('サイトURLを入力', 'サイトのトップページURLを入力してください。\n例：https://example.com/', sbmGetSetting_('BlogUrl',''));
-  if (blogUrl === null) return;
-  var propertyDefault = sbmGetSetting_('SearchConsoleProperty','') || blogUrl;
-  var property = sbmPromptRequired_('Search Consoleプロパティを入力', 'Search Consoleのプロパティを入力してください。\nURLプレフィックス例：https://example.com/\nドメイン例：sc-domain:example.com', propertyDefault);
-  if (property === null) return;
-
-  sbmSetSetting_('BlogName', blogName, '管理するブログ名');
-  sbmSetSetting_('BlogUrl', blogUrl, 'ブログURL');
-  sbmSetSetting_('SiteID', sbmGetSetting_('SiteID','') || sbmSiteIdFromUrl_(blogUrl), 'SIMS製品間でサイトを識別するID');
-  sbmSetSetting_('SiteName', blogName, 'SIMS製品間で表示するサイト名');
-  sbmSetSetting_('SearchConsoleProperty', property, 'Search Console property');
-  sbmSetSetting_('SetupBlogInfo', 'YES', 'STEP1完了状態');
-  // Personal Knowledgeは利用者に操作させず、ブログ登録時に内部で自動接続します。
-  sbmPersonalKnowledgeGetContext_();
-  sbmLog_('SetupStep1BlogInfo','Done',blogName + ' / ' + property);
-  sbmRefreshHome_();
-  sbmAlert_('STEP1完了', 'サイト情報を登録しました。\n\n次は「STEP2 Google Cloud APIガイドを開く」を実行してください。');
+  return sbmShowRelease1SetupStep_(1);
 }
 
 function sbmSetupStep2ApiGuide() {
-  sbmInitializeSheets(false);
-  if (sbmGetSetting_('SetupBlogInfo','NO') !== 'YES') return sbmAlert_('STEP1が未完了です', '先にSTEP1でサイト情報を登録してください。');
-  var ui = SpreadsheetApp.getUi();
-  try {
-    var html = HtmlService.createHtmlOutput(sbmApiGuideHtml_()).setWidth(700).setHeight(540);
-    ui.showModalDialog(sbmEnsureCloseButton_(html), 'STEP2 Google Cloud API有効化ガイド');
-    sbmSetSetting_('SetupApiGuide', 'YES', 'STEP2ガイド表示済み');
-    sbmLog_('SetupStep2ApiGuide','Shown','Google Cloud API guide displayed');
-  } catch (e) {
-    sbmSetSetting_('SetupApiGuide', 'NO', 'STEP2ガイド再実行が必要');
-    sbmLog_('SetupStep2ApiGuide','NeedsAuthorization', String(e));
-    sbmAlert_(
-      'STEP2 Google Cloud API有効化ガイド',
-      'Googleの再承認が必要です。\n\n' +
-      'もう一度「STEP2 Google Cloud APIガイドを開く」を実行し、Googleの承認画面が出たら許可してください。\n\n' +
-      '承認後も開けない場合：' + sbmSearchConsoleApiUrl_()
-    );
-  }
-  sbmRefreshHome_();
+  return sbmShowRelease1SetupStep_(2);
 }
 
 function sbmSearchConsoleApiUrl_() {
   return 'https://console.cloud.google.com/apis/library/searchconsole.googleapis.com';
 }
 
-function sbmApiGuideHtml_() {
-  return '<div style="font-family:Arial,sans-serif;line-height:1.7;padding:12px">'
-    + '<h2>STEP2 Google Cloud APIを有効化します</h2>'
-    + '<p>下のボタンからGoogle Cloud Consoleを開き、<b>Google Search Console API</b>を有効化してください。</p>'
-    + '<p><a href="' + sbmSearchConsoleApiUrl_() + '" target="_blank" style="display:inline-block;background:#1a73e8;color:white;padding:10px 16px;border-radius:6px;text-decoration:none">Google Search Console APIを開く</a></p>'
-    + '<ol>'
-    + '<li>Google Cloud Consoleが開きます。</li>'
-    + '<li>「有効にする」ボタンがあればクリックします。</li>'
-    + '<li>有効化後、数分待つことがあります。</li>'
-    + '<li>このスプレッドシートに戻り、メニューから <b>STEP3 Search Console接続テスト</b> を実行します。</li>'
-    + '</ol>'
-    + '<p style="background:#fff8e1;padding:10px;border-left:4px solid #fbbc04">外部URLを開いた後、Apps Scriptの処理はここで終了します。これは正常です。</p>'
-    + '</div>';
-}
-
 function sbmSetupStep3ConnectionTest() {
-  sbmInitializeSheets(false);
-  if (sbmGetSetting_('SetupBlogInfo','NO') !== 'YES') return sbmAlert_('STEP1が未完了です', '先にサイト情報を登録してください。');
-  var property = sbmGetSetting_('SearchConsoleProperty','');
-  if (!property) return sbmAlert_('プロパティ未登録', 'STEP1でSearch Consoleプロパティを登録してください。');
-  var result = sbmTestSearchConsoleConnection_();
-  if (result.ok) {
-    sbmSetSetting_('ConnectionStatus','OK','Search Console接続成功');
-    sbmSetSetting_('LastConnectionTestAt', sbmNowText_(), '最終接続テスト日時');
-    sbmLog_('SearchConsoleConnectionTest','Done',property);
-    sbmRefreshHome_();
-    sbmAlert_('接続OK', 'Search Consoleに接続できました。\n\n次はSTEP4 初回データ取得を実行してください。');
-  } else {
-    sbmSetSetting_('ConnectionStatus','ERROR','Search Console接続失敗');
-    sbmLog_('SearchConsoleConnectionTest','Error',result.message);
-    sbmRefreshHome_();
-    sbmAlert_('接続エラー', sbmFriendlyGscError_(result.message));
-  }
+  return sbmShowRelease1SetupStep_(3);
 }
 
 function sbmSetupStep4InitialFetch() {
-  if (sbmGetSetting_('ConnectionStatus','') !== 'OK') return sbmAlert_('接続テスト未完了', '先にSTEP3 Search Console接続テストを成功させてください。');
-  sbmDailyUpdateManual();
-  sbmSetSetting_('SetupInitialFetch','YES','STEP4初回取得完了');
-  sbmRefreshHome_();
+  return sbmShowRelease1SetupStep_(4);
 }
 
 function sbmDailyUpdateManual() {
@@ -2033,7 +1960,7 @@ function sbmShowArticleInfoContinuationDialog_(summary) {
     '.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}.label{color:#5f6368}.value{font-weight:700;text-align:right}' +
     '.buttons{display:flex;gap:10px;justify-content:flex-end}.continue{background:#0b8043;color:#fff;border:none;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}' +
     '.continue:disabled{opacity:.55;cursor:default}.stop{background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:6px;padding:10px 16px;cursor:pointer}' +
-    '.note{font-size:12px;color:#5f6368;margin-top:10px}.done{color:#0b8043;font-weight:700;margin-top:10px}.error{color:#b3261e;font-weight:700;margin-top:10px}</style></head><body>' +
+    '.note{font-size:12px;color:#5f6368;margin-top:10px}.done{color:#0b8043;font-weight:700;margin-top:10px}.error{color:#b3261e;font-weight:700;margin-top:10px}.spin{display:inline-block;width:14px;height:14px;border:2px solid #dadce0;border-top-color:#0b8043;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:7px}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body>' +
     '<h2 id="title">記事情報補完を保存しました</h2><div class="card"><div class="grid">' +
     '<div class="label">今回処理</div><div class="value" id="processed"></div>' +
     '<div class="label">成功</div><div class="value" id="success"></div>' +
@@ -2041,10 +1968,10 @@ function sbmShowArticleInfoContinuationDialog_(summary) {
     '<div class="label">補完済み</div><div class="value" id="completed"></div>' +
     '<div class="label">残り</div><div class="value" id="remaining"></div>' +
     '</div><div id="message"></div></div><div class="buttons">' +
-    '<button class="stop" onclick="google.script.host.close()">ここで終了</button>' +
-    '<button id="continueBtn" class="continue" onclick="continueRun()">続けて' + batch + '件処理</button></div>' +
+    '<button id="articleInfoStopBtn" class="stop" type="button">ここで終了</button>' +
+    '<button id="continueBtn" class="continue" type="button">続けて' + batch + '件処理</button></div>' +
     '<div class="note">続けるたびに新しいApps Script実行として処理します。処理中は他のメニューを実行しないでください。</div>' +
-    '<script>var state=' + payload + ';var batch=' + batch + ';function render(s){state=s||{};document.getElementById("processed").textContent=(Number(state.processed||0))+"件";document.getElementById("success").textContent=(Number(state.success||0))+"件";document.getElementById("errors").textContent=(Number(state.errors||0))+"件";document.getElementById("completed").textContent=(Number(state.completed||0))+" / "+(Number(state.total||0))+"件";document.getElementById("remaining").textContent=(Number(state.remaining||0))+"件";var btn=document.getElementById("continueBtn");var msg=document.getElementById("message");if(state.finished||Number(state.remaining||0)===0){document.getElementById("title").textContent="記事情報補完が完了しました";btn.style.display="none";msg.className="done";msg.textContent="初回記事DBセットアップが完了しました。";}else{btn.style.display="inline-block";btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="";msg.textContent="";}}function continueRun(){var btn=document.getElementById("continueBtn");var msg=document.getElementById("message");btn.disabled=true;btn.textContent="処理中…";msg.className="";msg.textContent="この画面を閉じずに完了までお待ちください。";google.script.run.withFailureHandler(function(e){btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="error";msg.textContent=(e&&e.message)?e.message:String(e);}).withSuccessHandler(function(res){render(res||{});}).sbmContinueArticleInfoFromDialog();}render(state);</script>' +
+    '<script>var state=' + payload + ';var batch=' + batch + ';function render(s){state=s||{};document.getElementById("processed").textContent=(Number(state.processed||0))+"件";document.getElementById("success").textContent=(Number(state.success||0))+"件";document.getElementById("errors").textContent=(Number(state.errors||0))+"件";document.getElementById("completed").textContent=(Number(state.completed||0))+" / "+(Number(state.total||0))+"件";document.getElementById("remaining").textContent=(Number(state.remaining||0))+"件";var btn=document.getElementById("continueBtn");var msg=document.getElementById("message");if(state.finished||Number(state.remaining||0)===0){document.getElementById("title").textContent="記事情報補完が完了しました";btn.style.display="none";msg.className="done";msg.textContent="初回記事DBセットアップが完了しました。";}else{btn.style.display="inline-block";btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="";msg.textContent="";}}function continueRun(){var btn=document.getElementById("continueBtn"),msg=document.getElementById("message"),sp=document.createElement("span");btn.disabled=true;btn.textContent="処理中…";msg.className="";msg.textContent="";sp.className="spin";msg.appendChild(sp);msg.appendChild(document.createTextNode("この画面を閉じずに完了までお待ちください。"));google.script.run.withFailureHandler(function(e){btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="error";msg.textContent=(e&&e.message)?e.message:String(e);}).withSuccessHandler(function(res){render(res||{});}).sbmContinueArticleInfoFromDialog();}document.getElementById("continueBtn").addEventListener("click",continueRun);document.getElementById("articleInfoStopBtn").addEventListener("click",function(){google.script.host.close();});render(state);</script>' +
     '</body></html>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(420)), '記事情報補完');
 }
@@ -10775,100 +10702,23 @@ function sbmFinalizeTodayImprovementSelection_() {
 
 
 /* ========================================================================== *
- * Product 5.0 RC11: Setup wizard restore fix
+ * Setup compatibility entry points
+ * 旧メニュー・旧関数名からも現行の6 STEPウィザードだけを開きます。
+ * 重複する旧セットアップUI/処理経路は持ちません。
  * ========================================================================== */
-
-/**
- * セットアップ画面を開くだけでなく、STEP1〜STEP5を実行できる
- * セットアップナビゲーターを表示します。
- */
 function sbmOpenSetup() {
   sbmStartSetupWizard();
 }
 
 function sbmStartSetupWizard() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var setupSheet = ss.getSheetByName(SBM_SHEETS.SETUP);
-  if (setupSheet) {
-    try { setupSheet.showSheet(); } catch (e) {}
-    ss.setActiveSheet(setupSheet);
-  }
-
-  var statuses = {
-    step1: String(sbmGetSetting_('SetupBlogInfo', 'NO')) === 'YES',
-    step2: String(sbmGetSetting_('SetupApiGuide', 'NO')) === 'YES',
-    step3: String(sbmGetSetting_('ConnectionStatus', '')) === 'OK',
-    step4: String(sbmGetSetting_('ArticleDbUrlBuildComplete', 'NO')) === 'YES',
-    step5: String(sbmGetSetting_('ArticleInfoBuildComplete', 'NO')) === 'YES'
-  };
-
-  function mark(done) {
-    return done ? '<span class="done">完了</span>' : '<span class="todo">未完了</span>';
-  }
-
-  var html = '<!doctype html><html><head><base target="_top"><meta charset="UTF-8">'
-    + '<style>'
-    + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:20px;color:#202124;line-height:1.55}'
-    + 'h2{margin:0 0 8px;color:#0b8043}.lead{color:#5f6368;margin-bottom:14px}'
-    + '.step{border:1px solid #dadce0;border-radius:10px;padding:12px;margin:9px 0;background:#fff}'
-    + '.row{display:flex;align-items:center;justify-content:space-between;gap:12px}'
-    + '.title{font-weight:700}.desc{font-size:12px;color:#5f6368;margin-top:4px}'
-    + '.done{color:#0b8043;font-weight:700}.todo{color:#b06000;font-weight:700}'
-    + 'button{border:0;border-radius:7px;padding:9px 13px;font-weight:700;cursor:pointer;white-space:nowrap}'
-    + '.run{background:#1a73e8;color:#fff}.close{background:#fff;color:#3c4043;border:1px solid #9aa0a6}'
-    + '.footer{display:flex;justify-content:flex-end;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb}'
-    + '</style></head><body>'
-    + '<h2>ブログのセットアップ</h2>'
-    + '<div class="lead">未完了のSTEPから順番に実行してください。ボタンを押すと、この画面を閉じて各処理を開始します。</div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">STEP1　サイト情報を登録　' + mark(statuses.step1) + '</div>'
-    + '<div class="desc">サイト名、サイトURL、Search Consoleプロパティを登録します。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="1">実行</button></div></div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">STEP2　Google Cloud APIガイド　' + mark(statuses.step2) + '</div>'
-    + '<div class="desc">必要なAPI設定と認証手順を確認します。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="2">実行</button></div></div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">STEP3　Search Console接続テスト　' + mark(statuses.step3) + '</div>'
-    + '<div class="desc">登録したプロパティへ接続できるか確認します。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="3">実行</button></div></div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">STEP4　記事管理を初回作成　' + mark(statuses.step4) + '</div>'
-    + '<div class="desc">Search ConsoleからURLと指標を取得し、記事管理を作成します。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="4">実行</button></div></div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">STEP5　記事情報を補完　' + mark(statuses.step5) + '</div>'
-    + '<div class="desc">記事タイトル、SEOタイトル、ディスクリプションなどを補完します。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="5">実行</button></div></div>'
-
-    + '<div class="step"><div class="row"><div><div class="title">セットアップ結果を確認</div>'
-    + '<div class="desc">記事管理の登録件数、補完済み件数、残り件数を確認します。新しいデータ取得処理は行いません。</div></div>'
-    + '<button type="button" class="run setupStepBtn" data-step="6">確認</button></div></div>'
-
-    + '<div class="footer"><button id="setupNavCloseBtn" type="button" class="close">閉じる</button></div>'
-    + '<script>'
-    + 'function runStep(step){document.querySelectorAll("button").forEach(function(b){b.disabled=true;});google.script.run.withFailureHandler(function(){document.querySelectorAll("button").forEach(function(b){b.disabled=false;});}).withSuccessHandler(function(){google.script.host.close();}).sbmRunSetupWizardStep(step);}'
-    + 'document.querySelectorAll(".setupStepBtn").forEach(function(b){b.addEventListener("click",function(){runStep(Number(b.getAttribute("data-step")));});});document.getElementById("setupNavCloseBtn").addEventListener("click",function(){google.script.host.close();});'
-    + '</script></body></html>';
-
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput(html).setWidth(620).setHeight(720),
-    'ブログのセットアップ'
-  );
+  return sbmStartInitialSetup();
 }
 
 /**
  * セットアップナビゲーターの各STEPを実行します。
  */
 function sbmRunSetupWizardStep(step) {
-  step = Number(step || 0);
-  if (step === 1) return sbmSetupStep1BlogInfo();
-  if (step === 2) return sbmSetupStep2ApiGuide();
-  if (step === 3) return sbmSetupStep3ConnectionTest();
-  if (step === 4) return sbmSetupArticleDbContinueManual();
-  if (step === 5) return sbmSetupArticleInfoContinueManual();
-  if (step === 6) return sbmShowArticleDbSetupStatus();
-  return sbmAlert_('セットアップ', '実行するSTEPを選択してください。');
+  return sbmShowRelease1SetupStep_(Number(step || 1));
 }
 
 /**
@@ -10878,7 +10728,7 @@ function sbmRunSetupWizardStep(step) {
 function sbmHandleRepairNextAction(action) {
   action = String(action || 'home');
   if (action === 'setup') {
-    sbmStartSetupWizard();
+    sbmStartInitialSetup();
     return true;
   }
   if (action === 'update') {
@@ -11071,15 +10921,15 @@ function sbmShowRelease1SetupStep_(step) {
     + '<script>'
     + 'var step='+step+';'
     + 'function el(id){return document.getElementById(id);}'
-    + 'function disableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=true;});}'
-    + 'function enableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=false;});}'
-    + 'function setBusy(text){var m=el("msg");m.innerHTML="<span class=\"spinner\"></span><span id=\"busyText\"></span>";el("busyText").textContent=text||"処理しています…";}'
+    + 'function setActionsDisabled(flag){var a=document.querySelectorAll(".actionBtn"),i;for(i=0;i<a.length;i++)a[i].disabled=!!flag;}'
+    + ''
+    + 'function setBusy(text){var m=el("msg"),sp=document.createElement("span"),tx=document.createElement("span");sp.className="spinner";tx.id="busyText";tx.textContent=text||"処理しています…";m.textContent="";m.appendChild(sp);m.appendChild(tx);}'
     + 'function clearBusy(text){el("msg").textContent=text||"";}'
     + 'function payload(){if(step===1)return {blogName:el("blogName").value,blogUrl:el("blogUrl").value,property:el("property").value};if(step===2)return {cloudProjectNumber:el("cloudProjectNumber").value};return {};}'
-    + 'function executeStep(){disableActions();setBusy("処理しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
-    + 'function skipStep(){disableActions();setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
-    + 'function finishWizard(){disableActions();setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
-    + 'function openExternal(url){var w=window.open(url,"_blank");if(!w){var m=el("msg");m.innerHTML="新しいタブを開けませんでした。 <a id=\"fallbackLink\" target=\"_blank\" rel=\"noopener noreferrer\">こちらをクリックしてください</a>";el("fallbackLink").href=url;}}'
+    + 'function executeStep(){setActionsDisabled(true);setBusy("処理しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
+    + 'function skipStep(){setActionsDisabled(true);setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
+    + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
+    + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=el("msg"),a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
     + 'el("runBtn").addEventListener("click",executeStep);el("skipBtn").addEventListener("click",skipStep);el("endBtn").addEventListener("click",finishWizard);'
     + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("https://console.cloud.google.com/iam-admin/settings");});'
     + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){openExternal("'+sbmSearchConsoleApiUrl_()+'");});'

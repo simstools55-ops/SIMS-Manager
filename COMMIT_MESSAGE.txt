@@ -1,1 +1,1 @@
-fix(setup): guard Cloud project configuration and add progress UX
+fix(setup): repair generated dialog scripts and audit setup flow
