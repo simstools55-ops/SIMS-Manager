@@ -1,1 +1,1 @@
-chore(release): establish SIMS Manager v6.0.0 edition baseline
+feat(ui): simplify SIMS Manager menus for v6.0.1

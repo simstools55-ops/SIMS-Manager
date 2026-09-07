@@ -1,14 +1,15 @@
 # SIMS Manager Release Notes
 
-## v6.0.0
+## v6.0.1
 
-SIMS Manager v6.0.0 establishes the product baseline for the Starter / Full Edition model.
+SIMS Manager v6.0.1 refines the v6 standard menu UX.
 
-- Full Edition remains the canonical implementation in the repository root `Code.gs`.
-- Starter Edition is managed as a derived Edition inside the same repository, not as a separate repository.
-- Both Editions share one version line, the same Spreadsheet data/schema, and the same core menu philosophy.
-- The v5.24.1 menu UX and improvement guidance become the standard UI baseline for the v6 generation.
-- Distribution packages are not generated as part of this repository-baseline release.
+- `今日の作業` is renamed to `SIMS今日の作業`.
+- Site health diagnosis is placed before article precision diagnosis.
+- Diagnosis and Settings / Maintenance are flattened to one-level, one-click menus.
+- Separators replace nested section menus; runtime functions and data schema are unchanged.
+- Full remains the canonical implementation, with Starter managed as a derived Edition in the same repository.
+- No Distribution ZIP is generated in this repository update.
 
 Commit message:
-`chore(release): establish SIMS Manager v6.0.0 edition baseline`
+`feat(ui): simplify SIMS Manager menus for v6.0.1`

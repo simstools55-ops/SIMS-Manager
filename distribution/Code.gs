@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.0.0
+ * SIMS Manager Product v6.0.1
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.0.0';
+const SBM_VERSION = '6.0.1';
 const SBM_EDITION = 'FULL';
+// v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
 // v6.0.0: Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。
 // v5.22.3: 「SIMS Managerについて」ダイアログ内の独自「閉じる」ボタンを削除し、共通ダイアログフッターの「閉じる」だけに統一。二重表示を解消。
 // v5.24.1: 利用者目的ベースの正本メニューへ再編。改善ナビの改善ポイントと内部リンク候補説明を具体化。
@@ -11316,11 +11317,11 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v6.0.0: Starter / Full Edition共通の正本メニュー構成。
+  // Product v6.0.1: v6標準メニューを1階層化し、日常入口を「SIMS今日の作業」へ統一。
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
 
-  ui.createMenu('今日の作業')
+  ui.createMenu('SIMS今日の作業')
     .addItem('1．Homeを開く','sbmOpenHome')
     .addItem('2．日次処理を実行','sbmRunDailyUpdateManual')
     .addItem('3．今日の改善を開く','sbmOpenTodayImprovement')
@@ -11349,13 +11350,14 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
+  // Google Sheetsの標準メニューでは非クリックの太字見出しを置けないため、
+  // サブメニューを廃止し、セパレーターで区切った1階層の直接実行メニューとする。
   ui.createMenu('診断')
-    .addSubMenu(ui.createMenu('記事の精密診断')
-      .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
-      .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate'))
-    .addSubMenu(ui.createMenu('サイト全体の健康診断')
-      .addItem('サイト健康診断を開始','sbmDoctorRunHealthCheck')
-      .addItem('健康診断結果を開く','sbmDoctorOpenHealthReport'))
+    .addItem('サイト健康診断を開始','sbmDoctorRunHealthCheck')
+    .addItem('健康診断結果を開く','sbmDoctorOpenHealthReport')
+    .addSeparator()
+    .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
+    .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
     .addToUi();
 
   ui.createMenu('新記事関連')
@@ -11364,21 +11366,20 @@ function onOpen() {
     .addToUi();
 
   ui.createMenu('設定・メンテナンス')
-    .addSubMenu(ui.createMenu('設定')
-      .addItem('初期設定','sbmStartInitialSetup')
-      .addItem('サイト設定','sbmOpenBlogInfoChange')
-      .addItem('Personal Knowledge接続を確認','sbmPersonalKnowledgeCheckAndInitializeMenu'))
-    .addSubMenu(ui.createMenu('修復・途中から再開')
-      .addItem('シートの作成・修復','sbmInitializeSheets')
-      .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis')
-      .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
-      .addItem('aDoctor未完了の処置を再開','sbmDoctorResumeSiteDiagnosisTreatments')
-      .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
-      .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
-      .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
-      .addItem('Creator Direct重複履歴を整理','sbmRepairCreatorDirectDuplicateHistoryFromMenu'))
-    .addSubMenu(ui.createMenu('情報')
-      .addItem('SIMS Managerについて','sbmShowVersionInfo'))
+    .addItem('初期設定','sbmStartInitialSetup')
+    .addItem('サイト設定','sbmOpenBlogInfoChange')
+    .addItem('Personal Knowledge接続を確認','sbmPersonalKnowledgeCheckAndInitializeMenu')
+    .addSeparator()
+    .addItem('シートの作成・修復','sbmInitializeSheets')
+    .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis')
+    .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
+    .addItem('aDoctor未完了の処置を再開','sbmDoctorResumeSiteDiagnosisTreatments')
+    .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
+    .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
+    .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
+    .addItem('Creator Direct重複履歴を整理','sbmRepairCreatorDirectDuplicateHistoryFromMenu')
+    .addSeparator()
+    .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();
 
   // v5.21.53: 起動時は利用者向け5シートだけを表示し、内部管理シートが前回操作で露出していても再び隠す。
@@ -12127,7 +12128,7 @@ function sbmDoctorShowHealthCheckStatus(){
   var pct=sbmDoctorHealthProgress_(r.statusCode,r.processedCount,r.targetCount,r.phase), isError=r.statusCode==='RETRYABLE_ERROR';
   var progressText=pct===null?'停止中':('進捗：'+pct+'%');
   var articleText=(Number(r.targetCount||0)>0)?('記事：'+Number(r.processedCount||0)+' / '+Number(r.targetCount||0)+'件'):'';
-  var next=isError?'「サイト全体の診断」から再度「サイト診断を開始」を選ぶと、続きから再開します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
+  var next=isError?'「診断」から再度「サイト健康診断を開始」を選ぶと、続きから再開します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
   var body=[
     progressText+'　'+sbmDoctorHealthStatusJa_(r.statusCode),
     articleText,
@@ -13637,7 +13638,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   ].filter(function(x){return x[1]>0;}).sort(function(a,b){return b[1]-a[1];});
   var trendText=(trendItems.length?trendItems.slice(0,5).map(function(x){return '・'+x[0]+' '+x[1]+'件（'+Math.round(x[1]/trendBase*100)+'%）';}).join('\n'):'・健康診断で数値化できる共通傾向は見つかりませんでした。')+'\n※鮮度・競合強化・カニバリ等は精密診断で追加判定します。';
   var resultText='大きな問題なし '+Number(counts.healthy||0)+'件 / 経過観察 '+observationCount+'件 / 改善管理中 '+Number(counts.excluded||0)+'件 / データ不足 '+Number(counts.lowSample||0)+'件 / 精密診断 '+Number(counts.selected||0)+'件';
-  var nextText=Number(counts.selected||0)>0 ? '「aDoctor精密診断候補を見る」を開き、1件選択してaDoctor診断依頼文を作成します。' : '通常のSIMS運用を続け、次回の健康診断で推移を確認します。';
+  var nextText=Number(counts.selected||0)>0 ? '「診断」から「精密診断候補を見る」を開き、1件選択してaDoctor診断依頼文を作成します。' : '通常のSIMS運用を続け、次回の健康診断で推移を確認します。';
 
   var healthRows=[
     ['サイト名',sbmGetSetting_('SiteName','')],
@@ -13664,7 +13665,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   report.getRange('A1:B13').setFontFamily('Arial').setVerticalAlignment('middle');
 
   // RC8 Final QA: 健康診断完了時は健康診断書だけを表示します。
-  // 精密診断候補はメニュー「3．精密診断候補を見る」を開いた時点で最新スナップショットから再生成します。
+  // 精密診断候補はメニュー「診断 → 精密診断候補を見る」を開いた時点で最新スナップショットから再生成します。
   // これにより候補シート→Home→候補シートという途中画面のちらつきを防ぎます。
 }
 
@@ -14078,7 +14079,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   var headers=['選択','重症度','記事タイトル','傾向','クリック','表示','順位','CTR','記事ID','記事URL','候補キー'];
   cand.setHiddenGridlines(true);
   cand.getRange('A1:H1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
-  cand.getRange('A2:H2').merge().setValue('Site Doctor健康診断で抽出された、詳しい診断が必要な未処理記事だけを表示しています。1件選び、「サイト全体の診断 → 4．選択候補をaDoctorで診断」を実行してください。候補抽出はSite Doctor、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
+  cand.getRange('A2:H2').merge().setValue('Site Doctor健康診断で抽出された、詳しい診断が必要な未処理記事だけを表示しています。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はSite Doctor、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
   var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),key=String(id)+'|'+sbmNormalizeUrl_(url)+'|'+title;return [false,sev,title,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');

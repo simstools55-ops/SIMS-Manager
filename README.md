@@ -1,12 +1,12 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.0.0  
+> **Current product:** SIMS Manager v6.0.1  
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.0.0`
+- Product Version: `6.0.1`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
@@ -31,13 +31,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.0.0
+# SIMS Manager v6.0.1
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.0.0`
+`6.0.1`
 
 ## Creatorで作った新記事の登録
 
@@ -47,14 +47,14 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 
 上部メニューは、左から次の順に並びます。
 
-1. **今日の作業**：Home、日次処理、今日の改善、選択記事の改善内容
+1. **SIMS今日の作業**：Home、日次処理、今日の改善、選択記事の改善内容
 2. **改善の推移・履歴**：改善効果、観察終了後の処置、改善履歴
 3. **記事管理**：記事一覧、記事詳細、aDoctor精密診断、管理状態
-4. **診断**：記事の精密診断候補、サイト全体の健康診断
+4. **診断**：サイト全体の健康診断、記事の精密診断候補
 5. **新記事関連**：新記事キーワードの参入余地確認、aCreator新記事登録（Full）
-6. **設定・メンテナンス**：設定、修復、途中再開、製品情報
+6. **設定・メンテナンス**：設定、修復、途中再開、製品情報（サブメニューなし・直接実行）
 
-番号は日常的に順番を意識して操作する項目だけに付けます。参照・任意操作・設定・メンテナンスには原則として番号を付けません。
+番号は日常的に順番を意識して操作する項目だけに付けます。参照・任意操作・設定・メンテナンスには原則として番号を付けません。診断と設定・メンテナンスはサブメニューを使わず、セパレーターで区切った1階層の直接実行メニューとします。
 
 ## Edition管理と配布物
 
@@ -62,7 +62,7 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 - ルート `Code.gs` は **Full Editionの機能正本**です。
 - Starter Editionは `editions/starter/` 配下でFull正本から派生管理します。
 - Starter / Fullは同一バージョン体系・同一Spreadsheetデータ構造を共有します。
-- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.0.0はRepository Baselineであり、配布版リリースではありません。
+- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.0.1はRepository Baselineであり、配布版リリースではありません。
 
 詳細は `EDITION_POLICY.md` を参照してください。
 
