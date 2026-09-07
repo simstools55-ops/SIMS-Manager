@@ -1,8 +1,10 @@
-fix: resume Doctor monitoring and speed up Improvement History in v6.1.20
+fix: synchronize monitoring state and show ArticleID in v6.1.21
 
-- allow WAIT/MONITOR to start additional observation even when treatment is locked
-- repair legacy WORKFLOW_LOCKED monitor cases
-- remove full-row repair and reformat work from Improvement History opening
-- preserve Improvement History selection values instead of clearing them
-- style only newly appended Improvement History rows
-- keep Full at v6.1.20 and Starter at v6.1.20-Starter
+- synchronize Doctor MONITOR transitions across Case, History, Trend, and Article Management
+- recover legacy WORKFLOW_LOCKED monitoring cases once on open
+- supersede duplicate legacy pending re-examination cases
+- restore one-time full Improvement History presentation styling
+- keep subsequent history opens lightweight and style new rows incrementally
+- show ArticleID in Article Management instead of the visible Data Update Date column
+- keep Data Update Date internally for system use
+- keep Full at v6.1.21 and Starter at v6.1.21-Starter

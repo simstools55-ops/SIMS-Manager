@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.20",
+  "current_version": "6.1.21",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.20: WAIT/MONITOR now starts a new 7/14/21/28-day observation cycle even when treatment is locked. Improvement History opening is display-only and no longer performs full-row repair/reformatting or destructive selection resets.",
-  "version": "6.1.20",
+  "notes": "v6.1.21: Doctor WAIT/MONITOR transitions now synchronize Doctor Case, Improvement History, Improvement Trend, and Article Management. Legacy locked monitor cases are repaired once on open; Improvement History receives one-time full presentation styling then incremental row styling; Article Management shows ArticleID instead of the low-value Data Update Date column.",
+  "version": "6.1.21",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.20-Starter"
+  "starter_display_version": "6.1.21-Starter"
 }
