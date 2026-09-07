@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.18",
+  "current_version": "6.1.19",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.18: legacy duplicate aDoctor re-examination cases created by pre-v6.1.17 retries are rescued by resuming the earliest pending Case instead of rebuilding Evidence. Starter now uses the user-facing display version v6.1.18-Starter while sharing canonical version 6.1.18 with Full.",
-  "version": "6.1.18",
+  "notes": "v6.1.19: repository-wide version synchronization corrected. Full displays v6.1.19 and Starter displays v6.1.19-Starter. Legacy duplicate aDoctor re-examination recovery from v6.1.18 is retained.",
+  "version": "6.1.19",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.18-Starter"
+  "starter_display_version": "6.1.19-Starter"
 }

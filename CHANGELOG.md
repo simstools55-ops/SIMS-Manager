@@ -1,3 +1,11 @@
+# Changelog
+
+## v6.1.19
+- Repository内のFull/Starter/Apps Script/Distribution各Code.gsを同一の6.1.19へ同期。
+- Fullの利用者向け表示を `v6.1.19`、Starterを `v6.1.19-Starter` に統一。
+- VERSION / shared/VERSION / PRODUCT_IDENTITY / README / manifest類の版表記を同期。
+- v6.1.18の旧aDoctor重複Case救済機能を維持。
+
 ## v6.1.16 - 2026-09-08
 
 ## v6.1.17

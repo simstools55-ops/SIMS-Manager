@@ -1,1 +1,6 @@
-fix: persist and resume aDoctor re-examination workflow in v6.1.17
+fix: synchronize Full and Starter versioning in v6.1.19
+
+- synchronize all Full executable copies to v6.1.19
+- display Starter explicitly as v6.1.19-Starter
+- synchronize VERSION, shared/VERSION, PRODUCT_IDENTITY, README, and manifests
+- retain v6.1.18 legacy aDoctor duplicate-case recovery
