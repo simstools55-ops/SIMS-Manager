@@ -4,7 +4,7 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.3';
+const SBM_VERSION = '6.1.4';
 const SBM_EDITION = 'FULL';
 // v6.1.3: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
@@ -11035,8 +11035,8 @@ function sbmShowRelease1SetupStep_(step) {
       + '2. 下の「プロジェクト番号を確認」からプロジェクト番号を確認し、入力します。<br>'
       + '3. 同じプロジェクトでGoogle Search Console APIを有効にします。<br>'
       + '4. 初回認証画面が表示された場合は許可します。<br><br>'
-      + '<a class="helpLink" href="https://console.cloud.google.com/iam-admin/settings" target="_blank">プロジェクト番号を確認</a>'
-      + '<a class="helpLink" href="'+sbmSearchConsoleApiUrl_()+'" target="_blank">Google Search Console APIを開く</a>'
+      + '<button type="button" class="helpLink" onclick="openExternal(\'https://console.cloud.google.com/iam-admin/settings\')">プロジェクト番号を確認</button>'
+      + '<button type="button" class="helpLink" onclick="openExternal(\''+sbmSearchConsoleApiUrl_()+'\')">Google Search Console APIを開く</button>'
       + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(s.cloudProjectNumber)+'"></div>'
       + '<div style="font-size:12px;color:#5f6368">APIを有効化したプロジェクト番号を記録します。未入力のままSTEP3へは進めません。</div>'
       + '</div>';
@@ -11065,20 +11065,22 @@ function sbmShowRelease1SetupStep_(step) {
     + body
     + '<div id="msg"></div>'
     + '<div class="actions">'
-    + '<button class="run" onclick="executeStep()">実行</button>'
-    + '<button class="skip" onclick="skipStep()">スキップ</button>'
-    + '<button class="end" onclick="finishWizard()">終了</button>'
+    + '<button class="run actionBtn" onclick="executeStep()">実行</button>'
+    + '<button class="skip actionBtn" onclick="skipStep()">スキップ</button>'
+    + '<button class="end actionBtn" onclick="finishWizard()">終了</button>'
     + '</div>'
     + '<script>'
     + 'var step='+step+';'
-    + 'function disableAll(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});}'
+    + 'function disableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=true});}'
+    + 'function enableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=false});}'
+    + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=document.getElementById("msg");m.innerHTML="ブラウザで新しいタブを開けませんでした。<br><a href=\""+url+"\" target=\"_blank\" rel=\"noopener noreferrer\">このリンクをクリックしてください</a>";}}'
     + 'function setBusy(text){var m=document.getElementById("msg");m.innerHTML="<span class=\"spinner\"></span><span></span>";m.lastChild.textContent=text||"処理しています…";}'
     + 'function clearBusy(text){var m=document.getElementById("msg");m.textContent=text||"";}'
     + 'function payload(){if(step===1)return {blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value};if(step===2)return {cloudProjectNumber:document.getElementById("cloudProjectNumber").value};return {};}'
-    + 'function executeStep(){disableAll();setBusy("処理しています…");'
-    + 'google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false});})'
+    + 'function executeStep(){disableActions();setBusy("処理しています…");'
+    + 'google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();})'
     + '.withSuccessHandler(function(r){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
-    + 'function skipStep(){disableAll();setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false});}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
+    + 'function skipStep(){disableActions();setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
     + 'function finishWizard(){google.script.run.sbmOpenHome();google.script.host.close();}'
     + '</script></body></html>';
 
@@ -11206,7 +11208,7 @@ function sbmOpenBlogInfoChange() {
     + '<button class="run" onclick="save()">保存</button><button class="end" onclick="google.script.host.close()">閉じる</button>'
     + '</div><script>'
     + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});'
-    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false});})'
+    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);enableActions();})'
     + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value});}'
     + '</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');

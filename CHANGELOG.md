@@ -1,3 +1,8 @@
+## v6.1.4
+- 初回セットアップSTEP2の「プロジェクト番号を確認」「Google Search Console APIを開く」を実クリック可能なボタンとして実装。
+- Wizardの処理中無効化対象をアクションボタンのみに限定し、補助リンク操作と処理制御を分離。
+- 外部ページを開けない場合のフォールバックリンクを追加。
+
 # v6.1.3 — Starter initial setup guard and progress UX
 
 - STEP2でGoogle Cloudプロジェクト番号を確認・入力する導線を追加。
