@@ -1,1 +1,1 @@
-fix: accept Doctor V2 result contract variants and bump to v6.1.16
+fix: persist and resume aDoctor re-examination workflow in v6.1.17

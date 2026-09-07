@@ -1,4 +1,9 @@
 ## v6.1.16 - 2026-09-08
+
+## v6.1.17
+- 経過観察終了後のaDoctor再診にチェックポイント／再開機構を追加。
+- 回答登録エラー後はEvidence再準備をせず、保存済み回答から登録工程を再開。
+- 旧再診待ちCaseの軽量復旧に対応。
 - Fixed Doctor V2 scope normalization for object-form allowed_scope / blocked_scope.
 - Added next_review_after_days / next_review_target_date compatibility.
 - Added dependencies-based Doctor treatment-lock interpretation.
