@@ -1,8 +1,8 @@
-# SIMS Manager v6.1.7 Repository Baseline
+# SIMS Manager v6.1.8 Repository Baseline
 
 このZIPは **GitHubリポジトリへ登録するための正本**です。利用者向け配布ZIPではありません。
 
-## v6.1.7の位置付け
+## v6.1.8の位置付け
 
 v6.0.0で確立したStarter / Full Edition構成を維持したまま、利用者向けメニューUXをv6標準として更新したRepository Baselineです。
 
@@ -20,11 +20,11 @@ Starterの実行用 `Code.gs` は `editions/starter/Code.gs` に収録済みで�
 
 ## GitHubへの反映
 
-このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。既存の履歴ファイルは保持し、同名の現行正本ファイルはv6.1.7で更新します。
+このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。既存の履歴ファイルは保持し、同名の現行正本ファイルはv6.1.8で更新します。
 
 ## 参照
 
 - `EDITION_POLICY.md` — Edition管理原則
-- `RELEASE-NOTES-v6.1.7.md` — v6.1.7の変更内容
+- `RELEASE-NOTES-v6.1.8.md` — v6.1.8の変更内容
 - `PRODUCT_IDENTITY.json` — 製品識別情報
 - `COMMIT_MESSAGE.txt` — 推奨コミットメッセージ

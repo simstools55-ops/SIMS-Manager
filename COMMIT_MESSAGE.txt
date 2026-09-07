@@ -1,1 +1,1 @@
-fix(setup): repair generated dialog scripts and audit setup flow
+fix(navi): gate advice on evidence and repair article title HTML

@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.7",
+  "current_version": "6.1.8",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.7: Starter改善ナビを本文見出しとGSCクエリに基づく具体的編集指示へ強化。改善完了登録導線、今日の改善タイトル正規化、初回セットアップSTEP6完了UIを反映。",
-  "version": "6.1.7",
+  "notes": "v6.1.8: 記事タイトルHTML混入を共通補正。改善ナビは本文H2/H3とSearch Consoleクエリの取得完了後にのみ改善ポイント・内部リンク候補を生成し、日次取得済みクエリと本文キャッシュを優先して高速化。",
+  "version": "6.1.8",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"
