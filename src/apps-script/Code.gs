@@ -1,12 +1,12 @@
 /**
- * SIMS Manager Product v6.1.2
+ * SIMS Manager Product v6.1.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.2';
+const SBM_VERSION = '6.1.3';
 const SBM_EDITION = 'FULL';
-// v6.1.2: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
+// v6.1.3: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
 // v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
 // v6.0.0: Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。
@@ -10965,6 +10965,7 @@ function sbmRelease1SetupStatus_() {
     siteId:String(settings['SiteID']||''),
     siteName:String(settings['SiteName']||''),
     property:String(settings['SearchConsoleProperty']||''),
+    cloudProjectNumber:String(settings['GoogleCloudProjectNumber']||''),
     step1:String(settings['SetupBlogInfo']||'NO')==='YES',
     step2:String(settings['SetupApiGuide']||'NO')==='YES',
     step3:String(settings['ConnectionStatus']||'')==='OK',
@@ -10988,7 +10989,10 @@ function sbmRelease1WizardBaseCss_() {
     + '.actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
     + 'button{border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer}'
     + '.run{background:#0b8043;color:#fff}.skip{background:#e8f0fe;color:#174ea6}.end{background:#fff;color:#3c4043;border:1px solid #9aa0a6}'
-    + '#msg{font-size:12px;color:#5f6368;margin-top:10px;white-space:pre-wrap}'
+    + '#msg{font-size:12px;color:#5f6368;margin-top:10px;white-space:pre-wrap;display:flex;align-items:center;gap:8px}'
+    + '.spinner{display:inline-block;width:16px;height:16px;border:2px solid #dadce0;border-top-color:#0b8043;border-radius:50%;animation:spin .8s linear infinite;flex:0 0 auto}'
+    + '@keyframes spin{to{transform:rotate(360deg)}}'
+    + '.helpLink{display:inline-block;margin:6px 8px 6px 0;padding:8px 12px;border:1px solid #1a73e8;border-radius:6px;color:#1a73e8;text-decoration:none;font-weight:700;background:#fff}'
     + '</style>';
 }
 
@@ -11027,10 +11031,14 @@ function sbmShowRelease1SetupStep_(step) {
       + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>';
   } else if (step === 2) {
     body = '<div class="box">'
-      + '1. Google Cloudで使用するプロジェクトを選択します。<br>'
-      + '2. Google Search Console APIを有効にします。<br>'
-      + '3. 初回認証画面が表示された場合は許可します。<br><br>'
-      + '<a href="'+sbmSearchConsoleApiUrl_()+'" target="_blank" style="color:#1a73e8;font-weight:700">Google Search Console APIを開く</a>'
+      + '1. Apps Scriptで使用するGoogle Cloudプロジェクトを確認します。<br>'
+      + '2. 下の「プロジェクト番号を確認」からプロジェクト番号を確認し、入力します。<br>'
+      + '3. 同じプロジェクトでGoogle Search Console APIを有効にします。<br>'
+      + '4. 初回認証画面が表示された場合は許可します。<br><br>'
+      + '<a class="helpLink" href="https://console.cloud.google.com/iam-admin/settings" target="_blank">プロジェクト番号を確認</a>'
+      + '<a class="helpLink" href="'+sbmSearchConsoleApiUrl_()+'" target="_blank">Google Search Console APIを開く</a>'
+      + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(s.cloudProjectNumber)+'"></div>'
+      + '<div style="font-size:12px;color:#5f6368">APIを有効化したプロジェクト番号を記録します。未入力のままSTEP3へは進めません。</div>'
       + '</div>';
   } else if (step === 3) {
     body = '<div class="box">接続先：<b>'+sbmEscapeHtml_(s.property || '未登録')+'</b></div>';
@@ -11064,11 +11072,13 @@ function sbmShowRelease1SetupStep_(step) {
     + '<script>'
     + 'var step='+step+';'
     + 'function disableAll(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});}'
-    + 'function payload(){if(step!==1)return {};return {blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value};}'
-    + 'function executeStep(){disableAll();document.getElementById("msg").textContent="処理しています…";'
-    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false});})'
+    + 'function setBusy(text){var m=document.getElementById("msg");m.innerHTML="<span class=\"spinner\"></span><span></span>";m.lastChild.textContent=text||"処理しています…";}'
+    + 'function clearBusy(text){var m=document.getElementById("msg");m.textContent=text||"";}'
+    + 'function payload(){if(step===1)return {blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value};if(step===2)return {cloudProjectNumber:document.getElementById("cloudProjectNumber").value};return {};}'
+    + 'function executeStep(){disableAll();setBusy("処理しています…");'
+    + 'google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false});})'
     + '.withSuccessHandler(function(r){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
-    + 'function skipStep(){disableAll();google.script.run.withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
+    + 'function skipStep(){disableAll();setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false});}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
     + 'function finishWizard(){google.script.run.sbmOpenHome();google.script.host.close();}'
     + '</script></body></html>';
 
@@ -11107,8 +11117,13 @@ function sbmExecuteRelease1SetupStep(step, payload) {
   }
 
   if(step===2){
-    sbmSetupSetSettingsBulk_([{key:'SetupApiGuide',value:'YES',desc:'STEP2ガイド確認済み'}]);
-    sbmLog_('Release1SetupStep2','Done','API guide confirmed');
+    var cloudProjectNumber=String(payload.cloudProjectNumber||'').replace(/\s+/g,'').trim();
+    if(!/^\d{6,20}$/.test(cloudProjectNumber))throw new Error('Google Cloudのプロジェクト番号を入力してください。数字のみで入力します。');
+    sbmSetupSetSettingsBulk_([
+      {key:'GoogleCloudProjectNumber',value:cloudProjectNumber,desc:'Search Console APIを有効化したGoogle Cloudプロジェクト番号'},
+      {key:'SetupApiGuide',value:'YES',desc:'STEP2ガイド確認済み'}
+    ]);
+    sbmLog_('Release1SetupStep2','Done','Cloud project number '+cloudProjectNumber+' / API guide confirmed');
     sbmShowRelease1SetupStep_(3);
     return true;
   }
@@ -11116,6 +11131,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
   if(step===3){
     var settings3=sbmGetSettingsMap_();
     if(String(settings3['SetupBlogInfo']||'NO')!=='YES')throw new Error('先にSTEP1を実行してください。');
+    if(!String(settings3['GoogleCloudProjectNumber']||'').trim())throw new Error('先にSTEP2でGoogle Cloudのプロジェクト番号を確認・入力し、Search Console APIを有効化してください。');
     var result=sbmTestSearchConsoleConnection_();
     if(!result.ok){
       sbmSetupSetSettingsBulk_([{key:'ConnectionStatus',value:'ERROR',desc:'Search Console接続失敗'}]);

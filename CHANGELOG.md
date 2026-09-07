@@ -1,3 +1,11 @@
+# v6.1.3 — Starter initial setup guard and progress UX
+
+- STEP2でGoogle Cloudプロジェクト番号を確認・入力する導線を追加。
+- Google Cloudのプロジェクト設定ページとSearch Console APIページへのジャンプボタンを追加。
+- プロジェクト番号未確認のままSTEP3接続テストへ進めないガードを追加。
+- 初回セットアップの実行・スキップ処理にスピナーを追加し、処理中であることを明示。
+- Full / Starterの共通セットアップ実装へ同じ改善を反映。
+
 ## v6.1.2 - 2026-09-07
 
 - Full / Starter の製品バージョン表示を v6.1.2 に同期。
