@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.4",
+  "current_version": "6.1.5",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.1 canonicalizes the common Full/Starter spreadsheet template. Legacy Product5 spreadsheet templates were retired; one v6.1.1 common spreadsheet schema is now the repository source of truth. v6.1.3: Edition別の製品情報表示を同期し、Starterの「SIMS Managerについて」からFull専用役割を除外。 v6.1.4: 初回セットアップSTEP2のGoogle Cloud支援リンクを実操作可能なボタンに修正し、処理ボタンだけを無効化するようイベント制御を分離。",
-  "version": "6.1.4",
+  "notes": "v6.1.1 canonicalizes the common Full/Starter spreadsheet template. Legacy Product5 spreadsheet templates were retired; one v6.1.1 common spreadsheet schema is now the repository source of truth. v6.1.3: Edition別の製品情報表示を同期し、Starterの「SIMS Managerについて」からFull専用役割を除外。 v6.1.4: 初回セットアップSTEP2のGoogle Cloud支援リンクを実操作可能なボタンに修正し、処理ボタンだけを無効化するようイベント制御を分離。 v6.1.5: 初回セットアップ関連ダイアログを全監査し、ボタンイベントと処理中表示・失敗時復帰を修正。",
+  "version": "6.1.5",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

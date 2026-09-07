@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.3
+ * SIMS Manager Product v6.1.5
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.4';
+const SBM_VERSION = '6.1.5';
 const SBM_EDITION = 'STARTER';
+// v6.1.5: 初回セットアップ関連ダイアログのボタンイベントを監査・修正。イベント登録を明示化し、失敗時の再操作も保証。
 // v6.1.3: Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
 // v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
@@ -10822,34 +10823,32 @@ function sbmStartSetupWizard() {
 
     + '<div class="step"><div class="row"><div><div class="title">STEP1　サイト情報を登録　' + mark(statuses.step1) + '</div>'
     + '<div class="desc">サイト名、サイトURL、Search Consoleプロパティを登録します。</div></div>'
-    + '<button class="run" onclick="runStep(1)">実行</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="1">実行</button></div></div>'
 
     + '<div class="step"><div class="row"><div><div class="title">STEP2　Google Cloud APIガイド　' + mark(statuses.step2) + '</div>'
     + '<div class="desc">必要なAPI設定と認証手順を確認します。</div></div>'
-    + '<button class="run" onclick="runStep(2)">実行</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="2">実行</button></div></div>'
 
     + '<div class="step"><div class="row"><div><div class="title">STEP3　Search Console接続テスト　' + mark(statuses.step3) + '</div>'
     + '<div class="desc">登録したプロパティへ接続できるか確認します。</div></div>'
-    + '<button class="run" onclick="runStep(3)">実行</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="3">実行</button></div></div>'
 
     + '<div class="step"><div class="row"><div><div class="title">STEP4　記事管理を初回作成　' + mark(statuses.step4) + '</div>'
     + '<div class="desc">Search ConsoleからURLと指標を取得し、記事管理を作成します。</div></div>'
-    + '<button class="run" onclick="runStep(4)">実行</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="4">実行</button></div></div>'
 
     + '<div class="step"><div class="row"><div><div class="title">STEP5　記事情報を補完　' + mark(statuses.step5) + '</div>'
     + '<div class="desc">記事タイトル、SEOタイトル、ディスクリプションなどを補完します。</div></div>'
-    + '<button class="run" onclick="runStep(5)">実行</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="5">実行</button></div></div>'
 
     + '<div class="step"><div class="row"><div><div class="title">セットアップ結果を確認</div>'
     + '<div class="desc">記事管理の登録件数、補完済み件数、残り件数を確認します。新しいデータ取得処理は行いません。</div></div>'
-    + '<button class="run" onclick="runStep(6)">確認</button></div></div>'
+    + '<button type="button" class="run setupStepBtn" data-step="6">確認</button></div></div>'
 
-    + '<div class="footer"><button class="close" onclick="google.script.host.close()">閉じる</button></div>'
+    + '<div class="footer"><button id="setupNavCloseBtn" type="button" class="close">閉じる</button></div>'
     + '<script>'
-    + 'function runStep(step){'
-    + 'google.script.run.sbmRunSetupWizardStep(step);'
-    + 'window.setTimeout(function(){google.script.host.close();},50);'
-    + '}'
+    + 'function runStep(step){document.querySelectorAll("button").forEach(function(b){b.disabled=true;});google.script.run.withFailureHandler(function(){document.querySelectorAll("button").forEach(function(b){b.disabled=false;});}).withSuccessHandler(function(){google.script.host.close();}).sbmRunSetupWizardStep(step);}'
+    + 'document.querySelectorAll(".setupStepBtn").forEach(function(b){b.addEventListener("click",function(){runStep(Number(b.getAttribute("data-step")));});});document.getElementById("setupNavCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
 
   SpreadsheetApp.getUi().showModalDialog(
@@ -11035,8 +11034,8 @@ function sbmShowRelease1SetupStep_(step) {
       + '2. 下の「プロジェクト番号を確認」からプロジェクト番号を確認し、入力します。<br>'
       + '3. 同じプロジェクトでGoogle Search Console APIを有効にします。<br>'
       + '4. 初回認証画面が表示された場合は許可します。<br><br>'
-      + '<button type="button" class="helpLink" onclick="openExternal(\'https://console.cloud.google.com/iam-admin/settings\')">プロジェクト番号を確認</button>'
-      + '<button type="button" class="helpLink" onclick="openExternal(\''+sbmSearchConsoleApiUrl_()+'\')">Google Search Console APIを開く</button>'
+      + '<button id="projectHelpBtn" type="button" class="helpLink">プロジェクト番号を確認</button>'
+      + '<button id="apiHelpBtn" type="button" class="helpLink">Google Search Console APIを開く</button>'
       + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(s.cloudProjectNumber)+'"></div>'
       + '<div style="font-size:12px;color:#5f6368">APIを有効化したプロジェクト番号を記録します。未入力のままSTEP3へは進めません。</div>'
       + '</div>';
@@ -11065,23 +11064,25 @@ function sbmShowRelease1SetupStep_(step) {
     + body
     + '<div id="msg"></div>'
     + '<div class="actions">'
-    + '<button class="run actionBtn" onclick="executeStep()">実行</button>'
-    + '<button class="skip actionBtn" onclick="skipStep()">スキップ</button>'
-    + '<button class="end actionBtn" onclick="finishWizard()">終了</button>'
+    + '<button id="runBtn" type="button" class="run actionBtn">実行</button>'
+    + '<button id="skipBtn" type="button" class="skip actionBtn">スキップ</button>'
+    + '<button id="endBtn" type="button" class="end actionBtn">終了</button>'
     + '</div>'
     + '<script>'
     + 'var step='+step+';'
-    + 'function disableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=true});}'
-    + 'function enableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=false});}'
-    + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=document.getElementById("msg");m.innerHTML="ブラウザで新しいタブを開けませんでした。<br><a href=\""+url+"\" target=\"_blank\" rel=\"noopener noreferrer\">このリンクをクリックしてください</a>";}}'
-    + 'function setBusy(text){var m=document.getElementById("msg");m.innerHTML="<span class=\"spinner\"></span><span></span>";m.lastChild.textContent=text||"処理しています…";}'
-    + 'function clearBusy(text){var m=document.getElementById("msg");m.textContent=text||"";}'
-    + 'function payload(){if(step===1)return {blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value};if(step===2)return {cloudProjectNumber:document.getElementById("cloudProjectNumber").value};return {};}'
-    + 'function executeStep(){disableActions();setBusy("処理しています…");'
-    + 'google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();})'
-    + '.withSuccessHandler(function(r){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
+    + 'function el(id){return document.getElementById(id);}'
+    + 'function disableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=true;});}'
+    + 'function enableActions(){document.querySelectorAll(".actionBtn").forEach(function(b){b.disabled=false;});}'
+    + 'function setBusy(text){var m=el("msg");m.innerHTML="<span class=\"spinner\"></span><span id=\"busyText\"></span>";el("busyText").textContent=text||"処理しています…";}'
+    + 'function clearBusy(text){el("msg").textContent=text||"";}'
+    + 'function payload(){if(step===1)return {blogName:el("blogName").value,blogUrl:el("blogUrl").value,property:el("property").value};if(step===2)return {cloudProjectNumber:el("cloudProjectNumber").value};return {};}'
+    + 'function executeStep(){disableActions();setBusy("処理しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
     + 'function skipStep(){disableActions();setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
-    + 'function finishWizard(){google.script.run.sbmOpenHome();google.script.host.close();}'
+    + 'function finishWizard(){disableActions();setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));enableActions();}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
+    + 'function openExternal(url){var w=window.open(url,"_blank");if(!w){var m=el("msg");m.innerHTML="新しいタブを開けませんでした。 <a id=\"fallbackLink\" target=\"_blank\" rel=\"noopener noreferrer\">こちらをクリックしてください</a>";el("fallbackLink").href=url;}}'
+    + 'el("runBtn").addEventListener("click",executeStep);el("skipBtn").addEventListener("click",skipStep);el("endBtn").addEventListener("click",finishWizard);'
+    + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("https://console.cloud.google.com/iam-admin/settings");});'
+    + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){openExternal("'+sbmSearchConsoleApiUrl_()+'");});'
     + '</script></body></html>';
 
   SpreadsheetApp.getUi().showModalDialog(
@@ -11205,11 +11206,12 @@ function sbmOpenBlogInfoChange() {
     + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
     + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>'
     + '<div id="msg"></div><div class="actions">'
-    + '<button class="run" onclick="save()">保存</button><button class="end" onclick="google.script.host.close()">閉じる</button>'
+    + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
     + '</div><script>'
     + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});'
-    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);enableActions();})'
+    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
     + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value});}'
+    + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');
 }
@@ -11245,12 +11247,13 @@ function sbmShowRepairCompletionNavigator_() {
     + '✓ Homeを最新状態へ更新し、Homeへ戻りました。<br>'
     + '最終更新日時：<b>'+sbmEscapeHtml_(lastText)+'</b></div>'
     + '<p>次の操作を選択してください。</p><div class="actions">'
-    + '<button class="run" onclick="setup()">初回セットアップを開始</button>'
-    + '<button class="skip" onclick="home()">そのまま使う</button>'
-    + '<button class="end" onclick="google.script.host.close()">閉じる</button>'
+    + '<button id="repairSetupBtn" type="button" class="run">初回セットアップを開始</button>'
+    + '<button id="repairHomeBtn" type="button" class="skip">そのまま使う</button>'
+    + '<button id="repairCloseBtn" type="button" class="end">閉じる</button>'
     + '</div><script>'
     + 'function setup(){google.script.host.close();google.script.run.sbmStartInitialSetup();}'
     + 'function home(){google.script.host.close();google.script.run.sbmOpenHome();}'
+    + 'document.getElementById("repairSetupBtn").addEventListener("click",setup);document.getElementById("repairHomeBtn").addEventListener("click",home);document.getElementById("repairCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(540).setHeight(390),'シートの作成・修復');
 }

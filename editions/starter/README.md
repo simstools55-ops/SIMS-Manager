@@ -1,6 +1,6 @@
 # SIMS Manager Starter Edition
 
-- Version: `6.1.0`
+- Version: `6.1.5`
 - Paste `Code.gs` in this folder into the Starter user's Apps Script project.
 - This file is derived from the repository root Full canonical `Code.gs`.
 - Starter and Full share the same Spreadsheet schema and version line.
