@@ -5,7 +5,7 @@
  */
 
 const SBM_VERSION = '6.1.0';
-const SBM_EDITION = 'FULL';
+const SBM_EDITION = 'STARTER';
 // v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
 // v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
 // v6.0.0: Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。

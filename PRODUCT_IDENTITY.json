@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.0.1",
+  "current_version": "6.1.0",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.0.1 UI baseline: Full remains canonical; SIMS今日の作業を日常入口とし、診断・設定メニューを1階層の直接実行構成へ統一。Starter remains a derived Edition in the same repository.",
-  "version": "6.0.1",
+  "notes": "v6.1.0 Edition baseline: Full is canonical and Starter Code.gs is now included under editions/starter. Both Editions share one schema/version line; Starter hides Full-only new-article, aWriter/aMerge/Creator Direct and advanced Site Doctor treatment routes.",
+  "version": "6.1.0",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.0.1
+ * SIMS Manager Product v6.1.0
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.0.1';
+const SBM_VERSION = '6.1.0';
 const SBM_EDITION = 'FULL';
+// v6.1.0: Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
 // v6.0.1: 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
 // v6.0.0: Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。
 // v5.22.3: 「SIMS Managerについて」ダイアログ内の独自「閉じる」ボタンを削除し、共通ダイアログフッターの「閉じる」だけに統一。二重表示を解消。
@@ -6193,6 +6194,7 @@ function sbmLoadImprovementNaviData(seed){
 
 function sbmShowImprovementNaviDialog_(a,kind,reason){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var isFullEdition=String(SBM_EDITION||'').toUpperCase()==='FULL';
   var title=String(a['記事タイトル']||'（タイトル未取得）'),url=String(a['記事URL']||'');
   var query=sbmRealMainQuery_(a['メインクエリ']),rank=String(a['記事ランク']||''),work=String(a['作業状態']||'未着手');
   var clicks=sbmNumber_(a['クリック数'])||0,imps=sbmNumber_(a['表示回数'])||0,ctr=sbmNormalizeCtrNumber_(a['CTR']),pos=sbmNumber_(a['掲載順位'])||0;
@@ -6219,16 +6221,16 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     '<div class="sec"><b>改善ポイント</b>'+advice.map(function(x){return '<div class="p">'+esc(x)+'</div>';}).join('')+'</div>'+ 
     '<div class="sec"><b>内部リンク候補（<span id="internalLinkCount">準備中</span>）</b><p style="color:#5f6368;font-size:13px">記事DBとSearch Console上位クエリから抽出しています。候補ごとに、この記事からどのように活用できるかも表示します。</p><div id="internalLinks" class="source-loading"><span class="miniSpinner"></span>候補を抽出しています…</div></div>'+ 
     '<div class="sec"><b>作業時間の目安</b><p>'+(kind.indexOf('即効性')>=0?'約15～20分':'約20分')+'</p></div>'+ 
-    '<div class="sec"><b>aWriterへの改善依頼文</b><div class="prompt" id="prompt">依頼文を準備しています…</div><button id="copyPromptBtn" class="btn" onclick="copyPrompt()" disabled>aWriter依頼文をコピー</button><div id="copyStatus" class="inlineStatus"></div></div>'+ 
+    (isFullEdition?'<div class="sec"><b>aWriterへの改善依頼文</b><div class="prompt" id="prompt">依頼文を準備しています…</div><button id="copyPromptBtn" class="btn" onclick="copyPrompt()" disabled>aWriter依頼文をコピー</button><div id="copyStatus" class="inlineStatus"></div></div>':'<div id="prompt" style="display:none"></div><div id="copyStatus" style="display:none"></div>')+
     '<div class="sec"><a class="btn" href="'+esc(url)+'" target="_blank">記事を開く</a></div>'+ 
-    '<div class="sec writerBox"><b>aWriterの回答を登録</b><p style="margin:6px 0 8px;color:#5f6368">aWriterの回答全文、または回答末尾のSIMS向けJSONを貼り付けてください。内容の解析・照合はSIMS Managerが内部で行います。</p><textarea id="writerResponse" placeholder="ここへaWriterの回答を貼り付けます"></textarea><br><button id="registerFeedbackBtn" class="btn" style="background:#0b8043;margin-top:10px" onclick="registerFeedback()">✅ 改善結果を登録</button><div id="registerStatus" class="registerStatus"></div></div>'+ 
+    (isFullEdition?'<div class="sec writerBox"><b>aWriterの回答を登録</b><p style="margin:6px 0 8px;color:#5f6368">aWriterの回答全文、または回答末尾のSIMS向けJSONを貼り付けてください。内容の解析・照合はSIMS Managerが内部で行います。</p><textarea id="writerResponse" placeholder="ここへaWriterの回答を貼り付けます"></textarea><br><button id="registerFeedbackBtn" class="btn" style="background:#0b8043;margin-top:10px" onclick="registerFeedback()">✅ 改善結果を登録</button><div id="registerStatus" class="registerStatus"></div></div>':'')+ 
     '<script>var seed='+JSON.stringify(seed).replace(/</g,'\\u003c')+',meta='+JSON.stringify(seed).replace(/</g,'\\u003c')+';'+
     'function eh(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;")}function setInline(id,msg,cls){var e=document.getElementById(id);if(!e)return;e.className="inlineStatus "+(cls||"");e.textContent=msg||""}'+
     'function renderQueries(r){var q=r.queryResult||{},arr=r.topQueries||[],mq=String((r.meta||{}).query||""),norm=function(s){return String(s||"").toLowerCase().replace(/\\s+/g," ").trim()},found=arr.some(function(x){return norm(x.query)===norm(mq)}),note=mq?"<br>メインクエリ：<b>"+eh(mq)+"</b>"+(found?"（取得クエリ内に一致あり）":"<br><span style=\\"color:#5f6368\\">※今回取得した上位クエリには完全一致で含まれていません。</span>"):"<br>メインクエリ：<b>未設定</b>";var h;if(q.ok&&Number(q.total||0)>0)h="<div class=\\"source-ok\\">✅ 最新クエリを取得しました。"+note+"<br>取得件数：<b>"+Number(q.total||0).toLocaleString()+"件</b> ／ 依頼文へ使用：<b>"+arr.length+"件</b><br>取得日時："+eh(q.fetchedAt||"－")+"<br>対象期間："+eh(q.startDate||"－")+" ～ "+eh(q.endDate||"－")+"</div>";else h="<div class=\\"source-ng\\">⚠️ "+eh(q.message||"クエリを取得できませんでした。")+note+"<br>依頼文へ使用：<b>"+arr.length+"件</b></div>";document.getElementById("queryStatus").outerHTML="<div id=\\"queryStatus\\">"+h+"</div>";if(arr.length){var rows=arr.map(function(x){return "<tr><td>"+((mq&&norm(x.query)===norm(mq))?"★ ":"")+eh(x.query)+"</td><td>"+Number(x.clicks||0).toLocaleString()+"</td><td>"+Number(x.imps||0).toLocaleString()+"</td><td>"+(Number(x.ctr||0)*100).toFixed(2)+"%</td><td>"+Number(x.position||0).toFixed(1)+"</td></tr>"}).join("");document.getElementById("queryList").innerHTML="<details class=\\"query-details\\"><summary>取得したクエリを見る（依頼文使用 "+arr.length+"件）</summary><div class=\\"query-table-wrap\\"><table class=\\"query-table\\"><thead><tr><th>クエリ</th><th>クリック</th><th>表示回数</th><th>CTR</th><th>順位</th></tr></thead><tbody>"+rows+"</tbody></table></div></details>"}}'+
     'function renderLinks(arr){arr=arr||[];document.getElementById("internalLinkCount").textContent=arr.length+"件";var box=document.getElementById("internalLinks");box.className="";box.innerHTML=arr.length?arr.map(function(c,i){return "<div class=\\"link-candidate\\"><b>"+(i+1)+". "+eh(c.title)+"</b><br><a href=\\""+eh(c.url)+"\\" target=\\"_blank\\">"+eh(c.url)+"</a><br><span>推奨アンカー："+eh(c.anchor)+"</span><br><span>関連クエリ："+eh(c.relatedQuery||"－")+"</span><br><span>関連度："+eh(c.stars)+"</span><br><span><b>活用の考え方：</b>関連クエリやアンカーに自然につながる段落があれば、この関連記事を補足情報として案内してください。上記アンカーテキストを目安にし、関連する文脈がない場合は無理に追加する必要はありません。</span></div>"}).join(""):"<div class=\\"source-ng\\">十分な関連性を持つ内部リンク候補は見つかりませんでした。無理に追加する必要はありません。</div>"}'+
-    'function loadDetail(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"詳細を取得できませんでした。";document.getElementById("queryStatus").className="source-ng";document.getElementById("queryStatus").textContent=m;document.getElementById("sourceStatus").className="source-ng";document.getElementById("sourceStatus").textContent=m;setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;renderQueries(r);renderLinks(r.internalLinks);var ss=document.getElementById("sourceStatus");if(r.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(r.characterCount||0).toLocaleString()+"文字・"+Number(r.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(r.fetchedMessage||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}document.getElementById("prompt").innerText=r.prompt||"";document.getElementById("copyPromptBtn").disabled=false}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);document.getElementById("queryStatus").className="source-ng";document.getElementById("queryStatus").textContent=m;document.getElementById("sourceStatus").className="source-ng";document.getElementById("sourceStatus").textContent="詳細取得中にエラーが発生しました。";setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmLoadImprovementNaviData(seed)}'+
+    'function loadDetail(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"詳細を取得できませんでした。";document.getElementById("queryStatus").className="source-ng";document.getElementById("queryStatus").textContent=m;document.getElementById("sourceStatus").className="source-ng";document.getElementById("sourceStatus").textContent=m;setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;renderQueries(r);renderLinks(r.internalLinks);var ss=document.getElementById("sourceStatus");if(r.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(r.characterCount||0).toLocaleString()+"文字・"+Number(r.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(r.fetchedMessage||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);document.getElementById("queryStatus").className="source-ng";document.getElementById("queryStatus").textContent=m;document.getElementById("sourceStatus").className="source-ng";document.getElementById("sourceStatus").textContent="詳細取得中にエラーが発生しました。";setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmLoadImprovementNaviData(seed)}'+
     'function copyPrompt(){var b=document.getElementById("copyPromptBtn"),t=document.getElementById("prompt").innerText;if(b.disabled){setInline("copyStatus","依頼文の準備完了後にコピーできます。","error");return}var done=function(){setInline("copyStatus","✓ aWriter依頼文をコピーしました。","ok")},fail=function(){setInline("copyStatus","コピーできませんでした。もう一度お試しください。","error")};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fail);else fail()}'+
-    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}document.getElementById("prompt").innerText=r.prompt;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
+    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
     'function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
     'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}document.addEventListener("DOMContentLoaded",loadDetail);</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
@@ -11317,9 +11319,10 @@ function sbmSyncHomeVersionOnly_(){
 }
 
 function onOpen() {
-  // Product v6.0.1: v6標準メニューを1階層化し、日常入口を「SIMS今日の作業」へ統一。
+  // Product v6.1.0: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
+  var isFullEdition = String(SBM_EDITION || '').toUpperCase() === 'FULL';
 
   ui.createMenu('SIMS今日の作業')
     .addItem('1．Homeを開く','sbmOpenHome')
@@ -11350,8 +11353,6 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
-  // Google Sheetsの標準メニューでは非クリックの太字見出しを置けないため、
-  // サブメニューを廃止し、セパレーターで区切った1階層の直接実行メニューとする。
   ui.createMenu('診断')
     .addItem('サイト健康診断を開始','sbmDoctorRunHealthCheck')
     .addItem('健康診断結果を開く','sbmDoctorOpenHealthReport')
@@ -11360,24 +11361,32 @@ function onOpen() {
     .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
     .addToUi();
 
-  ui.createMenu('新記事関連')
-    .addItem('新記事キーワードの参入余地を確認','sbmOpenSerpEntryCheckDialog')
-    .addItem('aCreatorで作成した新記事を登録','sbmOpenCreatorPublicationRegisterDialog')
-    .addToUi();
+  if (isFullEdition) {
+    ui.createMenu('新記事関連')
+      .addItem('新記事キーワードの参入余地を確認','sbmOpenSerpEntryCheckDialog')
+      .addItem('aCreatorで作成した新記事を登録','sbmOpenCreatorPublicationRegisterDialog')
+      .addToUi();
+  }
 
-  ui.createMenu('設定・メンテナンス')
+  var maintenanceMenu = ui.createMenu('設定・メンテナンス')
     .addItem('初期設定','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
     .addItem('Personal Knowledge接続を確認','sbmPersonalKnowledgeCheckAndInitializeMenu')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets')
-    .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis')
-    .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
-    .addItem('aDoctor未完了の処置を再開','sbmDoctorResumeSiteDiagnosisTreatments')
-    .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
-    .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
-    .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
-    .addItem('Creator Direct重複履歴を整理','sbmRepairCreatorDirectDuplicateHistoryFromMenu')
+    .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis');
+
+  if (isFullEdition) {
+    maintenanceMenu
+      .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
+      .addItem('aDoctor未完了の処置を再開','sbmDoctorResumeSiteDiagnosisTreatments')
+      .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
+      .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
+      .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
+      .addItem('Creator Direct重複履歴を整理','sbmRepairCreatorDirectDuplicateHistoryFromMenu');
+  }
+
+  maintenanceMenu
     .addSeparator()
     .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();

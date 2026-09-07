@@ -22,5 +22,14 @@ Starter and Full always use the same SIMS Manager version number. Edition names 
 ## Repository layout
 
 - `Code.gs` — Full Edition canonical source
-- `editions/starter/` — Starter-derived source and Edition-specific documentation
+- `editions/starter/Code.gs` — Starter Edition source used by Starter users
+- `editions/starter/README.md` — Starter-specific usage and boundary notes
 - distribution artifacts — created only when explicitly requested
+
+## v6.1.0 implemented boundary
+
+Starter uses the same executable body as Full with `SBM_EDITION = 'STARTER'`. Edition-aware UI hides Full-only routes while preserving the shared Spreadsheet schema and common improvement/diagnosis engine.
+
+Starter-visible core: SIMS今日の作業、改善の推移・履歴、記事管理、サイト健康診断、aDoctor精密診断、設定・基本修復。
+
+Full-only UI: 新記事関連、aWriter改善結果登録、Merge補正、Creator Direct整理、Site Doctor advanced treatment routes.

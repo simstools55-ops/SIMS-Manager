@@ -1,3 +1,12 @@
+# v6.1.0
+
+- Starter Editionの実コードを `editions/starter/Code.gs` として追加。
+- Full正本とStarterを同一スキーマ・同一バージョンラインで管理。
+- Edition定数によりStarterでは「新記事関連」トップメニューを非表示。
+- StarterではaWriter/aMerge/Creator DirectおよびSite Doctor高度処置のメンテナンス導線を非表示。
+- 「選択記事の改善内容を見る」はStarterでも改善ポイント・内部リンク候補を表示し、aWriter依頼文/回答登録だけを非表示。
+- Full Editionの既存機能・データ構造は維持。
+
 ## v6.0.1
 
 - 日常作業のトップメニュー名を「今日の作業」から「SIMS今日の作業」へ変更。

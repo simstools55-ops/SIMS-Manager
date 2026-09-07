@@ -1,1 +1,1 @@
-feat(ui): simplify SIMS Manager menus for v6.0.1
+feat(edition): add Starter Edition baseline for v6.1.0
