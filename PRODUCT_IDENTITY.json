@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.9",
+  "current_version": "6.1.10",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.9: 改善ナビのタイトル表示を正規化。Search Consoleクエリ取得と記事本文取得を並列化し、両方の取得完了後だけ改善ポイント・内部リンク候補を生成。ローカルGSC参照を対象URL単位へ軽量化。",
-  "version": "6.1.9",
+  "notes": "v6.1.10: article list display/style repair, internal-link title sanitation, and immediate Starter effect synchronization.",
+  "version": "6.1.10",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

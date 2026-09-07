@@ -4,8 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.9';
+const SBM_VERSION = '6.1.10';
 const SBM_EDITION = 'FULL';
+// v6.1.10: 記事管理表示を軽量再整形し、タイトル正規化のSettings反復I/Oを除去。内部リンク候補タイトルも正規化。Starter改善完了登録後は対象1件の改善の推移を即時同期。
 // v6.1.9: 改善ナビのタイトル正規化を徹底。GSCクエリ取得と記事本文取得を並列化し、両方の完了後だけ改善ポイント/内部リンク候補を生成。ローカルGSC参照も対象URL単位へ軽量化。
 // v6.1.8: 記事タイトルHTML混入を共通サニタイズし、改善ナビは本文・GSCクエリ取得完了後にのみ改善ポイント/内部リンク候補を生成。日次取得済みクエリと本文キャッシュを優先して待ち時間を短縮。
 // v6.1.6: 初回セットアップ全ダイアログの生成後JavaScriptを構文監査。HTML文字列内の引用符崩壊で全ボタンが無反応になる根本原因を修正し、冗長なイベント処理を整理。
@@ -2563,7 +2564,9 @@ function sbmOpenArticleDb() {
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
   if(!sh) sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.ARTICLE_DB); } catch(eTitleRepair) { sbmLog_('ArticleTitleRepair','Warning',String(eTitleRepair)); }
+  try { sbmRepairArticleDisplayTitlesLight_(sh); } catch(eDisplayTitle) { sbmLog_('ArticleDisplayTitleRepair','Warning',String(eDisplayTitle)); }
   sbmEnsureArticleListFilter_(sh);
+  try { sbmStyleArticleDbSheet_(sh); } catch(eStyle) { sbmLog_('ArticleListStyle','Warning',String(eStyle)); }
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
   try { ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。', '記事一覧', 8); } catch(e) {}
 }
@@ -3444,7 +3447,7 @@ function sbmCleanDisplayTitle_(title, url) {
 }
 
 
-/** v6.1.8: 記事管理／今日の改善に残ったHTMLタイトルを軽量補正する。 */
+/** v6.1.10: 記事管理／今日の改善に残ったHTMLタイトルを、Settingsを1回だけ読んで軽量補正する。 */
 function sbmRepairArticleTitleCells_(sheetName) {
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if(!sh||sh.getLastRow()<2)return 0;
@@ -3453,17 +3456,43 @@ function sbmRepairArticleTitleCells_(sheetName) {
   var uc=hm['記事URL']||0,n=sh.getLastRow()-1;
   var vals=sh.getRange(2,tc,n,1).getValues();
   var urls=uc?sh.getRange(2,uc,n,1).getValues():[];
+  var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
   var changed=0;
   for(var i=0;i<n;i++){
     var raw=String(vals[i][0]||'').trim();
     if(!raw)continue;
-    var clean=sbmCleanDataListText_(raw,uc?urls[i][0]:'');
+    var clean=sbmCleanDataListText_(raw,uc?urls[i][0]:'',blogName);
     if(clean&&clean!==raw){vals[i][0]=clean;changed++;}
   }
   if(changed)sh.getRange(2,tc,n,1).setValues(vals);
   return changed;
 }
 
+/**
+ * v6.1.10: 記事管理の利用者向けタイトル列をネットワークアクセスなしで整える。
+ * H1が「取得待ち」でも、既に取得済みの記事タイトル/SEOタイトルがあれば即時利用する。
+ */
+function sbmRepairArticleDisplayTitlesLight_(sh){
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh), n=sh.getLastRow()-1;
+  if(!hm['記事URL']||!hm['H1タイトル'])return 0;
+  var cols=sh.getLastColumn(), vals=sh.getRange(2,1,n,cols).getValues();
+  var blogName=String(sbmGetSetting_('BlogName','')||'').trim(), changed=0;
+  vals.forEach(function(row){
+    var url=String(row[hm['記事URL']-1]||'').trim();
+    var h1=sbmCleanDataListText_(row[hm['H1タイトル']-1]||'',url,blogName);
+    var art=hm['記事タイトル']?sbmCleanDataListText_(row[hm['記事タイトル']-1]||'',url,blogName):'';
+    var seo=hm['SEOタイトル']?sbmCleanDataListText_(row[hm['SEOタイトル']-1]||'',url,blogName):'';
+    if(sbmIsTitlePlaceholder_(h1,url))h1='';
+    if(sbmIsTitlePlaceholder_(art,url))art='';
+    if(sbmIsTitlePlaceholder_(seo,url))seo='';
+    var best=h1||art||seo||'タイトル取得待ち';
+    if(String(row[hm['H1タイトル']-1]||'').trim()!==best){row[hm['H1タイトル']-1]=best;changed++;}
+    if(hm['記事タイトル']&&art&&String(row[hm['記事タイトル']-1]||'').trim()!==art){row[hm['記事タイトル']-1]=art;changed++;}
+  });
+  if(changed)sh.getRange(2,1,n,cols).setValues(vals);
+  return changed;
+}
 
 // RC8: 記事一覧では意味不明な空欄を見せない。ただし疑似値を検索クエリとして外部連携へ渡さない。
 const SBM_QUERY_NO_DATA_LABEL = '検索実績なし';
@@ -5983,13 +6012,14 @@ function sbmInternalLinkRelatedQuery_(targetMain,targetQueries,candidateMain,can
 function sbmFindInternalLinkCandidates_(targetArticle,minCount,maxCount,freshTargetQueries){
   minCount=Math.max(0,Number(minCount||3));maxCount=Math.max(minCount,Math.min(8,Number(maxCount||8)));
   var articles=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],queryMap=sbmInternalLinkQueriesByUrl_();
-  var targetUrl=sbmNormalizeUrl_(targetArticle['記事URL']||targetArticle.URL||''),targetTitle=String(targetArticle['記事タイトル']||''),targetMain=sbmRealMainQuery_(targetArticle['メインクエリ']);
+  var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
+  var targetUrl=sbmNormalizeUrl_(targetArticle['記事URL']||targetArticle.URL||''),targetTitle=sbmCleanDataListText_(targetArticle['記事タイトル']||targetArticle['H1タイトル']||'',targetUrl,blogName),targetMain=sbmRealMainQuery_(targetArticle['メインクエリ']);
   var targetQueries=(freshTargetQueries&&freshTargetQueries.length?freshTargetQueries:(queryMap[targetUrl]||[])).map(function(q){return typeof q==='string'?q:String(q&&q.query||'');}).filter(Boolean);
   var targetAll=[targetTitle,targetMain].concat(targetQueries).join(' '),targetCategory=sbmInternalLinkCategory_(targetUrl),ranked=[];
   articles.forEach(function(a){
     var url=sbmNormalizeUrl_(a['記事URL']||'');if(!url||url===targetUrl)return;
     var flags=String(a['管理フラグ']||'')+' '+String(a['記事ステータス']||'');if(/管理対象外|削除|要確認|データ未取得|noindex|統合済み/i.test(flags))return;
-    var title=String(a['記事タイトル']||'').trim();if(!title)return;
+    var title=sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||a['SEOタイトル']||'',url,blogName);if(!title||sbmIsTitlePlaceholder_(title,url))return;
     var main=sbmRealMainQuery_(a['メインクエリ']),queries=queryMap[url]||[],candidateAll=[title,main].concat(queries).join(' ');
     var mainCommon=sbmInternalLinkOverlap_(targetMain,main),titleCommon=sbmInternalLinkOverlap_(targetTitle,title),allCommon=sbmInternalLinkOverlap_(targetAll,candidateAll),score=0;
     if(targetMain&&main&&sbmInternalLinkNormalizeText_(targetMain)===sbmInternalLinkNormalizeText_(main))score+=40;
@@ -6155,8 +6185,13 @@ function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary){
   if(String(SBM_EDITION||'').toUpperCase()!=='STARTER')return {ok:false,message:'この登録はStarter用です。'};
   var row=sbmFindArticleDbByIdentity_(String(articleId||''),String(articleUrl||''));
   if(!row)return {ok:false,message:'対象記事が記事管理に見つかりません。'};
-  var data={format:'SIMS_FEEDBACK_V2',article_id:String(row['ArticleID']||articleId||''),article_url:String(row['記事URL']||articleUrl||''),completed_at:sbmNowText_(),ai_name:'SIMS Manager Starter',changes:{body:true},new_values:{article_title:String(row['記事タイトル']||''),seo_title:String(row['SEOタイトル']||''),description:String(row['メタディスクリプション']||''),main_query:String(row['メインクエリ']||'')},improvement_type:'minor',improvement_method:'Starter改善ナビ',confidence:'medium',expected_effect:{},next_action:'monitor',kept_sections:[],summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),warnings:[],estimated_minutes:20,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),writer_version:'',raw_json:''};
-  return sbmRegisterImprovementFeedback(data,{deferPersonalKnowledge:true});
+  var data={format:'SIMS_FEEDBACK_V2',article_id:String(row['ArticleID']||articleId||''),article_url:String(row['記事URL']||articleUrl||''),completed_at:sbmNowText_(),ai_name:'SIMS Manager Starter',changes:{body:true},new_values:{article_title:sbmCleanDataListText_(row['記事タイトル']||row['H1タイトル']||'',row['記事URL']||articleUrl),seo_title:sbmCleanDataListText_(row['SEOタイトル']||'',row['記事URL']||articleUrl),description:String(row['メタディスクリプション']||''),main_query:String(row['メインクエリ']||'')},improvement_type:'minor',improvement_method:'Starter改善ナビ',confidence:'medium',expected_effect:{},next_action:'monitor',kept_sections:[],summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),warnings:[],estimated_minutes:20,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),writer_version:'',raw_json:''};
+  var r=sbmRegisterImprovementFeedback(data,{deferPersonalKnowledge:true,deferDerivedRefresh:true});
+  if(r&&r.ok&&r.historyId){
+    try{var er=sbmSyncSingleEffectRowAfterHistory_(r.historyId,data.article_id,data.article_url);r.effectSynced=!!(er&&er.ok);}catch(eEffect){r.effectSynced=false;try{sbmLog_('StarterEffectSync','Warning',String(eEffect));}catch(ignoreLog){}}
+    try{sbmInvalidateHomeSnapshot_();}catch(ignoreHome){}
+  }
+  return r;
 }
 
 /** v6.1.9: SearchConsole_Data全体のオブジェクト化を避け、対象URLに必要な列だけを読む。 */
@@ -16707,7 +16742,7 @@ function sbmDoctorRegisterMergeTreatmentResult(){
  * v5.21.53: aWriter処置完了後の「改善の推移」を対象記事1件だけ同期します。
  * 改善履歴・記事DB・Doctor Case全体の再走査／再整合は行いません。
  */
-function sbmDoctorSyncSingleEffectRowAfterWriter_(historyId,articleId,articleUrl){
+function sbmSyncSingleEffectRowAfterHistory_(historyId,articleId,articleUrl){
   historyId=String(historyId||'').trim();
   articleId=String(articleId||'').trim();
   articleUrl=String(articleUrl||'').trim();
@@ -16765,6 +16800,11 @@ function sbmDoctorSyncSingleEffectRowAfterWriter_(historyId,articleId,articleUrl
   removeRows.sort(function(a,b){return b-a;}).forEach(function(r){try{sh.deleteRow(r);}catch(ignoreDelete){}});
   try{sbmFinishEffectOperationView_(sh,targetRow);}catch(eView){try{sbmLog_('DoctorWriterEffectView','Warning',String(eView));}catch(ignoreLog){}}
   return {ok:true,row:targetRow,historyId:historyId};
+}
+
+/** 既存Doctor/aWriter経路との互換ラッパー。 */
+function sbmDoctorSyncSingleEffectRowAfterWriter_(historyId,articleId,articleUrl){
+  return sbmSyncSingleEffectRowAfterHistory_(historyId,articleId,articleUrl);
 }
 
 function sbmDoctorStoreWriterTreatmentResult_(o){
