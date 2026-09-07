@@ -4,7 +4,7 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.15';
+const SBM_VERSION = '6.1.16';
 const SBM_EDITION = 'STARTER';
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
@@ -14714,6 +14714,14 @@ function sbmDoctorPromptJson_(title,message){
   try{return JSON.parse(t);}catch(e){throw new Error('JSONを読み取れませんでした。aDoctor回答の「JSON contract」部分を含めて貼り付けてください。詳細：'+e.message);}
 }
 function sbmDoctorFindCaseRow_(caseId){var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),vals=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues():[];for(var i=0;i<vals.length;i++)if(String(vals[i][hm['CaseID']-1])===String(caseId))return {sheet:sh,row:i+2,values:vals[i],hm:hm};return null;}
+function sbmDoctorNormalizeScopeList_(value){
+  if(value===undefined||value===null||value==='')return [];
+  if(Array.isArray(value))return value.map(function(v){return String(v||'').trim();}).filter(Boolean);
+  if(typeof value==='object'){
+    return Object.keys(value).filter(function(k){return value[k]===true;}).map(function(k){return String(k||'').trim();}).filter(Boolean);
+  }
+  return String(value).split(',').map(function(v){return v.trim();}).filter(Boolean);
+}
 function sbmDoctorNormalizeCaseResult_(o){
   var format=String(o&&o.format||'');
   if(format==='SIMS_DOCTOR_CASE_RESULT_V2'){
@@ -14732,9 +14740,10 @@ function sbmDoctorNormalizeCaseResult_(o){
     if(mergeReadyV2)writerReadyV2=false;
     var manualReviewV2=!normalCloseV2&&(explicitNextActionV2==='USER_CONFIRMATION'||t.action==='MANUAL_REVIEW');
     var monitorV2=!normalCloseV2&&(explicitNextActionV2==='MONITOR'||serpMonitorV2||(!writerReadyV2&&!mergeReadyV2&&!manualReviewV2&&(t.action==='MONITOR'||t.action==='NO_TREATMENT')));
-    var reviewDateV2=re.recommended_date||'';
-    if(!reviewDateV2&&Number(review.review_after_days)>0){var rd=new Date();rd.setDate(rd.getDate()+Number(review.review_after_days));reviewDateV2=Utilities.formatDate(rd,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');}
-    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:(o.allowed_scope||handoff.allowed_scope||ref.allowed_scope||t.allowed_scope||[]),blocked:(o.blocked_scope||handoff.blocked_scope||ref.blocked_scope||t.blocked_scope||[]),reviewDate:normalCloseV2?'':reviewDateV2,locked:!!(o.workflow&&o.workflow.workflow_locked),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,normalClose:normalCloseV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
+    var reviewDateV2=review.next_review_target_date||re.recommended_date||'';
+    var reviewAfterDaysV2=Number(review.next_review_after_days||review.review_after_days||0);
+    if(!reviewDateV2&&reviewAfterDaysV2>0){var rd=new Date();rd.setDate(rd.getDate()+reviewAfterDaysV2);reviewDateV2=Utilities.formatDate(rd,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');}
+    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:sbmDoctorNormalizeScopeList_(o.allowed_scope||handoff.allowed_scope||ref.allowed_scope||t.allowed_scope||[]),blocked:sbmDoctorNormalizeScopeList_(o.blocked_scope||handoff.blocked_scope||ref.blocked_scope||t.blocked_scope||[]),reviewDate:normalCloseV2?'':reviewDateV2,locked:!!((o.workflow&&o.workflow.workflow_locked)||(o.dependencies&&o.dependencies.doctor_treatment_allowed===false)||(o.dependencies&&o.dependencies.lock_reference_id)),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,normalClose:normalCloseV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
   }
   if(format==='SIMS_DOCTOR_SINGLE_CASE_RESULT_V1'){
     var refs=Array.isArray(o.referrals)?o.referrals:[],activeWriter=[],deferredWriter=[],activeMerge=[],deferredMerge=[],sbmRequired=[];

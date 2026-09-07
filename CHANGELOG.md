@@ -1,3 +1,8 @@
+## v6.1.16 - 2026-09-08
+- Fixed Doctor V2 scope normalization for object-form allowed_scope / blocked_scope.
+- Added next_review_after_days / next_review_target_date compatibility.
+- Added dependencies-based Doctor treatment-lock interpretation.
+
 # v6.1.14
 
 - V6実運用試験で判明した改善ナビの無応答問題を修正。

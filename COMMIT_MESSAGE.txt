@@ -1,1 +1,1 @@
-fix(history): normalize history UX and preserve concrete Starter advice
+fix: accept Doctor V2 result contract variants and bump to v6.1.16

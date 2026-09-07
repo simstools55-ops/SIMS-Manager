@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.15",
+  "current_version": "6.1.16",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.15: Today Improvement stays fixed during the daily work session, preserving completed rows and checked selections. Full keeps up to 8 Improvement Navi internal-link candidates; Starter is limited to 3 for manual editing.",
-  "version": "6.1.15",
+  "notes": "v6.1.16: Doctor V2 result compatibility fix. Manager now accepts object-form allowed_scope/blocked_scope, next_review_after_days/next_review_target_date, and dependencies-based treatment lock metadata in both Full and Starter editions.",
+  "version": "6.1.16",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"
