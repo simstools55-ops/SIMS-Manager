@@ -1,12 +1,14 @@
 /**
- * SIMS Manager Product v6.1.17
+ * SIMS Manager Product v6.1.18
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.17';
+const SBM_VERSION = '6.1.18';
+// v6.1.18: v6.1.16以前に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
+const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-Starter' : '');
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
 // v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
@@ -1016,7 +1018,7 @@ function sbmMigrateRc3Headers_() {
 }
 
 function sbmEnsureDefaultSettings_() {
-  sbmSetSetting_('Version', SBM_VERSION, 'システムバージョン');
+  sbmSetSetting_('Version', SBM_DISPLAY_VERSION, '利用者向けシステムバージョン');
   sbmSetSettingIfEmpty_('BlogName', '', '管理するブログ名');
   sbmSetSettingIfEmpty_('BlogUrl', '', 'ブログのトップページURL');
   sbmSetSettingIfEmpty_('SiteID', '', 'SIMS製品間でサイトを識別するID');
@@ -1162,7 +1164,7 @@ function sbmBuildHomeSheet_() {
   if (sh.getMaxRows() < 24) sh.insertRowsAfter(sh.getMaxRows(), 24 - sh.getMaxRows());
 
   sh.getRange('A1:G1').merge().setValue('SIMS Manager  Home');
-  sh.getRange('H1').setValue('v' + SBM_VERSION);
+  sh.getRange('H1').setValue('v' + SBM_DISPLAY_VERSION);
   sh.getRange('A2').setValue('サイト名'); sh.getRange('B2:D2').merge();
   sh.getRange('E2').setValue('最終更新'); sh.getRange('F2:H2').merge();
   sh.getRange('A3').setValue('総記事数'); sh.getRange('B3').setValue('0件');
@@ -6730,7 +6732,7 @@ function sbmShowVersionInfo() {
     + '<div class="card"><div class="sims">SIMS = SEO Improvement Master System</div>'
     + '<div class="desc">ブログ記事の診断・改善・効果測定・履歴管理を一連の流れで支援するSIMSシリーズの管理中核です。</div></div>'
     + '<div class="label">製品名</div><div class="value">SIMS Manager</div>'
-    + '<div class="label">製品バージョン</div><div class="value">v' + SBM_VERSION + '</div>'
+    + '<div class="label">製品バージョン</div><div class="value">v' + SBM_DISPLAY_VERSION + '</div>'
     + '<div class="label">Edition</div><div class="value">' + SBM_EDITION + '</div>'
     + '<div class="label">主な役割</div><div class="desc">' + (String(SBM_EDITION || '').toUpperCase() === 'FULL'
     ? '記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。'
@@ -10107,7 +10109,7 @@ function sbmRefreshHome_(options) {
 
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.HOME);
-  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
+  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
@@ -11472,7 +11474,7 @@ function sbmSyncHomeVersionOnly_(){
   try{
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.HOME);
     if(!sh)return;
-    var expected='v'+SBM_VERSION;
+    var expected='v'+SBM_DISPLAY_VERSION;
     if(String(sh.getRange('H1').getValue()||'')!==expected) sh.getRange('H1').setValue(expected);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
@@ -12554,11 +12556,11 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
       var requestResume=sbmDoctorWorkflowReadPayload_(caseIdResume,'REQUEST'),payloadResume=null;
       if(requestResume){try{payloadResume=JSON.parse(requestResume);}catch(ignoreResumeRequest){}}
       if(!payloadResume){payloadResume=sbmDoctorWorkflowMinimalRequestFromCase_(rc,rec);requestResume=JSON.stringify(payloadResume,null,2);sbmDoctorWorkflowWritePayload_(caseIdResume,'REQUEST',JSON.stringify(payloadResume));}
-      if(resumable.legacy)sbmDoctorWorkflowWriteMeta_(caseIdResume,{workflow_type:'EFFECT_AFTER_OBSERVATION',current_stage:'WAITING_RESPONSE',registration_status:'WAITING',article_id:String(rec['ArticleID']||''),history_id:historyId,source_sheet:SBM_SHEETS.EFFECT,source_row:row,legacy_recovered:true});
+      if(resumable.legacy)sbmDoctorWorkflowWriteMeta_(caseIdResume,{workflow_type:'EFFECT_AFTER_OBSERVATION',current_stage:'WAITING_RESPONSE',registration_status:'WAITING',article_id:String(rec['ArticleID']||''),history_id:historyId,source_sheet:SBM_SHEETS.EFFECT,source_row:row,legacy_recovered:true,legacy_duplicate_count:Number(resumable.legacyDuplicateCount||1)});
       var savedResponse=sbmDoctorWorkflowReadPayload_(caseIdResume,'RESPONSE');
       var resumeMeta=sbmDoctorWorkflowReadMeta_(caseIdResume);
       var resumeHtml=sbmDoctorBuildCopyDialogHtml_(payloadResume,requestResume,{resume:true,currentStage:String(resumeMeta.current_stage||'WAITING_RESPONSE'),savedResponse:savedResponse,legacyRecovered:!!resumable.legacy});
-      return {ok:true,message:savedResponse?'保存済みのaDoctor回答から登録処理を再開します。':'aDoctor依頼済みの案件を回答登録工程から再開します。',requestId:String(payloadResume.request&&payloadResume.request.request_id||''),caseId:caseIdResume,dialogHtml:resumeHtml,resumed:true};
+      return {ok:true,message:savedResponse?'保存済みのaDoctor回答から登録処理を再開します。':(resumable.legacy&&Number(resumable.legacyDuplicateCount||1)>1?'重複して残った旧再診Caseを検出しました。最初のaDoctor依頼Caseを復旧し、回答登録工程から再開します。':'aDoctor依頼済みの案件を回答登録工程から再開します。'),requestId:String(payloadResume.request&&payloadResume.request.request_id||''),caseId:caseIdResume,dialogHtml:resumeHtml,resumed:true,legacyRescue:!!resumable.legacy};
     }
   }catch(eResume){try{sbmLog_('DoctorEffectReviewResume','Warning',String(eResume));}catch(ignoreResumeLog){}}
 
@@ -14554,18 +14556,39 @@ function sbmDoctorWorkflowMinimalRequestFromCase_(c,effectRec){
   return {format:SBM_DOCTOR_SINGLE_CASE_FORMAT,contract_version:SBM_DOCTOR_CONTRACT_VERSION,schema_version:SBM_DOCTOR_SCHEMA_VERSION,source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_DOCTOR',case_id:caseId,generated_at:String(c['作成日時']||sbmNowText_()),timezone:SBM_DEFAULTS.TIMEZONE,site:{site_id:String(c['サイトID']||sbmGetSetting_('SiteID','')).trim()},request:{request_id:'RECOVERED-'+caseId,case_id:caseId,consultation_mode:'SINGLE_ARTICLE_CLINIC',source_sheet:SBM_SHEETS.EFFECT,source_row:0,trigger:'POST_IMPROVEMENT_REVIEW'},article:{article_id:articleId,url:url,title:String(c['記事タイトル']||effectRec['記事タイトル']||'').trim()},improvement_context:{improvement_history_id:String(c['改善履歴ID']||effectRec['改善履歴ID']||'').trim()},workflow:{active_case_id:caseId},evidence_package:{evidence_index:[]},return_contract:{format:'SIMS_DOCTOR_SINGLE_CASE_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}};
 }
 function sbmDoctorFindResumableEffectWorkflow_(rec){
-  rec=rec||{};var articleId=String(rec['ArticleID']||'').trim(),url=sbmNormalizeUrl_(rec['記事URL']||''),historyId=String(rec['改善履歴ID']||'').trim();
-  var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[],best=null,bestTime=0;
+  rec=rec||{};
+  var articleId=String(rec['ArticleID']||'').trim(),url=sbmNormalizeUrl_(rec['記事URL']||''),historyId=String(rec['改善履歴ID']||'').trim();
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[],exact=[],legacy=[];
   rows.forEach(function(c){
     var same=(articleId&&String(c['記事ID']||'').trim()===articleId)||(url&&sbmNormalizeUrl_(c['記事URL']||'')===url);if(!same)return;
     var code=String(c['状態コード']||'').trim();if(['DOCTOR_DIAGNOSIS_PENDING','DOCTOR_DIAGNOSED','WORKFLOW_LOCKED'].indexOf(code)<0)return;
-    var meta=sbmDoctorWorkflowReadMeta_(String(c['CaseID']||''));
-    var exact=String(meta.workflow_type||'')==='EFFECT_AFTER_OBSERVATION'&&(!historyId||!meta.history_id||String(meta.history_id)===historyId);
-    var legacy=!meta.workflow_type&&code==='DOCTOR_DIAGNOSIS_PENDING';
-    if(!exact&&!legacy)return;
-    var d=sbmParseDate_(c['更新日時']||c['作成日時']||''),t=d?d.getTime():0;if(!best||t>=bestTime){best={caseRow:c,meta:meta,legacy:legacy};bestTime=t;}
+    var caseId=String(c['CaseID']||'').trim(),meta=sbmDoctorWorkflowReadMeta_(caseId),response=sbmDoctorWorkflowReadPayload_(caseId,'RESPONSE');
+    var item={caseRow:c,meta:meta,legacy:false,responseSaved:!!response,time:(sbmParseDate_(c['更新日時']||c['作成日時']||'')||new Date(0)).getTime()};
+    var isExact=String(meta.workflow_type||'')==='EFFECT_AFTER_OBSERVATION'&&(!historyId||!meta.history_id||String(meta.history_id)===historyId);
+    if(isExact){exact.push(item);return;}
+    if(!meta.workflow_type&&code==='DOCTOR_DIAGNOSIS_PENDING'){item.legacy=true;legacy.push(item);}
   });
-  return best;
+  // 正式checkpointがある案件を最優先。回答保存済み/登録エラーを先にし、その後は最新状態を採用。
+  if(exact.length){
+    exact.sort(function(a,b){
+      var ap=(a.responseSaved||['RESPONSE_RECEIVED','REGISTRATION_ERROR'].indexOf(String(a.meta.current_stage||''))>=0)?1:0;
+      var bp=(b.responseSaved||['RESPONSE_RECEIVED','REGISTRATION_ERROR'].indexOf(String(b.meta.current_stage||''))>=0)?1:0;
+      if(ap!==bp)return bp-ap;
+      return b.time-a.time;
+    });
+    return exact[0];
+  }
+  // v6.1.18 legacy rescue:
+  // v6.1.16以前は再実行のたびに同一記事へ新Caseが増えることがあった。
+  // Doctor回答は最初に発行したCaseIDを返すため、checkpointのない重複旧Caseでは「最古の保留Case」を正本として復旧する。
+  if(legacy.length){
+    legacy.sort(function(a,b){return a.time-b.time;});
+    var chosen=legacy[0];
+    chosen.legacyDuplicateCount=legacy.length;
+    try{if(legacy.length>1)sbmLog_('DoctorEffectLegacyRescue','Info','article='+articleId+' / selected='+String(chosen.caseRow['CaseID']||'')+' / duplicate_pending_cases='+legacy.length);}catch(ignoreLegacyRescueLog){}
+    return chosen;
+  }
+  return null;
 }
 
 /* ========================================================================== *
