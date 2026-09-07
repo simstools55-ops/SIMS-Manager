@@ -1,5 +1,13 @@
 # Changelog
 
+## v6.1.20
+- aDoctorのWAIT / MONITOR判定は `doctor_treatment_allowed=false` 等の治療ロックがあっても、処置を行わず追加経過観察へ正しく遷移するよう修正。
+- v6.1.19以前にWAIT / MONITORが `WORKFLOW_LOCKED` として保存されたCaseを追加経過観察サイクルへ救済。
+- 改善履歴を開く通常操作から、全行タイトル修復・日付修復・再装飾・チェックボックス再生成を除外。
+- 改善履歴の新規行は追加時に1行だけ整形し、通常表示時の待ち時間を削減。
+- 改善履歴の選択UIは既存値を消さず、必要時も入力規則のみを保証する方式へ変更。
+- Fullは `v6.1.20`、Starterは `v6.1.20-Starter` として表示。
+
 ## v6.1.19
 - Repository内のFull/Starter/Apps Script/Distribution各Code.gsを同一の6.1.19へ同期。
 - Fullの利用者向け表示を `v6.1.19`、Starterを `v6.1.19-Starter` に統一。

@@ -1,6 +1,8 @@
-fix: synchronize Full and Starter versioning in v6.1.19
+fix: resume Doctor monitoring and speed up Improvement History in v6.1.20
 
-- synchronize all Full executable copies to v6.1.19
-- display Starter explicitly as v6.1.19-Starter
-- synchronize VERSION, shared/VERSION, PRODUCT_IDENTITY, README, and manifests
-- retain v6.1.18 legacy aDoctor duplicate-case recovery
+- allow WAIT/MONITOR to start additional observation even when treatment is locked
+- repair legacy WORKFLOW_LOCKED monitor cases
+- remove full-row repair and reformat work from Improvement History opening
+- preserve Improvement History selection values instead of clearing them
+- style only newly appended Improvement History rows
+- keep Full at v6.1.20 and Starter at v6.1.20-Starter
