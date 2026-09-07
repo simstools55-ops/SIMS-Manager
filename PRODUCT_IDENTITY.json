@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.14",
+  "current_version": "6.1.15",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.14: Full/Starter common Improvement Navi now opens its shell before article DB/detail loading, preventing silent no-response during consecutive daily work. Launch failures are logged as ImprovementNaviLaunch.",
-  "version": "6.1.14",
+  "notes": "v6.1.15: Today Improvement stays fixed during the daily work session, preserving completed rows and checked selections. Full keeps up to 8 Improvement Navi internal-link candidates; Starter is limited to 3 for manual editing.",
+  "version": "6.1.15",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

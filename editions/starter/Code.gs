@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.14
+ * SIMS Manager Product v6.1.15
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.14';
+const SBM_VERSION = '6.1.15';
 const SBM_EDITION = 'STARTER';
+// v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
 // v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
 // v6.1.11: 改善ポイントの重複候補を抑止し、次点クエリへ切替。Starter改善完了登録は専用の軽量upsertで改善の推移へ確実に即時反映。
@@ -5390,15 +5391,14 @@ function sbmBuildTodayImprovementSheet_() {
 
 // UAT17互換注記（表示時には実行しない）: try { sbmRepairTodayMainQueryDisplay_(); }
 function sbmOpenTodayImprovement() {
-  // RC8 Final: 表示時は「完了除去＋不足分補充」だけを行う軽量経路。
-  // Home再計算、Doctor整合、記事管理全行書換え、メインクエリ全件修復は行わない。
+  // v6.1.15: 日次処理で確定した「今日の改善」は、その日の作業中は固定リストとして扱う。
+  // 通常表示では完了行の除去・不足候補の補充・シート再描画を一切行わない。
+  // これにより、連続改善中のチェック状態と完了表示を保持する。
   sbmHideOptionalAdminSheets_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SBM_SHEETS.TODAY);
   if (!sh) { sbmBuildTodayImprovementSheet_(); sh = ss.getSheetByName(SBM_SHEETS.TODAY); }
 
-  try { sbmRefreshTodayQueueFast_(); }
-  catch(eFast) { sbmLog_('TodayOpenFastRefresh','Warning',String(eFast)); }
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
 
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
@@ -6309,7 +6309,7 @@ function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   var top=Array.isArray(queryPayload.topQueries)?queryPayload.topQueries:[],query=sbmRealMainQuery_(queryPayload.query||a['メインクエリ']||seed.query||'');
   var clicks=sbmNumber_(a['クリック数']||seed.clicks)||0,imps=sbmNumber_(a['表示回数']||seed.imps)||0,ctr=sbmNormalizeCtrNumber_(a['CTR']!=null?a['CTR']:seed.ctr),pos=sbmNumber_(a['掲載順位']||seed.pos)||0;
   var meta={articleId:String(a['ArticleID']||seed.articleId||'').trim(),url:url,title:sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||seed.title||'（タイトル未取得）',url)||'（タイトル未取得）',seoTitle:sbmCleanDataListText_(a['SEOタイトル']||seed.seoTitle||'',url),description:sbmCleanDataListText_(a['メタディスクリプション']||seed.description||'',url),query:query,rank:String(a['記事ランク']||seed.rank||''),clicks:clicks,imps:imps,ctrText:(ctr*100).toFixed(1)+'%',posText:pos.toFixed(1),kind:String(seed.kind||'改善候補'),topQueries:top,topQueryStatus:queryPayload.queryResult||{}};
-  var qReady=top.length>0,sReady=!!(sourcePayload.fetchedOk&&sourcePayload.source),ready=qReady&&sReady,links=ready?sbmFindInternalLinkCandidates_(a,3,8,top):[],advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source):[];
+  var qReady=top.length>0,sReady=!!(sourcePayload.fetchedOk&&sourcePayload.source),ready=qReady&&sReady,linkMax=(String(SBM_EDITION||'').toUpperCase()==='STARTER'?3:8),links=ready?sbmFindInternalLinkCandidates_(a,3,linkMax,top):[],advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source):[];
   meta.internalLinkCandidates=links;
   var wait=''; if(!sReady&&!qReady)wait='記事本文とSearch Consoleクエリを取得できないため、改善ポイントの生成を保留しています。'; else if(!sReady)wait='記事本文を取得できないため、改善ポイントの生成を保留しています。本文を貼り付けてから解析してください。'; else if(!qReady)wait='Search Consoleクエリを取得できないため、改善ポイントの生成を保留しています。';
   return {ok:true,meta:meta,prompt:ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',queryResult:queryPayload.queryResult||{},topQueries:top,fetchedOk:sReady,fetchedMessage:String(sourcePayload.fetchedMessage||''),characterCount:Number(sourcePayload.characterCount||0),sectionCount:Number(sourcePayload.sectionCount||0),internalLinks:links,improvementReady:ready,improvementWaitMessage:wait,improvementAdvice:advice};
@@ -10834,14 +10834,10 @@ function sbmApplySelectionUi_(sh) {
   sh.setColumnWidth(col, 52);
   sh.getRange(1, col).setHorizontalAlignment('center').setWrap(false);
 
-  var clearLast = Math.max(sh.getMaxRows(), sh.getLastRow(), 2);
-  var fullRange = sh.getRange(2, col, clearLast - 1, 1);
-
-  // 既存チェックボックス・入力規則・TRUE/FALSEを完全削除
-  fullRange.clearDataValidations();
-  fullRange.clearContent();
-
   if (sh.getName() === SBM_SHEETS.TODAY) {
+    // v6.1.15: 「今日の改善」は作業中の状態を保持する。
+    // 選択列全体の clearContent() は行わず、既存のTRUEと「完了」を維持して
+    // 必要なデータ行にだけチェックボックス/完了表示を整える。
     var titleCol = hm['記事タイトル'];
     if (!titleCol || sh.getLastRow() < 2) return;
 
@@ -10849,26 +10845,43 @@ function sbmApplySelectionUi_(sh) {
     var titles = sh.getRange(2, titleCol, n, 1).getDisplayValues();
     var urlCol = hm['記事URL'];
     var urls = urlCol ? sh.getRange(2, urlCol, n, 1).getValues() : [];
+    var current = sh.getRange(2, col, n, 1).getValues();
     var completed = sbmTodayCompletedUrlMap_();
 
     for (var i = 0; i < titles.length; i++) {
-      if (String(titles[i][0] || '').trim() === '') continue;
       var row = i + 2;
+      if (String(titles[i][0] || '').trim() === '') {
+        sh.getRange(row, col).clearDataValidations().clearContent();
+        continue;
+      }
       var url = urlCol ? sbmNormalizeUrl_(urls[i][0] || '') : '';
-      if (url && completed[url]) {
+      var oldValue = current[i] ? current[i][0] : false;
+      var wasChecked = oldValue === true || String(oldValue || '').toUpperCase() === 'TRUE';
+      var wasComplete = String(oldValue || '').trim() === '完了';
+      if (wasComplete || (url && completed[url])) {
         sh.getRange(row, col).clearDataValidations().setValue('完了')
           .setHorizontalAlignment('center').setFontWeight('bold');
         sh.getRange(row, 1, 1, Math.max(sh.getLastColumn(), SBM_HEADERS.TODAY.length))
           .setBackground('#eeeeee').setFontColor('#777777');
         sh.getRange(row, titleCol).setFontLine('line-through');
       } else {
-        sh.getRange(row, col).insertCheckboxes().setValue(false).setHorizontalAlignment('center');
+        sh.getRange(row, col).insertCheckboxes().setValue(wasChecked).setHorizontalAlignment('center').setFontWeight('normal');
       }
+    }
+
+    // 実データより下の選択列だけを掃除する。作業中データ行には触れない。
+    var tailStart = sh.getLastRow() + 1;
+    if (tailStart <= sh.getMaxRows()) {
+      sh.getRange(tailStart, col, sh.getMaxRows() - tailStart + 1, 1).clearDataValidations().clearContent();
     }
     return;
   }
 
-  // その他の一覧は従来どおり、実データ最終行まで標準チェックボックス
+  // その他の一覧は従来どおり、選択列を標準化する。
+  var clearLast = Math.max(sh.getMaxRows(), sh.getLastRow(), 2);
+  var fullRange = sh.getRange(2, col, clearLast - 1, 1);
+  fullRange.clearDataValidations();
+  fullRange.clearContent();
   var dataLast = sbmSelectionDataLastRow_(sh);
   if (dataLast >= 2) {
     var target = sh.getRange(2, col, dataLast - 1, 1);
