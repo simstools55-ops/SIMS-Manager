@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.12",
+  "current_version": "6.1.13",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.12: history titles/date-time and sheet UX normalized; Starter stores the concrete P0/P1/P2 shown in Improvement Navi into the history plan snapshot.",
-  "version": "6.1.12",
+  "notes": "v6.1.13: Full/Starter common history UX now visualizes route and weekly/final statuses, highlights the next pending measurement, and normalizes legacy HTML article titles in history detail.",
+  "version": "6.1.13",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED"

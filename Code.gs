@@ -1,12 +1,12 @@
 /**
- * SIMS Manager Product v6.1.12
+ * SIMS Manager Product v6.1.13
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.12';
+const SBM_VERSION = '6.1.13';
 const SBM_EDITION = 'FULL';
-// v6.1.12: 改善履歴系のタイトル正規化・日時表示・一覧装飾を統一。Starter改善ナビで実際に提示した具体的P0/P1/P2を改善履歴へ保存。
+// v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
 // v6.1.11: 改善ポイントの重複候補を抑止し、次点クエリへ切替。Starter改善完了登録は専用の軽量upsertで改善の推移へ確実に即時反映。
 // v6.1.10: 記事管理表示を軽量再整形し、タイトル正規化のSettings反復I/Oを除去。内部リンク候補タイトルも正規化。Starter改善完了登録後は対象1件の改善の推移を即時同期。
 // v6.1.9: 改善ナビのタイトル正規化を徹底。GSCクエリ取得と記事本文取得を並列化し、両方の完了後だけ改善ポイント/内部リンク候補を生成。ローカルGSC参照も対象URL単位へ軽量化。
@@ -7920,36 +7920,42 @@ function sbmPolishImprovementHistoryView_(){
 
   if(hm['記事タイトル'])sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('top');
   if(hm['改善概要'])sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('top');
-  if(hm['改善経路'])sh.getRange(2,hm['改善経路'],n,1).setHorizontalAlignment('center').setWrap(false);
+  if(hm['改善経路']){
+    var routeRange=sh.getRange(2,hm['改善経路'],n,1);
+    routeRange.setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');
+  }
 
   var firstJudge=hm['1週'],lastJudge=hm['最終判定'];
   if(firstJudge&&lastJudge&&lastJudge>=firstJudge){
     var judgeRange=sh.getRange(2,firstJudge,n,lastJudge-firstJudge+1);
-    var values=judgeRange.getDisplayValues(),colors=[],weights=[];
+    var values=judgeRange.getDisplayValues(),colors=[],weights=[],backgrounds=[];
 
-    function textStyle(v){
+    function statusStyle(v,isCurrentPending){
       v=String(v||'').trim();
-      if(v==='改善完了')return ['#0b8043','bold'];
-      if(v==='再改善必要')return ['#b31412','bold'];
-      if(v==='経過観察中')return ['#174ea6','bold'];
-      if(v==='大きく改善')return ['#0b8043','bold'];
-      if(v==='改善'||v==='改善傾向')return ['#0d652d','bold'];
-      if(v==='経過観察'||v==='変化小')return ['#7a4f01','bold'];
-      if(v==='要確認')return ['#b06000','bold'];
-      if(v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold'];
-      if(v==='データ不足')return ['#674ea7','bold'];
-      if(v==='測定待ち'||v==='未測定'||v==='未判定'||v==='測定中')return ['#80868b','normal'];
-      return ['#202124','normal'];
+      if(v==='改善完了'||v==='大きく改善'||v==='改善'||v==='改善傾向')return ['#0b8043','bold','#e6f4ea'];
+      if(v==='再改善必要'||v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold','#fce8e6'];
+      if(v==='要確認'||v==='経過観察'||v==='変化小')return ['#b06000','bold','#fef7e0'];
+      if(v==='データ不足')return ['#674ea7','bold','#f3e8fd'];
+      if(v==='経過観察中')return ['#174ea6','bold','#e8f0fe'];
+      if(v==='測定中')return ['#174ea6','bold','#e8f0fe'];
+      if(v==='測定待ち'||v==='未測定'||v==='未判定')return isCurrentPending?['#174ea6','bold','#e8f0fe']:['#80868b','normal','#f1f3f4'];
+      return ['#202124','normal','#ffffff'];
     }
 
     values.forEach(function(row){
-      var cr=[],wr=[];
-      row.forEach(function(v){
-        var st=textStyle(v);cr.push(st[0]);wr.push(st[1]);
+      var cr=[],wr=[],br=[];
+      var currentPending=-1;
+      // 1週〜4週のうち最初の未測定を「次の測定」として強調。最終判定列は対象外。
+      for(var pi=0;pi<Math.min(4,row.length);pi++){
+        var pv=String(row[pi]||'').trim();
+        if(pv==='測定待ち'||pv==='未測定'||pv==='未判定'){currentPending=pi;break;}
+      }
+      row.forEach(function(v,idx){
+        var st=statusStyle(v,idx===currentPending);cr.push(st[0]);wr.push(st[1]);br.push(st[2]);
       });
-      colors.push(cr);weights.push(wr);
+      colors.push(cr);weights.push(wr);backgrounds.push(br);
     });
-    judgeRange.setFontColors(colors).setFontWeights(weights).setHorizontalAlignment('center').setWrap(true);
+    judgeRange.setFontColors(colors).setFontWeights(weights).setBackgrounds(backgrounds).setHorizontalAlignment('center').setWrap(true);
   }
 
   // 最終判定が出た行は「処置サイクルが一区切り」として薄いグレー背景。
@@ -9320,7 +9326,7 @@ function sbmHistoryDetailHtmlV2_(o) {
   var nv = sbmHistoryJsonNewValues_(o);
   var plan = sbmParseJsonObjectSafe_(o['改善計画JSON']);
   var effect = sbmFindEffectByHistoryId_(o['改善履歴ID'], false);
-  var articleTitle = sbmHistoryDisplayValue_(o['変更後タイトル'] || nv.article_title);
+  var articleTitle = sbmHistoryTitleText_(o['変更後タイトル'] || nv.article_title, o['記事URL']);
   var seoTitle = sbmHistoryDisplayValue_(o['変更後SEOタイトル'] || nv.seo_title);
   var description = sbmHistoryDisplayValue_(o['変更後メタディスクリプション'] || nv.description);
   var mainQuery = sbmHistoryDisplayValue_(o['メインクエリ'] || nv.main_query);
@@ -10466,7 +10472,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週'])try{
     sh.getRange(2,hm['1週'],n,hm['最終判定']-hm['1週']+1).setHorizontalAlignment('center').setWrap(true);
   }catch(ignoreJudge){}
-  // v6.1.12: 一覧を開いた時点で利用者向けの判定色・行高・選択UIまで揃える。
+  // v6.1.13: 一覧を開いた時点で利用者向けの判定色・行高・選択UIまで揃える。
   try{sbmPolishImprovementHistoryView_();}catch(ignorePolish){}
 }
 
