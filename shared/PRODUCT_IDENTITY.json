@@ -5,8 +5,8 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.11",
+  "current_version": "6.1.12",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.11: improvement advice deduplicates near-identical query/section suggestions; Starter completion uses a dedicated verified effect-row upsert and repairs missing active effect rows on open.",
-  "version": "6.1.11"
+  "notes": "v6.1.12: history titles/date-time and sheet UX normalized; Starter stores the concrete P0/P1/P2 shown in Improvement Navi into the history plan snapshot.",
+  "version": "6.1.12"
 }

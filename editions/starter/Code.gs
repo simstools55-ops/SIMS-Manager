@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.1.9
+ * SIMS Manager Product v6.1.12
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.11';
+const SBM_VERSION = '6.1.12';
 const SBM_EDITION = 'STARTER';
+// v6.1.12: 改善履歴系のタイトル正規化・日時表示・一覧装飾を統一。Starter改善ナビで実際に提示した具体的P0/P1/P2を改善履歴へ保存。
 // v6.1.11: 改善ポイントの重複候補を抑止し、次点クエリへ切替。Starter改善完了登録は専用の軽量upsertで改善の推移へ確実に即時反映。
 // v6.1.10: 記事管理表示を軽量再整形し、タイトル正規化のSettings反復I/Oを除去。内部リンク候補タイトルも正規化。Starter改善完了登録後は対象1件の改善の推移を即時同期。
 // v6.1.9: 改善ナビのタイトル正規化を徹底。GSCクエリ取得と記事本文取得を並列化し、両方の完了後だけ改善ポイント/内部リンク候補を生成。ローカルGSC参照も対象URL単位へ軽量化。
@@ -6248,11 +6249,12 @@ function sbmRepairMissingStarterEffectRows_(){
   return {checked:checked,repaired:repaired};
 }
 
-function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary){
+function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary,adviceJson){
   if(String(SBM_EDITION||'').toUpperCase()!=='STARTER')return {ok:false,message:'この登録はStarter用です。'};
   var row=sbmFindArticleDbByIdentity_(String(articleId||''),String(articleUrl||''));
   if(!row)return {ok:false,message:'対象記事が記事管理に見つかりません。'};
-  var data={format:'SIMS_FEEDBACK_V2',article_id:String(row['ArticleID']||articleId||''),article_url:String(row['記事URL']||articleUrl||''),completed_at:sbmNowText_(),ai_name:'SIMS Manager Starter',changes:{body:true},new_values:{article_title:sbmCleanDataListText_(row['記事タイトル']||row['H1タイトル']||'',row['記事URL']||articleUrl),seo_title:sbmCleanDataListText_(row['SEOタイトル']||'',row['記事URL']||articleUrl),description:String(row['メタディスクリプション']||''),main_query:String(row['メインクエリ']||'')},improvement_type:'minor',improvement_method:'Starter改善ナビ',confidence:'medium',expected_effect:{},next_action:'monitor',kept_sections:[],summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),warnings:[],estimated_minutes:20,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),writer_version:'',raw_json:''};
+  var starterAdvice=[];try{var parsedAdvice=JSON.parse(String(adviceJson||'[]'));if(Array.isArray(parsedAdvice))starterAdvice=parsedAdvice.slice(0,3).map(function(x){return String(x||'').trim();}).filter(Boolean);}catch(ignoreAdvice){}
+  var data={format:'SIMS_FEEDBACK_V2',article_id:String(row['ArticleID']||articleId||''),article_url:String(row['記事URL']||articleUrl||''),completed_at:sbmNowText_(),ai_name:'SIMS Manager Starter',changes:{body:true},new_values:{article_title:sbmCleanDataListText_(row['記事タイトル']||row['H1タイトル']||'',row['記事URL']||articleUrl),seo_title:sbmCleanDataListText_(row['SEOタイトル']||'',row['記事URL']||articleUrl),description:String(row['メタディスクリプション']||''),main_query:String(row['メインクエリ']||'')},improvement_type:'minor',improvement_method:'Starter改善ナビ',confidence:'medium',expected_effect:{},next_action:'monitor',kept_sections:[],summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),warnings:[],estimated_minutes:20,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),writer_version:'',raw_json:'',starter_advice:starterAdvice};
   var r=sbmRegisterImprovementFeedback(data,{deferPersonalKnowledge:true,deferDerivedRefresh:true});
   if(r&&r.ok&&r.historyId){
     try{var er=sbmUpsertStarterEffectRow_(r.historyId,data.article_id,data.article_url);r.effectSynced=!!(er&&er.ok);r.effectRow=er&&er.row||0;if(!r.effectSynced)r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映確認に失敗しました。';}catch(eEffect){r.effectSynced=false;r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映でエラーが発生しました。';try{sbmLog_('StarterEffectSync','Error',String(eEffect));}catch(ignoreLog){}}
@@ -6351,10 +6353,10 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     'function eh(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;")}function setInline(id,msg,cls){var e=document.getElementById(id);if(!e)return;e.className="inlineStatus "+(cls||"");e.textContent=msg||""}'+
     'function renderQueries(r){var q=r.queryResult||{},arr=r.topQueries||[],mq=String((r.meta||{}).query||""),norm=function(s){return String(s||"").toLowerCase().replace(/\\s+/g," ").trim()},found=arr.some(function(x){return norm(x.query)===norm(mq)}),note=mq?"<br>メインクエリ：<b>"+eh(mq)+"</b>"+(found?"（取得クエリ内に一致あり）":"<br><span style=\\"color:#5f6368\\">※今回取得した上位クエリには完全一致で含まれていません。</span>"):"<br>メインクエリ：<b>未設定</b>";var h;if(q.ok&&Number(q.total||0)>0)h="<div class=\\"source-ok\\">✅ 最新クエリを取得しました。"+note+"<br>取得件数：<b>"+Number(q.total||0).toLocaleString()+"件</b> ／ 依頼文へ使用：<b>"+arr.length+"件</b><br>取得日時："+eh(q.fetchedAt||"－")+"<br>対象期間："+eh(q.startDate||"－")+" ～ "+eh(q.endDate||"－")+"</div>";else h="<div class=\\"source-ng\\">⚠️ "+eh(q.message||"クエリを取得できませんでした。")+note+"<br>依頼文へ使用：<b>"+arr.length+"件</b></div>";document.getElementById("queryStatus").outerHTML="<div id=\\"queryStatus\\">"+h+"</div>";if(arr.length){var rows=arr.map(function(x){return "<tr><td>"+((mq&&norm(x.query)===norm(mq))?"★ ":"")+eh(x.query)+"</td><td>"+Number(x.clicks||0).toLocaleString()+"</td><td>"+Number(x.imps||0).toLocaleString()+"</td><td>"+(Number(x.ctr||0)*100).toFixed(2)+"%</td><td>"+Number(x.position||0).toFixed(1)+"</td></tr>"}).join("");document.getElementById("queryList").innerHTML="<details class=\\"query-details\\"><summary>取得したクエリを見る（依頼文使用 "+arr.length+"件）</summary><div class=\\"query-table-wrap\\"><table class=\\"query-table\\"><thead><tr><th>クエリ</th><th>クリック</th><th>表示回数</th><th>CTR</th><th>順位</th></tr></thead><tbody>"+rows+"</tbody></table></div></details>"}}'+
     'function renderLinks(arr){arr=arr||[];document.getElementById("internalLinkCount").textContent=arr.length+"件";var box=document.getElementById("internalLinks");box.className="";box.innerHTML=arr.length?arr.map(function(c,i){return "<div class=\\"link-candidate\\"><b>"+(i+1)+". "+eh(c.title)+"</b><br><a href=\\""+eh(c.url)+"\\" target=\\"_blank\\">"+eh(c.url)+"</a><br><span>推奨アンカー："+eh(c.anchor)+"</span><br><span>関連クエリ："+eh(c.relatedQuery||"－")+"</span><br><span>関連度："+eh(c.stars)+"</span><br><span><b>活用の考え方：</b>関連クエリやアンカーに自然につながる段落があれば、この関連記事を補足情報として案内してください。上記アンカーテキストを目安にし、関連する文脈がない場合は無理に追加する必要はありません。</span></div>"}).join(""):"<div class=\\"source-ng\\">十分な関連性を持つ内部リンク候補は見つかりませんでした。無理に追加する必要はありません。</div>"}'+
-    'var qPayload=null,sPayload=null,qDone=false,sDone=false,finalizing=false;function tryFinalize(){if(!qDone||!sDone||finalizing)return;finalizing=true;var ab=document.getElementById("improvementAdvice"),ib=document.getElementById("internalLinks");if(ab){ab.className="source-loading";ab.innerHTML="<span class=miniSpinner></span>取得した本文とクエリを照合しています…"}if(ib){ib.className="source-loading";ib.innerHTML="<span class=miniSpinner></span>内部リンク候補を計算しています…"}google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"改善情報を生成できませんでした。";if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent=m}setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;if(r.improvementReady){ab.className="";ab.innerHTML=(r.improvementAdvice||[]).map(function(x){return "<div class=\\\"p\\\">"+eh(x)+"</div>"}).join("");renderLinks(r.internalLinks);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false}else{ab.className="source-ng";ab.textContent=r.improvementWaitMessage||"本文とクエリの両方が揃っていないため、改善ポイントは生成していません。";document.getElementById("internalLinkCount").textContent="保留";ib.className="source-ng";ib.textContent="改善ポイントの根拠情報が揃ってから内部リンク候補を生成します。";setInline("copyStatus","本文・クエリ確認後に依頼文を準備します。","error")}}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent="内部リンク候補を生成できませんでした。"}setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmFinalizeImprovementNaviData(seed,qPayload,sPayload)}function loadDetail(){setTimeout(function(){if(!qDone){var q=document.getElementById("queryStatus");if(q){q.className="source-loading";q.innerHTML="<span class=miniSpinner></span>Search Consoleクエリの確認に時間がかかっています…"}}if(!sDone){var s=document.getElementById("sourceStatus");if(s){s.className="source-loading";s.innerHTML="<span class=miniSpinner></span>記事本文の取得に時間がかかっています…"}}},12000);google.script.run.withSuccessHandler(function(r){qPayload=r||{ok:false,message:"クエリを取得できませんでした。",topQueries:[]};qDone=true;renderQueries({queryResult:qPayload.queryResult||{},topQueries:qPayload.topQueries||[],meta:{query:qPayload.query||seed.query||""}});tryFinalize()}).withFailureHandler(function(e){qPayload={ok:false,message:(e&&e.message)||String(e),queryResult:{ok:false,message:(e&&e.message)||String(e)},topQueries:[],query:seed.query||""};qDone=true;renderQueries({queryResult:qPayload.queryResult,topQueries:[],meta:{query:qPayload.query}});tryFinalize()}).sbmLoadImprovementNaviQueries(seed);google.script.run.withSuccessHandler(function(r){sPayload=r||{ok:false,fetchedOk:false,fetchedMessage:"記事本文を取得できませんでした。"};sDone=true;var ss=document.getElementById("sourceStatus");if(sPayload.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(sPayload.characterCount||0).toLocaleString()+"文字・"+Number(sPayload.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(sPayload.fetchedMessage||sPayload.message||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}tryFinalize()}).withFailureHandler(function(e){sPayload={ok:false,fetchedOk:false,fetchedMessage:(e&&e.message)||String(e)};sDone=true;var ss=document.getElementById("sourceStatus");ss.className="source-ng";ss.textContent="⚠️ "+sPayload.fetchedMessage;document.getElementById("pastedTools").style.display="block";tryFinalize()}).sbmLoadImprovementNaviSource(seed)}'+
+    'var qPayload=null,sPayload=null,qDone=false,sDone=false,finalizing=false,finalAdvice=[];function tryFinalize(){if(!qDone||!sDone||finalizing)return;finalizing=true;var ab=document.getElementById("improvementAdvice"),ib=document.getElementById("internalLinks");if(ab){ab.className="source-loading";ab.innerHTML="<span class=miniSpinner></span>取得した本文とクエリを照合しています…"}if(ib){ib.className="source-loading";ib.innerHTML="<span class=miniSpinner></span>内部リンク候補を計算しています…"}google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"改善情報を生成できませんでした。";if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent=m}setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);ab.className="";ab.innerHTML=finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");renderLinks(r.internalLinks);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false}else{ab.className="source-ng";ab.textContent=r.improvementWaitMessage||"本文とクエリの両方が揃っていないため、改善ポイントは生成していません。";document.getElementById("internalLinkCount").textContent="保留";ib.className="source-ng";ib.textContent="改善ポイントの根拠情報が揃ってから内部リンク候補を生成します。";setInline("copyStatus","本文・クエリ確認後に依頼文を準備します。","error")}}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent="内部リンク候補を生成できませんでした。"}setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmFinalizeImprovementNaviData(seed,qPayload,sPayload)}function loadDetail(){setTimeout(function(){if(!qDone){var q=document.getElementById("queryStatus");if(q){q.className="source-loading";q.innerHTML="<span class=miniSpinner></span>Search Consoleクエリの確認に時間がかかっています…"}}if(!sDone){var s=document.getElementById("sourceStatus");if(s){s.className="source-loading";s.innerHTML="<span class=miniSpinner></span>記事本文の取得に時間がかかっています…"}}},12000);google.script.run.withSuccessHandler(function(r){qPayload=r||{ok:false,message:"クエリを取得できませんでした。",topQueries:[]};qDone=true;renderQueries({queryResult:qPayload.queryResult||{},topQueries:qPayload.topQueries||[],meta:{query:qPayload.query||seed.query||""}});tryFinalize()}).withFailureHandler(function(e){qPayload={ok:false,message:(e&&e.message)||String(e),queryResult:{ok:false,message:(e&&e.message)||String(e)},topQueries:[],query:seed.query||""};qDone=true;renderQueries({queryResult:qPayload.queryResult,topQueries:[],meta:{query:qPayload.query}});tryFinalize()}).sbmLoadImprovementNaviQueries(seed);google.script.run.withSuccessHandler(function(r){sPayload=r||{ok:false,fetchedOk:false,fetchedMessage:"記事本文を取得できませんでした。"};sDone=true;var ss=document.getElementById("sourceStatus");if(sPayload.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(sPayload.characterCount||0).toLocaleString()+"文字・"+Number(sPayload.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(sPayload.fetchedMessage||sPayload.message||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}tryFinalize()}).withFailureHandler(function(e){sPayload={ok:false,fetchedOk:false,fetchedMessage:(e&&e.message)||String(e)};sDone=true;var ss=document.getElementById("sourceStatus");ss.className="source-ng";ss.textContent="⚠️ "+sPayload.fetchedMessage;document.getElementById("pastedTools").style.display="block";tryFinalize()}).sbmLoadImprovementNaviSource(seed)}'+
     'function copyPrompt(){var b=document.getElementById("copyPromptBtn"),t=document.getElementById("prompt").innerText;if(b.disabled){setInline("copyStatus","依頼文の準備完了後にコピーできます。","error");return}var done=function(){setInline("copyStatus","✓ aWriter依頼文をコピーしました。","ok")},fail=function(){setInline("copyStatus","コピーできませんでした。もう一度お試しください。","error")};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fail);else fail()}'+
-    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){var ab=document.getElementById("improvementAdvice");ab.className="";ab.innerHTML=(r.improvementAdvice||[]).map(function(x){return "<div class=\\\"p\\\">"+eh(x)+"</div>"}).join("");var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"クエリ情報がないため改善ポイントは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
-    'function registerStarterComplete(){var b=document.getElementById("starterCompleteBtn"),st=document.getElementById("starterCompleteStatus");if(!b||!st)return;if(!confirm("ブログ側で記事の修正を公開済みですか？\\n公開後に登録すると、今日を起点に効果測定を開始します。"))return;b.disabled=true;b.textContent="登録中…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善履歴と効果測定を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="registerStatus ok";st.textContent=r.effectSynced?"✓ 改善を登録し、改善の推移へ反映しました。7日目・14日目・21日目・28日目の効果測定へ進みます。":"改善履歴は登録しましたが、改善の推移への反映を確認できませんでした。設定・メンテナンスからシート修復を実行してください。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=e&&e.message?e.message:String(e)}).sbmRegisterStarterImprovementComplete(meta.articleId,meta.url,"Starter改善ナビに基づく記事改善を公開")}function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
+    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);var ab=document.getElementById("improvementAdvice");ab.className="";ab.innerHTML=finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"クエリ情報がないため改善ポイントは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
+    'function registerStarterComplete(){var b=document.getElementById("starterCompleteBtn"),st=document.getElementById("starterCompleteStatus");if(!b||!st)return;if(!confirm("ブログ側で記事の修正を公開済みですか？\\n公開後に登録すると、今日を起点に効果測定を開始します。"))return;b.disabled=true;b.textContent="登録中…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善履歴と効果測定を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="registerStatus ok";st.textContent=r.effectSynced?"✓ 改善を登録し、改善の推移へ反映しました。7日目・14日目・21日目・28日目の効果測定へ進みます。":"改善履歴は登録しましたが、改善の推移への反映を確認できませんでした。設定・メンテナンスからシート修復を実行してください。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=e&&e.message?e.message:String(e)}).sbmRegisterStarterImprovementComplete(meta.articleId,meta.url,"Starter改善ナビに基づく記事改善を公開",JSON.stringify(finalAdvice||[]))}function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
     'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}document.addEventListener("DOMContentLoaded",loadDetail);</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
 }
@@ -7256,9 +7258,10 @@ function sbmBuildImprovementPlanSnapshotFast_(data,row){
   var estimate=c?String(c.estimate||''):'';
   var query=String((c&&c.query)||rowGet_('メインクエリ')||(data.new_values&&data.new_values.main_query)||'');
   var expectedClicks=c?Number(c.expectedClicks||0):0;
-  var priorities=kind.indexOf('CTR')>=0
+  var starterAdvice=Array.isArray(data.starter_advice)?data.starter_advice.filter(function(x){return String(x||'').trim();}):[];
+  var priorities=starterAdvice.length?starterAdvice:(kind.indexOf('CTR')>=0
     ?['P0：SEOタイトルを検索意図に合わせる','P1：導入文で結論と対象読者を明確にする','P2：検索クエリに対応するFAQを追加する']
-    :['P0：タイトル・見出しを主検索意図に合わせる','P1：導入文を短くし、結論を先に提示する','P2：不足する説明を1～2項目追加する'];
+    :['P0：タイトル・見出しを主検索意図に合わせる','P1：導入文を短くし、結論を先に提示する','P2：不足する説明を1～2項目追加する']);
   var hasArticle=!!String(rowGet_('記事URL')||data.article_url||'').trim();
   var targetCtr=c?Number(c.targetCtr||0):0;
   if(!c&&hasArticle){
@@ -7853,6 +7856,7 @@ function sbmColumnLetter_(column){
 function sbmPolishImprovementHistoryView_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
   if(!sh)return;
+  try{sbmRepairImprovementHistoryTitleCells_(sh);}catch(ignoreTitleRepair){}
 
   var lastCol=sh.getLastColumn(),n=Math.max(0,sh.getLastRow()-1);
   var headers=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
@@ -8003,10 +8007,12 @@ function sbmOpenSelectedHistoryArticleAll(){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY).filter(function(r){return(id&&String(r['ArticleID']||'')===id)||sbmNormalizeUrl_(r['記事URL']||'')===sbmNormalizeUrl_(url);});
   if(!rows.length)return sbmAlert_('改善履歴','履歴がありません。');
   var e=sbmEscapeHtml_,cards=rows.slice().reverse().map(function(r){
-    var measurements='';for(var i=1;i<=4;i++){var dt=r[i+'回目測定日時'],j=String(r[i+'週']||'').trim(),measured=!!j&&j!=='未測定'&&j!=='未判定',planned=sbmWeeklyPlannedDate_(r,i),plannedText=planned?Utilities.formatDate(planned,SBM_DEFAULTS.TIMEZONE,'yyyy/M/d'):'日付不明';measurements+='<br>'+i+'週目：'+(measured?e(sbmHistoryDateOnlyText_(dt))+' / '+e(j):'測定待ち（予定：'+e(plannedText)+'）');}
-    return '<div style="border:1px solid #dadce0;border-radius:8px;padding:12px;margin:10px 0"><b>'+e(r['改善日'])+'</b>　'+e(r['最終判定']||r['状態']||'測定待ち')+'<br>'+e(r['改善概要'])+'<br>変更：'+e(r['変更箇所'])+measurements+'</div>';
+    var measurements='';for(var i=1;i<=4;i++){var dt=r[i+'回目測定日時'],j=String(r[i+'週']||'').trim(),measured=!!j&&j!=='未測定'&&j!=='未判定'&&j!=='測定待ち',planned=sbmWeeklyPlannedDate_(r,i),plannedText=planned?Utilities.formatDate(planned,SBM_DEFAULTS.TIMEZONE,'yyyy/MM/dd'):'日付不明';measurements+='<div class="week"><b>'+i+'週目</b>：'+(measured?e(sbmHistoryDateTimeText_(dt))+' / '+e(j):'測定待ち（予定：'+e(plannedText)+'）')+'</div>';}
+    return '<div class="card"><div class="card-head"><b>'+e(sbmHistoryDateTimeText_(r['改善日']))+'</b><span>'+e(r['最終判定']||r['状態']||'測定待ち')+'</span></div><div class="summary">'+e(r['改善概要']||'ー')+'</div><div><b>変更：</b>'+e(r['変更箇所']||'ー')+'</div><div class="weeks">'+measurements+'</div></div>';
   }).join('');
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput('<div style="font-family:Arial,Noto Sans JP,sans-serif;padding:20px"><h2>記事の全改善履歴</h2><h3>'+e(o['記事タイトル'])+'</h3>'+cards+'<div style="text-align:right;margin-top:18px"><button onclick="google.script.host.close()" style="padding:9px 18px;border:1px solid #9aa0a6;border-radius:6px;background:#fff;font-weight:700;cursor:pointer">閉じる</button></div></div>').setWidth(720).setHeight(650),'記事の全改善履歴');
+  var title=sbmHistoryTitleText_(o['記事タイトル'],o['記事URL']);
+  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.6}h2{color:#0b8043;margin:0 0 8px}h3{margin:0 0 18px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0;background:#fff}.card-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}.card-head span{color:#174ea6;font-weight:700}.summary{background:#f8f9fa;border-radius:7px;padding:10px;margin:8px 0}.weeks{margin-top:10px}.week{padding:3px 0}.actions{text-align:right;margin-top:18px}.actions button{padding:9px 18px;border:1px solid #9aa0a6;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}</style></head><body><h2>記事の全改善履歴</h2><h3>'+e(title)+'</h3>'+cards+'<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></body></html>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(680),'記事の全改善履歴');
 }
 
 function sbmOpenSelectedImprovementNavi(){var sh=SpreadsheetApp.getActiveSheet();if(!sh||(sh.getName()!==SBM_SHEETS.TODAY&&sh.getName()!==SBM_SHEETS.ARTICLE_DB))return sbmAlert_('改善ナビ','今日の改善または記事管理を開いてください。');var row=sbmGetCheckedRow_(sh);if(!row)return;var record=sbmRowRecord_(sh,row),url=String(record['記事URL']||'').trim();if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');var article=(sh.getName()===SBM_SHEETS.ARTICLE_DB?record:(sbmFindArticleDbByUrlFast_(url)||record));sbmShowImprovementNaviDialog_(article,record['区分']||'改善候補',record['改善理由・期待効果']||'');}
@@ -8560,6 +8566,7 @@ function sbmOpenEffectiveness(){
       sbmLog_('EffectViewOneTimeRefresh','Warning',String(eRefresh));
     }
   }
+  try{sbmRepairEffectTitleCells_(sh);}catch(ignoreEffectTitleRepair){}
   try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreViewStyle){}
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
 }
@@ -8967,6 +8974,42 @@ function sbmHistoryDateOnlyText_(v) {
   if (!d) return String(v);
   return Utilities.formatDate(d, SBM_DEFAULTS.TIMEZONE, 'yyyy/M/d');
 }
+function sbmHistoryDateTimeText_(v) {
+  if (v === null || v === undefined || String(v).trim() === '') return 'ー';
+  var d = sbmParseDate_(v);
+  if (!d) return String(v);
+  return Utilities.formatDate(d, SBM_DEFAULTS.TIMEZONE, 'yyyy/MM/dd HH:mm');
+}
+function sbmHistoryTitleText_(title, url) {
+  var clean = sbmCleanDataListText_(title || '', url || '');
+  return clean || sbmCleanDisplayTitle_(sbmSafeArticleTitleCell_(title || '', url || ''), url || '') || 'タイトル未取得';
+}
+function sbmRepairImprovementHistoryTitleCells_(sh) {
+  sh = sh || SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if (!sh || sh.getLastRow() < 2) return 0;
+  var hm = sbmHeaderMap_(sh), tc = hm['記事タイトル'], uc = hm['記事URL'];
+  if (!tc) return 0;
+  var n = sh.getLastRow()-1, titles = sh.getRange(2,tc,n,1).getValues(), urls = uc ? sh.getRange(2,uc,n,1).getValues() : [], changed=0;
+  for (var i=0;i<n;i++) {
+    var raw=String(titles[i][0]||'').trim(), clean=sbmHistoryTitleText_(raw, uc?urls[i][0]:'');
+    if (clean && clean!==raw) { titles[i][0]=clean; changed++; }
+  }
+  if (changed) sh.getRange(2,tc,n,1).setValues(titles);
+  return changed;
+}
+function sbmRepairEffectTitleCells_(sh) {
+  sh = sh || SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT);
+  if (!sh || sh.getLastRow() < 2) return 0;
+  var hm=sbmHeaderMap_(sh), tc=hm['記事タイトル'], uc=hm['記事URL'];
+  if(!tc)return 0;
+  var n=sh.getLastRow()-1,titles=sh.getRange(2,tc,n,1).getValues(),urls=uc?sh.getRange(2,uc,n,1).getValues():[],changed=0;
+  for(var i=0;i<n;i++){
+    var raw=String(titles[i][0]||'').trim(),clean=sbmHistoryTitleText_(raw,uc?urls[i][0]:'');
+    if(clean&&clean!==raw){titles[i][0]=clean;changed++;}
+  }
+  if(changed)sh.getRange(2,tc,n,1).setValues(titles);
+  return changed;
+}
 function sbmHistoryNumberText_(v) {
   var n = Number(String(v === null || v === undefined ? '' : v).replace(/,/g,''));
   if (!isFinite(n)) return 'ー';
@@ -9085,7 +9128,7 @@ function sbmEffectDetailHtmlV2_(o) {
   var currentDate = sbmFormatEffectDateLabel_(o['最終更新'] || o['更新日時'] || new Date());
   return '<div style="font-family:Arial,Noto Sans JP,sans-serif;padding:20px;line-height:1.65;color:#202124">'
     + '<h2 style="margin-top:0;color:#0b8043">改善の推移の詳細</h2>'
-    + '<h3>' + cell(o['記事タイトル']) + '</h3>'
+    + '<h3>' + e(sbmHistoryTitleText_(o['記事タイトル'],o['記事URL'])) + '</h3>'
     + '<p><b>判定：</b>' + cell(o['判定'])
     + '　<b>経過日数：</b>' + num(o['経過日数']) + '日'
     + '　<b>測定回数：</b>' + cell(o['測定回数']) + '　<b>次回予定：</b>' + cell(o['次回測定予定日']) + '</p>'
@@ -9359,11 +9402,12 @@ function sbmHistoryDetailHtmlV2_(o) {
     + '<div class="subsection"><h4>3-3. 最終判定</h4>'+finalHtml+'</div>';
 
   return '<!doctype html><html><head><base target="_top">'+css+'</head><body>'
-    + '<h2>改善履歴の詳細</h2><h3>'+e(sbmHistoryDisplayValue_(o['記事タイトル']))+'</h3>'
+    + '<h2>改善履歴の詳細</h2><h3>'+e(sbmHistoryTitleText_(o['記事タイトル'],o['記事URL']))+'</h3>'
     + '<div class="meta"><div class="field"><span class="label">改善履歴ID：</span>'+e(sbmHistoryDisplayValue_(o['改善履歴ID']))+'</div>'
-    + '<div class="field"><span class="label">改善日：</span>'+e(sbmHistoryDateOnlyText_(o['改善日']))+'</div></div>'
-    + '<div class="section"><h3>1. 改善計画</h3>'+planHtml+'</div>'
-    + '<div class="section"><h3>2. 実施した改善</h3>'+resultHtml+'</div>'
+    + '<div class="field"><span class="label">改善日時：</span>'+e(sbmHistoryDateTimeText_(o['改善日']))+'</div>'
+    + '<div class="field"><span class="label">改善経路：</span>'+e(sbmHistoryDisplayValue_(o['改善経路']))+'　<span class="label">状態：</span>'+e(sbmHistoryDisplayValue_(o['最終判定']||o['状態']))+'</div></div>'
+    + '<div class="section"><h3>1. 登録時の改善計画</h3>'+planHtml+'</div>'
+    + '<div class="section"><h3>2. 公開した改善内容</h3>'+resultHtml+'</div>'
     + '<div class="section"><h3>3. 改善の推移</h3>'+effectHtml+'</div>'
     + '<div style="display:flex;justify-content:flex-end;margin-top:18px"><button type="button" onclick="google.script.host.close()" style="border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer">閉じる</button></div>'
     + '</body></html>';
@@ -10357,6 +10401,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   var sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
   if(!sh)return;
 
+  try{sbmRepairImprovementHistoryTitleCells_(sh);}catch(ignoreTitleRepair){}
   var lastRow=sh.getLastRow(),lastCol=sh.getLastColumn();
   if(lastCol<1)return;
 
@@ -10421,6 +10466,8 @@ function sbmEnsureImprovementHistoryViewLight_(){
   if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週'])try{
     sh.getRange(2,hm['1週'],n,hm['最終判定']-hm['1週']+1).setHorizontalAlignment('center').setWrap(true);
   }catch(ignoreJudge){}
+  // v6.1.12: 一覧を開いた時点で利用者向けの判定色・行高・選択UIまで揃える。
+  try{sbmPolishImprovementHistoryView_();}catch(ignorePolish){}
 }
 
 function sbmOpenImprovementHistory() {

@@ -1,1 +1,1 @@
-fix(starter): restore article view and sync improvement effect
+fix(history): normalize history UX and preserve concrete Starter advice

@@ -1,11 +1,11 @@
-# SIMS Manager v6.1.11
+# SIMS Manager v6.1.12
 
-Initial Setup dialog reliability fix for the common Full / Starter code line.
+Repository baseline update for Full / Starter common code.
 
-- Root cause fixed: generated client JavaScript was invalid because quoted HTML attributes inside a JavaScript string lost escaping during server-side HTML construction.
-- STEP1–STEP6 buttons are now syntax-tested after final HTML generation.
-- Spinner and fallback-link UI are created with DOM APIs instead of nested HTML strings.
-- Setup navigator, repair-completion navigator, and article-info continuation dialog were also audited.
-- Full canonical: `Code.gs`
-- Starter: `editions/starter/Code.gs`
-- Shared Spreadsheet schema and `appsscript.json` are unchanged.
+- Normalize article titles across 改善の推移, 改善履歴, and history detail dialogs.
+- Standardize user-facing improvement timestamps.
+- Reapply history sheet presentation when opened.
+- Preserve the concrete P0/P1/P2 actually shown by Starter Improvement Navi in the history plan snapshot.
+- Full and Starter continue to share the same spreadsheet schema and appsscript.json.
+
+This is a repository baseline, not a user distribution package.
