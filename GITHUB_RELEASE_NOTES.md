@@ -1,4 +1,4 @@
-# SIMS Manager v6.1.10
+# SIMS Manager v6.1.11
 
 Initial Setup dialog reliability fix for the common Full / Starter code line.
 
