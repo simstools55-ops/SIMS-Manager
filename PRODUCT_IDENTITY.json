@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.29",
+  "current_version": "6.1.30",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.29: Personal Knowledge inspection now uses a central modal and includes a human-readable viewer for site knowledge and storage structure.",
-  "version": "6.1.29",
+  "notes": "v6.1.30: Doctor V2 routing precedence fixed so explicit WRITER/MERGE/MONITOR and treatment instructions override low-priority SERP labels.",
+  "version": "6.1.30",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.29-ST"
+  "starter_display_version": "6.1.30-ST"
 }

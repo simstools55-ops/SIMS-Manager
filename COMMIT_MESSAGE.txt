@@ -1,9 +1,8 @@
-fix: bind observation actions to the selected improvement cycle in v6.1.29
+fix: prioritize explicit Doctor treatment routing in v6.1.30
 
-- identify the target by ArticleID and Improvement History ID instead of row number alone
-- ignore stale Doctor Case terminal states that are not linked to the current improvement cycle
-- prevent old DOCTOR_NORMAL_CLOSE from overriding a current REVIEW_REQUIRED cycle
-- restore erroneously completed articles to monitoring when the current cycle still requires re-examination
-- stop rebuilding the entire Improvement Trend after a one-item completion action
-- preserve neighboring selections and rows during one-item processing
-- keep Full at v6.1.29 and Starter at v6.1.29-ST
+- prioritize workflow_handoff.next_action over LOW_SAMPLE SERP outcomes
+- keep LOW_PRIORITY_SERP_STRUCTURE as a context signal, not an unconditional normal-close instruction
+- route LIGHT_FIX + WRITER cases to aWriter as directed by Doctor
+- preserve MERGE, MONITOR and USER_CONFIRMATION routing precedence
+- only normal-close low-priority SERP cases when no concrete action is present
+- keep Full at v6.1.30 and Starter at v6.1.30-ST

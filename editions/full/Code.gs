@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.29
+ * SIMS Manager Product v6.1.30
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.29';
+const SBM_VERSION = '6.1.30';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.29';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'FULL';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.30: Doctor V2 routing precedenceを修正。WRITER/MERGE/MONITOR等の明示指示・LIGHT_FIX等の治療指示をLOW_PRIORITY_SERP_STRUCTUREより優先し、誤正常終了を防止。
 // v6.1.29: 観察終了後処置をArticleID+改善履歴IDで固定し、過去Doctor Case誤適用と1件処理後の全一覧再生成を防止。
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
@@ -15211,18 +15212,28 @@ function sbmDoctorNormalizeCaseResult_(o){
     // so low-demand articles do not remain forever in the active progress list.
     var lowSerp=o.low_sample_serp_assessment||d.low_sample_serp_assessment||{};
     var serpOutcomeV2=String(lowSerp.outcome||'').toUpperCase();
-    var normalCloseV2=(serpOutcomeV2==='LOW_DEMAND_MAINTAIN'||serpOutcomeV2==='LOW_PRIORITY_SERP_STRUCTURE'||explicitNextActionV2==='NORMAL_CLOSE');
     var serpMonitorV2=(serpOutcomeV2==='SERP_COMPETITIVENESS_SUFFICIENT'||serpOutcomeV2==='TARGET_QUERY_REASSESSMENT'||serpOutcomeV2==='ADDITIONAL_OBSERVATION');
-    var refDestinationV2=String(ref.destination||'').toUpperCase();
-    var writerReadyV2=!normalCloseV2&&(explicitNextActionV2==='WRITER'||!!(ref.required&&refDestinationV2==='SIMS_WRITER'));
-    var mergeReadyV2=!normalCloseV2&&(explicitNextActionV2==='MERGE'||!!(ref.required&&(refDestinationV2==='SIMS_MERGE'||refDestinationV2==='MERGE'))||String(t.action||t.strategy||'').toUpperCase()==='MERGE');
+    var refDestinationV2=String(ref.destination||ref.primary_target||'').toUpperCase();
+    var strategyV2=String(t.action||t.strategy||'').toUpperCase();
+    var allowedV2=sbmDoctorNormalizeScopeList_(o.allowed_scope||handoff.allowed_scope||ref.allowed_scope||t.allowed_scope||[]);
+    var blockedV2=sbmDoctorNormalizeScopeList_(o.blocked_scope||handoff.blocked_scope||ref.blocked_scope||t.blocked_scope||[]);
+
+    // v6.1.30: concrete workflow/treatment instructions outrank LOW_SAMPLE SERP labels.
+    // LOW_PRIORITY_SERP_STRUCTURE means "avoid heavy investment", not "close the case"
+    // when Doctor explicitly requests WRITER/MERGE/MONITOR/etc.
+    var writerReadyV2=(explicitNextActionV2==='WRITER'||refDestinationV2==='SIMS_WRITER'||refDestinationV2==='WRITER');
+    var mergeReadyV2=(explicitNextActionV2==='MERGE'||refDestinationV2==='SIMS_MERGE'||refDestinationV2==='MERGE'||strategyV2==='MERGE');
     if(mergeReadyV2)writerReadyV2=false;
-    var manualReviewV2=!normalCloseV2&&(explicitNextActionV2==='USER_CONFIRMATION'||t.action==='MANUAL_REVIEW');
-    var monitorV2=!normalCloseV2&&(explicitNextActionV2==='MONITOR'||serpMonitorV2||(!writerReadyV2&&!mergeReadyV2&&!manualReviewV2&&(t.action==='MONITOR'||t.action==='NO_TREATMENT')));
+    var manualReviewV2=(explicitNextActionV2==='USER_CONFIRMATION'||strategyV2==='MANUAL_REVIEW');
+    var monitorV2=(explicitNextActionV2==='MONITOR'||serpMonitorV2||(!writerReadyV2&&!mergeReadyV2&&!manualReviewV2&&(strategyV2==='MONITOR'||strategyV2==='NO_TREATMENT'||strategyV2==='WAIT')));
+    var explicitNonCloseV2=!!(explicitNextActionV2&&explicitNextActionV2!=='NORMAL_CLOSE');
+    var treatmentIntentV2=(strategyV2==='LIGHT_FIX'||strategyV2==='NORMAL_FIX'||strategyV2==='FULL_FIX'||strategyV2==='TREATMENT_RECOMMENDED'||strategyV2==='WRITER'||strategyV2==='MERGE'||strategyV2==='MONITOR'||strategyV2==='WAIT'||strategyV2==='NO_TREATMENT'||allowedV2.length>0||writerReadyV2||mergeReadyV2||manualReviewV2||monitorV2);
+    var normalCloseV2=(explicitNextActionV2==='NORMAL_CLOSE'||(!explicitNonCloseV2&&!treatmentIntentV2&&(serpOutcomeV2==='LOW_DEMAND_MAINTAIN'||serpOutcomeV2==='LOW_PRIORITY_SERP_STRUCTURE')));
+    if(normalCloseV2){writerReadyV2=false;mergeReadyV2=false;manualReviewV2=false;monitorV2=false;}
     var reviewDateV2=review.next_review_target_date||re.recommended_date||'';
     var reviewAfterDaysV2=Number(review.next_review_after_days||review.review_after_days||0);
     if(!reviewDateV2&&reviewAfterDaysV2>0){var rd=new Date();rd.setDate(rd.getDate()+reviewAfterDaysV2);reviewDateV2=Utilities.formatDate(rd,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');}
-    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:sbmDoctorNormalizeScopeList_(o.allowed_scope||handoff.allowed_scope||ref.allowed_scope||t.allowed_scope||[]),blocked:sbmDoctorNormalizeScopeList_(o.blocked_scope||handoff.blocked_scope||ref.blocked_scope||t.blocked_scope||[]),reviewDate:normalCloseV2?'':reviewDateV2,locked:!!((o.workflow&&o.workflow.workflow_locked)||(o.dependencies&&o.dependencies.doctor_treatment_allowed===false)||(o.dependencies&&o.dependencies.lock_reference_id)),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,normalClose:normalCloseV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
+    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:allowedV2,blocked:blockedV2,reviewDate:normalCloseV2?'':reviewDateV2,locked:!!((o.workflow&&o.workflow.workflow_locked)||(o.dependencies&&o.dependencies.doctor_treatment_allowed===false)||(o.dependencies&&o.dependencies.lock_reference_id)),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,normalClose:normalCloseV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
   }
   if(format==='SIMS_DOCTOR_SINGLE_CASE_RESULT_V1'){
     var refs=Array.isArray(o.referrals)?o.referrals:[],activeWriter=[],deferredWriter=[],activeMerge=[],deferredMerge=[],sbmRequired=[];
