@@ -1,8 +1,14 @@
-# Distribution source mirror
+# SIMS Manager v6.1.39 Repository Baseline
 
-このディレクトリはリポジトリ内の配布元ソース参照用です。
+## v6.1.39の位置付け
 
-**SIMS Manager v6.1.38では利用者向けDistribution ZIPを生成していません。**
-配布物は必要になった時点で、Full / Starterそれぞれの検証済み正本から別途生成します。
+v6.1.38を正本として、aDoctor回答登録時の結果JSON抽出を修正した版です。
 
-ルート `Code.gs` がFull Editionの機能正本です。Edition管理方針は `../EDITION_POLICY.md` を参照してください。
+- Doctor RESULTはCaseID必須。CaseIDを持たない`return_contract`雛形を結果として採用しない
+- aDoctor依頼JSON内の`return_contract`を診断結果と誤認する不具合を修正
+- 依頼JSONを回答欄へ貼った場合は、CaseID空欄の誤った不一致表示ではなく専用メッセージを表示
+- 正しいDoctor回答全文では、対象CaseIDの`SIMS_DOCTOR_*_RESULT`だけを抽出
+- 前版までのタイムゾーン・日付修復を維持
+- Full v6.1.39 / Starter v6.1.39-ST
+
+このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。

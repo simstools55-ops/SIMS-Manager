@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.37
+ * SIMS Manager Product v6.1.39
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.38';
+const SBM_VERSION = '6.1.39';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -18,9 +18,10 @@ const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
 // v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
 // v6.1.35: 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
-// v6.1.37: 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。v6.1.35の一度限りフラグ依存を廃止。
+// v6.1.36: 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。v6.1.35の一度限りフラグ依存を廃止。
 // v6.1.37: SpreadsheetのタイムゾーンをAsia/Tokyoへ統一し、AI改善結果JSON.completed_atを正本として旧履歴の日付ずれを補正。日付シリアルと表示TZの境界で1日前化する再発を防止。
 // v6.1.38: 改善履歴の改善日とAI改善結果JSON.completed_atの暦日不一致を軽量検出し、TZ変更済み後でも自己修復を確実に起動。
+// v6.1.39: aDoctor回答抽出で依頼JSON内のreturn_contractを診断結果と誤認しないよう、結果JSONのCaseIDを必須化。依頼JSON誤貼付は明示エラーにし、正しいDoctor回答全文から対象CaseのRESULTのみを抽出。
 // v6.1.33: Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
 // v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
@@ -15056,7 +15057,10 @@ function sbmDoctorWorkflowCheckpointResponse_(requestText,responseText){
       var fallbackDoctor=JSON.parse(fallbackText);
       var adopted=sbmDoctorAdoptPriorResultForRequest_(src,fallbackDoctor);
       resultText=adopted?JSON.stringify(adopted):String(responseText||'');
-    }catch(ignoreCompatCheckpoint){resultText=String(responseText||'');}
+    }catch(ignoreCompatCheckpoint){
+      if(sbmDoctorLooksLikeRequestPayload_(responseText))throw new Error('DOCTOR_RESPONSE_IS_REQUEST');
+      resultText=String(responseText||'');
+    }
   }
   sbmDoctorWorkflowWritePayload_(caseId,'RESPONSE',resultText);
   sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'RESPONSE_RECEIVED',registration_status:'PENDING',response_received_at:sbmNowText_(),last_error:''});
@@ -15271,7 +15275,11 @@ function sbmDoctorExtractResultJsonText_(text,expectedCaseId){
     if(/REQUEST|EVIDENCE_PACKAGE|FOLLOW_UP_CONTEXT/.test(name))return false;
     if(!/RESULT/.test(name))return false;
     var cid=resultCaseId_(o);
-    return !wantCase||!cid||cid===wantCase;
+    // v6.1.39: RESULTはCaseIDを必須とする。
+    // 依頼JSON内の return_contract {format:'SIMS_DOCTOR_*_RESULT', ...} は
+    // CaseIDを持たないため、診断結果として絶対に採用しない。
+    if(!cid)return false;
+    return !wantCase||cid===wantCase;
   }
   function accept(candidate){
     var c=String(candidate||'').trim();
@@ -15310,6 +15318,15 @@ function sbmDoctorExtractResultJsonText_(text,expectedCaseId){
   }
 
   throw new Error('DOCTOR_RESULT_JSON_EXTRACT_NOT_FOUND');
+}
+
+/** v6.1.39: 回答欄にaDoctor依頼JSONそのものが貼られた場合を判別する。 */
+function sbmDoctorLooksLikeRequestPayload_(text){
+  var t=String(text||'');
+  if(!t)return false;
+  return /\"format\"\s*:\s*\"SIMS_DOCTOR_[^\"]*REQUEST[^\"]*\"/i.test(t) ||
+         /\"target_system\"\s*:\s*\"SIMS_DOCTOR\"/i.test(t) &&
+         /\"return_contract\"\s*:/i.test(t);
 }
 
 function sbmDoctorExtractContractJsonText_(text,contractName){
@@ -15960,6 +15977,9 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
         resultText=JSON.stringify(adopted);
         adoptedFromPrior=true;
       }catch(eCompat){
+        if(sbmDoctorLooksLikeRequestPayload_(doctorResultText)){
+          throw new Error('aDoctorの依頼JSONが貼り付けられています。aDoctorが返した診断結果の回答全文（SIMS_DOCTOR_*_RESULT を含む回答）を貼り付けてください。');
+        }
         throw new Error('aDoctor診断結果JSONを読み取れませんでした。回答全文の中にある SIMS_DOCTOR_*_RESULT のJSONを確認してください。\n\n全文をそのまま貼り付けても、SIMSが結果JSONを自動抽出します。');
       }
     }

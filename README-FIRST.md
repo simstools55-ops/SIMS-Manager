@@ -1,13 +1,14 @@
-# SIMS Manager v6.1.38 Repository Baseline
+# SIMS Manager v6.1.39 Repository Baseline
 
-## v6.1.38の位置付け
+## v6.1.39の位置付け
 
-v6.1.35で追加したSheets日付シリアル変換を、実際の「改善の推移を開く」経路から確実に起動できるようにした修正版です。
+v6.1.38を正本として、aDoctor回答登録時の結果JSON抽出を修正した版です。
 
-- 改善の推移を開く時に既知の日付破損を軽量検出
-- 異常時のみ改善履歴の日付を冪等修復
-- 異常時のみ改善の推移を軽量再生成
-- 正常時は従来どおり閲覧専用の高速経路
-- Full v6.1.38 / Starter v6.1.38-ST
+- Doctor RESULTはCaseID必須。CaseIDを持たない`return_contract`雛形を結果として採用しない
+- aDoctor依頼JSON内の`return_contract`を診断結果と誤認する不具合を修正
+- 依頼JSONを回答欄へ貼った場合は、CaseID空欄の誤った不一致表示ではなく専用メッセージを表示
+- 正しいDoctor回答全文では、対象CaseIDの`SIMS_DOCTOR_*_RESULT`だけを抽出
+- 前版までのタイムゾーン・日付修復を維持
+- Full v6.1.39 / Starter v6.1.39-ST
 
 このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。

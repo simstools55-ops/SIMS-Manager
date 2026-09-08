@@ -1,6 +1,7 @@
-fix: detect canonical completed_at mismatches after timezone repair in v6.1.38
+fix: reject request return_contract as Doctor result in v6.1.39
 
-- compare Improvement History dates with AI result completed_at during lightweight view checks
-- repair one-day shifts even when spreadsheet timezone is already Asia/Tokyo
-- read canonical JSON values directly and rebuild Improvement Trend only on mismatch
-- keep Full at v6.1.38 and Starter at v6.1.38-ST
+- require a non-empty CaseID for every extracted SIMS_DOCTOR_*_RESULT object
+- prevent request.return_contract from being misclassified as a Doctor response
+- show a specific error when the aDoctor request JSON is pasted into the result field
+- avoid checkpointing a request payload as a Doctor RESPONSE
+- synchronize product header, version metadata, Full v6.1.39, and Starter v6.1.39-ST
