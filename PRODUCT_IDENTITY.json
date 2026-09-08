@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.25",
+  "current_version": "6.1.26",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.25: Improvement History formatting is invalidated and restored after schema migration; Starter Home is explicitly labeled and Starter display version uses the compact -ST suffix.",
-  "version": "6.1.25",
+  "notes": "v6.1.26: Improvement History judgment columns are widened and vertically centered for single-line status display; existing Starter Home titles are synchronized to SIMS Manager Starter Home.",
+  "version": "6.1.26",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.25-ST"
+  "starter_display_version": "6.1.26-ST"
 }

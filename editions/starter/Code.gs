@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.1.25-ST
+ * SIMS Manager Product v6.1.26-ST
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.25';
+const SBM_VERSION = '6.1.26';
+// v6.1.26: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
 // v6.1.24: 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
 // v6.1.22: 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
@@ -7302,8 +7303,8 @@ function sbmStyleImprovementHistoryRow_(sh,row){
   try{sh.setRowHeight(row,58);}catch(ignoreRow){}
   if(hm['選択'])try{sh.getRange(row,hm['選択']).insertCheckboxes().setValue(false).setHorizontalAlignment('center');}catch(ignoreCb){}
   if(hm['改善日'])try{sh.getRange(row,hm['改善日']).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
-  if(hm['記事タイトル'])try{sh.getRange(row,hm['記事タイトル']).setWrap(true).setVerticalAlignment('top');}catch(ignoreTitle){}
-  if(hm['改善概要'])try{sh.getRange(row,hm['改善概要']).setWrap(true).setVerticalAlignment('top');}catch(ignoreSummary){}
+  if(hm['記事タイトル'])try{sh.getRange(row,hm['記事タイトル']).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
+  if(hm['改善概要'])try{sh.getRange(row,hm['改善概要']).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
   if(hm['改善経路'])try{sh.getRange(row,hm['改善経路']).setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
   if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週'])try{
     var r=sh.getRange(row,hm['1週'],1,hm['最終判定']-hm['1週']+1),vals=r.getDisplayValues()[0];
@@ -7320,7 +7321,7 @@ function sbmStyleImprovementHistoryRow_(sh,row){
       return ['#202124','normal','#ffffff'];
     }
     vals.forEach(function(v,idx){var x=st(v,idx===pending);colors.push(x[0]);weights.push(x[1]);backgrounds.push(x[2]);});
-    r.setFontColors([colors]).setFontWeights([weights]).setBackgrounds([backgrounds]).setHorizontalAlignment('center').setWrap(true);
+    r.setFontColors([colors]).setFontWeights([weights]).setBackgrounds([backgrounds]).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   }catch(ignoreJudge){}
 }
 
@@ -10190,6 +10191,7 @@ function sbmRefreshHome_(options) {
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
+  try{sh.getRange('A1:G1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
 
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
@@ -10518,7 +10520,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   // v6.1.21: バージョン更新後の最初の1回だけ既存行をまとめて装飾する。
   // 2回目以降の「改善履歴を開く」は全行再装飾を行わず高速表示する。
   var props=PropertiesService.getDocumentProperties();
-  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_25_'+String(sh.getSheetId());
+  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_26_'+String(sh.getSheetId());
   if(props.getProperty(styleKey)==='1'){
     // v6.1.25: a schema migration may have cleared formatting while leaving an old ready flag.
     // Trust the cache only when the visible header formatting is still intact.
@@ -10543,13 +10545,14 @@ function sbmEnsureImprovementHistoryViewLight_(){
   }
   sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
   sh.setRowHeight(1,34);
-  var widths={'選択':48,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':360,'改善経路':130,'1週':78,'2週':78,'3週':78,'4週':78,'最終判定':118};
+  var widths={'選択':48,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
 
   // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
   var n=Math.max(0,sh.getLastRow()-1);
   if(n){
     try{sh.setRowHeights(2,n,58);}catch(ignoreHeights){}
+    try{sh.getRange(2,1,n,lastCol).setVerticalAlignment('middle');}catch(ignoreMiddle){}
     if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
     if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
     if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
@@ -10567,7 +10570,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
         return ['#202124','normal','#ffffff'];
       }
       vals.forEach(function(row){var pending=-1,cr=[],wr=[],br=[];for(var i=0;i<Math.min(4,row.length);i++){var pv=String(row[i]||'').trim();if(pv==='測定待ち'||pv==='未測定'||pv==='未判定'){pending=i;break;}}row.forEach(function(v,idx){var x=style(v,idx===pending);cr.push(x[0]);wr.push(x[1]);br.push(x[2]);});cs.push(cr);ws.push(wr);bs.push(br);});
-      judge.setFontColors(cs).setFontWeights(ws).setBackgrounds(bs).setHorizontalAlignment('center').setWrap(true);
+      judge.setFontColors(cs).setFontWeights(ws).setBackgrounds(bs).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
     }
   }
   if(n&&hm['ArticleID'])try{sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);}catch(ignoreAid){}
@@ -11594,6 +11597,8 @@ function sbmSyncHomeVersionOnly_(){
     if(!sh)return;
     var expected='v'+SBM_DISPLAY_VERSION;
     if(String(sh.getRange('H1').getValue()||'')!==expected) sh.getRange('H1').setValue(expected);
+    var expectedTitle=String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
+    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:G1').setValue(expectedTitle);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
   }

@@ -1,4 +1,12 @@
 ## v6.1.24
+
+## v6.1.26 - 2026-09-08
+
+- Improvement History: widen weekly/final judgment columns so status labels remain on one line.
+- Improvement History: vertically center visible data cells and judgment cells.
+- Starter: synchronize existing Home A1 title to `SIMS Manager Starter Home` without requiring a Home rebuild.
+- Starter display version remains compact: `v6.1.26-ST`.
+
 - Stabilize additional monitoring labels and add ArticleID/filter UX to Improvement Trend and Improvement History.
 
 ## v6.1.21 — 2026-09-08

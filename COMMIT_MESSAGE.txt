@@ -1,8 +1,8 @@
-fix: restore history styling and shorten Starter identity in v6.1.25
+fix: refine history layout and sync Starter Home title in v6.1.26
 
-- invalidate cached Improvement History styling after schema migrations
-- detect lost history formatting and automatically reapply presentation
-- rebalance Improvement History visible column widths
-- label Starter Home as SIMS Manager Starter Home
-- shorten Starter display version to v6.1.25-ST
-- keep canonical Full/Starter version at 6.1.25
+- widen Improvement History judgment columns for single-line status labels
+- vertically center visible history cells and judgments
+- keep weekly/final judgment labels unwrapped
+- synchronize existing Starter Home A1 to SIMS Manager Starter Home
+- retain compact Starter display version v6.1.26-ST
+- keep canonical Full/Starter version at 6.1.26
