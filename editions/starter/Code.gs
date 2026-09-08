@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.41
+ * SIMS Manager Product v6.1.42
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.41';
+const SBM_VERSION = '6.1.42';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.41';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.42: aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
 // v6.1.41: aDoctor未完了処置のメニュー入口を統一。通常aDoctorのWRITER_IN_PROGRESS等は専用再開ダイアログを表示し、該当がなければSite Doctor経由の共通処置UIへフォールバック。
 // v6.1.40: 共通aDoctor処置ダイアログのWriter登録を経路自動判定化。通常aDoctor案件をSite Doctor専用登録へ誤送信していた回帰を修正し、共通UI名称もaDoctor基準へ統一。
 // v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
@@ -17887,16 +17888,17 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   if(format!=='SIMS_WRITER_TREATMENT_RESULT_V1')throw new Error('aWriter処置結果ではありません。必要なformatは SIMS_WRITER_TREATMENT_RESULT_V1 です。現在のformat：'+(format||'未記載'));
   var rec=sbmDoctorFindCaseRow_(o.case_id);if(!rec)throw new Error('対応するCaseIDがありません。');
   if(String(rec.values[rec.hm['記事ID']-1])!==String(o.article_id||''))throw new Error('ArticleIDがCaseと一致しません。');
-  var status=String(o.treatment_status||''),compliance=o.referral_compliance||{},existing=String(rec.values[rec.hm['Writer結果JSON']-1]||'');
+  var status=String(o.treatment_status||'').toUpperCase(),compliance=o.referral_compliance||{},existing=String(rec.values[rec.hm['Writer結果JSON']-1]||'');
+  var completedTreatment=(status==='COMPLETED'||status==='COMPLETED_WITH_REPORTED_EXCEPTION');
   if(existing&&existing===JSON.stringify(o)&&String(rec.values[rec.hm['状態コード']-1])==='MONITORING')return {caseId:String(o.case_id||''),status:'モニター中',alreadyRegistered:true};
 
   rec.values[rec.hm['Writer結果JSON']-1]=JSON.stringify(o);
   if(compliance.compliant===false||(compliance.scope_violations||[]).length){
     rec.values[rec.hm['状態コード']-1]='USER_DECISION_REQUIRED';rec.values[rec.hm['状態']-1]='利用者判断待ち';
-  }else if(status==='COMPLETED'&&sbmDoctorStoredWriterRequestMode_(rec)==='MERGE_REFERRAL_TREATMENT'){
+  }else if(completedTreatment&&sbmDoctorStoredWriterRequestMode_(rec)==='MERGE_REFERRAL_TREATMENT'){
     // Merge起点のWriter編集完了後は301/noindex/削除の利用者処置が残るため、モニターへ自動遷移しない。
     rec.values[rec.hm['状態コード']-1]='MERGE_USER_ACTION_REQUIRED';rec.values[rec.hm['状態']-1]='301等の利用者処置待ち';
-  }else if(status==='COMPLETED'){
+  }else if(completedTreatment){
     // v5.21.28: 再診元の旧観察サイクルは、aWriter処置が完了した時点で役目を終えます。
     // 旧履歴を REVIEW_REQUIRED のまま残すと「改善の推移」に要再診行が残り続けるため、
     // 新しい改善履歴を作る前に旧履歴を COMPLETED（処置へ移行済み）として閉じます。

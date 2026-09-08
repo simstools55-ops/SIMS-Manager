@@ -1,3 +1,9 @@
+# v6.1.42
+
+- aWriter結果の `COMPLETED_WITH_REPORTED_EXCEPTION` を、紹介状違反がない場合は正常な処置完了として受理するよう修正。
+- 実施不能だった許可タスクの理由はWriter結果JSONへ保持したまま、完了済みの公開処置を改善履歴へ登録しモニタリングを開始。
+- `COMPLETED` のみを成功扱いしていたため `TREATMENT_FAILED` へ誤遷移する不具合を解消。
+
 ## v6.1.41
 
 - aDoctor未完了処置の再開入口を一本化。

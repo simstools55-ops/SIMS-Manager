@@ -1,6 +1,6 @@
-# SIMS Manager v6.1.41 Repository Baseline
+# SIMS Manager v6.1.42 Repository Baseline
 
-## v6.1.41の位置付け
+## v6.1.42の位置付け
 
 v6.1.38を正本として、aDoctor回答登録時の結果JSON抽出を修正した版です。
 
@@ -9,6 +9,6 @@ v6.1.38を正本として、aDoctor回答登録時の結果JSON抽出を修正�
 - 依頼JSONを回答欄へ貼った場合は、CaseID空欄の誤った不一致表示ではなく専用メッセージを表示
 - 正しいDoctor回答全文では、対象CaseIDの`SIMS_DOCTOR_*_RESULT`だけを抽出
 - 前版までのタイムゾーン・日付修復を維持
-- Full v6.1.41 / Starter v6.1.41-ST
+- Full v6.1.42 / Starter v6.1.42-ST
 
 このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。

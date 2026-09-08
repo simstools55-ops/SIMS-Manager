@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.41",
+  "current_version": "6.1.42",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.41: unified unfinished aDoctor treatment resume now opens the correct direct-case resume dialog for WRITER_IN_PROGRESS and falls back to the Site Doctor shared workflow only when needed.",
-  "version": "6.1.41",
-  "starter_display_version": "6.1.41-ST"
+  "notes": "v6.1.42: Writer treatment result COMPLETED_WITH_REPORTED_EXCEPTION is accepted as a completed treatment when referral compliance is intact, preserving the exception report while starting monitoring.",
+  "version": "6.1.42",
+  "starter_display_version": "6.1.42-ST"
 }
