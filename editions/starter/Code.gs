@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.32
+ * SIMS Manager Product v6.1.33
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.32';
+const SBM_VERSION = '6.1.33';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.32';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.33: Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
 // v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
 // v6.1.30: Doctor V2 routing precedenceを修正。WRITER/MERGE/MONITOR等の明示指示・LIGHT_FIX等の治療指示をLOW_PRIORITY_SERP_STRUCTUREより優先し、誤正常終了を防止。
@@ -11697,6 +11698,7 @@ function onOpen() {
   var isFullEdition = String(SBM_EDITION || '').toUpperCase() === 'FULL';
   // v6.1.21: 旧版でDoctor結果だけ保存され、改善履歴/改善の推移が切り替わらなかった案件を一度だけ自動救済。
   try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
+  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
 
   ui.createMenu('SIMS今日の作業')
     .addItem('1．Homeを開く','sbmOpenHome')
@@ -12611,6 +12613,7 @@ function sbmEffectFinalOutcomeForRow_(effectRow){
 function sbmBuildLatestDoctorCaseIndex_(){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[],byId={},byUrl={};
   rows.forEach(function(r){
+    if(sbmDoctorIsSupersededCaseCode_(r['状態コード']))return;
     var id=String(r['記事ID']||'').trim(),url=sbmNormalizeUrl_(r['記事URL']||'');
     var d=sbmParseDate_(r['更新日時']||r['作成日時']||''),t=d?d.getTime():0;
     function put(map,key){
@@ -12636,6 +12639,7 @@ function sbmLatestDoctorCaseFromIndex_(index,articleId,url){
 function sbmLatestDoctorCaseForArticle_(articleId,url){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[],norm=sbmNormalizeUrl_(url||''),best=null,bestTime=0;
   rows.forEach(function(r){
+    if(sbmDoctorIsSupersededCaseCode_(r['状態コード']))return;
     var same=(articleId&&String(r['記事ID']||'').trim()===String(articleId))||(norm&&sbmNormalizeUrl_(r['記事URL']||'')===norm);
     if(!same)return;
     var d=sbmParseDate_(r['更新日時']||r['作成日時']||''),t=d?d.getTime():0;
@@ -15724,6 +15728,65 @@ function sbmDoctorAdoptPriorResultForRequest_(source,doctor){
   if(adopted.case_context&&String(adopted.case_context.case_id||'')===compat.priorCaseId)adopted.case_context.case_id=compat.currentCaseId;
   return adopted;
 }
+
+
+/**
+ * v6.1.33: 継続採用された旧aDoctor Caseを監査履歴として残しつつ、
+ * 現役Case選択から確実に除外する。Doctor_Cases / Doctor_Workflow_State の
+ * 両方へ後続Caseを記録し、REQUEST/RESPONSE payload自体は監査用に保持する。
+ */
+function sbmDoctorIsSupersededCaseCode_(code){
+  return /^SUPERSEDED(?:_|$)/.test(String(code||'').trim().toUpperCase());
+}
+function sbmDoctorMarkContinuationSuperseded_(priorCaseId,currentCaseId,reason){
+  priorCaseId=String(priorCaseId||'').trim();currentCaseId=String(currentCaseId||'').trim();
+  if(!priorCaseId||!currentCaseId||priorCaseId===currentCaseId)return false;
+  var prior=sbmDoctorFindCaseRow_(priorCaseId),current=sbmDoctorFindCaseRow_(currentCaseId);
+  if(!prior||!current)return false;
+  var pa=String(prior.values[prior.hm['記事ID']-1]||'').trim(),ca=String(current.values[current.hm['記事ID']-1]||'').trim();
+  var ps=String(prior.values[prior.hm['サイトID']-1]||'').trim(),cs=String(current.values[current.hm['サイトID']-1]||'').trim();
+  var pu=sbmNormalizeUrl_(prior.values[prior.hm['記事URL']-1]||''),cu=sbmNormalizeUrl_(current.values[current.hm['記事URL']-1]||'');
+  if(pa&&ca&&pa!==ca)return false;
+  if(ps&&cs&&ps!==cs)return false;
+  if(pu&&cu&&pu!==cu)return false;
+  var now=sbmNowText_(),detail='後続Case '+currentCaseId+' へ継続。旧Caseは監査履歴として保持し、現役判定から除外します。'+(reason?' '+String(reason):'');
+  if(prior.hm['状態コード'])prior.values[prior.hm['状態コード']-1]='SUPERSEDED_CONTINUATION';
+  if(prior.hm['状態'])prior.values[prior.hm['状態']-1]='後続Caseへ継続（終了）';
+  if(prior.hm['確認種別'])prior.values[prior.hm['確認種別']-1]='CASE_CONTINUATION';
+  if(prior.hm['確認結果'])prior.values[prior.hm['確認結果']-1]='SUPERSEDED';
+  if(prior.hm['確認詳細'])prior.values[prior.hm['確認詳細']-1]=detail;
+  if(prior.hm['確認日時'])prior.values[prior.hm['確認日時']-1]=now;
+  if(prior.hm['更新日時'])prior.values[prior.hm['更新日時']-1]=now;
+  prior.sheet.getRange(prior.row,1,1,prior.values.length).setValues([prior.values]);
+  try{sbmDoctorWorkflowWriteMeta_(priorCaseId,{current_stage:'SUPERSEDED',registration_status:'SUPERSEDED',active_case:false,superseded_by_case_id:currentCaseId,superseded_at:now,supersede_reason:String(reason||'CONTINUATION')});}catch(ignorePriorMeta){}
+  try{sbmDoctorWorkflowWriteMeta_(currentCaseId,{active_case:true,continuation_from_case_id:priorCaseId});}catch(ignoreCurrentMeta){}
+  try{sbmLog_('DoctorCaseContinuationSupersede','Info','prior='+priorCaseId+' / current='+currentCaseId+' / article='+(ca||pa));}catch(ignoreLog){}
+  return true;
+}
+function sbmDoctorFinalizeWorkflowAfterWriter_(caseId,historyId){
+  caseId=String(caseId||'').trim();if(!caseId)return;
+  try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'TREATMENT_COMPLETED_MONITORING',registration_status:'DONE',active_case:true,history_id:String(historyId||''),treatment_route:'WRITER',monitoring_started_at:sbmNowText_(),last_error:''});}catch(e){try{sbmLog_('DoctorWorkflowFinalizeWriter','Warning',String(e));}catch(ignoreLog){}}
+}
+function sbmRunV6133DoctorContinuationRepairOnce_(){
+  var props=PropertiesService.getDocumentProperties(),key='SBM_V6_1_33_DOCTOR_CONTINUATION_REPAIR_DONE';
+  if(props.getProperty(key)==='1')return 0;
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[],repaired=0;
+  rows.forEach(function(c){
+    var currentCaseId=String(c['CaseID']||'').trim(),raw=String(c['Doctor結果JSON']||'').trim();if(!currentCaseId||!raw)return;
+    var doctor={};try{doctor=JSON.parse(raw);}catch(ignoreParse){return;}
+    var cont=doctor&&doctor.sims_manager_continuation||{},priorCaseId=String(cont.original_case_id||'').trim();
+    if(priorCaseId&&priorCaseId!==currentCaseId){
+      try{if(sbmDoctorMarkContinuationSuperseded_(priorCaseId,currentCaseId,'v6.1.33 continuation repair'))repaired++;}catch(ignoreSupersede){}
+    }
+    if(String(c['状態コード']||'').trim()==='MONITORING'){
+      try{sbmDoctorFinalizeWorkflowAfterWriter_(currentCaseId,String(c['改善履歴ID']||'').trim());}catch(ignoreFinalize){}
+    }
+  });
+  props.setProperty(key,'1');
+  try{if(repaired)sbmLog_('V6133DoctorContinuationRepair','Info','repaired='+repaired);}catch(ignoreRepairLog){}
+  return repaired;
+}
+
 function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
   try{
     var sourceText=sbmDoctorExtractJsonText_(requestJsonText),source,doctor,resultText='',adoptedFromPrior=false;
@@ -15756,6 +15819,9 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
     if(adoptedFromPrior){try{sbmLog_('DoctorResultContinuation','Info','article='+sourceArticle+' / current_case='+sourceCase+' / prior_result_case='+String(doctor.sims_manager_continuation&&doctor.sims_manager_continuation.original_case_id||'')+' / history='+String(source.improvement_context&&source.improvement_context.improvement_history_id||''));}catch(ignoreContinuationLog){}}
     var resultArticle=String(doctor.article_id||doctor.article&&doctor.article.article_id||'');if(resultArticle&&sourceArticle&&resultArticle!==sourceArticle)throw new Error('ArticleIDが一致しません。別の記事の診断結果です。');
     var saved=sbmDoctorStoreCaseResult_(doctor,n);
+    if(adoptedFromPrior){
+      try{sbmDoctorMarkContinuationSuperseded_(String(doctor.sims_manager_continuation&&doctor.sims_manager_continuation.original_case_id||''),sourceCase,'Doctor result adopted by continuation case');}catch(eSupersede){try{sbmLog_('DoctorCaseContinuationSupersede','Warning',String(eSupersede));}catch(ignoreSupersedeLog){}}
+    }
     // v5.18.0: aDoctorの再利用可能な学習候補をPersonal Knowledgeへ非同期的に取り込む。
     // 失敗しても診断結果登録・紹介状生成は止めない。
     var pkIngest=sbmPersonalKnowledgeIngestPayload_(doctor,'SIMS aDoctor',source);
@@ -17658,6 +17724,8 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   var pkWriterResult={ok:true,total:deferredPkCount,written:0,candidate:0,accepted:0,rejected:0,error:0,deferred:deferredPkCount>0};
   rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
+    var workflowHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
+    sbmDoctorFinalizeWorkflowAfterWriter_(String(o.case_id||''),workflowHistoryId);
     try{sbmDoctorRemoveCandidateArticle_(o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1]);}catch(eRemoveDone){}
     // v5.21.53: 全体再生成は行わず、今回作成した改善履歴の1行だけを「改善の推移」へ反映する。
     var newHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';

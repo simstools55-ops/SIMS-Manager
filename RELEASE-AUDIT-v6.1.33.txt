@@ -1,0 +1,4 @@
+SIMS Manager v6.1.33 release audit
+Full/Starter code synchronized from v6.1.32 with edition identity retained.
+Doctor continuation lifecycle cleanup added.
+Historical Doctor payloads are retained; superseded branches are excluded from active resolution.

@@ -1,7 +1,8 @@
-fix: recover legacy observation Doctor results safely in v6.1.32
+fix: supersede continued Doctor cases and finalize workflow state in v6.1.33
 
-- allow prior Doctor result continuation when legacy Improvement History ID is blank
-- verify ArticleID, URL, SiteID, workflow, improvement date, baseline metrics, and changed sections
-- retain strict history-ID matching for modern cycles
-- backfill stable history IDs before new legacy re-examination requests
-- keep Full at v6.1.32 and Starter at v6.1.32-ST
+- mark prior Doctor cases as SUPERSEDED_CONTINUATION when their result is safely adopted by a successor case
+- retain prior request/response payloads for audit while excluding superseded cases from active-case resolution
+- record superseded_by_case_id and continuation_from_case_id in workflow metadata
+- finalize current workflow metadata when aWriter treatment starts a new monitoring cycle
+- repair existing continuation records once on open without deleting historical evidence
+- keep Full at v6.1.33 and Starter at v6.1.33-ST

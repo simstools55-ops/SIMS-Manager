@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.32",
+  "current_version": "6.1.33",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.32: legacy observation cycles without Improvement History ID use a strict cycle fingerprint for safe Doctor-result continuation; new legacy re-examination requests backfill a stable history ID.",
-  "version": "6.1.32",
+  "notes": "v6.1.33: continued Doctor cases explicitly supersede prior branches while retaining audit payloads; Writer completion synchronizes workflow state to the new monitoring cycle.",
+  "version": "6.1.33",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.32-ST"
+  "starter_display_version": "6.1.33-ST"
 }
