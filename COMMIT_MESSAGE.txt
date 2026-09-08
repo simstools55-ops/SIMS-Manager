@@ -1,8 +1,9 @@
-fix: align monitoring labels and add ArticleID filters in v6.1.22
+fix: correct ArticleID schema placement and history layout in v6.1.23
 
-- keep Doctor WAIT/MONITOR cycles labeled as additional monitoring before the first weekly measurement
-- derive additional-monitoring status from the active history cycle when legacy Doctor Case ordering is ambiguous
-- show ArticleID in Improvement Trend and Improvement History
-- add header filter sorting/filtering to both sheets
-- preserve existing measurement and monitoring data during schema migration
-- keep Full at v6.1.22 and Starter at v6.1.22-Starter
+- place ArticleID immediately after article title in Improvement Trend and Improvement History
+- migrate legacy visible column order by header name without losing data
+- fix Effect row arrays that wrote ArticleID into the wrong positional column
+- keep Doctor re-examination WAIT/MONITOR labeled as additional monitoring
+- widen article title and route columns while tightening summary/date widths for readability
+- keep filters available on both sheets
+- keep Full at v6.1.23 and Starter at v6.1.23-Starter
