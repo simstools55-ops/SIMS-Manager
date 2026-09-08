@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.34
+ * SIMS Manager Product v6.1.35
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.34';
+const SBM_VERSION = '6.1.35';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -17,6 +17,7 @@ const SBM_VERSION = '6.1.34';
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
 // v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
+// v6.1.35: 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
 // v6.1.33: Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
 // v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
@@ -6841,33 +6842,9 @@ function sbmShowVersionInfo() {
 }
 
 function sbmEnsureHistoryAndEffectSchemas_() {
-  sbmMigrateSheetByHeaderNames_(SBM_SHEETS.FEEDBACK_HISTORY, SBM_HISTORY_HEADERS_V2, {
-    '選択':['選択'], '改善日':['改善日','登録日時'], '記事タイトル':['記事タイトル'], '改善概要':['改善概要'], '改善経路':['改善経路','改善方法'], '使用AI':['使用AI'],
-    '1週':['1週','1回目判定'], '2週':['2週','2回目判定'], '3週':['3週','3回目判定'], '4週':['4週','4回目判定'],
-    '最終判定':['最終判定','最新判定','効果判定'], '状態':['状態'],
-    '1回目測定日時':['1回目測定日時'], '1回目SIMS寸評':['1回目SIMS寸評'],
-    '2回目測定日時':['2回目測定日時'], '2回目SIMS寸評':['2回目SIMS寸評'],
-    '3回目測定日時':['3回目測定日時'], '3回目SIMS寸評':['3回目SIMS寸評'],
-    '4回目測定日時':['4回目測定日時'], '4回目SIMS寸評':['4回目SIMS寸評'],
-    '最終総括':['最終総括'], '最終改善提案':['最終改善提案'],
-    'ArticleID':['ArticleID'], '記事URL':['記事URL'], '変更箇所':['変更箇所'],
-    '変更後タイトル':['変更後タイトル'], '変更後SEOタイトル':['変更後SEOタイトル'],
-    '変更後メタディスクリプション':['変更後メタディスクリプション'], 'メインクエリ':['メインクエリ'],
-    '改善規模':['改善規模'], '確信度':['確信度'], '期待CTR効果':['期待CTR効果'], '期待クリック効果':['期待クリック効果'],
-    '次のアクション':['次のアクション'], '維持した項目':['維持した項目'], '作業時間（分）':['作業時間（分）'],
-    '注意事項':['注意事項'], '改善前クリック':['改善前クリック'], '改善前表示回数':['改善前表示回数'],
-    '改善前CTR':['改善前CTR'], '改善前順位':['改善前順位'], 'AI改善結果JSON':['AI改善結果JSON'],
-    '改善履歴ID':['改善履歴ID'], '改善計画JSON':['改善計画JSON'],
-    '公開OK変更JSON':['公開OK変更JSON'], '利用者判断変更JSON':['利用者判断変更JSON'], '変更サマリーJSON':['変更サマリーJSON'],
-    'Feedback Format':['Feedback Format','フィードバック形式'], 'Writer Version':['Writer Version','aWriter Version','aWriterバージョン']
-  });
-  sbmMigrateSheetByHeaderNames_(SBM_SHEETS.EFFECT, SBM_EFFECT_HEADERS_V2, {
-    '改善・治療開始日':['改善・治療開始日','改善実施日','改善日','登録日時'],
-    '経過日数':['経過日数'],
-    '改善経路':['改善経路','改善方法'],
-    '次回測定予定日':['次回測定予定日','測定予定日'],
-    '最新測定日時':['最新測定日時','測定日時']
-  });
+  // v6.1.35: 正しいスキーマならシートをclear/setValuesで再構築しない。
+  // 必要な互換移行がある場合だけヘッダー名ベースmigrationを実行する。
+  return sbmEnsureHistoryAndEffectSchemasFast_();
 }
 
 function sbmInvalidateImprovementHistoryStyle_(){
@@ -6944,7 +6921,8 @@ function sbmEnsureHistoryAndEffectSchemasFast_() {
     '維持した項目':['維持した項目'], '作業時間（分）':['作業時間（分）'], '注意事項':['注意事項'], '改善前クリック':['改善前クリック'], '改善前表示回数':['改善前表示回数'],
     '改善前CTR':['改善前CTR'], '改善前順位':['改善前順位'], 'AI改善結果JSON':['AI改善結果JSON'], '改善履歴ID':['改善履歴ID'], '改善計画JSON':['改善計画JSON'],
     '公開OK変更JSON':['公開OK変更JSON'], '利用者判断変更JSON':['利用者判断変更JSON'], '変更サマリーJSON':['変更サマリーJSON'],
-    'Feedback Format':['Feedback Format','フィードバック形式'], 'Writer Version':['Writer Version','aWriter Version','aWriterバージョン']
+    'Feedback Format':['Feedback Format','フィードバック形式'], 'Writer Version':['Writer Version','aWriter Version','aWriterバージョン'],
+    '観察予定回数':['観察予定回数'], '追加測定JSON':['追加測定JSON']
   });
   ensureOne(SBM_SHEETS.EFFECT, SBM_EFFECT_HEADERS_V2, {
     '改善・治療開始日':['改善・治療開始日','改善実施日','改善日','登録日時'], '経過日数':['経過日数'], '改善経路':['改善経路','改善方法'],
@@ -8405,6 +8383,7 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
   options=options||{};
   var dailyFast=options.dailyFast===true;
   sbmEnsureHistoryAndEffectSchemas_();
+  try{sbmRepairHistoryDateValuesV6135Once_();}catch(eDateRepair){try{sbmLog_('HistoryDateRepairV6135','Warning',String(eDateRepair));}catch(ignoreDateRepairLog){}}
   // 旧データ修復・Doctor整合・経路補正は日次の表示更新で毎回行わない。
   // Doctor登録時やメンテナンス処理で整合する。手動の「改善の推移更新」では従来どおり実施。
   if(!dailyFast){
@@ -9971,13 +9950,37 @@ function sbmApplyArticleDbRowColors_(sh) {
 /**
  * 日本語日時も再解析できる共通日付パーサー。
  */
+function sbmSheetSerialDate_(serial) {
+  var n=Number(serial);
+  if(!isFinite(n) || n<1 || n>100000) return null;
+  // Google Sheets/Excel互換の基準日 1899-12-30。シリアルの暦日を
+  // スクリプトのローカルDateへ組み直し、タイムゾーン差で前日化するのを防ぐ。
+  var totalMs=Math.round(n*86400000);
+  var u=new Date(Date.UTC(1899,11,30)+totalMs);
+  if(isNaN(u.getTime()))return null;
+  return new Date(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate(),u.getUTCHours(),u.getUTCMinutes(),u.getUTCSeconds(),u.getUTCMilliseconds());
+}
+
 function sbmParseDate_(value) {
   if (value === null || value === undefined || String(value).trim() === '') return null;
   if (Object.prototype.toString.call(value) === '[object Date]') {
     return isNaN(value.getTime()) ? null : value;
   }
+  if (typeof value === 'number') {
+    var serialDate=sbmSheetSerialDate_(value);
+    if(serialDate)return serialDate;
+    // Unix epoch millisecondsだけは互換入力として許可する。
+    if(value>=946684800000 && value<=7258118400000){var epochDate=new Date(value);return isNaN(epochDate.getTime())?null:epochDate;}
+    return null;
+  }
 
   var s = String(value).trim();
+  // 書式を失って文字列化されたSheetsシリアルも救済する。
+  if(/^\d+(?:\.\d+)?$/.test(s)){
+    var serialText=sbmSheetSerialDate_(Number(s));
+    if(serialText)return serialText;
+    return null;
+  }
   var jp = s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日(?:（.）)?(?:(朝|午前|午後|夜|深夜)(\d{1,2}):(\d{2}))?/);
   if (jp) {
     var y = Number(jp[1]), m = Number(jp[2]) - 1, d = Number(jp[3]);
@@ -9986,10 +9989,42 @@ function sbmParseDate_(value) {
     if (jp[4] === '夜' && h < 12) h += 12;
     return new Date(y, m, d, h, min, 0);
   }
-
+  // yyyy-mm-dd / yyyy/mm/dd は暦日としてローカルDate化する。
+  var ymd=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T\s].*)?$/);
+  if(ymd){
+    var localDate=new Date(Number(ymd[1]),Number(ymd[2])-1,Number(ymd[3]),0,0,0,0);
+    return isNaN(localDate.getTime())?null:localDate;
+  }
+  var direct=new Date(s);
+  if(!isNaN(direct.getTime()) && direct.getFullYear()>=1900 && direct.getFullYear()<=2200)return direct;
   var normalized = s.replace(/\./g, '/').replace(/-/g, '/');
   var d2 = new Date(normalized);
-  return isNaN(d2.getTime()) ? null : d2;
+  return (!isNaN(d2.getTime()) && d2.getFullYear()>=1900 && d2.getFullYear()<=2200) ? d2 : null;
+}
+
+function sbmRepairHistoryDateValuesV6135Once_(){
+  var props=PropertiesService.getDocumentProperties(),key='SBM_REPAIR_HISTORY_DATES_V6135';
+  if(props.getProperty(key)==='DONE')return {checked:0,repaired:0,skipped:true};
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(!sh||sh.getLastRow()<2){props.setProperty(key,'DONE');return {checked:0,repaired:0};}
+  var hm=sbmHeaderMap_(sh),col=hm['改善日'];
+  if(!col){return {checked:0,repaired:0,error:'改善日列なし'};}
+  var n=sh.getLastRow()-1,rg=sh.getRange(2,col,n,1),vals=rg.getValues(),repaired=0;
+  for(var i=0;i<vals.length;i++){
+    var raw=vals[i][0];
+    if(raw===''||raw===null||raw===undefined)continue;
+    var d=sbmParseDate_(raw);
+    if(!d)continue;
+    // 改善日は日単位。時刻を落として一貫したローカル日付で保存する。
+    var clean=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0);
+    var needs=Object.prototype.toString.call(raw)!=='[object Date]' || raw.getHours()!==0 || raw.getMinutes()!==0 || raw.getSeconds()!==0 || raw.getMilliseconds()!==0;
+    if(needs){vals[i][0]=clean;repaired++;}
+  }
+  if(repaired)rg.setValues(vals);
+  rg.setNumberFormat('yyyy/M/d');
+  props.setProperty(key,'DONE');
+  try{sbmLog_('HistoryDateRepairV6135','Info','checked='+n+', repaired='+repaired);}catch(ignoreLog){}
+  return {checked:n,repaired:repaired};
 }
 
 

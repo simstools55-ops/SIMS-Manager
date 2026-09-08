@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.33",
+  "current_version": "6.1.35",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.33: continued Doctor cases explicitly supersede prior branches while retaining audit payloads; Writer completion synchronizes workflow state to the new monitoring cycle.",
-  "version": "6.1.33",
-  "starter_display_version": "6.1.33-ST"
+  "notes": "v6.1.35: history/effect schema checks are non-destructive; Google Sheets date serials are parsed correctly and legacy improvement dates are normalized once to prevent far-future dates and #NUM! elapsed-day errors.",
+  "version": "6.1.35",
+  "starter_display_version": "6.1.35-ST"
 }

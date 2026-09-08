@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.33",
+  "current_version": "6.1.35",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.33: continued Doctor cases explicitly supersede prior branches while retaining audit payloads; Writer completion synchronizes workflow state to the new monitoring cycle.",
-  "version": "6.1.33",
+  "notes": "v6.1.35: history/effect schema checks are non-destructive; Google Sheets date serials are parsed correctly and legacy improvement dates are normalized once to prevent far-future dates and #NUM! elapsed-day errors.",
+  "version": "6.1.35",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.33-ST"
+  "starter_display_version": "6.1.35-ST"
 }

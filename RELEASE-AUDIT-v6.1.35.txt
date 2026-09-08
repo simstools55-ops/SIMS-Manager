@@ -1,0 +1,8 @@
+SIMS Manager v6.1.35 release audit
+
+Canonical version: 6.1.35
+Full display: v6.1.35
+Starter display: v6.1.35-ST
+Primary fix: Sheets date serial parsing + non-destructive history/effect schema ensure
+Legacy repair: SBM_REPAIR_HISTORY_DATES_V6135, one-time per spreadsheet
+Syntax: node --check required on all Code.gs variants
