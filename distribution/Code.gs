@@ -1,11 +1,11 @@
 /**
- * SIMS Manager Product v6.1.23
+ * SIMS Manager Product v6.1.24
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.23';
-// v6.1.23: 改善の推移/改善履歴の表示スキーマをArticleID込みで正式再配置。追加経過観察の判定行生成でArticleID位置ずれを修正し、改善履歴のArticleID可視化と列幅を実運用向けに再調整。
+const SBM_VERSION = '6.1.24';
+// v6.1.24: 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
 // v6.1.22: 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
 // v6.1.21: Doctor WAIT/MONITORの状態遷移をDoctor Case→改善履歴→改善の推移→記事管理で一体同期。旧WORKFLOW_LOCKED案件を起動時に一度だけ救済し、改善履歴は初回だけ全体装飾・以後は新規行のみ整形。記事管理はデータ更新日を非表示化しArticleIDを利用者向け一覧へ表示。
 // v6.1.20: aDoctor WAIT/MONITORは治療ロック中でも追加経過観察へ正しく遷移。改善履歴を開く処理から全行修復・再装飾・選択列全消去を外し、新規行だけを整形して表示を軽量化。
@@ -7454,6 +7454,25 @@ function sbmNextWeeklyDueDate_(historyRow) {
   return due;
 }
 
+
+/**
+ * v6.1.24: 次回測定予定日の到来・期限超過を日本時間の日付でも再確認する。
+ * Apps Script実行時刻や旧データの時刻成分に左右されず、予定日翌日以降は必ず期限超過と判定する。
+ */
+function sbmMeasurementDueStatus_(historyRow, now) {
+  now = now || new Date();
+  var due = sbmNextWeeklyDueDate_(historyRow);
+  if (!due) return {due:null, reached:false, overdue:false};
+  var tz = 'Asia/Tokyo';
+  var dueDay = Utilities.formatDate(due, tz, 'yyyyMMdd');
+  var nowDay = Utilities.formatDate(now, tz, 'yyyyMMdd');
+  return {
+    due: due,
+    reached: now.getTime() >= due.getTime() || nowDay > dueDay,
+    overdue: nowDay > dueDay
+  };
+}
+
 function sbmBuildWeeklyObservation_(week, ctrDelta, posDelta, clickDelta, impDelta) {
   var parts=['改善後'+week+'週目の測定です。'];
   parts.push(ctrDelta>0.001?'CTRは改善前より上昇しています。':ctrDelta<-0.001?'CTRは改善前より低下しています。':'CTRは改善前とほぼ同水準です。');
@@ -7603,10 +7622,10 @@ function sbmRecordWeeklyMeasurement_(historyRow,judgment,measuredAt,metrics,cont
     }
     if(target)current=sbmRowRecord_(sh,target);
   }
-  if(!target)return {recorded:false,count:0};
+  if(!target)return {recorded:false,count:0,reason:'history_row_not_found'};
 
   var state=sbmHistoryMeasurementState_(current);
-  if(state.complete)return {recorded:false,count:state.count,target:state.target,complete:true};
+  if(state.complete)return {recorded:false,count:state.count,target:state.target,complete:true,reason:'already_complete'};
 
   var n=state.count+1;
   var when=new Date(measuredAt.getTime());
@@ -7614,12 +7633,12 @@ function sbmRecordWeeklyMeasurement_(historyRow,judgment,measuredAt,metrics,cont
 
   if(n<=4){
     var dateCol=hm[n+'回目測定日時'],judgeCol=hm[n+'週'],commentCol=hm[n+'回目SIMS寸評'];
-    if(!dateCol||!judgeCol||!commentCol)return {recorded:false,count:state.count,target:state.target};
+    if(!dateCol||!judgeCol||!commentCol)return {recorded:false,count:state.count,target:state.target,reason:'measurement_columns_missing'};
     sh.getRange(target,dateCol).setValue(when).setNumberFormat('yyyy/M/d');
     sh.getRange(target,judgeCol).setValue(judgment);
     sh.getRange(target,commentCol).setValue(observation);
   }else{
-    if(!hm['追加測定JSON'])return {recorded:false,count:state.count,target:state.target};
+    if(!hm['追加測定JSON'])return {recorded:false,count:state.count,target:state.target,reason:'extra_measurement_column_missing'};
     var extra=state.extra||[];
     extra=extra.filter(function(x){return Number(x.count)!==n;});
     extra.push({
@@ -8320,12 +8339,13 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     var improveDate=sbmParseDate_(h['改善日'])||new Date(),elapsed=sbmElapsedDaysFromImprovementDate_(h['改善日']);
     var beforeCtr=sbmNormalizeCtrNumber_(h['改善前CTR']),currentCtr=sbmNormalizeCtrNumber_(a['CTR']),beforePos=sbmNumber_(h['改善前順位']),currentPos=sbmNumber_(a['掲載順位']),beforeClicks=sbmNumber_(h['改善前クリック']),currentClicks=sbmNumber_(a['クリック数']),beforeImp=sbmNumber_(h['改善前表示回数']),currentImp=sbmNumber_(a['表示回数']);
     var ctrDelta=currentCtr-beforeCtr,posDelta=beforePos-currentPos,clickDelta=currentClicks-beforeClicks,impDelta=currentImp-beforeImp;
-    var state=sbmHistoryMeasurementState_(h), due=sbmNextWeeklyDueDate_(h), dueReached=!!due&&now>=due;
+    var state=sbmHistoryMeasurementState_(h), dueStatus=sbmMeasurementDueStatus_(h,now), due=dueStatus.due, dueReached=dueStatus.reached, dueOverdue=dueStatus.overdue;
     var currentJudgment=sbmJudgeEffectV2_(ctrDelta,posDelta,clickDelta,impDelta,elapsed,beforeClicks,beforeImp,currentImp);
     if(!options.viewOnly&&dueReached&&!state.complete){
       var rec=sbmRecordWeeklyMeasurement_(h,currentJudgment,now,{beforeCtr:beforeCtr,currentCtr:currentCtr,beforePos:beforePos,currentPos:currentPos,beforeClicks:beforeClicks,currentClicks:currentClicks,beforeImp:beforeImp,currentImp:currentImp,ctrDelta:ctrDelta,posDelta:posDelta,clickDelta:clickDelta,impDelta:impDelta},measurementContext);
       if(rec.recorded){recordedCount++;if(rec.count<=4){h[(rec.count)+'回目測定日時']=now;h[(rec.count)+'週']=currentJudgment;h[(rec.count)+'回目SIMS寸評']=rec.observation;}else if(rec.extraJson){h['追加測定JSON']=rec.extraJson;}h['最終判定']=sbmFinalImprovementOutcome_(currentJudgment,rec.complete);h['状態']=rec.complete?'完了':'モニター中';h['モニター状態']=rec.complete?(h['最終判定']==='改善完了'?'COMPLETED':'REVIEW_REQUIRED'):'ACTIVE';}
-      state=sbmHistoryMeasurementState_(h);due=sbmNextWeeklyDueDate_(h);
+      else if(dueOverdue){try{sbmLog_('MeasurementCatchup','Warning','historyId='+String(h['改善履歴ID']||'')+', articleId='+String(h['ArticleID']||'')+', due='+Utilities.formatDate(due,'Asia/Tokyo','yyyy/M/d')+', reason='+String(rec.reason||'unknown'));}catch(ignoreCatchupLog){}}
+      state=sbmHistoryMeasurementState_(h);dueStatus=sbmMeasurementDueStatus_(h,now);due=dueStatus.due;dueOverdue=dueStatus.overdue;
     }
     var judgment=state.count>0?state.latestJudgment:'測定待ち';
     var finalOutcome=sbmFinalImprovementOutcome_(judgment,state.complete);
@@ -8358,6 +8378,11 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
       next='判断材料が不足しています。チェックして「3．経過観察終了後の処置を進める」からaDoctor再診へ進んでください。';
       comment='所定期間は終了しましたが確定できません。aDoctorが追加観察または次の処置を判断します。';
       measurementLabel='再診待ち';
+    }else if(dueOverdue&&!state.complete){
+      judgment='測定期限超過';
+      next='次回測定予定日を過ぎています。次の日次処理で未測定分を自動キャッチアップします。';
+      comment='予定していた週次測定が未記録です。日次処理で期限超過案件を再検査します。';
+      measurementLabel='測定期限超過';
     }else if(doctorMonitoring){
       var dr=String(latestDoctor['再診予定日']||'').trim();
       judgment='追加経過観察';
@@ -10825,6 +10850,7 @@ function sbmStyleEffectSheetV2_() {
         else if (value === '元に戻す検討') { bg = '#b31412'; fg = '#ffffff'; weight = 'bold'; }
         else if (value === 'データ不足') { bg = '#d9d2e9'; fg = '#351c75'; weight = 'bold'; }
         else if (value === '測定中' || value === '追加経過観察') { bg = '#d2e3fc'; fg = '#174ea6'; weight = 'bold'; }
+        else if (value === '測定期限超過') { bg = '#fce8e6'; fg = '#c5221f'; weight = 'bold'; }
         else if (value === '測定待ち' || value === '未測定' || value === '未判定') { bg = '#e8eaed'; fg = '#5f6368'; }
         backgrounds.push([bg]); fontColors.push([fg]); fontWeights.push([weight]);
       });

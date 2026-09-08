@@ -1,4 +1,4 @@
-# SIMS Manager v6.1.23
+# SIMS Manager v6.1.24
 
 - Fixed ArticleID placement in Improvement Trend and Improvement History.
 - Added one-time header-name migration for legacy column layouts.

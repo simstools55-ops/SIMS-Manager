@@ -1,4 +1,4 @@
-## v6.1.23
+## v6.1.24
 - Stabilize additional monitoring labels and add ArticleID/filter UX to Improvement Trend and Improvement History.
 
 ## v6.1.21 — 2026-09-08

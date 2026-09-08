@@ -1,9 +1,7 @@
-fix: correct ArticleID schema placement and history layout in v6.1.23
+fix: catch up overdue weekly measurements in v6.1.24
 
-- place ArticleID immediately after article title in Improvement Trend and Improvement History
-- migrate legacy visible column order by header name without losing data
-- fix Effect row arrays that wrote ArticleID into the wrong positional column
-- keep Doctor re-examination WAIT/MONITOR labeled as additional monitoring
-- widen article title and route columns while tightening summary/date widths for readability
-- keep filters available on both sheets
-- keep Full at v6.1.23 and Starter at v6.1.23-Starter
+- detect overdue weekly measurement slots by Japan-local date
+- retry eligible overdue cycles during daily measurement processing
+- show overdue status clearly in Improvement Trend
+- log skipped overdue measurements with a concrete failure reason
+- keep Full at v6.1.24 and Starter at v6.1.24-Starter
