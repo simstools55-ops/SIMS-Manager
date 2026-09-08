@@ -1,9 +1,8 @@
-# SIMS Manager v6.1.35
+# SIMS Manager v6.1.36
 
-Fixes improvement-history date corruption and far-future dates in Improvement Trend.
-
-- Stops destructive history/effect schema rebuilds when headers already match.
-- Parses Google Sheets serial dates such as `46266` as 2026-09-01 instead of year 46266.
-- Normalizes legacy improvement dates once and restores `yyyy/M/d` formatting.
-- Rebuilds Improvement Trend from repaired canonical history data.
-- Preserves Full/Starter parity at v6.1.35 / v6.1.35-ST.
+- Improvement Trend now performs a lightweight corruption check when opened.
+- Legacy Sheets serial dates are normalized back to calendar dates only when necessary.
+- Invalid far-future dates and `#NUM!` elapsed-day rows are rebuilt from Improvement History automatically.
+- The v6.1.35 one-time repair flag is no longer required for recovery.
+- Healthy sheets retain the fast view-only path.
+- Full/Starter parity: v6.1.36 / v6.1.36-ST.

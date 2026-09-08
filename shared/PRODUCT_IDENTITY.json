@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.35",
+  "current_version": "6.1.36",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.35: history/effect schema checks are non-destructive; Google Sheets date serials are parsed correctly and legacy improvement dates are normalized once to prevent far-future dates and #NUM! elapsed-day errors.",
-  "version": "6.1.35",
-  "starter_display_version": "6.1.35-ST"
+  "notes": "v6.1.36: Improvement Trend now detects legacy date corruption on open, repairs Improvement History dates idempotently, and rebuilds the view only when needed while preserving normal view performance.",
+  "version": "6.1.36",
+  "starter_display_version": "6.1.36-ST"
 }
