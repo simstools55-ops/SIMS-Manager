@@ -1,3 +1,10 @@
+## v6.1.41
+
+- aDoctor未完了処置の再開入口を一本化。
+- 通常aDoctorの WRITER_IN_PROGRESS 等を正しく検出して再開ダイアログを表示。
+- 通常aDoctor案件がない場合のみSite Doctor共通処置UIへフォールバック。
+- サーバー関数の戻り値だけで終了し、何も表示されないメニュー回帰を修正。
+
 ## v6.1.40 - 2026-09-09
 
 - aDoctor結果抽出でCaseIDを必須化し、依頼JSON内の`return_contract`を診断結果として誤認する不具合を修正。

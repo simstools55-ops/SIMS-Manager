@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.40
+ * SIMS Manager Product v6.1.41
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.40';
+const SBM_VERSION = '6.1.41';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.40';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.41: aDoctor未完了処置のメニュー入口を統一。通常aDoctorのWRITER_IN_PROGRESS等は専用再開ダイアログを表示し、該当がなければSite Doctor経由の共通処置UIへフォールバック。
 // v6.1.40: 共通aDoctor処置ダイアログのWriter登録を経路自動判定化。通常aDoctor案件をSite Doctor専用登録へ誤送信していた回帰を修正し、共通UI名称もaDoctor基準へ統一。
 // v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
 // v6.1.35: 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
@@ -11899,13 +11900,12 @@ function onOpen() {
     .addItem('サイト設定','sbmOpenBlogInfoChange')
     .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
     .addSeparator()
-    .addItem('シートの作成・修復','sbmInitializeSheets')
-    .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis');
+    .addItem('シートの作成・修復','sbmInitializeSheets');
 
   if (isFullEdition) {
     maintenanceMenu
       .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
-      .addItem('aDoctor未完了の処置を再開','sbmDoctorResumeSiteDiagnosisTreatments')
+      .addItem('aDoctor未完了の処置を再開','sbmDoctorResumePendingTreatments')
       .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
       .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
       .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
@@ -16462,6 +16462,33 @@ function sbmDoctorResumePrecisionDiagnosis(){
     sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(target,hm));
   }catch(e){
     sbmAlert_('aDoctor精密診断を再開できません',String(e&&e.message?e.message:e));
+  }
+}
+
+// v6.1.41: 未完了処置の入口を一本化。通常aDoctor案件を優先して再開し、
+// 該当がなければSite Doctor経由の共通処置ダイアログへフォールバックする。
+function sbmDoctorResumePendingTreatments(){
+  try{
+    var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+    if(last>=2){
+      var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+      var active={
+        'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
+        'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
+        'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1
+      };
+      for(var i=vals.length-1;i>=0;i--){
+        var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+        if(!active[state])continue;
+        if(sbmDoctorCaseIsSiteDiagnosisRow_(row,hm))continue;
+        sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(row,hm));
+        return;
+      }
+    }
+    // 個別aDoctor案件がなければ、Site Doctor経由の未完了処置を共通ダイアログで再開する。
+    return sbmDoctorRegisterSiteDiagnosisResult();
+  }catch(e){
+    sbmAlert_('aDoctor未完了処置を再開できません',String(e&&e.message?e.message:e));
   }
 }
 

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.40",
+  "current_version": "6.1.41",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.40: aDoctor result extraction now requires a real CaseID, rejects nested request return_contract skeletons, and gives a clear message when the request JSON is pasted into the result field.",
-  "version": "6.1.40",
+  "notes": "v6.1.41: unified unfinished aDoctor treatment resume now opens the correct direct-case resume dialog for WRITER_IN_PROGRESS and falls back to the Site Doctor shared workflow only when needed.",
+  "version": "6.1.41",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.40-ST"
+  "starter_display_version": "6.1.41-ST"
 }

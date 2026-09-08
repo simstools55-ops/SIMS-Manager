@@ -1,7 +1,7 @@
-fix: route direct aDoctor Writer results correctly in v6.1.40
+fix: unify unfinished aDoctor resume flow in v6.1.41
 
-- detect whether a case originated from Site Doctor before Writer result registration
-- fall back to the normal aDoctor Writer registrar for direct cases
-- keep Site Doctor identity validation for Site Doctor-origin cases
-- rename the shared result-processing dialog to aDoctor terminology
-- keep Full at v6.1.40 and Starter at v6.1.40-ST
+- route direct aDoctor WRITER_IN_PROGRESS cases to the single-case resume dialog
+- fall back to the Site Doctor shared treatment UI only when no direct case is pending
+- remove the duplicate direct-resume menu entry
+- prevent the unfinished-treatment menu from returning silently with no dialog
+- keep Full at v6.1.41 and Starter at v6.1.41-ST
