@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.39",
+  "current_version": "6.1.40",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.39: aDoctor result extraction now requires a real CaseID, rejects nested request return_contract skeletons, and gives a clear message when the request JSON is pasted into the result field.",
-  "version": "6.1.39",
-  "starter_display_version": "6.1.39-ST"
+  "notes": "v6.1.40: aDoctor result extraction now requires a real CaseID, rejects nested request return_contract skeletons, and gives a clear message when the request JSON is pasted into the result field.",
+  "version": "6.1.40",
+  "starter_display_version": "6.1.40-ST"
 }

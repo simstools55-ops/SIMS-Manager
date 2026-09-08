@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.39",
+  "current_version": "6.1.40",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.39: aDoctor result extraction now requires a real CaseID, rejects nested request return_contract skeletons, and gives a clear message when the request JSON is pasted into the result field.",
-  "version": "6.1.39",
+  "notes": "v6.1.40: aDoctor result extraction now requires a real CaseID, rejects nested request return_contract skeletons, and gives a clear message when the request JSON is pasted into the result field.",
+  "version": "6.1.40",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.39-ST"
+  "starter_display_version": "6.1.40-ST"
 }

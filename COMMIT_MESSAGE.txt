@@ -1,7 +1,7 @@
-fix: reject request return_contract as Doctor result in v6.1.39
+fix: route direct aDoctor Writer results correctly in v6.1.40
 
-- require a non-empty CaseID for every extracted SIMS_DOCTOR_*_RESULT object
-- prevent request.return_contract from being misclassified as a Doctor response
-- show a specific error when the aDoctor request JSON is pasted into the result field
-- avoid checkpointing a request payload as a Doctor RESPONSE
-- synchronize product header, version metadata, Full v6.1.39, and Starter v6.1.39-ST
+- detect whether a case originated from Site Doctor before Writer result registration
+- fall back to the normal aDoctor Writer registrar for direct cases
+- keep Site Doctor identity validation for Site Doctor-origin cases
+- rename the shared result-processing dialog to aDoctor terminology
+- keep Full at v6.1.40 and Starter at v6.1.40-ST

@@ -1,4 +1,4 @@
-## v6.1.39 - 2026-09-09
+## v6.1.40 - 2026-09-09
 
 - aDoctor結果抽出でCaseIDを必須化し、依頼JSON内の`return_contract`を診断結果として誤認する不具合を修正。
 - 依頼JSON誤貼付時のエラーを明確化し、不正payloadをRESPONSE checkpointへ保存しないよう改善。
