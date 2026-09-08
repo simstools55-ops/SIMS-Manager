@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.1.21
+ * SIMS Manager Product v6.1.22
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.21';
+const SBM_VERSION = '6.1.22';
+// v6.1.22: 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
 // v6.1.21: Doctor WAIT/MONITORの状態遷移をDoctor Case→改善履歴→改善の推移→記事管理で一体同期。旧WORKFLOW_LOCKED案件を起動時に一度だけ救済し、改善履歴は初回だけ全体装飾・以後は新規行のみ整形。記事管理はデータ更新日を非表示化しArticleIDを利用者向け一覧へ表示。
 // v6.1.20: aDoctor WAIT/MONITORは治療ロック中でも追加経過観察へ正しく遷移。改善履歴を開く処理から全行修復・再装飾・選択列全消去を外し、新規行だけを整形して表示を軽量化。
 // v6.1.18: v6.1.16以前に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
@@ -4988,7 +4989,7 @@ function sbmEffectDetailHtml_(o) {
   return '<div style="font-family:Arial,sans-serif;line-height:1.65;padding:18px;color:#202124">'
     + '<h2 style="margin-top:0">改善の推移の詳細</h2>'
     + '<div style="background:#e8f0fe;padding:12px;border-radius:8px;margin-bottom:14px"><b>' + esc(o['記事タイトル']) + '</b><br><a href="' + esc(o.URL) + '" target="_blank">記事を開く</a></div>'
-    + '<h3>概要</h3><p><b>改善日:</b> ' + esc(o['改善日']) + '　<b>判定:</b> ' + esc(o['判定']) + '</p>'
+    + '<h3>概要</h3><p><b>ArticleID:</b> ' + esc(o['ArticleID']) + '　<b>改善日:</b> ' + esc(o['改善日']) + '　<b>判定:</b> ' + esc(o['判定']) + '</p>'
     + '<p><b>改善内容:</b> ' + esc(o['改善内容']) + '</p><p><b>修正内容:</b> ' + esc(o['修正内容']) + '</p>'
     + '<h3>数値の変化</h3>'
     + '<table style="border-collapse:collapse;width:100%"><tr><th style="border:1px solid #ddd;padding:8px">項目</th><th style="border:1px solid #ddd;padding:8px">改善前</th><th style="border:1px solid #ddd;padding:8px">現在</th><th style="border:1px solid #ddd;padding:8px">変化</th></tr>'
@@ -6677,17 +6678,17 @@ function sbmOpenSystemLog(){ var sh=sbmGetOrCreateSheet_(SBM_SHEETS.SYSTEM_LOG);
  * ========================================================================== */
 
 const SBM_HISTORY_HEADERS_V2 = [
-  '選択','改善日','記事タイトル','改善概要','改善経路','使用AI',
+  '選択','改善日','記事タイトル','ArticleID','改善概要','改善経路','使用AI',
   '1週','2週','3週','4週','最終判定','状態','モニター状態',
   '1回目測定日時','1回目SIMS寸評','2回目測定日時','2回目SIMS寸評','3回目測定日時','3回目SIMS寸評','4回目測定日時','4回目SIMS寸評',
   '最終総括','最終改善提案',
-  'ArticleID','記事URL','変更箇所','変更後タイトル','変更後SEOタイトル','変更後メタディスクリプション','メインクエリ',
+  '記事URL','変更箇所','変更後タイトル','変更後SEOタイトル','変更後メタディスクリプション','メインクエリ',
   '改善規模','確信度','期待CTR効果','期待クリック効果','次のアクション','維持した項目','作業時間（分）',
   '注意事項','改善前クリック','改善前表示回数','改善前CTR','改善前順位','AI改善結果JSON','改善履歴ID','改善計画JSON','公開OK変更JSON','利用者判断変更JSON','変更サマリーJSON','Feedback Format','Writer Version','観察予定回数','追加測定JSON'
 ];
 
 const SBM_EFFECT_HEADERS_V2 = [
-  '選択','改善・治療開始日','経過日数','次回測定予定日','測定回数','記事タイトル','改善経路','改善前クリック','現在クリック','改善前表示回数','現在表示回数','判定','ArticleID',
+  '選択','改善・治療開始日','経過日数','次回測定予定日','測定回数','記事タイトル','ArticleID','改善経路','改善前クリック','現在クリック','改善前表示回数','現在表示回数','判定',
   '記事URL','改善概要','変更箇所','クリック変化','表示回数変化','改善前CTR','現在CTR','CTR変化',
   '改善前順位','現在順位','順位変化','期待CTR効果','期待クリック効果',
   'SIMS評価','次のアクション','測定コメント','最新測定日時','測定状態','改善履歴ID'
@@ -7900,7 +7901,7 @@ function sbmPolishImprovementHistoryView_(){
 
   if(!styleReady){
     // 状態列は利用者向け画面から廃止。最終判定が観察状況と最終結論を兼ねる。
-    var visible={'選択':1,'改善日':1,'記事タイトル':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
+    var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
 
     sh.setFrozenRows(1);
     try{sh.showColumns(1,sh.getMaxColumns());}catch(ignoreShow){}
@@ -8330,6 +8331,14 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     var rating=sbmEvaluateEffectResult_((judgment==='大きく改善'||judgment==='改善')?'成功':judgment==='改善傾向'?'改善傾向':(judgment==='見直し候補'||judgment==='元に戻す検討')?'要再改善':judgment,posDelta,ctrDelta,clickDelta);
     var latestDoctor=sbmLatestDoctorCaseFromIndex_(doctorCaseIndex,String(h['ArticleID']||''),String(h['記事URL']||''));
     var doctorMonitoring=String(latestDoctor['状態コード']||'')==='MONITORING' && String(latestDoctor['治療アクション']||'').toUpperCase()==='MONITOR' && String(latestDoctor['改善履歴ID']||'').trim()===String(h['改善履歴ID']||'').trim();
+    // v6.1.22: 旧重複CaseやCase並び順の影響でlatestDoctor判定が外れても、
+    // 現役サイクル自身がDoctor再診→経過観察 / WAIT-MONITORとして登録済みなら追加観察として扱う。
+    if(!doctorMonitoring){
+      var routeNow=String(h['改善経路']||'').trim();
+      var changedNow=String(h['変更箇所']||'').trim();
+      var nextNow=String(h['次のアクション']||'').toLowerCase();
+      doctorMonitoring=(routeNow.indexOf('Doctor再診→経過観察')>=0 || routeNow.indexOf('aDoctor再診→経過観察')>=0 || changedNow.indexOf('WAIT / MONITOR')>=0 || nextNow==='monitor');
+    }
     var next=state.complete?String(h['最終改善提案']||'所定回数の週次測定が完了しました。最終判定を確認してください。'):'次回測定日まで経過を観察します。';
     var comment=state.complete?('所定の経過観察期間（'+state.target+'週）が終了しました。'):(state.count+'週／'+state.target+'週まで観察済み。次回は改善後'+((state.count+1)*7)+'日目です。');
     var measurementLabel=state.complete?'経過観察終了':'モニター中';
@@ -8634,14 +8643,14 @@ function sbmOpenEffectiveness(){
 function sbmStyleEffectSheetViewOnly_(sh){
   if(!sh)return;
   sh.setFrozenRows(1);
-  var lc=Math.min(12,Math.max(1,sh.getLastColumn()));
+  var lc=Math.min(13,Math.max(1,sh.getLastColumn()));
   sh.getRange(1,1,1,lc).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   sh.setRowHeight(1,34);
   var hm=sbmHeaderMap_(sh);
-  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
-  try{sh.showColumns(1,Math.min(12,sh.getMaxColumns()));}catch(e){}
-  if(sh.getMaxColumns()>=13){try{sh.hideColumns(13,sh.getMaxColumns()-12);}catch(e){}}
+  try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(e){}
+  if(sh.getMaxColumns()>=14){try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(e){}}
   var n=Math.max(0,sh.getLastRow()-1);
   if(n){
     sh.getRange(2,1,n,lc).setVerticalAlignment('middle');
@@ -8650,6 +8659,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
     if(hm['改善・治療開始日'])sh.getRange(2,hm['改善・治療開始日'],n,1).setHorizontalAlignment('center');
     if(hm['経過日数'])sh.getRange(2,hm['経過日数'],n,1).setHorizontalAlignment('center');
     if(hm['測定回数'])sh.getRange(2,hm['測定回数'],n,1).setHorizontalAlignment('center');
+    if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);
     ['改善前クリック','現在クリック','改善前表示回数','現在表示回数'].forEach(function(h){if(hm[h])sh.getRange(2,hm[h],n,1).setHorizontalAlignment('right');});
     // 閲覧時はデータ再計算をせず、保存済みの「判定」だけを軽量に色分けする。
     if(hm['判定']){
@@ -8659,6 +8669,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
     }
     sh.setRowHeights(2,n,42);
   }
+  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
 }
 
 function sbmUpdateEffectiveness(){return sbmShowAsyncProgressDialog_({title:'改善の推移を更新しています',description:'最新の検索データを確認し、モニター中の記事の変化と判定を更新しています。',worker:'sbmUpdateEffectivenessWorker_',steps:['最新データを確認','記事ごとの変化を計算','判定を更新','改善の推移へ反映']});}
@@ -10469,7 +10480,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   // v6.1.21: バージョン更新後の最初の1回だけ既存行をまとめて装飾する。
   // 2回目以降の「改善履歴を開く」は全行再装飾を行わず高速表示する。
   var props=PropertiesService.getDocumentProperties();
-  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_21_'+String(sh.getSheetId());
+  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_22_'+String(sh.getSheetId());
   if(props.getProperty(styleKey)==='1')return;
 
   var visible={'選択':1,'改善日':1,'記事タイトル':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
@@ -10487,7 +10498,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   }
   sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
   sh.setRowHeight(1,34);
-  var widths={'選択':48,'改善日':100,'記事タイトル':280,'改善概要':390,'改善経路':105,'1週':68,'2週':68,'3週':68,'4週':68,'最終判定':110};
+  var widths={'選択':48,'改善日':100,'記事タイトル':280,'ArticleID':92,'改善概要':390,'改善経路':115,'1週':68,'2週':68,'3週':68,'4週':68,'最終判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
 
   // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
@@ -10514,6 +10525,8 @@ function sbmEnsureImprovementHistoryViewLight_(){
       judge.setFontColors(cs).setFontWeights(ws).setBackgrounds(bs).setHorizontalAlignment('center').setWrap(true);
     }
   }
+  if(n&&hm['ArticleID'])try{sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);}catch(ignoreAid){}
+  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   props.setProperty(styleKey,'1');
 }
 
@@ -10528,6 +10541,7 @@ function sbmOpenImprovementHistory() {
   try{sbmEnsureImprovementHistoryViewLight_();}catch(eView){
     try{sbmLog_('OpenImprovementHistoryView','Warning',String(eView));}catch(ignoreLog){}
   }
+  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   try{sh.showSheet();}catch(ignoreShow){}
   ss.setActiveSheet(sh);
 }
@@ -10712,7 +10726,7 @@ function sbmStyleEffectSheetV2_() {
 
   var hm = sbmHeaderMap_(sh);
   var widths = {
-    '選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'改善経路':145,
+    '選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
     '改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110
   };
   Object.keys(widths).forEach(function(h) {
@@ -10720,9 +10734,9 @@ function sbmStyleEffectSheetV2_() {
   });
 
   // 旧版や利用者操作で非表示になった列も、一覧表示時に必ず復元します。
-  try { sh.showColumns(1, Math.min(12, sh.getMaxColumns())); } catch (e) {}
-  if (sh.getMaxColumns() >= 13) {
-    try { sh.hideColumns(13, sh.getMaxColumns() - 12); } catch (e) {}
+  try { sh.showColumns(1, Math.min(13, sh.getMaxColumns())); } catch (e) {}
+  if (sh.getMaxColumns() >= 14) {
+    try { sh.hideColumns(14, sh.getMaxColumns() - 13); } catch (e) {}
   }
 
   var n = Math.max(0, sh.getLastRow() - 1);

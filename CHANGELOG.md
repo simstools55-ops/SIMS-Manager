@@ -1,3 +1,6 @@
+## v6.1.22
+- Stabilize additional monitoring labels and add ArticleID/filter UX to Improvement Trend and Improvement History.
+
 ## v6.1.21 — 2026-09-08
 
 - Doctor WAIT/MONITOR登録時の状態遷移をDoctor Case・改善履歴・改善の推移・記事管理で一体同期。

@@ -1,10 +1,8 @@
-fix: synchronize monitoring state and show ArticleID in v6.1.21
+fix: align monitoring labels and add ArticleID filters in v6.1.22
 
-- synchronize Doctor MONITOR transitions across Case, History, Trend, and Article Management
-- recover legacy WORKFLOW_LOCKED monitoring cases once on open
-- supersede duplicate legacy pending re-examination cases
-- restore one-time full Improvement History presentation styling
-- keep subsequent history opens lightweight and style new rows incrementally
-- show ArticleID in Article Management instead of the visible Data Update Date column
-- keep Data Update Date internally for system use
-- keep Full at v6.1.21 and Starter at v6.1.21-Starter
+- keep Doctor WAIT/MONITOR cycles labeled as additional monitoring before the first weekly measurement
+- derive additional-monitoring status from the active history cycle when legacy Doctor Case ordering is ambiguous
+- show ArticleID in Improvement Trend and Improvement History
+- add header filter sorting/filtering to both sheets
+- preserve existing measurement and monitoring data during schema migration
+- keep Full at v6.1.22 and Starter at v6.1.22-Starter
