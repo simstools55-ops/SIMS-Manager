@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.1.27
+ * SIMS Manager Product v6.1.28
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.27';
+const SBM_VERSION = '6.1.28';
+// v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
 // v6.1.24: 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
@@ -1722,34 +1723,85 @@ function sbmPersonalKnowledgeIsDrivePermissionError_(message) {
   );
 }
 
-function sbmPersonalKnowledgeCheckAndInitializeMenu() {
+function sbmPersonalKnowledgeInspectionData_() {
   var r = sbmPersonalKnowledgeCheckAndInitialize_();
-  var title = 'Personal Knowledgeを点検';
-  if (r && r.ok) {
-    sbmAlert_(title,
-      '✅ 正常に利用できます。\n\n' +
-      '対象サイト：' + String(sbmGetSetting_('BlogName','') || sbmGetSetting_('SiteName','') || '未設定') + '\n' +
-      'Personal Knowledge Site ID：' + r.site_id + '\n' +
-      '保存先：' + r.root_name + '\n' +
-      'Schema：' + r.schema_version + '\n\n' +
-      'ManagerとこのサイトのPersonal Knowledgeの対応を確認しました。\n' +
-      '通常はこの操作を行う必要はありません。');
-  } else {
-    var msg = String(r && r.message || '原因不明');
-    if (sbmPersonalKnowledgeIsDrivePermissionError_(msg)) {
-      sbmAlert_(title,
-        '❌ Google Drive権限が不足しています。\n\n' +
-        'Personal Knowledgeのデータ確認前に停止しました。\n' +
-        '必要なOAuth scope：\nhttps://www.googleapis.com/auth/drive\n\n' +
-        'Full / Starterの appsscript.json を正本と同期した後、Apps Scriptを再承認してください。\n\n' +
-        '詳細：' + msg);
-    } else {
-      sbmAlert_(title,
-        '❌ Personal Knowledgeを正常に点検できませんでした。\n\n' +
-        '詳細：' + msg + '\n\n' +
-        '保存先・Site ID・MANIFEST.jsonの整合性を確認してください。');
-    }
+  if (!r || !r.ok) return {ok:false,message:String(r && r.message || '原因不明')};
+  try {
+    var root = DriveApp.getFolderById(r.root_id);
+    var sites = sbmPersonalKnowledgeEnsureChildFolder_(root,'sites');
+    var siteFolder = sbmPersonalKnowledgeSiteFolder_(sites,r.site_id);
+    if (!siteFolder) throw new Error('Personal Knowledge site folder not found: ' + r.site_id);
+    var profile = sbmPersonalKnowledgeJsonFile_(siteFolder,'SITE_PROFILE.json',{});
+    var learning = sbmPersonalKnowledgeJsonFile_(siteFolder,'LEARNING.json',{items:[]});
+    var articleKnowledge = sbmPersonalKnowledgeJsonFile_(siteFolder,'ARTICLE_KNOWLEDGE.json',{articles:[]});
+    var clusters = sbmPersonalKnowledgeJsonFile_(siteFolder,'CLUSTERS.json',{clusters:[]});
+    var ownerLearning = sbmPersonalKnowledgeJsonFile_(sbmPersonalKnowledgeEnsureChildFolder_(root,'owner'),'LEARNING.json',{items:[]});
+    var crossLearning = sbmPersonalKnowledgeJsonFile_(sbmPersonalKnowledgeEnsureChildFolder_(root,'cross-site'),'LEARNING.json',{items:[]});
+    var manifest = sbmPersonalKnowledgeJsonFile_(root,SBM_PERSONAL_KNOWLEDGE_MARKER_FILE,{});
+    var items = Array.isArray(learning.items) ? learning.items : [];
+    var normalizedItems = items.map(function(x){
+      return {
+        status:String(x.status||''),
+        knowledge_type:String(x.knowledge_type||''),
+        statement:String(x.statement||''),
+        confidence:Number(x.confidence||0),
+        source_product:String(x.source_product||''),
+        source_type:String(x.source_type||''),
+        last_confirmed_at:String(x.last_confirmed_at||x.created_at||''),
+        confirmation_count:Number(x.confirmation_count||0)
+      };
+    }).sort(function(a,b){return String(b.last_confirmed_at).localeCompare(String(a.last_confirmed_at));});
+    return {
+      ok:true,
+      root_name:r.root_name,
+      root_id:r.root_id,
+      schema_version:r.schema_version,
+      site_id:r.site_id,
+      site_name:String(profile.site_name||sbmGetSetting_('BlogName','')||sbmGetSetting_('SiteName','')||'未設定'),
+      canonical_url:String(profile.canonical_url||''),
+      site_learning:normalizedItems,
+      counts:{
+        site_learning:normalizedItems.length,
+        accepted:normalizedItems.filter(function(x){return x.status==='ACCEPTED';}).length,
+        candidate:normalizedItems.filter(function(x){return x.status==='CANDIDATE';}).length,
+        article_knowledge:Array.isArray(articleKnowledge.articles)?articleKnowledge.articles.length:0,
+        clusters:Array.isArray(clusters.clusters)?clusters.clusters.length:0,
+        owner_learning:Array.isArray(ownerLearning.items)?ownerLearning.items.length:0,
+        cross_site_learning:Array.isArray(crossLearning.items)?crossLearning.items.length:0,
+        sites:Number(manifest.site_count||0)
+      },
+      structure:[
+        {name:'owner',description:'利用者全体の編集方針・学習',count:Array.isArray(ownerLearning.items)?ownerLearning.items.length:0},
+        {name:'sites/'+r.site_id,description:'このサイト固有のProfile / Article Knowledge / Clusters / Learning',count:normalizedItems.length},
+        {name:'cross-site',description:'複数サイトに共通する学習',count:Array.isArray(crossLearning.items)?crossLearning.items.length:0},
+        {name:'system',description:'SIMS内部の移行・管理情報',count:null}
+      ]
+    };
+  } catch(e) {
+    return {ok:false,message:String(e && e.message || e)};
   }
+}
+
+function sbmPersonalKnowledgeInspectionHtml_(data) {
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
+  var d = data || {};
+  if (!d.ok) {
+    var msg=String(d.message||'原因不明');
+    var permission=sbmPersonalKnowledgeIsDrivePermissionError_(msg);
+    return '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#202124}.bad{color:#b3261e;font-weight:700}.box{border:1px solid #dadce0;border-radius:12px;padding:18px;background:#fff}.note{margin-top:12px;color:#5f6368;white-space:pre-wrap}.actions{text-align:right;margin-top:20px}button{padding:9px 18px;border:1px solid #dadce0;border-radius:18px;background:#fff;cursor:pointer}</style></head><body><h2>Personal Knowledge 点検結果</h2><div class="box"><div class="bad">❌ '+(permission?'Google Drive権限が不足しています。':'Personal Knowledgeを正常に点検できませんでした。')+'</div><div class="note">'+e(permission?'Personal Knowledgeのデータ確認前に停止しました。\n必要なOAuth scope：https://www.googleapis.com/auth/drive\n\n詳細：'+msg:'詳細：'+msg)+'</div></div><div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></body></html>';
+  }
+  var cards=(d.site_learning||[]).map(function(x){
+    var conf=Math.round(Number(x.confidence||0)*100);
+    return '<div class="knowledge"><div class="meta"><span class="status '+e(String(x.status||'').toLowerCase())+'">'+e(x.status||'')+'</span><span>'+e(x.knowledge_type||'')+'</span><span>確信度 '+conf+'%</span><span>確認 '+e(x.confirmation_count||0)+'回</span></div><div class="statement">'+e(x.statement||'')+'</div><div class="source">'+e(x.source_product||'')+(x.source_type?' / '+e(x.source_type):'')+(x.last_confirmed_at?'　更新 '+e(x.last_confirmed_at):'')+'</div></div>';
+  }).join('') || '<div class="empty">このサイトには、まだ表示できる学習項目がありません。</div>';
+  var structure=(d.structure||[]).map(function(x){return '<tr><td>'+e(x.name)+'</td><td>'+e(x.description)+'</td><td class="num">'+(x.count===null?'—':e(x.count))+'</td></tr>';}).join('');
+  return '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;margin:0;color:#202124;background:#f8f9fa}.wrap{padding:20px 24px 26px}.head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.ok{color:#188038;font-weight:700;font-size:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;margin-top:14px}.label{font-size:12px;color:#5f6368}.value{font-weight:600;word-break:break-all}.tabs{display:flex;gap:8px;margin:20px 0 12px}.tabs button{border:1px solid #dadce0;border-radius:18px;padding:8px 14px;background:#fff;cursor:pointer}.tabs button.active{background:#1a73e8;color:#fff;border-color:#1a73e8}.panel{display:none}.panel.active{display:block}.summary{display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));gap:10px;margin-bottom:14px}.metric{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:12px}.metric b{font-size:20px}.knowledge{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:13px;margin-bottom:10px}.meta{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#5f6368}.status{font-weight:700}.status.accepted{color:#188038}.status.candidate{color:#b06000}.statement{margin-top:8px;line-height:1.55}.source{margin-top:8px;font-size:11px;color:#777}.empty{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:18px;color:#5f6368}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid #e0e0e0;padding:9px;text-align:left}th{background:#f1f3f4}.num{text-align:right}.note{font-size:12px;color:#5f6368;margin-top:12px}.actions{text-align:right;margin-top:18px}.actions button{padding:9px 18px;border:1px solid #dadce0;border-radius:18px;background:#fff;cursor:pointer}@media(max-width:650px){.grid,.summary{grid-template-columns:1fr}}</style></head><body><div class="wrap"><div class="head"><div><h2 style="margin:0 0 8px">Personal Knowledge 点検結果</h2><div class="ok">✅ 正常に利用できます</div></div></div><div class="grid"><div><div class="label">対象サイト</div><div class="value">'+e(d.site_name)+'</div></div><div><div class="label">Personal Knowledge Site ID</div><div class="value">'+e(d.site_id)+'</div></div><div><div class="label">保存先</div><div class="value">'+e(d.root_name)+'</div></div><div><div class="label">Schema</div><div class="value">'+e(d.schema_version)+'</div></div></div><div class="tabs"><button id="t1" class="active" onclick="showTab(1)">このサイトのKnowledgeを見る</button><button id="t2" onclick="showTab(2)">全体構成を見る</button></div><div id="p1" class="panel active"><div class="summary"><div class="metric"><div class="label">サイト学習</div><b>'+e(d.counts.site_learning)+'</b></div><div class="metric"><div class="label">確定済み</div><b>'+e(d.counts.accepted)+'</b></div><div class="metric"><div class="label">候補</div><b>'+e(d.counts.candidate)+'</b></div><div class="metric"><div class="label">記事Knowledge</div><b>'+e(d.counts.article_knowledge)+'</b></div></div>'+cards+'</div><div id="p2" class="panel"><div class="summary"><div class="metric"><div class="label">登録サイト</div><b>'+e(d.counts.sites)+'</b></div><div class="metric"><div class="label">Owner学習</div><b>'+e(d.counts.owner_learning)+'</b></div><div class="metric"><div class="label">Cross-site学習</div><b>'+e(d.counts.cross_site_learning)+'</b></div><div class="metric"><div class="label">Clusters</div><b>'+e(d.counts.clusters)+'</b></div></div><table><thead><tr><th>保存領域</th><th>内容</th><th>件数</th></tr></thead><tbody>'+structure+'</tbody></table></div><div class="note">表示は確認用です。Personal KnowledgeのJSONはSIMSが管理するため、通常は直接編集しないでください。</div><div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></div><script>function showTab(n){document.getElementById("p1").className="panel"+(n===1?" active":"");document.getElementById("p2").className="panel"+(n===2?" active":"");document.getElementById("t1").className=n===1?"active":"";document.getElementById("t2").className=n===2?"active":"";}</script></body></html>';
+}
+
+function sbmPersonalKnowledgeCheckAndInitializeMenu() {
+  var data=sbmPersonalKnowledgeInspectionData_();
+  var html=HtmlService.createHtmlOutput(sbmPersonalKnowledgeInspectionHtml_(data)).setWidth(820).setHeight(640);
+  SpreadsheetApp.getUi().showModalDialog(html,'Personal Knowledgeを点検');
 }
 
 function sbmEnsureSiteIdentity_() {
@@ -2656,7 +2708,7 @@ function sbmOpenArticleDbToolbar() {
 function sbmOpenSelectedArticleUrl() {
   var d = sbmGetSelectedArticleDbSummary();
   if (!d || !d.ok || !d.url) return sbmAlert_('記事を開けません', '記事DBで対象記事の行を選択してください。');
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   var html = '<div style="font-family:Arial,sans-serif;padding:20px;line-height:1.7"><h2 style="color:#0b8043;margin-top:0">記事を開く</h2><p><b>' + e(d.title || '選択記事') + '</b></p><p><a href="' + e(d.url) + '" target="_blank" style="display:inline-block;background:#1a73e8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:700">ブラウザで記事を開く</a></p></div>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(460).setHeight(240)), '記事を開く');
 }
@@ -4664,7 +4716,7 @@ function sbmShowArticleDbOpenLinkForRow_(sh, row) {
   var url = hm['記事URL'] ? sh.getRange(row, hm['記事URL']).getDisplayValue() : '';
   var title = hm['記事タイトル'] ? sh.getRange(row, hm['記事タイトル']).getDisplayValue() : '';
   if (!url) return sbmAlert_('記事を開けません', '記事URLがありません。');
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   var html = '<div style="font-family:Arial,sans-serif;padding:20px;line-height:1.7"><h2 style="color:#0b8043;margin-top:0">記事を開く</h2><p><b>' + e(title || '選択記事') + '</b></p><p><a href="' + e(url) + '" target="_blank" style="display:inline-block;background:#1a73e8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:700">ブラウザで記事を開く</a></p></div>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(500).setHeight(250)), '記事を開く');
 }
@@ -9247,7 +9299,7 @@ function sbmFormatEffectDateLabel_(value) {
 }
 
 function sbmEffectDetailHtmlV2_(o) {
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   function cell(v) { return e(sbmDisplayValueJa_(v)); }
   function num(v) { return e(sbmDetailNumber1_(v)); }
   function ctr(v) { return e(sbmDetailCtr1_(v)); }
@@ -9444,7 +9496,7 @@ function sbmWeeklyHistoryHtml_(o) {
 
 function sbmFinalEvaluationHtml_(o) {
   o = o || {};
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   if (String(o['状態'] || '') === '完了') {
     return '<div class="box"><b>最終判定：' + e(sbmHistoryDisplayValue_(o['最終判定'])) + '</b><br>'
       + e(sbmHistoryDisplayValue_(o['最終総括'])) + '</div>'
@@ -9455,7 +9507,7 @@ function sbmFinalEvaluationHtml_(o) {
 
 function sbmHistoryDetailHtmlV2_(o) {
   o = o || {};
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   var nv = sbmHistoryJsonNewValues_(o);
   var plan = sbmParseJsonObjectSafe_(o['改善計画JSON']);
   var effect = sbmFindEffectByHistoryId_(o['改善履歴ID'], false);
@@ -10676,7 +10728,7 @@ function sbmOpenImprovementHistory() {
  */
 function sbmArticleDbDetailHtml_(o) {
   o = o || {};
-  var e = sbmEscapeHtml_;
+  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   function value(v) { return sbmDetailDash_(v); }
   function row(label, v) {
     return '<tr>'

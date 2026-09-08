@@ -1,7 +1,7 @@
 {
   "product": "SIMS Manager",
-  "version": "6.1.27",
-  "starter_display_version": "6.1.27-ST",
+  "version": "6.1.28",
+  "starter_display_version": "6.1.28-ST",
   "files": [
     {
       "path": "./.github/workflows/deploy.yml",

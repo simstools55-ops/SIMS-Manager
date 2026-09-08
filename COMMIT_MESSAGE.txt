@@ -1,9 +1,8 @@
-fix: manage Apps Script manifests per edition and diagnose Personal Knowledge permissions in v6.1.27
+feat: add Personal Knowledge viewer in v6.1.28
 
-- treat Code.gs and appsscript.json as one deployable Apps Script unit
-- add explicit Full and Starter deployment bundles with synchronized manifests
-- require Google Drive OAuth scope for Personal Knowledge in both editions
-- rename Personal Knowledge connection check to Personal Knowledge inspection
-- distinguish Drive permission failures from Personal Knowledge data failures
-- show the required Drive scope and reauthorization guidance on permission errors
-- keep Full at v6.1.27 and Starter at v6.1.27-ST
+- replace transient Personal Knowledge inspection alert with centered modal dialog
+- show current site identity, Site ID, storage and schema
+- add human-readable site Knowledge viewer with status, confidence, source and update time
+- add Personal Knowledge storage structure and item counts
+- retain explicit Drive permission diagnostics
+- keep Full at v6.1.28 and Starter at v6.1.28-ST

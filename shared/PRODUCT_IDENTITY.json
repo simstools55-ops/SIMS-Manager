@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.24",
+  "current_version": "6.1.28",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.24: Doctor WAIT/MONITOR transitions now synchronize Doctor Case, Improvement History, Improvement Trend, and Article Management. Legacy locked monitor cases are repaired once on open; Improvement History receives one-time full presentation styling then incremental row styling; Article Management shows ArticleID instead of the low-value Data Update Date column.",
-  "version": "6.1.24",
-  "starter_display_version": "6.1.24-Starter"
+  "notes": "v6.1.28: Personal Knowledge inspection now uses a central modal and includes a human-readable viewer for site knowledge and storage structure.",
+  "version": "6.1.28",
+  "starter_display_version": "6.1.28-ST"
 }

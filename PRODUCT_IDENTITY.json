@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.27",
+  "current_version": "6.1.28",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.27: Improvement History judgment columns are widened and vertically centered for single-line status display; existing Starter Home titles are synchronized to SIMS Manager Starter Home.",
-  "version": "6.1.27",
+  "notes": "v6.1.28: Personal Knowledge inspection now uses a central modal and includes a human-readable viewer for site knowledge and storage structure.",
+  "version": "6.1.28",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.27-ST"
+  "starter_display_version": "6.1.28-ST"
 }
