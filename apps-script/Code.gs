@@ -1,11 +1,11 @@
 /**
- * SIMS Manager Product v6.1.26
+ * SIMS Manager Product v6.1.27
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.26';
-// v6.1.26: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
+const SBM_VERSION = '6.1.27';
+// v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
 // v6.1.24: 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
 // v6.1.22: 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
@@ -1713,12 +1713,42 @@ function sbmPersonalKnowledgeCheckAndInitialize_(hint) {
   }
 }
 
+function sbmPersonalKnowledgeIsDrivePermissionError_(message) {
+  var s = String(message || '').toLowerCase();
+  return s.indexOf('driveapp') >= 0 && (
+    s.indexOf('permission') >= 0 || s.indexOf('権限') >= 0 ||
+    s.indexOf('authorization') >= 0 || s.indexOf('承認') >= 0 ||
+    s.indexOf('scope') >= 0 || s.indexOf('oauth') >= 0
+  );
+}
+
 function sbmPersonalKnowledgeCheckAndInitializeMenu() {
   var r = sbmPersonalKnowledgeCheckAndInitialize_();
+  var title = 'Personal Knowledgeを点検';
   if (r && r.ok) {
-    sbmAlert_('Personal Knowledge 接続確認', '接続・初期化は正常です。\n\nDriveフォルダー：' + r.root_name + '\nPersonal Knowledge Site ID：' + r.site_id + '\nSchema：' + r.schema_version + '\n\nこの操作は通常運用では不要です。');
+    sbmAlert_(title,
+      '✅ 正常に利用できます。\n\n' +
+      '対象サイト：' + String(sbmGetSetting_('BlogName','') || sbmGetSetting_('SiteName','') || '未設定') + '\n' +
+      'Personal Knowledge Site ID：' + r.site_id + '\n' +
+      '保存先：' + r.root_name + '\n' +
+      'Schema：' + r.schema_version + '\n\n' +
+      'ManagerとこのサイトのPersonal Knowledgeの対応を確認しました。\n' +
+      '通常はこの操作を行う必要はありません。');
   } else {
-    sbmAlert_('Personal Knowledge 接続確認', 'Personal Knowledgeを初期化できませんでした。\n\n詳細：' + String(r && r.message || '原因不明') + '\n\nApps ScriptのDrive権限と appsscript.json の oauthScopes を確認してください。');
+    var msg = String(r && r.message || '原因不明');
+    if (sbmPersonalKnowledgeIsDrivePermissionError_(msg)) {
+      sbmAlert_(title,
+        '❌ Google Drive権限が不足しています。\n\n' +
+        'Personal Knowledgeのデータ確認前に停止しました。\n' +
+        '必要なOAuth scope：\nhttps://www.googleapis.com/auth/drive\n\n' +
+        'Full / Starterの appsscript.json を正本と同期した後、Apps Scriptを再承認してください。\n\n' +
+        '詳細：' + msg);
+    } else {
+      sbmAlert_(title,
+        '❌ Personal Knowledgeを正常に点検できませんでした。\n\n' +
+        '詳細：' + msg + '\n\n' +
+        '保存先・Site ID・MANIFEST.jsonの整合性を確認してください。');
+    }
   }
 }
 
@@ -11659,7 +11689,7 @@ function onOpen() {
   var maintenanceMenu = ui.createMenu('設定・メンテナンス')
     .addItem('初期設定','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
-    .addItem('Personal Knowledge接続を確認','sbmPersonalKnowledgeCheckAndInitializeMenu')
+    .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets')
     .addItem('aDoctor精密診断を途中から再開','sbmDoctorResumePrecisionDiagnosis');

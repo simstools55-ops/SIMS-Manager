@@ -1,8 +1,9 @@
-fix: refine history layout and sync Starter Home title in v6.1.26
+fix: manage Apps Script manifests per edition and diagnose Personal Knowledge permissions in v6.1.27
 
-- widen Improvement History judgment columns for single-line status labels
-- vertically center visible history cells and judgments
-- keep weekly/final judgment labels unwrapped
-- synchronize existing Starter Home A1 to SIMS Manager Starter Home
-- retain compact Starter display version v6.1.26-ST
-- keep canonical Full/Starter version at 6.1.26
+- treat Code.gs and appsscript.json as one deployable Apps Script unit
+- add explicit Full and Starter deployment bundles with synchronized manifests
+- require Google Drive OAuth scope for Personal Knowledge in both editions
+- rename Personal Knowledge connection check to Personal Knowledge inspection
+- distinguish Drive permission failures from Personal Knowledge data failures
+- show the required Drive scope and reauthorization guidance on permission errors
+- keep Full at v6.1.27 and Starter at v6.1.27-ST

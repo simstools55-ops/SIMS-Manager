@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.26",
+  "current_version": "6.1.27",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.26: Improvement History judgment columns are widened and vertically centered for single-line status display; existing Starter Home titles are synchronized to SIMS Manager Starter Home.",
-  "version": "6.1.26",
+  "notes": "v6.1.27: Improvement History judgment columns are widened and vertically centered for single-line status display; existing Starter Home titles are synchronized to SIMS Manager Starter Home.",
+  "version": "6.1.27",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.26-ST"
+  "starter_display_version": "6.1.27-ST"
 }
