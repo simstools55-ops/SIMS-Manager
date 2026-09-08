@@ -1,3 +1,3 @@
-# SIMS Manager v6.1.31
+# SIMS Manager v6.1.32
 
-Doctor V2 routing precedence fix. Explicit treatment/handoff instructions now override LOW_PRIORITY_SERP_STRUCTURE.
+Legacy observation-cycle Doctor result continuation fix and stable history-ID backfill.

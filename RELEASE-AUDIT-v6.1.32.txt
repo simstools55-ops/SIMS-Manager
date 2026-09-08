@@ -1,0 +1,9 @@
+SIMS Manager v6.1.32 Release Audit
+
+PASS: Full canonical version 6.1.32.
+PASS: Starter display version v6.1.32-ST.
+PASS: Full executable Code.gs copies are byte-identical.
+PASS: Starter executable Code.gs copies are byte-identical.
+PASS: Full/Starter appsscript.json manifests are byte-identical.
+PASS: JavaScript syntax check completed for Full and Starter.
+PASS: Legacy observation Doctor continuation requires strict history ID or legacy cycle fingerprint.

@@ -1,8 +1,7 @@
-fix: reuse prior Doctor result across safe observation-case continuation in v6.1.31
+fix: recover legacy observation Doctor results safely in v6.1.32
 
-- accept a prior Doctor result when a rerun issued a new CaseID for the same ArticleID, SiteID, and Improvement History ID
-- reject cross-article, cross-site, or cross-history Doctor results
-- remap the accepted result to the current CaseID before routing to Writer/Merge/Monitor
-- checkpoint the adopted result under the current workflow so registration can resume after errors
-- log DoctorResultContinuation for auditability
-- keep Full at v6.1.31 and Starter at v6.1.31-ST
+- allow prior Doctor result continuation when legacy Improvement History ID is blank
+- verify ArticleID, URL, SiteID, workflow, improvement date, baseline metrics, and changed sections
+- retain strict history-ID matching for modern cycles
+- backfill stable history IDs before new legacy re-examination requests
+- keep Full at v6.1.32 and Starter at v6.1.32-ST

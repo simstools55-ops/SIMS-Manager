@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.31
+ * SIMS Manager Product v6.1.32
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.31';
+const SBM_VERSION = '6.1.32';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.31';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
 // v6.1.30: Doctor V2 routing precedenceを修正。WRITER/MERGE/MONITOR等の明示指示・LIGHT_FIX等の治療指示をLOW_PRIORITY_SERP_STRUCTUREより優先し、誤正常終了を防止。
 // v6.1.29: 観察終了後処置をArticleID+改善履歴IDで固定し、過去Doctor Case誤適用と1件処理後の全一覧再生成を防止。
@@ -12875,6 +12876,11 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
     }
   }catch(eResume){try{sbmLog_('DoctorEffectReviewResume','Warning',String(eResume));}catch(ignoreResumeLog){}}
 
+  // v6.1.32: 既存checkpointが無い旧履歴だけ、次回以降のCase継続を安定させるため改善履歴IDを補完する。
+  // 既存の再診Caseを再開する場合は過去Requestを変更せず、上記legacy fingerprint互換で救済する。
+  if(!historyId){
+    try{historyId=sbmEnsureLegacyHistoryIdForEffect_(sh,rec,currentHistory)||'';}catch(eLegacyHistoryId){try{sbmLog_('LegacyImprovementHistoryId','Warning',String(eLegacyHistoryId));}catch(ignoreLegacyHistoryIdLog){}}
+  }
   // v5.21.48: google.script.run のワーカー内から別モーダルを開くと、
   // 呼び出し元の進捗ダイアログ終了と競合して次ダイアログが消えることがある。
   // ここでは依頼を保存してHTMLだけ返し、同じダイアログを精密診断画面へ切り替える。
@@ -15600,6 +15606,59 @@ function sbmDoctorSaveGeneratedWriterRequest_(caseId,req){
   // 利用者向け作業状態は通常改善と共通化。Doctor専用の短命な「診療中」は持たない。
   try{sbmSetArticleWorkStateByIdentity_(req.article_id,req.article&&req.article.url||'','🛠️ 処置中');}catch(eState){}
 }
+function sbmDoctorObservationTrigger_(value){
+  value=String(value||'').trim().toUpperCase();
+  return value==='SBM_MONITORING_REVIEW'||value==='POST_IMPROVEMENT_REVIEW';
+}
+function sbmDoctorDateFingerprint_(value){
+  var d=sbmParseDate_(value||'');
+  if(d)return Utilities.formatDate(d,SBM_DEFAULTS.TIMEZONE,'yyyyMMdd');
+  return String(value||'').replace(/[^0-9]/g,'').substring(0,8);
+}
+function sbmDoctorNumberFingerprintEqual_(a,b){
+  var x=Number(a),y=Number(b);
+  if(!isFinite(x)||!isFinite(y))return String(a||'').trim()===String(b||'').trim();
+  return Math.abs(x-y)<=Math.max(0.0000001,Math.max(Math.abs(x),Math.abs(y))*0.000001);
+}
+function sbmDoctorLegacyObservationFingerprintMatches_(source,priorRequest){
+  source=source||{};priorRequest=priorRequest||{};
+  var sr=source.request||{},pr=priorRequest.request||{};
+  if(!sbmDoctorObservationTrigger_(sr.trigger)||!sbmDoctorObservationTrigger_(pr.trigger))return false;
+  if(String(sr.source_sheet||'').trim()!==SBM_SHEETS.EFFECT||String(pr.source_sheet||'').trim()!==SBM_SHEETS.EFFECT)return false;
+  var sc=source.improvement_context||{},pc=priorRequest.improvement_context||{};
+  var sd=sbmDoctorDateFingerprint_(sc.improvement_date),pd=sbmDoctorDateFingerprint_(pc.improvement_date);
+  if(!sd||!pd||sd!==pd)return false;
+  var sb=sc.before||{},pb=pc.before||{},keys=['clicks','impressions','ctr','position'];
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i];
+    if(!sbmDoctorNumberFingerprintEqual_(sb[k],pb[k]))return false;
+  }
+  var sa=(sc.changed_sections||[]).map(String).sort().join('|');
+  var pa=(pc.changed_sections||[]).map(String).sort().join('|');
+  if(sa&&pa&&sa!==pa)return false;
+  return true;
+}
+function sbmEnsureLegacyHistoryIdForEffect_(effectSheet,effectRow,history){
+  effectRow=effectRow||{};history=history||sbmEffectHistoryForRow_(effectRow)||{};
+  var existing=String(history['改善履歴ID']||effectRow['改善履歴ID']||'').trim();
+  if(existing)return existing;
+  var historyRow=Number(history._rowNumber||0);
+  var hsh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(!hsh||historyRow<2||historyRow>hsh.getLastRow())return '';
+  var hhm=sbmHeaderMap_(hsh);if(!hhm['改善履歴ID'])return '';
+  // 同じArticleID/URL・改善日で解決された旧履歴1行にだけ、新しい安定IDを付与する。
+  var newId=sbmNextImprovementHistoryId_();
+  hsh.getRange(historyRow,hhm['改善履歴ID']).setValue(newId);
+  history['改善履歴ID']=newId;effectRow['改善履歴ID']=newId;
+  try{
+    if(effectSheet&&effectSheet.getName()===SBM_SHEETS.EFFECT){
+      var ehm=sbmHeaderMap_(effectSheet),erow=Number(effectRow._rowNumber||0);
+      if(ehm['改善履歴ID']&&erow>=2&&erow<=effectSheet.getLastRow())effectSheet.getRange(erow,ehm['改善履歴ID']).setValue(newId);
+    }
+  }catch(ignoreEffectHistoryBackfill){}
+  try{sbmLog_('LegacyImprovementHistoryId','Info','article='+String(effectRow['ArticleID']||'')+' / history='+newId);}catch(ignoreLegacyHistoryLog){}
+  return newId;
+}
 function sbmDoctorCanAdoptPriorResultForRequest_(source,doctor){
   source=source||{};doctor=doctor||{};
   var sourceCase=String(source.case_id||source.request&&source.request.case_id||'').trim();
@@ -15608,26 +15667,49 @@ function sbmDoctorCanAdoptPriorResultForRequest_(source,doctor){
   var sourceArticle=String(source.article&&source.article.article_id||'').trim();
   var resultArticle=String(doctor.article_id||doctor.article&&doctor.article.article_id||doctor.case_context&&doctor.case_context.article_id||'').trim();
   if(!sourceArticle||!resultArticle||sourceArticle!==resultArticle)return {ok:false};
+  var sourceUrl=sbmNormalizeUrl_(source.article&&source.article.url||'');
+  var resultUrl=sbmNormalizeUrl_(doctor.article_url||doctor.article&&doctor.article.url||doctor.case_context&&doctor.case_context.article_url||'');
+  if(sourceUrl&&resultUrl&&sourceUrl!==resultUrl)return {ok:false};
   var sourceSite=String(source.site&&source.site.site_id||'').trim();
   var resultSite=String(doctor.site_id||doctor.site&&doctor.site.site_id||doctor.case_context&&doctor.case_context.site_id||'').trim();
   if(sourceSite&&resultSite&&sourceSite!==resultSite)return {ok:false};
-  var sourceHistory=String(source.improvement_context&&source.improvement_context.improvement_history_id||'').trim();
-  if(!sourceHistory)return {ok:false};
   var prior=sbmDoctorFindCaseRow_(resultCase);
   if(!prior)return {ok:false};
   var priorArticle=String(prior.values[prior.hm['記事ID']-1]||'').trim();
+  var priorUrl=sbmNormalizeUrl_(prior.values[prior.hm['記事URL']-1]||'');
   var priorSite=String(prior.values[prior.hm['サイトID']-1]||'').trim();
   if(priorArticle&&priorArticle!==sourceArticle)return {ok:false};
+  if(sourceUrl&&priorUrl&&sourceUrl!==priorUrl)return {ok:false};
   if(sourceSite&&priorSite&&priorSite!==sourceSite)return {ok:false};
+
+  var sourceHistory=String(source.improvement_context&&source.improvement_context.improvement_history_id||'').trim();
   var priorHistory=String(prior.values[prior.hm['改善履歴ID']-1]||'').trim();
   var priorMeta=sbmDoctorWorkflowReadMeta_(resultCase)||{};
+  var currentMeta=sbmDoctorWorkflowReadMeta_(sourceCase)||{};
   var metaHistory=String(priorMeta.history_id||'').trim();
-  if(priorHistory&&priorHistory!==sourceHistory)return {ok:false};
-  if(metaHistory&&metaHistory!==sourceHistory)return {ok:false};
-  if(!priorHistory&&!metaHistory)return {ok:false};
   var workflowType=String(priorMeta.workflow_type||'').trim();
+  var currentWorkflowType=String(currentMeta.workflow_type||'').trim();
   if(workflowType&&workflowType!=='EFFECT_AFTER_OBSERVATION')return {ok:false};
-  return {ok:true,priorCaseId:resultCase,currentCaseId:sourceCase,historyId:sourceHistory};
+  if(currentWorkflowType&&currentWorkflowType!=='EFFECT_AFTER_OBSERVATION')return {ok:false};
+
+  // 正規サイクルは改善履歴IDの完全一致を必須とする。
+  if(sourceHistory){
+    if(priorHistory&&priorHistory!==sourceHistory)return {ok:false};
+    if(metaHistory&&metaHistory!==sourceHistory)return {ok:false};
+    if(!priorHistory&&!metaHistory)return {ok:false};
+    return {ok:true,priorCaseId:resultCase,currentCaseId:sourceCase,historyId:sourceHistory,matchMode:'HISTORY_ID'};
+  }
+
+  // v6.1.32 legacy fallback:
+  // 旧履歴は改善履歴IDが空のまま再診Caseが作られている。ArticleIDだけで許可すると別サイクルを混同するため、
+  // URL・SiteID・観察終了workflow・改善日・改善前4指標・変更箇所の一致を「旧サイクル指紋」として全て確認する。
+  if(priorHistory||metaHistory)return {ok:false};
+  if(workflowType!=='EFFECT_AFTER_OBSERVATION'||currentWorkflowType!=='EFFECT_AFTER_OBSERVATION')return {ok:false};
+  var priorRequestText=sbmDoctorWorkflowReadPayload_(resultCase,'REQUEST');
+  if(!priorRequestText)return {ok:false};
+  var priorRequest={};try{priorRequest=JSON.parse(priorRequestText);}catch(ignorePriorRequest){return {ok:false};}
+  if(!sbmDoctorLegacyObservationFingerprintMatches_(source,priorRequest))return {ok:false};
+  return {ok:true,priorCaseId:resultCase,currentCaseId:sourceCase,historyId:'',matchMode:'LEGACY_CYCLE_FINGERPRINT'};
 }
 function sbmDoctorAdoptPriorResultForRequest_(source,doctor){
   var compat=sbmDoctorCanAdoptPriorResultForRequest_(source,doctor);

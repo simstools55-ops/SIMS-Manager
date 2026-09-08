@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.31",
+  "current_version": "6.1.32",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.31: observation re-examination can safely reuse a prior Doctor result when a rerun issued a new CaseID, only when ArticleID, SiteID, and Improvement History ID prove it is the same workflow.",
-  "version": "6.1.31",
-  "starter_display_version": "6.1.31-ST"
+  "notes": "v6.1.32: legacy observation cycles without Improvement History ID use a strict cycle fingerprint for safe Doctor-result continuation; new legacy re-examination requests backfill a stable history ID.",
+  "version": "6.1.32",
+  "starter_display_version": "6.1.32-ST"
 }
