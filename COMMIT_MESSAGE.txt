@@ -1,8 +1,8 @@
-fix: self-heal corrupted improvement dates on view in v6.1.36
+fix: normalize spreadsheet timezone and repair shifted improvement dates in v6.1.37
 
-- detect invalid Improvement History / Improvement Trend dates when the view opens
-- repair Sheets serial dates idempotently instead of relying on a one-time migration flag
-- rebuild Improvement Trend only when date corruption is detected
-- keep normal Improvement Trend opening lightweight when data is healthy
-- recover legacy #NUM! elapsed-day rows such as A000046 without manual editing
-- keep Full at v6.1.36 and Starter at v6.1.36-ST
+- enforce Asia/Tokyo as the SIMS spreadsheet timezone after menu creation
+- align Spreadsheet, Apps Script manifest, and SIMS canonical date handling
+- use AI改善結果JSON.completed_at as authoritative history date when available
+- rebuild Improvement Trend only when timezone/date repair changes data
+- prevent one-day date shifts caused by America/Los_Angeles spreadsheet settings
+- keep Full at v6.1.37 and Starter at v6.1.37-ST

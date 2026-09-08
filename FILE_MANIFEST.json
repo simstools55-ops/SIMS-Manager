@@ -1,7 +1,7 @@
 {
   "product": "SIMS Manager",
-  "version": "6.1.36",
-  "starter_display_version": "6.1.36-ST",
+  "version": "6.1.37",
+  "starter_display_version": "6.1.37-ST",
   "files": [
     {
       "path": "./.github/workflows/deploy.yml",
@@ -544,7 +544,7 @@
       "size": 325
     },
     {
-      "path": "./RELEASE-AUDIT-v6.1.36.txt",
+      "path": "./RELEASE-AUDIT-v6.1.37.txt",
       "sha256": "421e94360bd306958b88be170b8226c96cc38ed371f384d45f57e42476f9551a",
       "size": 239
     },
@@ -944,7 +944,7 @@
       "size": 865
     },
     {
-      "path": "./RELEASE-NOTES-v6.1.36.md",
+      "path": "./RELEASE-NOTES-v6.1.37.md",
       "sha256": "3535b075b1392e5ce28b298b72aaaac1345f4576d607ac71f7e2f391c0a0b3f1",
       "size": 804
     },

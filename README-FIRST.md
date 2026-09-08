@@ -1,6 +1,6 @@
-# SIMS Manager v6.1.36 Repository Baseline
+# SIMS Manager v6.1.37 Repository Baseline
 
-## v6.1.36の位置付け
+## v6.1.37の位置付け
 
 v6.1.35で追加したSheets日付シリアル変換を、実際の「改善の推移を開く」経路から確実に起動できるようにした修正版です。
 
@@ -8,6 +8,6 @@ v6.1.35で追加したSheets日付シリアル変換を、実際の「改善の�
 - 異常時のみ改善履歴の日付を冪等修復
 - 異常時のみ改善の推移を軽量再生成
 - 正常時は従来どおり閲覧専用の高速経路
-- Full v6.1.36 / Starter v6.1.36-ST
+- Full v6.1.37 / Starter v6.1.37-ST
 
 このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。

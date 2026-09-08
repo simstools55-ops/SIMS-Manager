@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.36
+ * SIMS Manager Product v6.1.37
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.36';
+const SBM_VERSION = '6.1.37';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -18,7 +18,8 @@ const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
 // v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
 // v6.1.35: 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
-// v6.1.36: 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。v6.1.35の一度限りフラグ依存を廃止。
+// v6.1.37: 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。v6.1.35の一度限りフラグ依存を廃止。
+// v6.1.37: SpreadsheetのタイムゾーンをAsia/Tokyoへ統一し、AI改善結果JSON.completed_atを正本として旧履歴の日付ずれを補正。日付シリアルと表示TZの境界で1日前化する再発を防止。
 // v6.1.33: Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
 // v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
@@ -8384,7 +8385,7 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
   options=options||{};
   var dailyFast=options.dailyFast===true;
   sbmEnsureHistoryAndEffectSchemas_();
-  try{sbmRepairHistoryDateValuesV6136_();}catch(eDateRepair){try{sbmLog_('HistoryDateRepairV6136','Warning',String(eDateRepair));}catch(ignoreDateRepairLog){}}
+  try{sbmRepairHistoryDateValuesV6137_();}catch(eDateRepair){try{sbmLog_('HistoryDateRepairV6137','Warning',String(eDateRepair));}catch(ignoreDateRepairLog){}}
   // 旧データ修復・Doctor整合・経路補正は日次の表示更新で毎回行わない。
   // Doctor登録時やメンテナンス処理で整合する。手動の「改善の推移更新」では従来どおり実施。
   if(!dailyFast){
@@ -8730,18 +8731,20 @@ function sbmOpenEffectiveness(){
     sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
     try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}
   }
-  // v6.1.36: 日付破損がある場合だけ、履歴を修復して表示データを軽量再生成する。
+  // v6.1.37: 日付破損がある場合だけ、履歴を修復して表示データを軽量再生成する。
   // 通常閲覧ではこの再生成経路に入らないため、表示速度を維持する。
-  var dateRepairNeeded=false;
-  try{dateRepairNeeded=sbmEffectDateRepairNeededV6136_();}catch(eDateDetect){try{sbmLog_('EffectDateRepairDetectV6136','Warning',String(eDateDetect));}catch(ignoreDateDetectLog){}}
+  var tzRepair={changed:false};
+  try{tzRepair=sbmEnsureSpreadsheetTimeZoneV6137_();}catch(eTz){try{sbmLog_('SpreadsheetTimeZoneV6137','Warning',String(eTz));}catch(ignoreTzLog){}}
+  var dateRepairNeeded=!!(tzRepair&&tzRepair.changed);
+  try{dateRepairNeeded=sbmEffectDateRepairNeededV6137_()||dateRepairNeeded;}catch(eDateDetect){try{sbmLog_('EffectDateRepairDetectV6137','Warning',String(eDateDetect));}catch(ignoreDateDetectLog){}}
   if(dateRepairNeeded){
     try{
-      sbmRepairHistoryDateValuesV6136_();
+      sbmRepairHistoryDateValuesV6137_();
       sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});
       sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;
-      try{sbmLog_('EffectDateRepairV6136','Info','日付破損を検出したため改善の推移を再生成しました。');}catch(ignoreRepairLog){}
+      try{sbmLog_('EffectDateRepairV6137','Info','日付破損を検出したため改善の推移を再生成しました。');}catch(ignoreRepairLog){}
     }catch(eDateRefresh){
-      try{sbmLog_('EffectDateRepairV6136','Warning',String(eDateRefresh));}catch(ignoreDateRefreshLog){}
+      try{sbmLog_('EffectDateRepairV6137','Warning',String(eDateRefresh));}catch(ignoreDateRefreshLog){}
     }
   }
   if(!dateRepairNeeded && sbmEffectViewNeedsOneTimeRefresh_(sh)){
@@ -9965,15 +9968,23 @@ function sbmApplyArticleDbRowColors_(sh) {
 /**
  * 日本語日時も再解析できる共通日付パーサー。
  */
+function sbmCanonicalTimeZone_(){
+  return (SBM_DEFAULTS && SBM_DEFAULTS.TIMEZONE) ? SBM_DEFAULTS.TIMEZONE : 'Asia/Tokyo';
+}
+
+function sbmDateFromCanonicalParts_(y,m,d,h,min,sec,ms){
+  // SIMSの標準運用TZはAsia/Tokyo。Dateの実体はUTC instantなので、
+  // 「東京の暦日時」を一意に表すinstantへ変換して保持する。
+  return new Date(Date.UTC(Number(y),Number(m)-1,Number(d),Number(h||0)-9,Number(min||0),Number(sec||0),Number(ms||0)));
+}
+
 function sbmSheetSerialDate_(serial) {
   var n=Number(serial);
   if(!isFinite(n) || n<1 || n>100000) return null;
-  // Google Sheets/Excel互換の基準日 1899-12-30。シリアルの暦日を
-  // スクリプトのローカルDateへ組み直し、タイムゾーン差で前日化するのを防ぐ。
   var totalMs=Math.round(n*86400000);
   var u=new Date(Date.UTC(1899,11,30)+totalMs);
   if(isNaN(u.getTime()))return null;
-  return new Date(u.getUTCFullYear(),u.getUTCMonth(),u.getUTCDate(),u.getUTCHours(),u.getUTCMinutes(),u.getUTCSeconds(),u.getUTCMilliseconds());
+  return sbmDateFromCanonicalParts_(u.getUTCFullYear(),u.getUTCMonth()+1,u.getUTCDate(),u.getUTCHours(),u.getUTCMinutes(),u.getUTCSeconds(),u.getUTCMilliseconds());
 }
 
 function sbmParseDate_(value) {
@@ -9984,13 +9995,10 @@ function sbmParseDate_(value) {
   if (typeof value === 'number') {
     var serialDate=sbmSheetSerialDate_(value);
     if(serialDate)return serialDate;
-    // Unix epoch millisecondsだけは互換入力として許可する。
     if(value>=946684800000 && value<=7258118400000){var epochDate=new Date(value);return isNaN(epochDate.getTime())?null:epochDate;}
     return null;
   }
-
   var s = String(value).trim();
-  // 書式を失って文字列化されたSheetsシリアルも救済する。
   if(/^\d+(?:\.\d+)?$/.test(s)){
     var serialText=sbmSheetSerialDate_(Number(s));
     if(serialText)return serialText;
@@ -9998,51 +10006,87 @@ function sbmParseDate_(value) {
   }
   var jp = s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日(?:（.）)?(?:(朝|午前|午後|夜|深夜)(\d{1,2}):(\d{2}))?/);
   if (jp) {
-    var y = Number(jp[1]), m = Number(jp[2]) - 1, d = Number(jp[3]);
+    var y = Number(jp[1]), m = Number(jp[2]), d = Number(jp[3]);
     var h = Number(jp[5] || 0), min = Number(jp[6] || 0);
     if (jp[4] === '午後' && h < 12) h += 12;
     if (jp[4] === '夜' && h < 12) h += 12;
-    return new Date(y, m, d, h, min, 0);
+    return sbmDateFromCanonicalParts_(y,m,d,h,min,0,0);
   }
-  // yyyy-mm-dd / yyyy/mm/dd は暦日としてローカルDate化する。
   var ymd=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[T\s].*)?$/);
   if(ymd){
-    var localDate=new Date(Number(ymd[1]),Number(ymd[2])-1,Number(ymd[3]),0,0,0,0);
-    return isNaN(localDate.getTime())?null:localDate;
+    var canonicalDate=sbmDateFromCanonicalParts_(Number(ymd[1]),Number(ymd[2]),Number(ymd[3]),0,0,0,0);
+    return isNaN(canonicalDate.getTime())?null:canonicalDate;
   }
   var direct=new Date(s);
-  if(!isNaN(direct.getTime()) && direct.getFullYear()>=1900 && direct.getFullYear()<=2200)return direct;
+  if(!isNaN(direct.getTime()) && Number(Utilities.formatDate(direct,sbmCanonicalTimeZone_(),'yyyy'))>=1900 && Number(Utilities.formatDate(direct,sbmCanonicalTimeZone_(),'yyyy'))<=2200)return direct;
   var normalized = s.replace(/\./g, '/').replace(/-/g, '/');
   var d2 = new Date(normalized);
-  return (!isNaN(d2.getTime()) && d2.getFullYear()>=1900 && d2.getFullYear()<=2200) ? d2 : null;
+  var yr=!isNaN(d2.getTime())?Number(Utilities.formatDate(d2,sbmCanonicalTimeZone_(),'yyyy')):0;
+  return (!isNaN(d2.getTime()) && yr>=1900 && yr<=2200) ? d2 : null;
 }
 
-function sbmRepairHistoryDateValuesV6136_(){
+function sbmEnsureSpreadsheetTimeZoneV6137_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  if(!ss)return {changed:false,from:'',to:sbmCanonicalTimeZone_()};
+  var expected=sbmCanonicalTimeZone_();
+  var current='';
+  try{current=String(ss.getSpreadsheetTimeZone()||'');}catch(eGet){}
+  if(current===expected)return {changed:false,from:current,to:expected};
+  try{
+    ss.setSpreadsheetTimeZone(expected);
+    try{sbmLog_('SpreadsheetTimeZoneV6137','Info','from='+current+', to='+expected);}catch(ignoreLog){}
+    return {changed:true,from:current,to:expected};
+  }catch(eSet){
+    try{sbmLog_('SpreadsheetTimeZoneV6137','Warning',String(eSet));}catch(ignoreLog2){}
+    return {changed:false,from:current,to:expected,error:String(eSet)};
+  }
+}
+
+function sbmHistoryCompletedAtDateV6137_(jsonText){
+  var s=String(jsonText||'').trim();
+  if(!s)return null;
+  try{
+    var o=JSON.parse(s);
+    var v=String(o.completed_at||o.completedAt||'').trim();
+    var m=v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return sbmDateFromCanonicalParts_(Number(m[1]),Number(m[2]),Number(m[3]),0,0,0,0);
+  }catch(ignore){}
+  return null;
+}
+
+function sbmRepairHistoryDateValuesV6137_(){
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
   if(!sh||sh.getLastRow()<2)return {checked:0,repaired:0,formatRepaired:false};
-  var hm=sbmHeaderMap_(sh),col=hm['改善日'];
+  var hm=sbmHeaderMap_(sh),col=hm['改善日'],jsonCol=hm['AI改善結果JSON'];
   if(!col)return {checked:0,repaired:0,error:'改善日列なし'};
-  var n=sh.getLastRow()-1,rg=sh.getRange(2,col,n,1),vals=rg.getValues(),formats=rg.getNumberFormats(),repaired=0,formatNeeds=false;
+  var n=sh.getLastRow()-1,rg=sh.getRange(2,col,n,1),vals=rg.getValues(),formats=rg.getNumberFormats();
+  var jsonVals=jsonCol?sh.getRange(2,jsonCol,n,1).getDisplayValues():null;
+  var repaired=0,formatNeeds=false,tz=sbmCanonicalTimeZone_();
   for(var i=0;i<vals.length;i++){
     var raw=vals[i][0];
     if(raw===''||raw===null||raw===undefined)continue;
-    var d=sbmParseDate_(raw);
+    var expected=jsonVals?sbmHistoryCompletedAtDateV6137_(jsonVals[i][0]):null;
+    var d=expected||sbmParseDate_(raw);
     if(!d)continue;
-    var clean=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0);
-    var isDate=Object.prototype.toString.call(raw)==='[object Date]'&&!isNaN(raw.getTime());
-    var needs=!isDate || raw.getFullYear()!==clean.getFullYear() || raw.getMonth()!==clean.getMonth() || raw.getDate()!==clean.getDate() || raw.getHours()!==0 || raw.getMinutes()!==0 || raw.getSeconds()!==0 || raw.getMilliseconds()!==0;
-    if(needs){vals[i][0]=clean;repaired++;}
+    var desiredKey=Utilities.formatDate(d,tz,'yyyy-MM-dd');
+    var currentKey='';
+    if(Object.prototype.toString.call(raw)==='[object Date]'&&!isNaN(raw.getTime())) currentKey=Utilities.formatDate(raw,tz,'yyyy-MM-dd');
+    else {var parsedRaw=sbmParseDate_(raw); if(parsedRaw)currentKey=Utilities.formatDate(parsedRaw,tz,'yyyy-MM-dd');}
+    var canonical=sbmDateFromCanonicalParts_(Number(desiredKey.slice(0,4)),Number(desiredKey.slice(5,7)),Number(desiredKey.slice(8,10)),0,0,0,0);
+    if(currentKey!==desiredKey || !(Object.prototype.toString.call(raw)==='[object Date]') || raw.getTime()!==canonical.getTime()){
+      vals[i][0]=canonical; repaired++;
+    }
     var fmt=String(formats[i][0]||'');
     if(!/^yyyy[\/-]M[\/-]d$/i.test(fmt) && !/^yyyy[\/-]mm[\/-]dd$/i.test(fmt))formatNeeds=true;
   }
   if(repaired)rg.setValues(vals);
   if(repaired||formatNeeds)rg.setNumberFormat('yyyy/M/d');
-  if(repaired||formatNeeds){try{sbmLog_('HistoryDateRepairV6136','Info','checked='+n+', repaired='+repaired+', formatRepaired='+(formatNeeds?'1':'0'));}catch(ignoreLog){}}
+  if(repaired||formatNeeds){try{sbmLog_('HistoryDateRepairV6137','Info','checked='+n+', repaired='+repaired+', formatRepaired='+(formatNeeds?'1':'0'));}catch(ignoreLog){}}
   return {checked:n,repaired:repaired,formatRepaired:formatNeeds};
 }
 
-/** v6.1.36: 改善の推移を開く前に、既知の日付破損だけを軽量検出する。 */
-function sbmEffectDateRepairNeededV6136_(){
+/** v6.1.37: 改善の推移を開く前に、既知の日付破損とTZ不一致を軽量検出する。 */
+function sbmEffectDateRepairNeededV6137_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   try{
     var hist=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
@@ -11858,6 +11902,9 @@ function onOpen() {
     .addSeparator()
     .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();
+
+  // v6.1.37: SIMS標準TZへ軽量統一。メニュー生成後なので失敗してもメニューは維持される。
+  try{sbmEnsureSpreadsheetTimeZoneV6137_();}catch(ignoreTimeZoneRepair){}
 
   // v6.1.34: メニューを先に確定させてから、一度限りの互換修復を実行する。
   // 修復が失敗・長時間化してもメニュー自体は既に利用可能な状態を維持する。

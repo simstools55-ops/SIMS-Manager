@@ -1,7 +1,7 @@
-SIMS Manager v6.1.36 release audit
-Canonical version: 6.1.36
-Full display: v6.1.36
-Starter display: v6.1.36-ST
+SIMS Manager v6.1.37 release audit
+Canonical version: 6.1.37
+Full display: v6.1.37
+Starter display: v6.1.37-ST
 Syntax: PASS
 Edition parity: PASS
 Date repair path: open -> detect -> idempotent repair -> view-only rebuild (only when needed)
