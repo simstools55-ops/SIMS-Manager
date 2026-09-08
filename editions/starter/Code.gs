@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.28
+ * SIMS Manager Product v6.1.29
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.28';
+const SBM_VERSION = '6.1.29';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.28';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.29: 観察終了後処置をArticleID+改善履歴IDで固定し、過去Doctor Case誤適用と1件処理後の全一覧再生成を防止。
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
 // v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
@@ -12640,35 +12641,109 @@ function sbmLatestDoctorCaseForArticle_(articleId,url){
   return best||{};
 }
 
+
+/**
+ * v6.1.29: 「改善の推移」の現在サイクルとDoctor Caseを厳密に結び付ける。
+ * ArticleIDだけで過去Caseを拾うと、別サイクルのNORMAL_CLOSE/MONITORINGが
+ * 現在の4週完了案件へ誤適用されるため、改善履歴IDを主キーとして扱う。
+ */
+function sbmEffectHistoryForRow_(effectRow){
+  effectRow=effectRow||{};
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
+  var hid=String(effectRow['改善履歴ID']||'').trim();
+  if(hid){
+    for(var i=histories.length-1;i>=0;i--){
+      if(String(histories[i]['改善履歴ID']||'').trim()===hid)return histories[i];
+    }
+  }
+  var articleId=String(effectRow['ArticleID']||'').trim(), norm=sbmNormalizeUrl_(effectRow['記事URL']||'');
+  var start=sbmParseDate_(effectRow['改善・治療開始日']||'');
+  var best=null;
+  for(var j=histories.length-1;j>=0;j--){
+    var h=histories[j]||{};
+    var same=(articleId&&String(h['ArticleID']||'').trim()===articleId)||(norm&&sbmNormalizeUrl_(h['記事URL']||'')===norm);
+    if(!same)continue;
+    if(start){
+      var hd=sbmParseDate_(h['改善日']||'');
+      if(hd && Utilities.formatDate(hd,SBM_DEFAULTS.TIMEZONE,'yyyyMMdd')===Utilities.formatDate(start,SBM_DEFAULTS.TIMEZONE,'yyyyMMdd'))return h;
+    }
+    if(!best)best=h;
+  }
+  return best||{};
+}
+function sbmDoctorCaseMatchesEffectCycle_(doctor,effectRow,history){
+  doctor=doctor||{}; effectRow=effectRow||{}; history=history||{};
+  if(!Object.keys(doctor).length)return false;
+  var hid=String(history['改善履歴ID']||effectRow['改善履歴ID']||'').trim();
+  var dhid=String(doctor['改善履歴ID']||'').trim();
+  if(hid && dhid)return hid===dhid;
+  // 旧Caseで改善履歴IDがないものは、現在サイクルの終端状態を決める材料にしない。
+  // 例外として、既に作成済みの「Doctor再診→経過観察」サイクル自身だけはMONITORINGを許容。
+  var route=String(history['改善経路']||effectRow['改善経路']||'').trim();
+  var code=String(doctor['状態コード']||'').trim();
+  if(!dhid && code==='MONITORING' && route.indexOf('Doctor再診→経過観察')>=0)return true;
+  return false;
+}
+function sbmFindEffectRowByTarget_(sh,target){
+  if(!sh||sh.getName()!==SBM_SHEETS.EFFECT||sh.getLastRow()<2)return 0;
+  target=target||{};
+  var hm=sbmHeaderMap_(sh), n=sh.getLastRow()-1;
+  var ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():null;
+  var urls=hm['記事URL']?sh.getRange(2,hm['記事URL'],n,1).getDisplayValues():null;
+  var hids=hm['改善履歴ID']?sh.getRange(2,hm['改善履歴ID'],n,1).getDisplayValues():null;
+  var tid=String(target.articleId||'').trim(), turl=sbmNormalizeUrl_(target.url||''), thid=String(target.historyId||'').trim();
+  var fallback=0;
+  for(var i=0;i<n;i++){
+    var id=ids?String(ids[i][0]||'').trim():'', url=urls?sbmNormalizeUrl_(urls[i][0]||''):'', hid=hids?String(hids[i][0]||'').trim():'';
+    var identity=(tid&&id===tid)||(turl&&url===turl);
+    if(!identity)continue;
+    if(thid && hid===thid)return i+2;
+    if(!fallback)fallback=i+2;
+  }
+  return fallback;
+}
+function sbmRemoveOnlySelectedEffectRow_(sh,row){
+  if(!sh||row<2||row>sh.getLastRow())return false;
+  try{sh.deleteRow(row);return true;}catch(e){
+    try{var hm=sbmHeaderMap_(sh);if(hm['選択'])sh.getRange(row,hm['選択']).setValue(false);}catch(ignore){}
+    return false;
+  }
+}
+
 function sbmEffectLifecycleState_(effectRow){
+  effectRow=effectRow||{};
   var finalOutcome=sbmEffectFinalOutcomeForRow_(effectRow);
   var measurementComplete=sbmEffectMeasurementComplete_(effectRow);
-  var articleId=String(effectRow&&effectRow['ArticleID']||'').trim(),url=String(effectRow&&effectRow['記事URL']||'').trim();
+  var articleId=String(effectRow['ArticleID']||'').trim(),url=String(effectRow['記事URL']||'').trim();
+  var history=sbmEffectHistoryForRow_(effectRow);
   var doctor=sbmLatestDoctorCaseForArticle_(articleId,url);
-  var doctorCode=String(doctor['状態コード']||'').trim(),reviewDate=String(doctor['再診予定日']||'').trim();
+  var linked=sbmDoctorCaseMatchesEffectCycle_(doctor,effectRow,history);
+  var doctorCode=linked?String(doctor['状態コード']||'').trim():'';
+  var reviewDate=linked?String(doctor['再診予定日']||'').trim():'';
 
-  if(doctorCode==='MONITORING' && String(doctor['治療アクション']||'').toUpperCase()==='MONITOR'){
-    return {code:'DOCTOR_MONITORING',label:'追加経過観察中',finalOutcome:finalOutcome,reviewDate:reviewDate,doctor:doctor};
+  // 現在サイクルの観察が未完了なら、過去Doctor Caseより測定状態を優先する。
+  if(!measurementComplete){
+    return {code:'MEASURING',label:'経過観察中',finalOutcome:finalOutcome,reviewDate:'',doctor:linked?doctor:{},history:history};
+  }
+
+  var visibleJudgment=String(effectRow['判定']||'').trim();
+  var reviewRequired=(finalOutcome==='再改善必要'||['見直し候補','要確認','変化小','要再診'].indexOf(visibleJudgment)>=0);
+  if(reviewRequired){
+    // 同じ改善履歴IDに紐づくDoctor結果がMONITORなら、保存済み結果から追加観察へ復旧できる。
+    if(doctorCode==='MONITORING' && String(doctor['治療アクション']||'').toUpperCase()==='MONITOR'){
+      return {code:'DOCTOR_MONITORING',label:'追加経過観察中',finalOutcome:finalOutcome,reviewDate:reviewDate,doctor:doctor,history:history};
+    }
+    // NORMAL_CLOSEを含む過去Caseは現在の「再改善必要」を上書きしない。
+    return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:'再改善必要',reviewDate:'',doctor:linked?doctor:{},history:history};
+  }
+
+  if(finalOutcome==='改善完了'){
+    return {code:'COMPLETED',label:'観察完了',finalOutcome:finalOutcome,reviewDate:'',doctor:linked?doctor:{},history:history};
   }
   if(doctorCode==='DOCTOR_NORMAL_CLOSE'){
-    return {code:'NORMAL_CLOSE',label:String(doctor['状態']||'低需要・維持（正常終了）'),finalOutcome:'正常終了',reviewDate:'',doctor:doctor};
+    return {code:'NORMAL_CLOSE',label:String(doctor['状態']||'低需要・維持（正常終了）'),finalOutcome:'正常終了',reviewDate:'',doctor:doctor,history:history};
   }
-  if(!measurementComplete){
-    return {code:'MEASURING',label:'経過観察中',finalOutcome:finalOutcome,reviewDate:'',doctor:doctor};
-  }
-  if(finalOutcome==='改善完了'){
-    return {code:'COMPLETED',label:'観察完了',finalOutcome:finalOutcome,reviewDate:'',doctor:doctor};
-  }
-  if(finalOutcome==='再改善必要'){
-    return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:finalOutcome,reviewDate:'',doctor:doctor};
-  }
-
-  // 4/4到達後の表示判定が見直し系なら、履歴側の補助ラベルが古くても再診へ進める。
-  var visibleJudgment=String(effectRow&&effectRow['判定']||'').trim();
-  if(measurementComplete && ['見直し候補','要確認','変化小'].indexOf(visibleJudgment)>=0){
-    return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:'再改善必要',reviewDate:'',doctor:doctor};
-  }
-  return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:finalOutcome||'経過観察中',reviewDate:'',doctor:doctor};
+  return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:finalOutcome||'経過観察中',reviewDate:'',doctor:linked?doctor:{},history:history};
 }
 
 function sbmProcessSelectedEffectAfterObservation(){
@@ -12682,9 +12757,17 @@ function sbmProcessSelectedEffectAfterObservation(){
   // v5.21.48: aDoctor再診PackageはSearch Console/Evidence収集を伴い、数十秒かかることがある。
   // メニューから同期実行すると「何も起きない」ように見えるため、まず進捗ダイアログを即時表示し、
   // 実処理はgoogle.script.runで別実行に分離する。日次処理ロジックには触れない。
+  var rec=sbmRowRecord_(sh,row),history=sbmEffectHistoryForRow_(rec);
   var props=PropertiesService.getDocumentProperties();
-  props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW',String(row));
+  props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW',String(row)); // 旧版互換の補助情報
   props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_SHEET',String(sh.getName()));
+  props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_TARGET',JSON.stringify({
+    articleId:String(rec['ArticleID']||'').trim(),
+    url:String(rec['記事URL']||'').trim(),
+    historyId:String(history&&history['改善履歴ID']||rec['改善履歴ID']||'').trim(),
+    title:String(rec['記事タイトル']||'').trim(),
+    requestedAt:sbmNowText_()
+  }));
   return sbmShowEffectAfterObservationProgressDialog_();
 }
 
@@ -12700,13 +12783,22 @@ function sbmShowEffectAfterObservationProgressDialog_(){
 function sbmProcessSelectedEffectAfterObservationWorker(){
   var props=PropertiesService.getDocumentProperties();
   var sheetName=String(props.getProperty('SBM_EFFECT_AFTER_OBSERVATION_SHEET')||SBM_SHEETS.EFFECT);
-  var row=Number(props.getProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW')||0);
+  var fallbackRow=Number(props.getProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW')||0),target={};
+  try{target=JSON.parse(String(props.getProperty('SBM_EFFECT_AFTER_OBSERVATION_TARGET')||'{}'));}catch(ignoreTargetJson){target={};}
   props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_SHEET');
   props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW');
+  props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_TARGET');
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
-  if(!sh||sh.getName()!==SBM_SHEETS.EFFECT||row<2)throw new Error('選択した改善の推移データを確認できません。もう一度チェックして実行してください。');
+  if(!sh||sh.getName()!==SBM_SHEETS.EFFECT)throw new Error('改善の推移を確認できません。');
+  var row=sbmFindEffectRowByTarget_(sh,target);
+  if(!row && fallbackRow>=2){
+    var fallbackRec=sbmRowRecord_(sh,fallbackRow);
+    var sameFallback=(!target.articleId||String(fallbackRec['ArticleID']||'').trim()===String(target.articleId))&&(!target.url||sbmNormalizeUrl_(fallbackRec['記事URL']||'')===sbmNormalizeUrl_(target.url));
+    if(sameFallback)row=fallbackRow;
+  }
+  if(row<2)throw new Error('選択した記事の現在サイクルを確認できません。並べ替え後でもArticleIDと改善履歴IDで再検索しますので、対象をもう一度1件選択してください。');
 
-  var rec=sbmRowRecord_(sh,row),life=sbmEffectLifecycleState_(rec),title=String(rec['記事タイトル']||'対象記事');
+  var rec=sbmRowRecord_(sh,row),life=sbmEffectLifecycleState_(rec),title=String(rec['記事タイトル']||target.title||'対象記事');
   if(life.code==='MEASURING'){
     sbmAlert_('まだ経過観察中です',title+'\n\n測定回数：'+String(rec['測定回数']||'')+'\n所定の観察期間が終わるまで追加処置は行いません。');
     return {ok:true,message:'まだ経過観察中です。'};
@@ -12733,7 +12825,8 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
     try{sbmSetMonitoringLifecycleByHistoryId_(rec['改善履歴ID'],'COMPLETED');}catch(ignoreLifeNormalClose){}
     sbmMarkArticleMeasurementComplete_(String(rec['ArticleID']||''));
     try{sh.getRange(row,sbmHeaderMap_(sh)['選択']).setValue(false);}catch(ignoreSelNormalClose){}
-    try{sbmUpdateEffectivenessCore_(false);sbmRefreshHome_();}catch(ignoreRefreshNormalClose){}
+    try{sbmRemoveOnlySelectedEffectRow_(sh,row);}catch(ignoreRemoveNormalClose){}
+    try{sbmRefreshHome_();}catch(ignoreRefreshNormalClose){}
     sbmAlert_('aDoctor判定：正常終了',title+'\n\n'+life.label+'\n追加リライトは行わず、現役の改善進捗から外します。改善履歴とaDoctor診断記録は保持します。');
     return {ok:true,message:'正常終了として処理しました。'};
   }
@@ -12741,14 +12834,18 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
     try{sbmSetMonitoringLifecycleByHistoryId_(rec['改善履歴ID'],'COMPLETED');}catch(ignoreLifeComplete){}
     sbmMarkArticleMeasurementComplete_(String(rec['ArticleID']||''));
     try{sh.getRange(row,sbmHeaderMap_(sh)['選択']).setValue(false);}catch(ignoreSel){}
-    try{sbmUpdateEffectivenessCore_(false);sbmRefreshHome_();}catch(ignoreRefresh){}
+    try{sbmRemoveOnlySelectedEffectRow_(sh,row);}catch(ignoreRemoveComplete){}
+    try{sbmRefreshHome_();}catch(ignoreRefresh){}
     sbmAlert_('経過観察終了',title+'\n\n所定の経過観察期間が終了し、改善完了と判定されています。\n現役の推移一覧から卒業し、改善履歴には記録を残します。');
     return {ok:true,message:'経過観察終了として処理しました。'};
   }
 
   // 再改善必要または確定不能の完了案件は、aWriterへ直行せずaDoctorへ再診。
-  // 旧データで改善履歴IDが空でも、ArticleID/URLから最新履歴を解決して可能ならライフサイクルを更新する。
-  var historyId=String(rec['改善履歴ID']||'').trim();
+  // v6.1.29: 過去NORMAL_CLOSE誤適用で記事管理だけ完了になった案件も、現在サイクルが再診必要ならモニター中へ復旧する。
+  try{sbmSetArticleWorkStateByIdentity_(String(rec['ArticleID']||''),String(rec['記事URL']||''),'👀 モニター中');}catch(ignoreReviewStateRepair){}
+  // 旧データで改善履歴IDが空でも、ArticleID/URLから現在サイクルの履歴を解決して可能ならライフサイクルを更新する。
+  var currentHistory=sbmEffectHistoryForRow_(rec);
+  var historyId=String(currentHistory&&currentHistory['改善履歴ID']||rec['改善履歴ID']||'').trim();
   if(!historyId){
     var latest=sbmDoctorFindLatestHistory_(String(rec['ArticleID']||'').trim(),String(rec['記事URL']||'').trim());
     historyId=String(latest&&latest['改善履歴ID']||'').trim();
@@ -12758,6 +12855,11 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
   // 登録エラー後に同じ診察を繰り返さないため、回答待ち／回答受領済みCaseを最優先で復元する。
   try{
     var resumable=sbmDoctorFindResumableEffectWorkflow_(rec);
+    if(resumable){
+      var rc=resumable.caseRow||{},caseIdResume=String(rc['CaseID']||'').trim(),metaResume=resumable.meta||{};
+      var resumeHistoryId=String(rc['改善履歴ID']||metaResume.history_id||'').trim();
+      if(historyId && resumeHistoryId && resumeHistoryId!==historyId)resumable=null;
+    }
     if(resumable){
       var rc=resumable.caseRow||{},caseIdResume=String(rc['CaseID']||'').trim(),metaResume=resumable.meta||{};
       var requestResume=sbmDoctorWorkflowReadPayload_(caseIdResume,'REQUEST'),payloadResume=null;

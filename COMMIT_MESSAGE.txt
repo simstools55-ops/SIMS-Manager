@@ -1,8 +1,9 @@
-feat: add Personal Knowledge viewer in v6.1.28
+fix: bind observation actions to the selected improvement cycle in v6.1.29
 
-- replace transient Personal Knowledge inspection alert with centered modal dialog
-- show current site identity, Site ID, storage and schema
-- add human-readable site Knowledge viewer with status, confidence, source and update time
-- add Personal Knowledge storage structure and item counts
-- retain explicit Drive permission diagnostics
-- keep Full at v6.1.28 and Starter at v6.1.28-ST
+- identify the target by ArticleID and Improvement History ID instead of row number alone
+- ignore stale Doctor Case terminal states that are not linked to the current improvement cycle
+- prevent old DOCTOR_NORMAL_CLOSE from overriding a current REVIEW_REQUIRED cycle
+- restore erroneously completed articles to monitoring when the current cycle still requires re-examination
+- stop rebuilding the entire Improvement Trend after a one-item completion action
+- preserve neighboring selections and rows during one-item processing
+- keep Full at v6.1.29 and Starter at v6.1.29-ST

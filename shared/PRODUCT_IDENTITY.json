@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.28",
+  "current_version": "6.1.29",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.28: Personal Knowledge inspection now uses a central modal and includes a human-readable viewer for site knowledge and storage structure.",
-  "version": "6.1.28",
-  "starter_display_version": "6.1.28-ST"
+  "notes": "v6.1.29: Personal Knowledge inspection now uses a central modal and includes a human-readable viewer for site knowledge and storage structure.",
+  "version": "6.1.29",
+  "starter_display_version": "6.1.29-ST"
 }
