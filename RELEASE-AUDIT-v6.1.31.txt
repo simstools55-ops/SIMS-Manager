@@ -1,0 +1,7 @@
+SIMS Manager v6.1.31 Release Audit
+
+PASS: Full and Starter code generated from one canonical source.
+PASS: Full display version v6.1.31 / Starter display version v6.1.31-ST.
+PASS: Doctor-result continuation requires matching ArticleID, SiteID (when present), and Improvement History ID.
+PASS: Prior result CaseID is remapped only after same-workflow validation.
+PASS: JavaScript syntax check passed on Full and Starter sources.

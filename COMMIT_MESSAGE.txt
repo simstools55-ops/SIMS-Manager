@@ -1,8 +1,8 @@
-fix: prioritize explicit Doctor treatment routing in v6.1.30
+fix: reuse prior Doctor result across safe observation-case continuation in v6.1.31
 
-- prioritize workflow_handoff.next_action over LOW_SAMPLE SERP outcomes
-- keep LOW_PRIORITY_SERP_STRUCTURE as a context signal, not an unconditional normal-close instruction
-- route LIGHT_FIX + WRITER cases to aWriter as directed by Doctor
-- preserve MERGE, MONITOR and USER_CONFIRMATION routing precedence
-- only normal-close low-priority SERP cases when no concrete action is present
-- keep Full at v6.1.30 and Starter at v6.1.30-ST
+- accept a prior Doctor result when a rerun issued a new CaseID for the same ArticleID, SiteID, and Improvement History ID
+- reject cross-article, cross-site, or cross-history Doctor results
+- remap the accepted result to the current CaseID before routing to Writer/Merge/Monitor
+- checkpoint the adopted result under the current workflow so registration can resume after errors
+- log DoctorResultContinuation for auditability
+- keep Full at v6.1.31 and Starter at v6.1.31-ST

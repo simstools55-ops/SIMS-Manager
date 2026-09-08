@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.30",
+  "current_version": "6.1.31",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.30: Doctor V2 routing precedence fixed so explicit WRITER/MERGE/MONITOR and treatment instructions override low-priority SERP labels.",
-  "version": "6.1.30",
+  "notes": "v6.1.31: observation re-examination can safely reuse a prior Doctor result when a rerun issued a new CaseID, only when ArticleID, SiteID, and Improvement History ID prove it is the same workflow.",
+  "version": "6.1.31",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.30-ST"
+  "starter_display_version": "6.1.31-ST"
 }

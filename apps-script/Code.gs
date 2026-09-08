@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.30
+ * SIMS Manager Product v6.1.31
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.30';
+const SBM_VERSION = '6.1.31';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.30';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'FULL';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
 // v6.1.30: Doctor V2 routing precedenceを修正。WRITER/MERGE/MONITOR等の明示指示・LIGHT_FIX等の治療指示をLOW_PRIORITY_SERP_STRUCTUREより優先し、誤正常終了を防止。
 // v6.1.29: 観察終了後処置をArticleID+改善履歴IDで固定し、過去Doctor Case誤適用と1件処理後の全一覧再生成を防止。
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
@@ -14883,7 +14884,14 @@ function sbmDoctorWorkflowCheckpointResponse_(requestText,responseText){
   var srcText=sbmDoctorExtractJsonText_(requestText),src=JSON.parse(srcText),caseId=String(src.case_id||src.request&&src.request.case_id||'').trim();
   if(!caseId)throw new Error('回答保存先のCaseIDを確認できません。');
   var resultText='';
-  try{resultText=sbmDoctorExtractResultJsonText_(responseText,caseId);}catch(e){resultText=String(responseText||'');}
+  try{resultText=sbmDoctorExtractResultJsonText_(responseText,caseId);}catch(e){
+    try{
+      var fallbackText=sbmDoctorExtractResultJsonText_(responseText,'');
+      var fallbackDoctor=JSON.parse(fallbackText);
+      var adopted=sbmDoctorAdoptPriorResultForRequest_(src,fallbackDoctor);
+      resultText=adopted?JSON.stringify(adopted):String(responseText||'');
+    }catch(ignoreCompatCheckpoint){resultText=String(responseText||'');}
+  }
   sbmDoctorWorkflowWritePayload_(caseId,'RESPONSE',resultText);
   sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'RESPONSE_RECEIVED',registration_status:'PENDING',response_received_at:sbmNowText_(),last_error:''});
   return {caseId:caseId,resultText:resultText};
@@ -15592,16 +15600,70 @@ function sbmDoctorSaveGeneratedWriterRequest_(caseId,req){
   // 利用者向け作業状態は通常改善と共通化。Doctor専用の短命な「診療中」は持たない。
   try{sbmSetArticleWorkStateByIdentity_(req.article_id,req.article&&req.article.url||'','🛠️ 処置中');}catch(eState){}
 }
+function sbmDoctorCanAdoptPriorResultForRequest_(source,doctor){
+  source=source||{};doctor=doctor||{};
+  var sourceCase=String(source.case_id||source.request&&source.request.case_id||'').trim();
+  var resultCase=String(doctor.case_id||doctor.case&&doctor.case.case_id||doctor.case_context&&doctor.case_context.case_id||'').trim();
+  if(!sourceCase||!resultCase||sourceCase===resultCase)return {ok:false};
+  var sourceArticle=String(source.article&&source.article.article_id||'').trim();
+  var resultArticle=String(doctor.article_id||doctor.article&&doctor.article.article_id||doctor.case_context&&doctor.case_context.article_id||'').trim();
+  if(!sourceArticle||!resultArticle||sourceArticle!==resultArticle)return {ok:false};
+  var sourceSite=String(source.site&&source.site.site_id||'').trim();
+  var resultSite=String(doctor.site_id||doctor.site&&doctor.site.site_id||doctor.case_context&&doctor.case_context.site_id||'').trim();
+  if(sourceSite&&resultSite&&sourceSite!==resultSite)return {ok:false};
+  var sourceHistory=String(source.improvement_context&&source.improvement_context.improvement_history_id||'').trim();
+  if(!sourceHistory)return {ok:false};
+  var prior=sbmDoctorFindCaseRow_(resultCase);
+  if(!prior)return {ok:false};
+  var priorArticle=String(prior.values[prior.hm['記事ID']-1]||'').trim();
+  var priorSite=String(prior.values[prior.hm['サイトID']-1]||'').trim();
+  if(priorArticle&&priorArticle!==sourceArticle)return {ok:false};
+  if(sourceSite&&priorSite&&priorSite!==sourceSite)return {ok:false};
+  var priorHistory=String(prior.values[prior.hm['改善履歴ID']-1]||'').trim();
+  var priorMeta=sbmDoctorWorkflowReadMeta_(resultCase)||{};
+  var metaHistory=String(priorMeta.history_id||'').trim();
+  if(priorHistory&&priorHistory!==sourceHistory)return {ok:false};
+  if(metaHistory&&metaHistory!==sourceHistory)return {ok:false};
+  if(!priorHistory&&!metaHistory)return {ok:false};
+  var workflowType=String(priorMeta.workflow_type||'').trim();
+  if(workflowType&&workflowType!=='EFFECT_AFTER_OBSERVATION')return {ok:false};
+  return {ok:true,priorCaseId:resultCase,currentCaseId:sourceCase,historyId:sourceHistory};
+}
+function sbmDoctorAdoptPriorResultForRequest_(source,doctor){
+  var compat=sbmDoctorCanAdoptPriorResultForRequest_(source,doctor);
+  if(!compat.ok)return null;
+  var adopted=JSON.parse(JSON.stringify(doctor));
+  adopted.sims_manager_continuation=adopted.sims_manager_continuation||{};
+  adopted.sims_manager_continuation.original_case_id=compat.priorCaseId;
+  adopted.sims_manager_continuation.adopted_case_id=compat.currentCaseId;
+  adopted.sims_manager_continuation.improvement_history_id=compat.historyId;
+  adopted.case_id=compat.currentCaseId;
+  if(String(adopted.site_diagnosis_case_id||'')===compat.priorCaseId)adopted.site_diagnosis_case_id=compat.currentCaseId;
+  if(adopted.case_context&&String(adopted.case_context.case_id||'')===compat.priorCaseId)adopted.case_context.case_id=compat.currentCaseId;
+  return adopted;
+}
 function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
   try{
-    var sourceText=sbmDoctorExtractJsonText_(requestJsonText),source,doctor,resultText='';
+    var sourceText=sbmDoctorExtractJsonText_(requestJsonText),source,doctor,resultText='',adoptedFromPrior=false;
     try{source=JSON.parse(sourceText);}catch(e){throw new Error('元のaDoctor依頼JSONを読み取れませんでした。ダイアログを閉じて、紹介状を作り直してください。');}
     var expectedCaseId=String(source.case_id||source.request&&source.request.case_id||'').trim();
     try{
       resultText=sbmDoctorExtractResultJsonText_(doctorResultText,expectedCaseId);
       doctor=JSON.parse(resultText);
     }catch(e2){
-      throw new Error('aDoctor診断結果JSONを読み取れませんでした。回答全文の中にある SIMS_DOCTOR_*_RESULT のJSONを確認してください。\n\n全文をそのまま貼り付けても、SIMSが結果JSONを自動抽出します。');
+      // v6.1.31: 観察終了後処置を再実行して新Caseが発行された場合でも、
+      // 同一ArticleID・SiteID・改善履歴IDに紐づく直前Caseの有効なDoctor回答は再診せず継続利用する。
+      try{
+        var fallbackText=sbmDoctorExtractResultJsonText_(doctorResultText,'');
+        var fallbackDoctor=JSON.parse(fallbackText);
+        var adopted=sbmDoctorAdoptPriorResultForRequest_(source,fallbackDoctor);
+        if(!adopted)throw e2;
+        doctor=adopted;
+        resultText=JSON.stringify(adopted);
+        adoptedFromPrior=true;
+      }catch(eCompat){
+        throw new Error('aDoctor診断結果JSONを読み取れませんでした。回答全文の中にある SIMS_DOCTOR_*_RESULT のJSONを確認してください。\n\n全文をそのまま貼り付けても、SIMSが結果JSONを自動抽出します。');
+      }
     }
     if(String(source.format||'')!==SBM_DOCTOR_SINGLE_CASE_FORMAT)throw new Error('このダイアログのaDoctor依頼形式を確認できません。');
     var f=String(doctor.format||'');if(f.indexOf('SIMS_WRITER_')===0)throw new Error('これはaWriterの結果JSONです。ここにはaDoctorの診断結果JSONを貼り付けてください。');
@@ -15609,6 +15671,7 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
     var n=sbmDoctorNormalizeCaseResult_(doctor);
     var sourceCase=String(source.case_id||source.request&&source.request.case_id||''),sourceArticle=String(source.article&&source.article.article_id||'');
     if(String(n.caseId)!==sourceCase)throw new Error('CaseIDが一致しません。別の記事の診断結果が貼り付けられています。\n依頼：'+sourceCase+'\n結果：'+n.caseId);
+    if(adoptedFromPrior){try{sbmLog_('DoctorResultContinuation','Info','article='+sourceArticle+' / current_case='+sourceCase+' / prior_result_case='+String(doctor.sims_manager_continuation&&doctor.sims_manager_continuation.original_case_id||'')+' / history='+String(source.improvement_context&&source.improvement_context.improvement_history_id||''));}catch(ignoreContinuationLog){}}
     var resultArticle=String(doctor.article_id||doctor.article&&doctor.article.article_id||'');if(resultArticle&&sourceArticle&&resultArticle!==sourceArticle)throw new Error('ArticleIDが一致しません。別の記事の診断結果です。');
     var saved=sbmDoctorStoreCaseResult_(doctor,n);
     // v5.18.0: aDoctorの再利用可能な学習候補をPersonal Knowledgeへ非同期的に取り込む。
