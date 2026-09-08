@@ -1,8 +1,6 @@
-fix: normalize spreadsheet timezone and repair shifted improvement dates in v6.1.37
+fix: detect canonical completed_at mismatches after timezone repair in v6.1.38
 
-- enforce Asia/Tokyo as the SIMS spreadsheet timezone after menu creation
-- align Spreadsheet, Apps Script manifest, and SIMS canonical date handling
-- use AI改善結果JSON.completed_at as authoritative history date when available
-- rebuild Improvement Trend only when timezone/date repair changes data
-- prevent one-day date shifts caused by America/Los_Angeles spreadsheet settings
-- keep Full at v6.1.37 and Starter at v6.1.37-ST
+- compare Improvement History dates with AI result completed_at during lightweight view checks
+- repair one-day shifts even when spreadsheet timezone is already Asia/Tokyo
+- read canonical JSON values directly and rebuild Improvement Trend only on mismatch
+- keep Full at v6.1.38 and Starter at v6.1.38-ST
