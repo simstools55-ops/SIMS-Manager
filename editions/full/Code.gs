@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.33
+ * SIMS Manager Product v6.1.34
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.33';
+const SBM_VERSION = '6.1.34';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.33';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'FULL';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.34: onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
 // v6.1.33: Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
 // v6.1.32: 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
 // v6.1.31: 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
@@ -11696,9 +11697,7 @@ function onOpen() {
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
   var isFullEdition = String(SBM_EDITION || '').toUpperCase() === 'FULL';
-  // v6.1.21: 旧版でDoctor結果だけ保存され、改善履歴/改善の推移が切り替わらなかった案件を一度だけ自動救済。
-  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
-  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
+  // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
   ui.createMenu('SIMS今日の作業')
     .addItem('1．Homeを開く','sbmOpenHome')
@@ -11766,6 +11765,11 @@ function onOpen() {
     .addSeparator()
     .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();
+
+  // v6.1.34: メニューを先に確定させてから、一度限りの互換修復を実行する。
+  // 修復が失敗・長時間化してもメニュー自体は既に利用可能な状態を維持する。
+  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
+  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
 
   // v5.21.53: 起動時は利用者向け5シートだけを表示し、内部管理シートが前回操作で露出していても再び隠す。
   try { sbmApplyProductVisibleTabs_(); } catch (eTabs) { try { sbmLog_('OnOpenVisibleTabs','Warning',String(eTabs)); } catch(ignoreTabs) {} }
@@ -15777,9 +15781,6 @@ function sbmRunV6133DoctorContinuationRepairOnce_(){
     var cont=doctor&&doctor.sims_manager_continuation||{},priorCaseId=String(cont.original_case_id||'').trim();
     if(priorCaseId&&priorCaseId!==currentCaseId){
       try{if(sbmDoctorMarkContinuationSuperseded_(priorCaseId,currentCaseId,'v6.1.33 continuation repair'))repaired++;}catch(ignoreSupersede){}
-    }
-    if(String(c['状態コード']||'').trim()==='MONITORING'){
-      try{sbmDoctorFinalizeWorkflowAfterWriter_(currentCaseId,String(c['改善履歴ID']||'').trim());}catch(ignoreFinalize){}
     }
   });
   props.setProperty(key,'1');
