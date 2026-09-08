@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.1.24-Starter
+ * SIMS Manager Product v6.1.25-ST
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.24';
+const SBM_VERSION = '6.1.25';
+// v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
 // v6.1.24: 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
 // v6.1.22: 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
 // v6.1.21: Doctor WAIT/MONITORの状態遷移をDoctor Case→改善履歴→改善の推移→記事管理で一体同期。旧WORKFLOW_LOCKED案件を起動時に一度だけ救済し、改善履歴は初回だけ全体装飾・以後は新規行のみ整形。記事管理はデータ更新日を非表示化しArticleIDを利用者向け一覧へ表示。
@@ -12,7 +13,7 @@ const SBM_VERSION = '6.1.24';
 // v6.1.18: v6.1.16以前に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
-const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-Starter' : '');
+const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
 // v6.1.15: 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
 // v6.1.14: 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
 // v6.1.13: Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
@@ -1167,7 +1168,7 @@ function sbmBuildHomeSheet_() {
   sh.clear();
   if (sh.getMaxRows() < 24) sh.insertRowsAfter(sh.getMaxRows(), 24 - sh.getMaxRows());
 
-  sh.getRange('A1:G1').merge().setValue('SIMS Manager  Home');
+  sh.getRange('A1:G1').merge().setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');
   sh.getRange('H1').setValue('v' + SBM_DISPLAY_VERSION);
   sh.getRange('A2').setValue('サイト名'); sh.getRange('B2:D2').merge();
   sh.getRange('E2').setValue('最終更新'); sh.getRange('F2:H2').merge();
@@ -6780,6 +6781,13 @@ function sbmEnsureHistoryAndEffectSchemas_() {
   });
 }
 
+function sbmInvalidateImprovementHistoryStyle_(){
+  try{
+    var props=PropertiesService.getDocumentProperties(),all=props.getProperties()||{};
+    Object.keys(all).forEach(function(k){if(String(k).indexOf('SBM_HISTORY_VIEW_STYLE_')===0)props.deleteProperty(k);});
+  }catch(ignore){}
+}
+
 function sbmMigrateSheetByHeaderNames_(sheetName, newHeaders, aliases) {
   var sh = sbmGetOrCreateSheet_(sheetName);
   var oldRows = [];
@@ -6792,6 +6800,8 @@ function sbmMigrateSheetByHeaderNames_(sheetName, newHeaders, aliases) {
     });
   }
   sh.clear();
+  // v6.1.25: schema migration clears formatting, so stale history style flags must not survive.
+  if(String(sheetName||'')===String(SBM_SHEETS.FEEDBACK_HISTORY||'')) sbmInvalidateImprovementHistoryStyle_();
   if (sh.getMaxColumns() < newHeaders.length) sh.insertColumnsAfter(sh.getMaxColumns(), newHeaders.length-sh.getMaxColumns());
   sh.getRange(1,1,1,newHeaders.length).setValues([newHeaders]);
   if (oldRows.length) {
@@ -10508,8 +10518,15 @@ function sbmEnsureImprovementHistoryViewLight_(){
   // v6.1.21: バージョン更新後の最初の1回だけ既存行をまとめて装飾する。
   // 2回目以降の「改善履歴を開く」は全行再装飾を行わず高速表示する。
   var props=PropertiesService.getDocumentProperties();
-  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_23_'+String(sh.getSheetId());
-  if(props.getProperty(styleKey)==='1')return;
+  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_25_'+String(sh.getSheetId());
+  if(props.getProperty(styleKey)==='1'){
+    // v6.1.25: a schema migration may have cleared formatting while leaving an old ready flag.
+    // Trust the cache only when the visible header formatting is still intact.
+    var styleIntact=false;
+    try{styleIntact=String(sh.getRange(1,1).getBackground()||'').toLowerCase()==='#0b8043';}catch(ignoreStyleCheck){}
+    if(styleIntact)return;
+    try{props.deleteProperty(styleKey);}catch(ignoreStyleKey){}
+  }
 
   var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
   sh.setFrozenRows(1);
@@ -10526,7 +10543,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   }
   sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
   sh.setRowHeight(1,34);
-  var widths={'選択':48,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,'1週':74,'2週':74,'3週':74,'4週':74,'最終判定':112};
+  var widths={'選択':48,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':360,'改善経路':130,'1週':78,'2週':78,'3週':78,'4週':78,'最終判定':118};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
 
   // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
@@ -10534,8 +10551,8 @@ function sbmEnsureImprovementHistoryViewLight_(){
   if(n){
     try{sh.setRowHeights(2,n,58);}catch(ignoreHeights){}
     if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
-    if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('top');}catch(ignoreTitle){}
-    if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('top');}catch(ignoreSummary){}
+    if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
+    if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
     if(hm['改善経路'])try{sh.getRange(2,hm['改善経路'],n,1).setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
     if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週']){
       var judge=sh.getRange(2,hm['1週'],n,hm['最終判定']-hm['1週']+1),vals=judge.getDisplayValues(),cs=[],ws=[],bs=[];

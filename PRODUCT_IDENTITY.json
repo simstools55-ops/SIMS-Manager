@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.1.24",
+  "current_version": "6.1.25",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.1.24: Additional Doctor monitoring is classified from the active monitoring cycle itself as well as Doctor Case state. Improvement Trend and Improvement History now show ArticleID and support header filter sorting/filtering like Article Management.",
-  "version": "6.1.24",
+  "notes": "v6.1.25: Improvement History formatting is invalidated and restored after schema migration; Starter Home is explicitly labeled and Starter display version uses the compact -ST suffix.",
+  "version": "6.1.25",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.1.24-Starter"
+  "starter_display_version": "6.1.25-ST"
 }

@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.1.24  
+> **Current product:** SIMS Manager v6.1.25  
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.1.24`
+- Product Version: `6.1.25`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Main feature: Starter / Full Edition構成を正式な製品ベースラインとして導入。Fullを機能正本、Starterを同一リポジトリ内の派生Editionとして管理。
 
-> Current release: SIMS Manager Product v6.1.24
+> Current release: SIMS Manager Product v6.1.25
 
 ## Product 5.6.12 — 改善推移指標・Homeモニター表示
 
@@ -31,13 +31,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.1.24
+# SIMS Manager v6.1.25
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.1.24`
+`6.1.25`
 
 ## Creatorで作った新記事の登録
 
@@ -62,7 +62,7 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 - ルート `Code.gs` は **Full Editionの機能正本**です。
 - Starter Editionは `editions/starter/Code.gs` を使用し、Full正本から派生管理します。
 - Starter / Fullは同一バージョン体系・同一Spreadsheetデータ構造を共有します。
-- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.1.24はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.1.24-Starter です。
+- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.1.25はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.1.25-ST です。
 
 詳細は `EDITION_POLICY.md` を参照してください。
 

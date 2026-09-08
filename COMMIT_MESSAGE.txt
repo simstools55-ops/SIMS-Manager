@@ -1,7 +1,8 @@
-fix: catch up overdue weekly measurements in v6.1.24
+fix: restore history styling and shorten Starter identity in v6.1.25
 
-- detect overdue weekly measurement slots by Japan-local date
-- retry eligible overdue cycles during daily measurement processing
-- show overdue status clearly in Improvement Trend
-- log skipped overdue measurements with a concrete failure reason
-- keep Full at v6.1.24 and Starter at v6.1.24-Starter
+- invalidate cached Improvement History styling after schema migrations
+- detect lost history formatting and automatically reapply presentation
+- rebalance Improvement History visible column widths
+- label Starter Home as SIMS Manager Starter Home
+- shorten Starter display version to v6.1.25-ST
+- keep canonical Full/Starter version at 6.1.25
