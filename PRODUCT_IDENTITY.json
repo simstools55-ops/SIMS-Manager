@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.7",
+  "current_version": "6.2.9",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.7: normal Writer feedback follow_up_referrals: MERGE is promoted into the formal aMerge workflow; existing saved feedback is recovered on unfinished-work resume.",
-  "version": "6.2.7",
+  "notes": "v6.2.9: 3件以上のWriter follow-up Mergeを2記事単位の連続Merge Workflowとして管理し、各Step完了時に次のPairを自動生成する。",
+  "version": "6.2.9",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.7-ST"
+  "starter_display_version": "6.2.9-ST"
 }

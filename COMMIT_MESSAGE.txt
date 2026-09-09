@@ -1,8 +1,8 @@
-fix: promote Writer merge follow-ups into workflow in v6.2.7
+fix: restore feedback Merge packages and show resume loading in v6.2.8
 
-- detect MERGE follow_up_referrals in normal SIMS_FEEDBACK results
-- create a formal Doctor_Cases Merge workflow linked to the improvement history
-- build the aMerge package from the real target articles and Evidence
-- recover previously saved Merge referrals when unfinished work is resumed
-- keep referral promotion idempotent by improvement history ID
-- update Full to v6.2.7 and Starter to v6.2.7-ST
+- rebuild oversized aMerge packages for Writer follow-up Merge cases
+- bypass Doctor V2 normalization for synthetic Writer follow-up referrals
+- preserve the saved referral targets when reconstructing the Merge package
+- show the unfinished-work dialog immediately with a loading spinner
+- move workflow discovery to a background google.script.run continuation
+- update Full to v6.2.8 and Starter to v6.2.8-ST

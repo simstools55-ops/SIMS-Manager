@@ -1,6 +1,12 @@
+## v6.2.9 - 2026-09-09
+
+- 3件以上のMerge referralを2記事単位の連続aMerge Workflowへ分解。
+- Step完了ごとに次Pairを自動生成し、最終Stepのみモニタリングへ移行。
+- 既存v6.2.7/v6.2.8の多記事Caseを結果受付前に安全アップグレード。
+
 # CHANGELOG
 
-## v6.2.7 - 2026-09-09
+## v6.2.8 - 2026-09-09
 - Promote normal-improvement Writer `follow_up_referrals: MERGE` into the formal Doctor_Cases/aMerge workflow.
 - Recover previously saved Merge follow-ups, including A000068/H000050-style cases, when unfinished work is resumed.
 - Generate the aMerge Package from the selected target articles and their current article/Evidence data without fabricating test state.
