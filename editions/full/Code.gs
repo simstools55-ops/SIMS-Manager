@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.18
+ * SIMS Manager Product v6.2.19
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.18';
+const SBM_VERSION = '6.2.19';
+// v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、旧『改善の推移』キャッシュの誤表示を開く時に軽量補正。
 // v6.2.18: 利用者目線の改善取りやめ確認へ統一。Writer/Merge結果登録文言を作業内容ベースへ変更し、Creator DirectをaDoctor追加経過観察へ誤分類する判定を修正。
 // v6.2.17: Workflow系ダイアログのUI統一監査を実施。未完了件数表記、コピー完了表示、復元文言、処置スキップ確認、Merge完了説明、新記事登録表示を統一。
 // v6.2.16: Merge補正対象を実Merge Caseへ限定し、通常MONITORING Caseの誤カウントを解消。確認文言も実処理に合わせて明確化。
@@ -8623,13 +8624,13 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     var finalOutcome=sbmFinalImprovementOutcome_(judgment,state.complete);
     var rating=sbmEvaluateEffectResult_((judgment==='大きく改善'||judgment==='改善')?'成功':judgment==='改善傾向'?'改善傾向':(judgment==='見直し候補'||judgment==='元に戻す検討')?'要再改善':judgment,posDelta,ctrDelta,clickDelta);
     var latestDoctor=sbmLatestDoctorCaseFromIndex_(doctorCaseIndex,String(h['ArticleID']||''),String(h['記事URL']||''));
-    var doctorMonitoring=String(latestDoctor['状態コード']||'')==='MONITORING' && String(latestDoctor['治療アクション']||'').toUpperCase()==='MONITOR' && String(latestDoctor['改善履歴ID']||'').trim()===String(h['改善履歴ID']||'').trim();
-    // v6.1.23: 旧重複CaseやCase並び順の影響でlatestDoctor判定が外れても、
-    // 現役サイクル自身がDoctor再診→経過観察 / WAIT-MONITORとして登録済みなら追加観察として扱う。
-    if(!doctorMonitoring){
-      var routeNow=String(h['改善経路']||'').trim();
-      var changedNow=String(h['変更箇所']||'').trim();
-      var nextNow=String(h['次のアクション']||'').toLowerCase();
+    var routeNow=String(h['改善経路']||'').trim();
+    var changedNow=String(h['変更箇所']||'').trim();
+    var isCreatorDirect=routeNow==='Creator Direct';
+    var doctorMonitoring=!isCreatorDirect && String(latestDoctor['状態コード']||'')==='MONITORING' && String(latestDoctor['治療アクション']||'').toUpperCase()==='MONITOR' && String(latestDoctor['改善履歴ID']||'').trim()===String(h['改善履歴ID']||'').trim();
+    // v6.2.19: Creator Directは新記事公開後の通常4週モニタリングであり、aDoctor追加経過観察にはしない。
+    // 旧重複Case等の影響でDoctor Case側がMONITORINGでも、履歴経路がCreator Directなら必ず通常測定として扱う。
+    if(!doctorMonitoring&&!isCreatorDirect){
       doctorMonitoring=(routeNow.indexOf('Doctor再診→経過観察')>=0 || routeNow.indexOf('aDoctor再診→経過観察')>=0 || changedNow.indexOf('WAIT / MONITOR')>=0);
     }
     var next=state.complete?String(h['最終改善提案']||'所定回数の週次測定が完了しました。最終判定を確認してください。'):'次回測定日まで経過を観察します。';
@@ -11962,7 +11963,31 @@ function sbmEnsureOfficialSchemaOnce_() {
 }
 
 
+function sbmRepairStaleCreatorDirectEffectLabels_(){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh);
+  if(!hm['改善経路']||!hm['判定'])return 0;
+  var n=sh.getLastRow()-1;
+  var routes=sh.getRange(2,hm['改善経路'],n,1).getDisplayValues();
+  var judges=sh.getRange(2,hm['判定'],n,1).getDisplayValues();
+  var changed=0;
+  for(var i=0;i<n;i++){
+    if(String(routes[i][0]||'').trim()!=='Creator Direct')continue;
+    if(['追加経過観察','追加経過観察中'].indexOf(String(judges[i][0]||'').trim())<0)continue;
+    var row=i+2;
+    sh.getRange(row,hm['判定']).setValue('測定待ち');
+    if(hm['次のアクション'])sh.getRange(row,hm['次のアクション']).setValue('次回測定日まで経過を観察します。');
+    if(hm['測定コメント'])sh.getRange(row,hm['測定コメント']).setValue('Creator Direct新記事の通常モニタリングです。7日目・14日目・21日目・28日目に効果を測定します。');
+    if(hm['測定状態'])sh.getRange(row,hm['測定状態']).setValue('モニター中');
+    changed++;
+  }
+  return changed;
+}
+
 function sbmOpenImprovementStatus() {
+  // v6.2.19: 旧キャッシュに残るCreator Directの誤った『追加経過観察』表示だけを軽量補正する。
+  try{sbmRepairStaleCreatorDirectEffectLabels_();}catch(eCreatorLabel){try{sbmLog_('CreatorDirectEffectLabelRepair','Warning',String(eCreatorLabel));}catch(ignoreCreatorLabelLog){}}
   // Starterでは登録済みACTIVE履歴に対応する「改善の推移」が欠けている場合だけ軽量修復します。
   // 数値再計算やDoctor全体整合は行いません。
   if(String(SBM_EDITION||'').toUpperCase()==='STARTER'){try{sbmRepairMissingStarterEffectRows_();}catch(eRepair){try{sbmLog_('StarterEffectOpenRepair','Warning',String(eRepair));}catch(ignoreLog){}}}

@@ -1,9 +1,7 @@
-fix: make workflow cancellation user-facing in v6.2.18
+fix: isolate Creator Direct monitoring in v6.2.19
 
-- explain cancellation in terms of article improvement, merge, or new article creation
-- show target context and require an explicit final confirmation
-- keep TREATMENT_SKIPPED internally while supporting shared aDoctor resume cases
-- rename Writer and Merge result registration actions to match user tasks
-- stop Creator Direct from being classified as aDoctor additional observation
-- align Creator monitoring guidance to the 7/14/21/28-day standard
-- synchronize Full and Starter to v6.2.18 / v6.2.18-ST
+- explicitly exclude Creator Direct from aDoctor additional-observation classification
+- repair stale Creator Direct trend labels when opening 改善の推移
+- keep genuine Doctor WAIT/MONITOR cycles as 追加経過観察
+- avoid a full trend rebuild for this legacy display correction
+- synchronize Full and Starter to v6.2.19 / v6.2.19-ST

@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.18
+# SIMS Manager v6.2.19
 
 ## User-facing workflow safety and monitoring classification
 - Changes the skip/abort action from internal `処置` terminology to user-facing `今回の改善を取りやめる`.
@@ -11,4 +11,4 @@
 
 ## Compatibility
 - No external contract schema changes.
-- Full and Starter remain on the same canonical v6.2.18 code line.
+- Full and Starter remain on the same canonical v6.2.19 code line.
