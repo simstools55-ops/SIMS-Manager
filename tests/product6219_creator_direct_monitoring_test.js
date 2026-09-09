@@ -1,7 +1,7 @@
 const fs=require('fs');
 const s=fs.readFileSync(__dirname+'/../Code.gs','utf8');
 const checks=[
-  ["version",s.includes("const SBM_VERSION = '6.2.22';")],
+  ["version",s.includes("const SBM_VERSION = '6.2.24';")],
   ["creator explicit exclusion",s.includes("var isCreatorDirect=routeNow==='Creator Direct';")],
   ["doctor case guard",s.includes("var doctorMonitoring=!isCreatorDirect")],
   ["fallback guard",s.includes("if(!doctorMonitoring&&!isCreatorDirect)")],

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.23",
+  "current_version": "6.2.24",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.23: 「記事情報を更新」を即時表示＋非同期点検へ変更。更新ボタンは公開ブリッジ経由で確実に実行し、処理中スピナーと所要時間案内を表示。",
-  "version": "6.2.23",
+  "notes": "v6.2.24: 実測メインクエリ取得を日次処理へ集約し、query×pageを1回だけ一括取得。記事情報更新はArticle DB内補完と必要記事ページのfetchAll小分け処理へ高速化し、個別GSC照会を廃止。",
+  "version": "6.2.24",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.23-ST"
+  "starter_display_version": "6.2.24-ST"
 }
