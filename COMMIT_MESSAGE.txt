@@ -1,10 +1,10 @@
-fix: show only required integrity repair actions in v6.2.1
+feat: resume normal improvement workflows in v6.2.2
 
-- hide repair actions when their detected issue count is zero
-- show only Recheck and Close when no integrity problems are found
-- add non-destructive preflight counting for Merge absorbed-article repair candidates
-- show Creator duplicate cleanup only when duplicate groups exist
-- show Merge absorbed-article repair only when repair candidates exist
-- show Improvement History review only for incomplete Creator Direct or missing history references
-- keep normal workflow resume behavior unchanged
-- update Full to v6.2.1 and Starter to v6.2.1-ST
+- checkpoint normal improvements launched from Today and Article Management
+- store normal improvement state separately from Doctor Cases in Doctor_Workflow_State
+- mark the workflow as Writer-in-progress when the aWriter request becomes ready
+- complete the workflow automatically when improvement feedback is registered or already registered
+- resume the most recently updated workflow across normal improvements and Doctor-based treatments
+- restore the Improvement Navi directly for interrupted normal improvements
+- keep Today and Article Management on one shared normal-improvement workflow implementation
+- update Full to v6.2.2 and Starter to v6.2.2-ST

@@ -1,10 +1,12 @@
-# SIMS Manager v6.2.1 Repository Baseline
+# SIMS Manager v6.2.2 Repository Baseline
 
-## v6.2.1の位置付け
+## v6.2.2の位置付け
+
+- 今日の改善／記事管理から始める通常改善も `NORMAL_IMPROVEMENT` として途中状態を保存し、「未完了の作業を再開」から復元します。
 
 Workflow再開・復旧アーキテクチャの正式再編版です。
 
-- Full v6.2.1 / Starter v6.2.1-ST
+- Full v6.2.2 / Starter v6.2.2-ST
 - 設定・メンテナンスの再開入口を「未完了の作業を再開」へ統一
 - 通常aDoctor / Site Doctorを同じCase状態Dispatcherで再開
 - 再開時は新規Doctor結果登録欄を隠し、保存済みの現在地点から直接再開
