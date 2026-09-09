@@ -1,7 +1,7 @@
 const fs=require('fs');
 const s=fs.readFileSync('src/apps-script/Code.gs','utf8');
 const checks=[
- ['version',s.includes("const SBM_VERSION = '6.2.16';")],
+ ['version', /const SBM_VERSION = '6\.2\.[0-9]+';/.test(s)],
  ['active-cycle helper',s.includes('function sbmHasActiveMonitoringCycleForArticle_')],
  ['active lifecycle detection',s.includes("life==='ACTIVE'||life==='REVIEW_REQUIRED'")],
  ['audit completed multi step',s.includes('function sbmDoctorIsMergeRepairCandidateRow_')&&s.includes("code==='MULTI_MERGE_STEP_COMPLETED'")],

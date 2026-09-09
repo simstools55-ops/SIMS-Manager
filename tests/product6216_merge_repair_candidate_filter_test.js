@@ -2,7 +2,7 @@ const fs=require('fs');
 const path=require('path');
 const code=fs.readFileSync(path.join(__dirname,'../Code.gs'),'utf8');
 const checks=[
-  ["version 6.2.16", /const SBM_VERSION = '6\.2\.16';/.test(code)],
+  ["version 6.2.x", /const SBM_VERSION = '6\.2\.[0-9]+';/.test(code)],
   ["candidate helper exists", /function sbmDoctorIsMergeRepairCandidateRow_\(/.test(code)],
   ["merge level signal", /level==='MERGE'/.test(code)],
   ["merge destination signal", /dest\.indexOf\('MERGE'\)>=0/.test(code)],

@@ -1,7 +1,7 @@
 const fs=require('fs');
 const code=fs.readFileSync('distribution/Code.gs','utf8');
 const checks=[
-  ["version 6.2.16", /const SBM_VERSION = '6.2.16'/],
+  ["version 6.2.x", /const SBM_VERSION = '6\.2\.[0-9]+'/],
   ["multi-merge route detector", /function sbmDoctorCaseIsMultiMerge_\(c\)/],
   ["multi-merge route preserved", /sbmDoctorCaseIsMultiMerge_\(c\)\?'連続aMerge':'aDoctor→aMerge'/],
   ["absorbed cycle superseded", /sbmSupersedePreviousMonitoringCyclesFast_\(absorbedId,absorbedUrl,absorbedTitle,''\)/],
