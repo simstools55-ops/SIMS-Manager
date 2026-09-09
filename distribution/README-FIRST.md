@@ -1,10 +1,10 @@
-# SIMS Manager v6.2.0 Repository Baseline
+# SIMS Manager v6.2.1 Repository Baseline
 
-## v6.2.0の位置付け
+## v6.2.1の位置付け
 
 Workflow再開・復旧アーキテクチャの正式再編版です。
 
-- Full v6.2.0 / Starter v6.2.0-ST
+- Full v6.2.1 / Starter v6.2.1-ST
 - 設定・メンテナンスの再開入口を「未完了の作業を再開」へ統一
 - 通常aDoctor / Site Doctorを同じCase状態Dispatcherで再開
 - 再開時は新規Doctor結果登録欄を隠し、保存済みの現在地点から直接再開

@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.2.0
+ * SIMS Manager Product v6.2.1
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.0';
+const SBM_VERSION = '6.2.1';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16442,9 +16442,42 @@ function sbmDoctorShowSingleCaseResumeDialog_(info){
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760),'aDoctor 精密診断を途中から再開');
 }
 
-// v6.2.0: 正常再開と障害復旧を分離するWorkflow整合性監査。
+
+// v6.2.1: Merge補正ボタンを必要時だけ表示するため、既存データを変更せず補正候補件数だけ数える。
+function sbmAuditCountMergeAbsorbedRepairCandidates_(){
+  try{
+    var ss=SpreadsheetApp.getActiveSpreadsheet(),caseSh=ss.getSheetByName(SBM_SHEETS.DOCTOR_CASES),articleSh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
+    if(!caseSh||caseSh.getLastRow()<2||!articleSh||articleSh.getLastRow()<2)return 0;
+    var hm=sbmHeaderMap_(caseSh),vals=caseSh.getRange(2,1,caseSh.getLastRow()-1,caseSh.getLastColumn()).getValues(),count=0,seen={};
+    vals.forEach(function(row){
+      var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'',code=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+      if(!caseId||['MONITORING','MERGE_USER_ACTION_REQUIRED'].indexOf(code)<0)return;
+      var ctx=null,raw=hm['確認詳細']?String(row[hm['確認詳細']-1]||'').trim():'';
+      if(raw){try{ctx=JSON.parse(raw);}catch(ignoreCtx){ctx=null;}}
+      if(!ctx||!ctx.primary||!Array.isArray(ctx.absorbed)||!ctx.absorbed.length){
+        var mrRaw=hm['Merge結果JSON']?String(row[hm['Merge結果JSON']-1]||'').trim():'';
+        if(mrRaw){try{var mr=JSON.parse(mrRaw),mm=mr.envelope&&mr.payload?sbmDoctorNormalizeMergeResult_(mr):{caseId:String(mr.case_id||caseId),decision:mr.merge_decision||{},plan:mr.merge_plan||{},mergedArticle:mr.merged_article||{}};ctx=sbmDoctorMergeCompletionContext_(mm);}catch(ignoreMr){ctx=null;}}
+      }
+      if((!ctx||!ctx.primary||!Array.isArray(ctx.absorbed)||!ctx.absorbed.length)&&hm['Merge依頼JSON']){
+        var reqRaw=String(row[hm['Merge依頼JSON']-1]||'').trim();
+        if(reqRaw){try{var rq=JSON.parse(reqRaw),rp=rq.payload||rq;ctx=sbmDoctorMergeCompletionContext_({caseId:caseId,plan:rp.merge_plan||{},decision:{},mergedArticle:{}});}catch(ignoreRq){ctx=null;}}
+      }
+      if(!ctx||!Array.isArray(ctx.absorbed))return;
+      ctx.absorbed.forEach(function(a){
+        var article=sbmDoctorFindArticleByIdOrUrl_(String(a.articleId||''),String(a.articleUrl||''));if(!article)return;
+        var key=String(article['ArticleID']||a.articleId||'')+'|'+sbmNormalizeUrl_(article['記事URL']||a.articleUrl||'');if(seen[key])return;seen[key]=1;
+        var st=String(article['記事ステータス']||'').trim(),flag=String(article['管理フラグ']||'').trim();
+        var done=(st==='301リダイレクト済み'||st==='統合済み（リダイレクト不可）')&&flag==='管理対象外';
+        if(!done)count++;
+      });
+    });
+    return count;
+  }catch(e){sbmLog_('WorkflowIntegrityMergeAudit','Warning',String(e&&e.message?e.message:e));return 0;}
+}
+
+// v6.2.1: 正常再開と障害復旧を分離し、修復候補件数に応じて必要な操作だけ提示するWorkflow整合性監査。
 function sbmAuditWorkflowIntegrity_(){
-  var ss=SpreadsheetApp.getActiveSpreadsheet(),issues=[],summary={doctor:0,creatorDuplicateGroups:0,creatorIncomplete:0,historyMissing:0};
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),issues=[],summary={doctor:0,creatorDuplicateGroups:0,creatorIncomplete:0,historyMissing:0,mergeAbsorbedRepair:0};
   var caseSh=ss.getSheetByName(SBM_SHEETS.DOCTOR_CASES);
   if(caseSh&&caseSh.getLastRow()>=2){
     var hm=sbmHeaderMap_(caseSh),vals=caseSh.getRange(2,1,caseSh.getLastRow()-1,caseSh.getLastColumn()).getValues();
@@ -16480,16 +16513,18 @@ function sbmAuditWorkflowIntegrity_(){
     });
     Object.keys(groups).forEach(function(k){if(groups[k]>1)summary.creatorDuplicateGroups++;});
   }
+  summary.mergeAbsorbedRepair=sbmAuditCountMergeAbsorbedRepairCandidates_();
   return {ok:true,checkedAt:sbmNowText_(),issues:issues,summary:summary};
 }
 
 function sbmAuditAndRepairWorkflowIntegrity(){
   try{
     var report=sbmAuditWorkflowIntegrity_(),data=JSON.stringify(report).replace(/</g,'\\u003c');
-    var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{margin:0 0 10px;font-size:18px}.box{background:#f8f9fa;border:1px solid #dadce0;border-radius:9px;padding:12px;margin:10px 0}.ok{color:#137333}.warn{color:#b06000}.err{color:#b3261e}.item{padding:8px 0;border-bottom:1px solid #eee;font-size:12px;line-height:1.55}.item:last-child{border:0}button{padding:9px 14px;border-radius:6px;border:0;font-weight:700;cursor:pointer;margin:4px}.primary{background:#1a73e8;color:#fff}.outline{background:#fff;color:#1a73e8;border:1px solid #1a73e8}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.note{font-size:12px;color:#5f6368;line-height:1.6}</style></head><body><h2>データ整合性を点検・修復</h2><div id="summary" class="box"></div><div id="issues" class="box"></div><div class="note">自動削除や推測補正は行いません。安全に既存バックアップを作れる処理だけ実行し、Doctor/Writer/Mergeの意味判断が必要な案件は再登録・再開へ案内します。</div><div class="actions"><button class="primary" onclick="refreshAudit()">再点検</button><button class="outline" onclick="repairDup()">Creator重複を安全整理</button><button class="outline" onclick="repairMerge()">Merge吸収記事を補正</button><button class="outline" onclick="openHistory()">改善履歴を開く</button><button onclick="google.script.host.close()">閉じる</button></div><div id="status" class="note"></div><script>var R='+data+';function render(){var s=R.summary||{},sum=document.getElementById("summary"),iss=document.getElementById("issues");sum.innerHTML="<b>点検結果</b><br>Doctor/Workflow要確認: "+s.doctor+"件<br>Creator Direct重複グループ: "+s.creatorDuplicateGroups+"件<br>Creator Direct不完全履歴: "+s.creatorIncomplete+"件<br>改善履歴参照欠落: "+s.historyMissing+"件";var a=R.issues||[];if(!a.length){iss.innerHTML="<span class=ok>Doctor/Workflowの明確な不整合は見つかりませんでした。</span>";return}iss.innerHTML="<b>要確認案件</b>"+a.slice(0,30).map(function(x){return "<div class=item><b>"+(x.caseId||"CaseID不明")+" / "+x.state+"</b><br>"+x.message+"<br><span class=warn>対応: "+x.repair+"</span></div>"}).join("")}function refreshAudit(){document.getElementById("status").textContent="再点検しています…";google.script.run.withSuccessHandler(function(r){R=r;render();document.getElementById("status").textContent="再点検しました。"}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditWorkflowIntegrityForDialog()}function repairDup(){document.getElementById("status").textContent="Creator重複履歴をバックアップして整理しています…";google.script.run.withSuccessHandler(function(r){document.getElementById("status").textContent=r.message;refreshAudit()}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditRepairCreatorDuplicates()}function repairMerge(){google.script.host.close();google.script.run.sbmRepairCompletedMergeAbsorbedArticles()}function openHistory(){google.script.host.close();google.script.run.sbmOpenImprovementHistory()}render();</script></body></html>';
+    var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{margin:0 0 10px;font-size:18px}.box{background:#f8f9fa;border:1px solid #dadce0;border-radius:9px;padding:12px;margin:10px 0}.ok{color:#137333}.warn{color:#b06000}.err{color:#b3261e}.item{padding:8px 0;border-bottom:1px solid #eee;font-size:12px;line-height:1.55}.item:last-child{border:0}button{padding:9px 14px;border-radius:6px;border:0;font-weight:700;cursor:pointer;margin:4px}.primary{background:#1a73e8;color:#fff}.outline{background:#fff;color:#1a73e8;border:1px solid #1a73e8}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.note{font-size:12px;color:#5f6368;line-height:1.6}.hidden{display:none}</style></head><body><h2>データ整合性を点検・修復</h2><div id="summary" class="box"></div><div id="issues" class="box"></div><div id="note" class="note"></div><div class="actions"><button class="primary" onclick="refreshAudit()">再点検</button><button id="dupBtn" class="outline hidden" onclick="repairDup()">Creator重複を安全整理</button><button id="mergeBtn" class="outline hidden" onclick="repairMerge()">Merge吸収記事を補正</button><button id="historyBtn" class="outline hidden" onclick="openHistory()">改善履歴を確認</button><button onclick="google.script.host.close()">閉じる</button></div><div id="status" class="note"></div><script>var R='+data+';function toggle(id,on){document.getElementById(id).classList.toggle("hidden",!on)}function render(){var s=R.summary||{},sum=document.getElementById("summary"),iss=document.getElementById("issues"),note=document.getElementById("note");var total=(s.doctor||0)+(s.creatorDuplicateGroups||0)+(s.creatorIncomplete||0)+(s.historyMissing||0)+(s.mergeAbsorbedRepair||0);sum.innerHTML="<b>点検結果</b><br>Doctor/Workflow要確認: "+(s.doctor||0)+"件<br>Creator Direct重複グループ: "+(s.creatorDuplicateGroups||0)+"件<br>Creator Direct不完全履歴: "+(s.creatorIncomplete||0)+"件<br>改善履歴参照欠落: "+(s.historyMissing||0)+"件<br>Merge吸収記事要補正: "+(s.mergeAbsorbedRepair||0)+"件";var a=R.issues||[];if(total===0){iss.innerHTML="<span class=ok>データ整合性に問題は見つかりませんでした。修復操作は必要ありません。</span>";note.textContent="再確認したい場合は「再点検」を実行してください。"}else{iss.innerHTML=a.length?"<b>要確認案件</b>"+a.slice(0,30).map(function(x){return "<div class=item><b>"+(x.caseId||"CaseID不明")+" / "+x.state+"</b><br>"+x.message+"<br><span class=warn>対応: "+x.repair+"</span></div>"}).join(""):"<span class=warn>安全に修復できる候補があります。下の必要な操作だけ実行してください。</span>";note.textContent="自動削除や推測補正は行いません。安全にバックアップできる処理だけ実行し、意味判断が必要な案件は再登録・再開へ案内します。"}toggle("dupBtn",(s.creatorDuplicateGroups||0)>0);toggle("mergeBtn",(s.mergeAbsorbedRepair||0)>0);toggle("historyBtn",(s.creatorIncomplete||0)>0||(s.historyMissing||0)>0)}function refreshAudit(){document.getElementById("status").textContent="再点検しています…";google.script.run.withSuccessHandler(function(r){R=r;render();document.getElementById("status").textContent="再点検しました。"}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditWorkflowIntegrityForDialog()}function repairDup(){document.getElementById("status").textContent="Creator重複履歴をバックアップして整理しています…";google.script.run.withSuccessHandler(function(r){document.getElementById("status").textContent=r.message;refreshAudit()}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditRepairCreatorDuplicates()}function repairMerge(){google.script.host.close();google.script.run.sbmRepairCompletedMergeAbsorbedArticles()}function openHistory(){google.script.host.close();google.script.run.sbmOpenImprovementHistory()}render();</script></body></html>';
     SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(720).setHeight(650),'データ整合性を点検・修復');
   }catch(e){sbmAlert_('データ整合性を点検できません',String(e&&e.message?e.message:e));}
 }
+
 function sbmAuditWorkflowIntegrityForDialog(){return sbmAuditWorkflowIntegrity_();}
 function sbmAuditRepairCreatorDuplicates(){try{var r=sbmRepairCreatorDirectDuplicateHistory_();return {ok:true,message:r.removed?('Creator Direct重複履歴を'+r.removed+'件整理しました。除外内容はバックアップ済みです。'):'重複するCreator Direct履歴はありませんでした。'};}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
 

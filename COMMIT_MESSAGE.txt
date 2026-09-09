@@ -1,7 +1,10 @@
-fix: unify unfinished aDoctor resume flow in v6.1.41
+fix: show only required integrity repair actions in v6.2.1
 
-- route direct aDoctor WRITER_IN_PROGRESS cases to the single-case resume dialog
-- fall back to the Site Doctor shared treatment UI only when no direct case is pending
-- remove the duplicate direct-resume menu entry
-- prevent the unfinished-treatment menu from returning silently with no dialog
-- keep Full at v6.1.41 and Starter at v6.1.41-ST
+- hide repair actions when their detected issue count is zero
+- show only Recheck and Close when no integrity problems are found
+- add non-destructive preflight counting for Merge absorbed-article repair candidates
+- show Creator duplicate cleanup only when duplicate groups exist
+- show Merge absorbed-article repair only when repair candidates exist
+- show Improvement History review only for incomplete Creator Direct or missing history references
+- keep normal workflow resume behavior unchanged
+- update Full to v6.2.1 and Starter to v6.2.1-ST

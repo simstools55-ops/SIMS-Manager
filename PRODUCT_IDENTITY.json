@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.0",
+  "current_version": "6.2.1",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.0: workflow resume and recovery architecture unified; unfinished work resumes from current Case state and maintenance is consolidated into an integrity audit/repair entry.",
-  "version": "6.2.0",
+  "notes": "v6.2.1: integrity audit UI now shows only repair actions required by detected issues and pre-counts Merge absorbed-article repair candidates without modifying data.",
+  "version": "6.2.1",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.0-ST"
+  "starter_display_version": "6.2.1-ST"
 }
