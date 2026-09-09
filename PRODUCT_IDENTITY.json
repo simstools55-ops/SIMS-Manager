@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.11",
+  "current_version": "6.2.12",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.11: 未完了の作業を再開の待機ダイアログをサーバー完了時に必ず閉じ、背後の再開画面へ遷移する。failure/timeoutでもスピナーを終了する。",
-  "version": "6.2.11",
+  "notes": "v6.2.12: aMerge結果登録をSite Doctor専用判定から共通Merge Case受理へ統一し、通常aDoctor / Site Doctor / Writer follow-up / Multi-Mergeを同一受信経路で処理する。",
+  "version": "6.2.12",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.11-ST"
+  "starter_display_version": "6.2.12-ST"
 }

@@ -1,3 +1,10 @@
+## v6.2.12 - 2026-09-09
+
+- aMerge結果登録をSite Doctor専用receiverから共通Merge receiverへ統一。
+- Writer follow-up由来のMulti-Merge Caseでも `SIMS_MERGE_TREATMENT_RESULT_V1` を正規登録可能に修正。
+- 既存のSite Doctor向け公開関数は互換ラッパーとして維持。
+- Merge利用者処置完了も共通公開bridgeへ統一し、Step 1完了後のStep 2生成経路を維持。
+
 ## v6.2.11 - 2026-09-09
 - 未完了Workflow待機ダイアログのsuccess handler欠落を修正。サーバー処理完了後にローダーを閉じる。
 - failure/45秒timeout時にスピナーを終了し、無限待機を防止。

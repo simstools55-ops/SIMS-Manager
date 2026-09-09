@@ -1,9 +1,8 @@
-fix: repair unfinished-work loader handoff in v6.2.11
+fix: unify merge result receiver in v6.2.12
 
-- expose a public resume-core bridge for google.script.run
-- stop calling the private underscore-suffixed Apps Script function from the client
-- show the initial unfinished-work loader as modeless
-- allow the server to open the actual resume/treatment modal while the loader is active
-- preserve success, failure, and timeout feedback
-- keep the sequential multi-merge workflow unchanged
-- update Full to v6.2.11 and Starter to v6.2.11-ST
+- accept Merge results for every formal Merge Case, not only Site Doctor cases
+- route normal aDoctor, Site Doctor, Writer follow-up, and Multi-Merge through one receiver
+- keep the legacy Site Doctor Merge receiver as a compatibility wrapper
+- use the common Merge completion bridge for user-action finalization
+- preserve pair validation and sequential Step 1 -> Step 2 generation
+- update Full to v6.2.12 and Starter to v6.2.12-ST
