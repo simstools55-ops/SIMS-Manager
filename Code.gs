@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.10
+ * SIMS Manager Product v6.2.11
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.10';
+const SBM_VERSION = '6.2.11';
+// v6.2.11: 未完了再開ローダーをmodeless化し、google.script.run用の公開bridgeを追加。private末尾_関数の直接呼出を廃止。
 // v6.2.10: 未完了Workflowの待機ダイアログをserver完了時に必ず閉じ、背後に生成済みの再開ダイアログを表示。failure/timeout時もスピナーを終了する。
 // v6.2.9: 3件以上のWriter follow-up Mergeを2記事単位の連続Merge Workflowへ分解。各Step完了後に次のPairを自動生成し、最終Stepだけモニタリングへ移行。
 // v6.2.8: Writer follow-up由来Merge Packageのstub復元を正式対応。未完了再開メニューは先にローディングダイアログを表示し、探索中の待ち時間を可視化。
@@ -16747,8 +16748,12 @@ function sbmDoctorResumePrecisionDiagnosis(){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   // v6.2.8: メニュー選択直後に空の待機画面を出す。重いWorkflow探索はgoogle.script.run側で続行する。
-  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">前回の続きと未完了Workflowを確認しています。<br>そのままお待ちください。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理の応答を確認できませんでした";document.querySelector(".msg").innerHTML="サーバー処理が完了していても画面更新に失敗している可能性があります。<br>いったん閉じて、もう一度「未完了の作業を再開」を実行してください。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore_();</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(250),'未完了の作業を再開');
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">前回の続きと未完了Workflowを確認しています。<br>そのままお待ちください。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理の応答を確認できませんでした";document.querySelector(".msg").innerHTML="サーバー処理が完了していても画面更新に失敗している可能性があります。<br>いったん閉じて、もう一度「未完了の作業を再開」を実行してください。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore();</script></body></html>';
+  SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(250),'未完了の作業を再開');
+}
+// v6.2.11: google.script.run から末尾_のprivate関数は呼べないため、公開bridgeを経由する。
+function sbmResumeUnfinishedWorkflowCore(){
+  return sbmResumeUnfinishedWorkflowCore_();
 }
 function sbmResumeUnfinishedWorkflowCore_(){
   try{

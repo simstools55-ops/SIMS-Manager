@@ -1,8 +1,9 @@
-fix: close unfinished-work loader after resume in v6.2.10
+fix: repair unfinished-work loader handoff in v6.2.11
 
-- close the loading modal when unfinished-work server discovery completes
-- reveal the resume/treatment dialog already opened by the server
-- stop the spinner on server failure
-- add a 45-second UI timeout to prevent indefinite loading
-- preserve the v6.2.9 sequential multi-merge workflow
-- update Full to v6.2.10 and Starter to v6.2.10-ST
+- expose a public resume-core bridge for google.script.run
+- stop calling the private underscore-suffixed Apps Script function from the client
+- show the initial unfinished-work loader as modeless
+- allow the server to open the actual resume/treatment modal while the loader is active
+- preserve success, failure, and timeout feedback
+- keep the sequential multi-merge workflow unchanged
+- update Full to v6.2.11 and Starter to v6.2.11-ST
