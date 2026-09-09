@@ -1,14 +1,15 @@
-# SIMS Manager v6.1.43 Repository Baseline
+# SIMS Manager v6.2.0 Repository Baseline
 
-## v6.1.43の位置付け
+## v6.2.0の位置付け
 
-v6.1.38を正本として、aDoctor回答登録時の結果JSON抽出を修正した版です。
+Workflow再開・復旧アーキテクチャの正式再編版です。
 
-- Doctor RESULTはCaseID必須。CaseIDを持たない`return_contract`雛形を結果として採用しない
-- aDoctor依頼JSON内の`return_contract`を診断結果と誤認する不具合を修正
-- 依頼JSONを回答欄へ貼った場合は、CaseID空欄の誤った不一致表示ではなく専用メッセージを表示
-- 正しいDoctor回答全文では、対象CaseIDの`SIMS_DOCTOR_*_RESULT`だけを抽出
-- 前版までのタイムゾーン・日付修復を維持
-- Full v6.1.43 / Starter v6.1.43-ST
-
-このZIP内の `SIMS-Manager/` を既存SIMS Managerリポジトリへ反映してください。
+- Full v6.2.0 / Starter v6.2.0-ST
+- 設定・メンテナンスの再開入口を「未完了の作業を再開」へ統一
+- 通常aDoctor / Site Doctorを同じCase状態Dispatcherで再開
+- 再開時は新規Doctor結果登録欄を隠し、保存済みの現在地点から直接再開
+- 個別修復メニューを「データ整合性を点検・修復」へ集約
+- TREATMENT_FAILED、依頼JSON欠落、履歴参照欠落、Creator Direct重複/不完全履歴を監査
+- Creator Direct重複整理はバックアップ後に安全実行
+- Merge吸収記事補正は統合点検画面から既存安全処理を起動
+- 旧公開関数は互換用に残し、利用者メニューからは整理

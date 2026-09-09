@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.43",
-  "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.43: unfinished workflow resume is unified behind one dispatcher that auto-routes direct aDoctor and Site Doctor cases by Case state to Doctor, confirmation, Writer, Merge, or Creator continuation.",
-  "version": "6.1.43",
-  "starter_display_version": "6.1.43-ST"
+  "current_version": "6.2.0",
+  "release_status": "REPOSITORY_BASELINE",
+  "notes": "v6.2.0: workflow resume and recovery architecture unified; unfinished work resumes from current Case state and maintenance is consolidated into an integrity audit/repair entry.",
+  "version": "6.2.0",
+  "starter_display_version": "6.2.0-ST"
 }

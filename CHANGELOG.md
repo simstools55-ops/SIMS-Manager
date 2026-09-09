@@ -1,3 +1,11 @@
+# v6.2.0
+
+- Workflow再開/復旧を正式再編。
+- 「未完了の作業を再開」を共通Dispatcher化し、通常aDoctor/Site Doctorの経路選択を自動化。
+- 再開時の共通処置ダイアログから新規診断結果登録欄を非表示化。
+- 「データ整合性を点検・修復」を追加し、Doctor/Writer/Merge/Creator Directの不整合検出を集約。
+- 旧aWriter再登録・個別Merge/Creator修復項目を利用者メニューから撤去し、互換関数は保持。
+
 # v6.1.43
 
 - 「未完了の作業を再開」を共通Workflow Dispatcherへ統合。
