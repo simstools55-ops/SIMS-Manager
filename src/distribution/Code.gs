@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.14
+ * SIMS Manager Product v6.2.15
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.14';
+const SBM_VERSION = '6.2.15';
+// v6.2.15: 過去版で完了済みのMergeを整合性修復対象へ追加。吸収記事の残存Monitoring Cycleを終了し、改善の推移を最新Merge履歴へ再同期。
 // v6.2.14: 完了済みMulti-Merge中間Stepを未完了recovery fallbackから除外し、再開一覧への再表示を防止。
 // v6.2.12: aMerge結果登録をSite Doctor専用判定から共通Merge Case受理へ統一。通常aDoctor / Site Doctor / Writer follow-up / Multi-Mergeを同一受信経路で処理。
 // v6.2.11: 未完了再開ローダーをmodeless化し、google.script.run用の公開bridgeを追加。private末尾_関数の直接呼出を廃止。
@@ -16638,6 +16639,24 @@ function sbmDoctorShowSingleCaseResumeDialog_(info){
 
 
 // v6.2.1: Merge補正ボタンを必要時だけ表示するため、既存データを変更せず補正候補件数だけ数える。
+
+// v6.2.15: 過去版でMerge吸収済みになった記事にACTIVE/REVIEW_REQUIREDのMonitoring Cycleが残っていないか確認します。
+function sbmHasActiveMonitoringCycleForArticle_(articleId,url,title){
+  var sh=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(sh.getLastRow()<2)return false;
+  var hm=sbmHeaderMap_(sh),need=['ArticleID','記事URL','記事タイトル','モニター状態'];
+  for(var n=0;n<need.length;n++)if(!hm[need[n]])return false;
+  var rows=sh.getLastRow()-1,idVals=sh.getRange(2,hm['ArticleID'],rows,1).getDisplayValues(),urlVals=sh.getRange(2,hm['記事URL'],rows,1).getDisplayValues(),titleVals=sh.getRange(2,hm['記事タイトル'],rows,1).getDisplayValues(),lifeVals=sh.getRange(2,hm['モニター状態'],rows,1).getDisplayValues();
+  var targetId=String(articleId||'').trim(),targetUrl=sbmNormalizeUrl_(url||''),targetTitle=String(title||'').trim();
+  for(var i=0;i<rows;i++){
+    var same=(targetId&&String(idVals[i][0]||'').trim()===targetId)||(targetUrl&&sbmNormalizeUrl_(urlVals[i][0]||'')===targetUrl)||(!targetId&&!targetUrl&&targetTitle&&String(titleVals[i][0]||'').trim()===targetTitle);
+    if(!same)continue;
+    var life=String(lifeVals[i][0]||'').trim().toUpperCase();
+    if(life==='ACTIVE'||life==='REVIEW_REQUIRED')return true;
+  }
+  return false;
+}
+
 function sbmAuditCountMergeAbsorbedRepairCandidates_(){
   try{
     var ss=SpreadsheetApp.getActiveSpreadsheet(),caseSh=ss.getSheetByName(SBM_SHEETS.DOCTOR_CASES),articleSh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
@@ -16645,7 +16664,7 @@ function sbmAuditCountMergeAbsorbedRepairCandidates_(){
     var hm=sbmHeaderMap_(caseSh),vals=caseSh.getRange(2,1,caseSh.getLastRow()-1,caseSh.getLastColumn()).getValues(),count=0,seen={};
     vals.forEach(function(row){
       var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'',code=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
-      if(!caseId||['MONITORING','MERGE_USER_ACTION_REQUIRED'].indexOf(code)<0)return;
+      if(!caseId||['MONITORING','MERGE_USER_ACTION_REQUIRED','MULTI_MERGE_STEP_COMPLETED'].indexOf(code)<0)return;
       var ctx=null,raw=hm['確認詳細']?String(row[hm['確認詳細']-1]||'').trim():'';
       if(raw){try{ctx=JSON.parse(raw);}catch(ignoreCtx){ctx=null;}}
       if(!ctx||!ctx.primary||!Array.isArray(ctx.absorbed)||!ctx.absorbed.length){
@@ -16662,7 +16681,9 @@ function sbmAuditCountMergeAbsorbedRepairCandidates_(){
         var key=String(article['ArticleID']||a.articleId||'')+'|'+sbmNormalizeUrl_(article['記事URL']||a.articleUrl||'');if(seen[key])return;seen[key]=1;
         var st=String(article['記事ステータス']||'').trim(),flag=String(article['管理フラグ']||'').trim();
         var done=(st==='301リダイレクト済み'||st==='統合済み（リダイレクト不可）')&&flag==='管理対象外';
-        if(!done)count++;
+        var aid=String(article['ArticleID']||a.articleId||''),aurl=String(article['記事URL']||a.articleUrl||''),atitle=String(article['記事タイトル']||article['H1タイトル']||a.articleTitle||'');
+        // Article DBが既に管理対象外でも、旧版でMonitoring CycleだけACTIVEのままなら修復候補です。
+        if(!done||sbmHasActiveMonitoringCycleForArticle_(aid,aurl,atitle))count++;
       });
     });
     return count;
@@ -17983,7 +18004,7 @@ function sbmRepairCompletedMergeAbsorbedArticles(){
     var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
     vals.forEach(function(row){
       var caseId=String(row[hm['CaseID']-1]||'').trim(),code=String(row[hm['状態コード']-1]||'').trim();
-      if(!caseId||['MONITORING','MERGE_USER_ACTION_REQUIRED'].indexOf(code)<0)return;
+      if(!caseId||['MONITORING','MERGE_USER_ACTION_REQUIRED','MULTI_MERGE_STEP_COMPLETED'].indexOf(code)<0)return;
       var raw=hm['確認詳細']?String(row[hm['確認詳細']-1]||'').trim():'',ctx=null;
       if(raw){try{ctx=JSON.parse(raw);}catch(ignoreJson){ctx=null;}}
       if(!ctx||!ctx.primary||!Array.isArray(ctx.absorbed)||!ctx.absorbed.length){
@@ -18003,10 +18024,16 @@ function sbmRepairCompletedMergeAbsorbedArticles(){
         if(reqRaw){try{var rq=JSON.parse(reqRaw),rp=rq.payload||rq,mp=rp.merge_plan||{},rebuilt2=sbmDoctorMergeCompletionContext_({caseId:caseId,plan:mp,decision:{},mergedArticle:{}});if(rebuilt2.absorbed.length){ctx=rebuilt2;recovered++;}}catch(ignoreReq){}}
       }
       if(!ctx||!ctx.primary||!Array.isArray(ctx.absorbed)||!ctx.absorbed.length){skipped++;return;}
-      var rs=sbmDoctorFinalizeMergeAbsorbedArticles_(caseId,ctx,sbmNowText_());
+      // 過去の利用者判断を壊さないよう、Article DBに保存済みの状態から301可否を復元します。
+      var redirectMode='301';
+      for(var ai=0;ai<ctx.absorbed.length;ai++){
+        var aa=ctx.absorbed[ai]||{},ar=sbmDoctorFindArticleByIdOrUrl_(String(aa.articleId||''),String(aa.articleUrl||''));
+        if(ar&&String(ar['記事ステータス']||'').trim()==='統合済み（リダイレクト不可）'){redirectMode='NO_REDIRECT';break;}
+      }
+      var rs=sbmDoctorFinalizeMergeAbsorbedArticles_(caseId,ctx,sbmNowText_(),redirectMode);
       rs.forEach(function(r){if(r&&r.ok){fixed++;details.push((r.articleId||r.articleUrl)+' → '+(r.primary||'統合先'));}else skipped++;});
     });
-    try{sbmUpdateEffectivenessCore_(false);sbmRefreshHome_();}catch(eRefresh){sbmLog_('MergeAbsorbedRepairRefresh','Warning',String(eRefresh));}
+    try{sbmUpdateEffectivenessCore_(false,{viewOnly:true,dailyFast:true});sbmRefreshHome_({light:true});}catch(eRefresh){sbmLog_('MergeAbsorbedRepairRefresh','Warning',String(eRefresh));}
     sbmAlert_('Merge済み吸収記事の補正完了','補正：'+fixed+'件'+(recovered?'\n保存済みaMerge結果から復元：'+recovered+'件':'')+(skipped?'\n確認できなかった記事：'+skipped+'件':'')+(details.length?'\n\n'+details.slice(0,10).join('\n'):'\n\n補正対象はありませんでした。'));
   }catch(e){sbmAlert_('Merge補正エラー',String(e&&e.message?e.message:e));}
 }

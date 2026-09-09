@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.14",
+  "current_version": "6.2.15",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.14: Merge吸収記事のMonitoring Cycle終了、改善の推移即時同期、Multi-Merge改善経路の連続aMerge保持を追加。",
-  "version": "6.2.14",
+  "notes": "v6.2.15: 過去版Mergeの既存データ修復を追加。吸収記事の残存Monitoring Cycleを終了し、改善の推移を最新Merge履歴へ再同期。",
+  "version": "6.2.15",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.14-ST"
+  "starter_display_version": "6.2.15-ST"
 }
