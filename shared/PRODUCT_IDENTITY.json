@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.1.42",
+  "current_version": "6.1.43",
   "release_status": "COMPATIBILITY_SNAPSHOT",
-  "notes": "v6.1.42: Writer treatment result COMPLETED_WITH_REPORTED_EXCEPTION is accepted as a completed treatment when referral compliance is intact, preserving the exception report while starting monitoring.",
-  "version": "6.1.42",
-  "starter_display_version": "6.1.42-ST"
+  "notes": "v6.1.43: unfinished workflow resume is unified behind one dispatcher that auto-routes direct aDoctor and Site Doctor cases by Case state to Doctor, confirmation, Writer, Merge, or Creator continuation.",
+  "version": "6.1.43",
+  "starter_display_version": "6.1.43-ST"
 }

@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.1.42
+ * SIMS Manager Product v6.1.43
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.1.42';
+const SBM_VERSION = '6.1.43';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -16,6 +16,7 @@ const SBM_VERSION = '6.1.42';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'STARTER';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+// v6.1.43: 未完了Workflowの再開入口を共通Dispatcherへ統合。通常aDoctor/Site Doctorを利用者に選ばせず、Case状態からDoctor・確認・Writer・Merge・Creatorを自動判定する。
 // v6.1.42: aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
 // v6.1.41: aDoctor未完了処置のメニュー入口を統一。通常aDoctorのWRITER_IN_PROGRESS等は専用再開ダイアログを表示し、該当がなければSite Doctor経由の共通処置UIへフォールバック。
 // v6.1.40: 共通aDoctor処置ダイアログのWriter登録を経路自動判定化。通常aDoctor案件をSite Doctor専用登録へ誤送信していた回帰を修正し、共通UI名称もaDoctor基準へ統一。
@@ -11905,8 +11906,7 @@ function onOpen() {
 
   if (isFullEdition) {
     maintenanceMenu
-      .addItem('aDoctor診断結果の処置を進める','sbmDoctorRegisterSiteDiagnosisResult')
-      .addItem('aDoctor未完了の処置を再開','sbmDoctorResumePendingTreatments')
+      .addItem('未完了の作業を再開','sbmResumeUnfinishedWorkflow')
       .addItem('aWriter改善結果を登録・再登録','sbmOpenImprovementFeedbackDialog')
       .addItem('Merge済み吸収記事を補正','sbmRepairCompletedMergeAbsorbedArticles')
       .addItem('不完全なCreator Direct履歴を整理','sbmRemoveSelectedIncompleteCreatorDirectHistoryFromMenu')
@@ -16466,32 +16466,52 @@ function sbmDoctorResumePrecisionDiagnosis(){
   }
 }
 
-// v6.1.41: 未完了処置の入口を一本化。通常aDoctor案件を優先して再開し、
-// 該当がなければSite Doctor経由の共通処置ダイアログへフォールバックする。
-function sbmDoctorResumePendingTreatments(){
+// v6.1.43: 正常な途中状態をCase状態から判定する共通Workflow Dispatcher。
+// Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
+function sbmResumeUnfinishedWorkflow(){
   try{
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
-    if(last>=2){
-      var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
-      var active={
-        'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
-        'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
-        'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1
-      };
-      for(var i=vals.length-1;i>=0;i--){
-        var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
-        if(!active[state])continue;
-        if(sbmDoctorCaseIsSiteDiagnosisRow_(row,hm))continue;
+    if(last<2)return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。');
+    var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    var doctorOrConfirm={
+      'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,
+      'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1
+    };
+    var treatment={
+      'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
+      'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,
+      'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,
+      'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1
+    };
+    var failed=[];
+    for(var i=vals.length-1;i>=0;i--){
+      var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+      if(!state||state==='MONITORING'||state.indexOf('SUPERSEDED_')===0)continue;
+      if(state==='TREATMENT_FAILED'){
+        failed.push(hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'');
+        continue;
+      }
+      if(doctorOrConfirm[state]){
         sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(row,hm));
         return;
       }
+      if(treatment[state]){
+        return sbmDoctorRegisterSiteDiagnosisResult();
+      }
     }
-    // 個別aDoctor案件がなければ、Site Doctor経由の未完了処置を共通ダイアログで再開する。
-    return sbmDoctorRegisterSiteDiagnosisResult();
+    if(failed.length){
+      return sbmAlert_('未完了の作業を再開',
+        '正常再開できる作業はありません。\n\n処理失敗状態のCaseが'+failed.length+'件あります。\n'+
+        'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
+    }
+    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
   }catch(e){
-    sbmAlert_('aDoctor未完了処置を再開できません',String(e&&e.message?e.message:e));
+    sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
   }
 }
+
+// 旧公開関数は互換入口として残し、共通Dispatcherへ委譲する。
+function sbmDoctorResumePendingTreatments(){return sbmResumeUnfinishedWorkflow();}
 
 
 function sbmDoctorResumeSiteDiagnosisTreatments(){
@@ -16507,10 +16527,10 @@ function sbmDoctorResumeSiteDiagnosisTreatments(){
       var route='',req='',label='',destination=hm['紹介先']?String(row[hm['紹介先']-1]||'').toUpperCase():'',mergeReqStored=hm['Merge依頼JSON']?String(row[hm['Merge依頼JSON']-1]||''):'',mergeResultStored=hm['Merge結果JSON']?String(row[hm['Merge結果JSON']-1]||''):'',confirmResult=hm['確認結果']?String(row[hm['確認結果']-1]||''):'';
       var isMergeRow=destination.indexOf('MERGE')>=0||!!mergeReqStored;
       if(isMergeRow)mergeRows++;
-      // v5.22.5: Site Doctor再開はSite Doctor由来のCaseだけを扱う。
-      // 個別aDoctor精密診断のMerge/Writer案件をここへ混在させない。
+      // v6.1.43: 通常aDoctor / Site Doctorを共通処置UIで扱う。
+      // SiteDiagnosisCaseIDは経路の選択条件ではなく、存在する場合のIdentity検証にのみ使う。
       var isCreatorRow=destination.indexOf('CREATOR')>=0||state==='CREATOR_IN_PROGRESS'||state==='CREATOR_REQUEST_READY';
-      if(!sbmDoctorCaseIsSiteDiagnosisRow_(row,hm)){skippedNoSiteDiagnosis++;return;}
+      if(!sd)skippedNoSiteDiagnosis++;
       if(!sd&&isMergeRow)recoveredWithoutSiteDiagnosis++;
       if(state==='CREATOR_IN_PROGRESS'||state==='CREATOR_REQUEST_READY'){
         route='CREATOR';
@@ -16552,12 +16572,12 @@ function sbmDoctorResumeSiteDiagnosisTreatments(){
       }else{return;}
       var needsRebuild=sbmDoctorStoredReferralNeedsRebuild_(req),pretty=req;
       if(req){try{pretty=JSON.stringify(JSON.parse(req),null,2);}catch(ignorePretty){}}
-      actions.push({route:route,request:pretty,caseId:caseId,articleUrl:url,articleTitle:articleTitle,resume:true,resumeState:state,resumeLabel:label+(sd?'':'【SiteDiagnosisCaseID欠落を補完復元】'),siteDiagnosisCaseId:sd,needsRebuild:needsRebuild,mergeRoleInfo:route==='MERGE'?sbmDoctorResumeMergeRoleInfo_(row,hm):null});
+      actions.push({route:route,request:pretty,caseId:caseId,articleUrl:url,articleTitle:articleTitle,resume:true,resumeState:state,resumeLabel:label+(sd?'':'【通常aDoctor案件】'),siteDiagnosisCaseId:sd,needsRebuild:needsRebuild,mergeRoleInfo:route==='MERGE'?sbmDoctorResumeMergeRoleInfo_(row,hm):null});
     });
     var diag='\n走査：'+scanned+'件 / Merge候補行：'+mergeRows+'件'+(recoveredWithoutSiteDiagnosis?' / SiteDiagnosisCaseIDなしで復元：'+recoveredWithoutSiteDiagnosis+'件':'');
-    if(!actions.length)return {ok:true,actions:[],pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:(pendingUser?'Site Doctor案件は統合原稿反映・301等の利用者処置待ちです。④で実施済み項目を確認し、処置完了として登録してください。':'再開できる未完了処置は見つかりませんでした。aDoctorからやり直す必要はありません。')+diag};
+    if(!actions.length)return {ok:true,actions:[],pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:(pendingUser?'aMerge案件は統合原稿反映・301等の利用者処置待ちです。④で実施済み項目を確認し、処置完了として登録してください。':'再開できる未完了処置は見つかりませんでした。aDoctorからやり直す必要はありません。')+diag};
     return {ok:true,actions:actions,pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:'前回の続きから再開しました。現在の残作業：紹介状／結果登録 '+actions.length+'件'+(pendingUser?'、Merge利用者処置 '+pendingUser+'件':'')+'。完了済み案件は再表示しません。'+diag};
-  }catch(e){return {ok:false,actions:[],message:'Site Doctorの再開状態を読み取れませんでした：'+String(e&&e.message?e.message:e)};}
+  }catch(e){return {ok:false,actions:[],message:'未完了Workflowの再開状態を読み取れませんでした：'+String(e&&e.message?e.message:e)};}
 }
 
 function sbmDoctorSkipSiteDiagnosisTreatment(caseId, reason, detail){

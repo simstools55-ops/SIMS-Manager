@@ -1,3 +1,11 @@
+# v6.1.43
+
+- 「未完了の作業を再開」を共通Workflow Dispatcherへ統合。
+- 通常aDoctor / Site Doctorを利用者に選ばせず、Case状態からDoctor回答・利用者確認・Writer・Merge・Creatorの再開先を自動判定。
+- MONITORING / SUPERSEDEDは再開対象から除外し、TREATMENT_FAILEDは通常再開ではなく復旧対象として案内。
+- Site Doctor用に継ぎ足されていた処置再開スキャナを通常aDoctor案件にも利用できる共通処置スキャナへ拡張。
+- 旧再開関数は互換入口として残し、新Dispatcherへ委譲。
+
 # v6.1.42
 
 - aWriter結果の `COMPLETED_WITH_REPORTED_EXCEPTION` を、紹介状違反がない場合は正常な処置完了として受理するよう修正。
