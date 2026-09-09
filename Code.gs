@@ -4,7 +4,7 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.22';
+const SBM_VERSION = '6.2.23';
 // v6.2.22: 「記事情報を更新」を記事DB全体の点検・補完入口へ統合。タイトル・実測メインクエリ・SEO情報の未取得件数を事前表示し、更新結果を可視化。
 // v6.2.20: 改善の推移・改善履歴・記事別履歴ダイアログを共通UIへ統一。記事情報→状態→内容→測定の順で表示し、閉じる操作・判定バッジ・カード装飾を統一。
 // v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、旧『改善の推移』キャッシュの誤表示を開く時に軽量補正。
@@ -924,27 +924,48 @@ function sbmArticleInfoUpdateAudit_() {
 }
 
 function sbmOpenArticleInfoUpdate() {
-  var a = sbmArticleInfoUpdateAudit_();
-  var e = sbmEscapeHtml_;
+  // v6.2.23: 先にダイアログを表示し、点検はクライアントから非同期で開始する。
+  // Apps Script起動＋記事DB走査中の無反応時間をなくし、利用者に処理中であることを明示する。
   var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
     + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}'
-    + 'h2{color:#0b8043;margin:0 0 6px;font-size:21px}.lead{color:#5f6368;margin:0 0 16px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px 16px;margin:12px 0;background:#fff}'
+    + 'h2{color:#0b8043;margin:0 0 6px;font-size:21px}.lead{color:#5f6368;margin:0 0 14px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px 16px;margin:12px 0;background:#fff}'
     + '.row{display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-bottom:1px solid #f1f3f4}.row:last-child{border-bottom:0}.num{font-weight:700}.good{color:#0b8043}.warn{color:#b06000}.note{font-size:12px;color:#5f6368;margin-top:10px}'
-    + '.result{display:none;background:#f6f9f7;border:1px solid #d7e7dc;border-radius:10px;padding:14px 16px;margin-top:14px}.status{min-height:24px;margin:12px 0;font-weight:700;color:#174ea6}.buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}button:disabled{opacity:.55;cursor:default}.spin{display:inline-block;width:14px;height:14px;border:2px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:8px}@keyframes r{to{transform:rotate(360deg)}}</style></head><body>'
+    + '.progress{display:flex;align-items:flex-start;gap:10px;background:#f8f9fa;border:1px solid #dadce0;border-radius:10px;padding:12px 14px;margin:12px 0;color:#174ea6;font-weight:700}.progress small{display:block;color:#5f6368;font-weight:400;margin-top:2px}'
+    + '.result{display:none;background:#f6f9f7;border:1px solid #d7e7dc;border-radius:10px;padding:14px 16px;margin-top:14px}.status{min-height:24px;margin:12px 0;font-weight:700;color:#174ea6}'
+    + '.buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}button{border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}button:disabled{opacity:.55;cursor:default}'
+    + '.spin{display:inline-block;flex:0 0 auto;width:16px;height:16px;border:2px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r .8s linear infinite;vertical-align:-3px;margin-right:7px}@keyframes r{to{transform:rotate(360deg)}}</style></head><body>'
     + '<h2>記事情報を更新</h2><p class="lead">記事管理全体を点検し、未取得のタイトル・メインクエリ・SEO情報を補完します。</p>'
-    + '<div class="card"><div class="row"><span>記事管理</span><span class="num">'+e(a.total)+'件</span></div>'
-    + '<div class="row"><span>記事タイトル未取得</span><span class="num '+(a.titleMissing?'warn':'good')+'">'+e(a.titleMissing)+'件</span></div>'
-    + '<div class="row"><span>実測メインクエリ未取得</span><span class="num '+(a.queryMissing?'warn':'good')+'">'+e(a.queryMissing)+'件</span></div>'
-    + '<div class="row"><span>└ Search Consoleから取得可能</span><span class="num">'+e(a.queryFetchable)+'件</span></div>'
-    + '<div class="row"><span>└ 検索露出待ち</span><span class="num">'+e(a.queryWaiting)+'件</span></div>'
-    + '<div class="row"><span>SEOタイトル未取得</span><span class="num">'+e(a.seoMissing)+'件</span></div>'
-    + '<div class="row"><span>メタディスクリプション未取得</span><span class="num">'+e(a.descMissing)+'件</span></div>'
-    + '<div class="row"><span>新規記事の情報取得待ち</span><span class="num">'+e(a.newArticles)+'件</span></div></div>'
-    + '<div><b>今回更新できる候補：'+e(a.updateCandidates)+'件</b></div><div class="note">検索露出がまだ無い記事の実測メインクエリは取得できません。次回以降の「記事情報を更新」で自動的に再確認します。</div>'
+    + '<div id="progress" class="progress"><span class="spin"></span><div>記事情報の更新状況を点検しています…<small>記事管理のタイトル・クエリ・SEO情報を確認しています。</small></div></div>'
+    + '<div id="audit" class="card" style="display:none">'
+    + '<div class="row"><span>記事管理</span><span id="total" class="num">—</span></div>'
+    + '<div class="row"><span>記事タイトル未取得</span><span id="titleMissing" class="num">—</span></div>'
+    + '<div class="row"><span>実測メインクエリ未取得</span><span id="queryMissing" class="num">—</span></div>'
+    + '<div class="row"><span>└ Search Consoleから取得可能</span><span id="queryFetchable" class="num">—</span></div>'
+    + '<div class="row"><span>└ 検索露出待ち</span><span id="queryWaiting" class="num">—</span></div>'
+    + '<div class="row"><span>SEOタイトル未取得</span><span id="seoMissing" class="num">—</span></div>'
+    + '<div class="row"><span>メタディスクリプション未取得</span><span id="descMissing" class="num">—</span></div>'
+    + '<div class="row"><span>新規記事の情報取得待ち</span><span id="newArticles" class="num">—</span></div></div>'
+    + '<div id="candidate" style="display:none"><b>今回更新できる候補：<span id="updateCandidates">0</span>件</b><div class="note">検索露出がまだ無い記事の実測メインクエリは取得できません。次回以降の「記事情報を更新」で自動的に再確認します。</div></div>'
     + '<div id="status" class="status"></div><div id="result" class="result"></div>'
-    + '<div class="buttons"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button id="run" class="primary" onclick="runUpdate()" '+(a.updateCandidates?'':'disabled')+'>記事情報を更新する</button></div>'
-    + '<script>function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"}[c]||c;});}function runUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result");b.disabled=true;s.innerHTML="<span class=spin></span>記事情報を確認・更新しています…";r.style.display="none";google.script.run.withFailureHandler(function(err){s.textContent=(err&&err.message)?err.message:String(err);b.disabled=false;}).withSuccessHandler(function(d){s.textContent="記事情報の更新が完了しました。";r.style.display="block";r.innerHTML="<b>更新結果</b><br>対象記事："+esc(d.processed)+"件<br>記事タイトル更新："+esc(d.titleUpdated)+"件<br>実測メインクエリ更新："+esc(d.queryUpdated)+"件<br>SEOタイトル更新："+esc(d.seoUpdated)+"件<br>メタディスクリプション更新："+esc(d.descUpdated)+"件<br>まだ取得できない情報："+esc(d.remaining)+"件"+(d.limitReached?"<br><span style=\"color:#b06000\">今回は安全上限まで処理しました。残りはもう一度「記事情報を更新」を実行してください。</span>":"");b.disabled=false;b.textContent="再点検して更新";}).sbmArticleInfoUpdateWorker_();}</script></body></html>';
+    + '<div class="buttons" data-sbm-common-close="1"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button id="run" class="primary" onclick="runUpdate()" disabled>点検中…</button></div>'
+    + '<script>'
+    + 'function esc(v){return String(v==null?"":v).replace(/[&<>\\"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"}[c]||c;});}'
+    + 'function setNum(id,v,warn){var el=document.getElementById(id);el.textContent=String(v)+"件";el.className="num "+(warn&&Number(v)>0?"warn":"good");}'
+    + 'function showAudit(a){document.getElementById("progress").style.display="none";document.getElementById("audit").style.display="block";document.getElementById("candidate").style.display="block";setNum("total",a.total,false);setNum("titleMissing",a.titleMissing,true);setNum("queryMissing",a.queryMissing,true);setNum("queryFetchable",a.queryFetchable,false);setNum("queryWaiting",a.queryWaiting,false);setNum("seoMissing",a.seoMissing,true);setNum("descMissing",a.descMissing,true);setNum("newArticles",a.newArticles,false);document.getElementById("updateCandidates").textContent=a.updateCandidates;var b=document.getElementById("run");b.disabled=!Number(a.updateCandidates);b.textContent=Number(a.updateCandidates)?"記事情報を更新する":"更新対象なし";}'
+    + 'function auditFail(err){var p=document.getElementById("progress");p.innerHTML="点検に失敗しました："+esc((err&&err.message)?err.message:String(err));p.style.color="#b3261e";}'
+    + 'function loadAudit(){google.script.run.withFailureHandler(auditFail).withSuccessHandler(showAudit).sbmArticleInfoUpdateAuditBridge();}'
+    + 'function runUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result");b.disabled=true;b.innerHTML="<span class=spin></span>更新中…";s.innerHTML="<span class=spin></span>記事タイトル・SEO情報・Search Consoleを確認して更新しています。対象件数により数十秒〜数分かかることがあります。";r.style.display="none";google.script.run.withFailureHandler(function(err){s.textContent="更新に失敗しました："+((err&&err.message)?err.message:String(err));b.disabled=false;b.textContent="記事情報を更新する";}).withSuccessHandler(function(d){s.textContent="記事情報の更新が完了しました。";r.style.display="block";r.innerHTML="<b>更新結果</b><br>対象記事："+esc(d.processed)+"件<br>記事タイトル更新："+esc(d.titleUpdated)+"件<br>実測メインクエリ更新："+esc(d.queryUpdated)+"件<br>SEOタイトル更新："+esc(d.seoUpdated)+"件<br>メタディスクリプション更新："+esc(d.descUpdated)+"件<br>まだ取得できない情報："+esc(d.remaining)+"件"+(d.limitReached?"<br><span style=\\"color:#b06000\\">今回は安全上限まで処理しました。残りはもう一度「記事情報を更新」を実行してください。</span>":"");b.disabled=false;b.textContent="再点検して更新";}).sbmArticleInfoUpdateWorkerBridge();}'
+    + 'loadAudit();</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(640)), '記事情報を更新');
+}
+
+// v6.2.23: google.script.runから呼び出せる公開ブリッジ。
+// 末尾「_」のprivate関数はクライアントから直接呼べないため、UIは必ずこの公開関数を経由する。
+function sbmArticleInfoUpdateAuditBridge() {
+  return sbmArticleInfoUpdateAudit_();
+}
+function sbmArticleInfoUpdateWorkerBridge() {
+  return sbmArticleInfoUpdateWorker_();
 }
 
 function sbmArticleInfoUpdateWorker_() {
