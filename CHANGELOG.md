@@ -1,3 +1,7 @@
+## v6.2.10 - 2026-09-09
+- 未完了Workflow待機ダイアログのsuccess handler欠落を修正。サーバー処理完了後にローダーを閉じる。
+- failure/45秒timeout時にスピナーを終了し、無限待機を防止。
+
 ## v6.2.9 - 2026-09-09
 
 - 3件以上のMerge referralを2記事単位の連続aMerge Workflowへ分解。

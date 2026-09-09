@@ -1,8 +1,8 @@
-fix: restore feedback Merge packages and show resume loading in v6.2.8
+fix: close unfinished-work loader after resume in v6.2.10
 
-- rebuild oversized aMerge packages for Writer follow-up Merge cases
-- bypass Doctor V2 normalization for synthetic Writer follow-up referrals
-- preserve the saved referral targets when reconstructing the Merge package
-- show the unfinished-work dialog immediately with a loading spinner
-- move workflow discovery to a background google.script.run continuation
-- update Full to v6.2.8 and Starter to v6.2.8-ST
+- close the loading modal when unfinished-work server discovery completes
+- reveal the resume/treatment dialog already opened by the server
+- stop the spinner on server failure
+- add a 45-second UI timeout to prevent indefinite loading
+- preserve the v6.2.9 sequential multi-merge workflow
+- update Full to v6.2.10 and Starter to v6.2.10-ST
