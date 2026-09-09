@@ -1,3 +1,10 @@
+## v6.2.13 - 2026-09-09
+
+- `MULTI_MERGE_STEP_COMPLETED` を未完了WorkflowのMerge recovery fallbackから除外。
+- 完了済みSequential Multi-Merge中間Stepが「未完了の作業を再開」に再表示される問題を修正。
+- `SUPERSEDED_*` もfallback対象外とし、完了・置換済みCaseの再浮上を防止。
+- activeなMerge復旧とStep 1→Step 2継続処理は維持。
+
 ## v6.2.12 - 2026-09-09
 
 - aMerge結果登録をSite Doctor専用receiverから共通Merge receiverへ統一。

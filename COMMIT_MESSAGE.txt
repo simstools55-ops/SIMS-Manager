@@ -1,8 +1,7 @@
-fix: unify merge result receiver in v6.2.12
+fix: exclude completed multi-merge steps from resume in v6.2.13
 
-- accept Merge results for every formal Merge Case, not only Site Doctor cases
-- route normal aDoctor, Site Doctor, Writer follow-up, and Multi-Merge through one receiver
-- keep the legacy Site Doctor Merge receiver as a compatibility wrapper
-- use the common Merge completion bridge for user-action finalization
-- preserve pair validation and sequential Step 1 -> Step 2 generation
-- update Full to v6.2.12 and Starter to v6.2.12-ST
+- exclude MULTI_MERGE_STEP_COMPLETED from the legacy Merge recovery fallback
+- keep completed intermediate Merge steps out of unfinished-work actions
+- also exclude SUPERSEDED_* rows from the same recovery fallback
+- preserve active Merge recovery and sequential Multi-Merge continuation
+- update Full to v6.2.13 and Starter to v6.2.13-ST

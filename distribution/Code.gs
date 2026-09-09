@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.12
+ * SIMS Manager Product v6.2.13
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.12';
+const SBM_VERSION = '6.2.13';
+// v6.2.13: 完了済みMulti-Merge中間Stepを未完了recovery fallbackから除外し、再開一覧への再表示を防止。
 // v6.2.12: aMerge結果登録をSite Doctor専用判定から共通Merge Case受理へ統一。通常aDoctor / Site Doctor / Writer follow-up / Multi-Mergeを同一受信経路で処理。
 // v6.2.11: 未完了再開ローダーをmodeless化し、google.script.run用の公開bridgeを追加。private末尾_関数の直接呼出を廃止。
 // v6.2.10: 未完了Workflowの待機ダイアログをserver完了時に必ず閉じ、背後に生成済みの再開ダイアログを表示。failure/timeout時もスピナーを終了する。
@@ -16859,7 +16860,8 @@ function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
         }
       }else if(state==='MERGE_USER_ACTION_REQUIRED'){
         pendingUser++;if(!pendingMergeCaseId){pendingMergeCaseId=caseId;pendingMergeContext=sbmDoctorLoadMergeCompletionContextFromRow_(row,hm);}return;
-      }else if(mergeReqStored&&state!=='MONITORING'&&state!=='TREATMENT_FAILED'){
+      }else if(mergeReqStored&&state!=='MONITORING'&&state!=='TREATMENT_FAILED'&&state!=='MULTI_MERGE_STEP_COMPLETED'&&state.indexOf('SUPERSEDED_')!==0){
+        // v6.2.13: 完了済みMulti-Merge中間Stepをrecovery fallbackで未完了へ戻さない。
         // HF8.1 recovery fallback:
         // Drive/Artifact導入前後の中間状態や旧HFで状態コードが想定外でも、
         // Site DiagnosisのaMerge紹介状が残っていれば処置を失わない。

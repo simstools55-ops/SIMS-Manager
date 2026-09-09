@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.12",
+  "current_version": "6.2.13",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.12: aMerge結果登録をSite Doctor専用判定から共通Merge Case受理へ統一し、通常aDoctor / Site Doctor / Writer follow-up / Multi-Mergeを同一受信経路で処理する。",
-  "version": "6.2.12",
+  "notes": "v6.2.13: MULTI_MERGE_STEP_COMPLETEDを未完了Workflowのrecovery fallbackから除外し、完了済み中間Stepの再表示を防止する。",
+  "version": "6.2.13",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.12-ST"
+  "starter_display_version": "6.2.13-ST"
 }
