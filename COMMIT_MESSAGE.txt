@@ -1,7 +1,7 @@
-fix: isolate Creator Direct monitoring in v6.2.19
+ui: unify improvement history dialogs in v6.2.20
 
-- explicitly exclude Creator Direct from aDoctor additional-observation classification
-- repair stale Creator Direct trend labels when opening 改善の推移
-- keep genuine Doctor WAIT/MONITOR cycles as 追加経過観察
-- avoid a full trend rebuild for this legacy display correction
-- synchronize Full and Starter to v6.2.19 / v6.2.19-ST
+- align improvement trend, selected article history, and full history dialogs
+- standardize article identity, route, status, section, badge, and close-button presentation
+- preserve existing measurement and history logic while replacing legacy inline dialog styling
+- keep detailed improvement history content and data contracts unchanged
+- synchronize Full and Starter to v6.2.20 / v6.2.20-ST

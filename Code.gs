@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.19
+ * SIMS Manager Product v6.2.20
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.19';
+const SBM_VERSION = '6.2.20';
+// v6.2.20: 改善の推移・改善履歴・記事別履歴ダイアログを共通UIへ統一。記事情報→状態→内容→測定の順で表示し、閉じる操作・判定バッジ・カード装飾を統一。
 // v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、旧『改善の推移』キャッシュの誤表示を開く時に軽量補正。
 // v6.2.18: 利用者目線の改善取りやめ確認へ統一。Writer/Merge結果登録文言を作業内容ベースへ変更し、Creator DirectをaDoctor追加経過観察へ誤分類する判定を修正。
 // v6.2.17: Workflow系ダイアログのUI統一監査を実施。未完了件数表記、コピー完了表示、復元文言、処置スキップ確認、Merge完了説明、新記事登録表示を統一。
@@ -7871,15 +7872,20 @@ function sbmOpenSelectedArticleHistory(){
   var e=sbmEscapeHtml_,cards=items.slice().reverse().map(function(r){
     var measurements='';
     for(var i=1;i<=4;i++){
-      var dt=r[i+'回目測定日時'], judge=r[i+'週'];
-      if(dt||judge)measurements+='<br>'+i+'回目：'+e(dt||'未測定')+' / '+e(judge||'未判定');
+      var dt=r[i+'回目測定日時'],judge=String(r[i+'週']||'').trim(),planned=sbmWeeklyPlannedDate_(r,i),plannedText=planned?Utilities.formatDate(planned,SBM_DEFAULTS.TIMEZONE,'yyyy/MM/dd'):'日付不明';
+      var measured=!!dt|| (!!judge&&judge!=='未測定'&&judge!=='未判定'&&judge!=='測定待ち');
+      measurements+='<div class="sbm-week"><b>'+i+'週目：</b>'+(measured?e(sbmHistoryDateTimeText_(dt))+' / '+e(judge||'未判定'):'測定待ち（予定：'+e(plannedText)+'）')+'</div>';
     }
-    sbmHistoryExtraMeasurements_(r).forEach(function(x){
-      measurements+='<br>'+Number(x.count||0)+'回目：'+e(x.measured_at||x.date||'未測定')+' / '+e(x.judgment||'未判定');
-    });
-    return '<div style="border:1px solid #dadce0;border-radius:8px;padding:12px;margin:10px 0"><b>'+e(r['改善日'])+'</b>　'+e(r['最終判定']||r['状態']||'測定待ち')+'<br>AI：'+e(r['使用AI']||'未記録')+'<br>変更：'+e(r['変更箇所'])+'<br>概要：'+e(r['改善概要'])+measurements+'</div>';
+    sbmHistoryExtraMeasurements_(r).forEach(function(x){measurements+='<div class="sbm-week"><b>'+Number(x.count||0)+'回目：</b>'+e(x.measured_at||x.date||'未測定')+' / '+e(x.judgment||'未判定')+'</div>';});
+    return '<div class="sbm-card"><div class="sbm-card-head"><b>'+e(sbmHistoryDateTimeText_(r['改善日']))+'</b><span class="sbm-badge">'+e(r['最終判定']||r['状態']||'測定待ち')+'</span></div>'
+      +'<div class="sbm-row"><span class="sbm-label">改善経路：</span>'+e(r['改善経路']||'通常改善')+'</div>'
+      +'<div class="sbm-row"><span class="sbm-label">使用AI：</span>'+e(r['使用AI']||'未記録')+'</div>'
+      +'<div class="sbm-row"><span class="sbm-label">変更箇所：</span>'+e(r['変更箇所']||'ー')+'</div>'
+      +'<div class="sbm-box">'+e(r['改善概要']||'ー')+'</div><div class="sbm-weeks">'+measurements+'</div></div>';
   }).join('');
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput('<div style="font-family:Arial,Noto Sans JP,sans-serif;padding:20px"><h2>記事の改善履歴</h2><h3>'+e(ctx.articleTitle)+'</h3>'+cards+'<div style="text-align:right;margin-top:18px"><button onclick="google.script.host.close()" style="padding:9px 18px">閉じる</button></div></div>').setWidth(720).setHeight(650),'記事の改善履歴');
+  var head=sbmHistoryDialogArticleHeaderHtml_(ctx.articleTitle,ctx.articleId,ctx.articleUrl,'','').replace('__TITLE__','記事の改善履歴');
+  var html='<!doctype html><html><head><base target="_top">'+sbmHistoryDialogCss_()+'</head><body>'+head+'<div class="sbm-section"><div class="sbm-section-title">改善履歴 '+items.length+'件</div>'+cards+'</div>'+sbmHistoryDialogCloseHtml_()+'</body></html>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(700),'記事の改善履歴');
 }
 
 // 表示形式の補強（V1）
@@ -8252,12 +8258,12 @@ function sbmOpenSelectedHistoryArticleAll(){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY).filter(function(r){return(id&&String(r['ArticleID']||'')===id)||sbmNormalizeUrl_(r['記事URL']||'')===sbmNormalizeUrl_(url);});
   if(!rows.length)return sbmAlert_('改善履歴','履歴がありません。');
   var e=sbmEscapeHtml_,cards=rows.slice().reverse().map(function(r){
-    var measurements='';for(var i=1;i<=4;i++){var dt=r[i+'回目測定日時'],j=String(r[i+'週']||'').trim(),measured=!!j&&j!=='未測定'&&j!=='未判定'&&j!=='測定待ち',planned=sbmWeeklyPlannedDate_(r,i),plannedText=planned?Utilities.formatDate(planned,SBM_DEFAULTS.TIMEZONE,'yyyy/MM/dd'):'日付不明';measurements+='<div class="week"><b>'+i+'週目</b>：'+(measured?e(sbmHistoryDateTimeText_(dt))+' / '+e(j):'測定待ち（予定：'+e(plannedText)+'）')+'</div>';}
-    return '<div class="card"><div class="card-head"><b>'+e(sbmHistoryDateTimeText_(r['改善日']))+'</b><span>'+e(r['最終判定']||r['状態']||'測定待ち')+'</span></div><div class="summary">'+e(r['改善概要']||'ー')+'</div><div><b>変更：</b>'+e(r['変更箇所']||'ー')+'</div><div class="weeks">'+measurements+'</div></div>';
+    var measurements='';for(var i=1;i<=4;i++){var dt=r[i+'回目測定日時'],j=String(r[i+'週']||'').trim(),measured=!!dt|| (!!j&&j!=='未測定'&&j!=='未判定'&&j!=='測定待ち'),planned=sbmWeeklyPlannedDate_(r,i),plannedText=planned?Utilities.formatDate(planned,SBM_DEFAULTS.TIMEZONE,'yyyy/MM/dd'):'日付不明';measurements+='<div class="sbm-week"><b>'+i+'週目：</b>'+(measured?e(sbmHistoryDateTimeText_(dt))+' / '+e(j||'未判定'):'測定待ち（予定：'+e(plannedText)+'）')+'</div>';}
+    return '<div class="sbm-card"><div class="sbm-card-head"><b>'+e(sbmHistoryDateTimeText_(r['改善日']))+'</b><span class="sbm-badge">'+e(r['最終判定']||r['状態']||'測定待ち')+'</span></div><div class="sbm-row"><span class="sbm-label">改善経路：</span>'+e(r['改善経路']||'通常改善')+'</div><div class="sbm-row"><span class="sbm-label">変更箇所：</span>'+e(r['変更箇所']||'ー')+'</div><div class="sbm-box">'+e(r['改善概要']||'ー')+'</div><div class="sbm-weeks">'+measurements+'</div></div>';
   }).join('');
-  var title=sbmHistoryTitleText_(o['記事タイトル'],o['記事URL']);
-  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.6}h2{color:#0b8043;margin:0 0 8px}h3{margin:0 0 18px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0;background:#fff}.card-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}.card-head span{color:#174ea6;font-weight:700}.summary{background:#f8f9fa;border-radius:7px;padding:10px;margin:8px 0}.weeks{margin-top:10px}.week{padding:3px 0}.actions{text-align:right;margin-top:18px}.actions button{padding:9px 18px;border:1px solid #9aa0a6;border-radius:6px;background:#fff;font-weight:700;cursor:pointer}</style></head><body><h2>記事の全改善履歴</h2><h3>'+e(title)+'</h3>'+cards+'<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(680),'記事の全改善履歴');
+  var head=sbmHistoryDialogArticleHeaderHtml_(o['記事タイトル'],id,url,'','').replace('__TITLE__','記事の全改善履歴');
+  var html='<!doctype html><html><head><base target="_top">'+sbmHistoryDialogCss_()+'</head><body>'+head+'<div class="sbm-section"><div class="sbm-section-title">改善履歴 '+rows.length+'件</div>'+cards+'</div>'+sbmHistoryDialogCloseHtml_()+'</body></html>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(720),'記事の全改善履歴');
 }
 
 
@@ -9352,6 +9358,42 @@ function sbmEnsureCloseButton_(output) {
     .setHeight(typeof htmlOutput.getHeight === 'function' ? htmlOutput.getHeight() : 500);
 }
 
+function sbmHistoryDialogCss_() {
+  return '<style>'
+    + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;line-height:1.65;color:#202124;background:#fff}'
+    + 'h2{margin:0;color:#0b8043;font-size:22px}h3{margin:0;font-size:17px;color:#202124}'
+    + '.sbm-head{margin-bottom:16px}.sbm-title{margin-top:6px;font-weight:700;overflow-wrap:anywhere}'
+    + '.sbm-meta{background:#f8f9fa;border:1px solid #e0e0e0;border-radius:10px;padding:12px 14px;margin:14px 0}'
+    + '.sbm-row{margin:5px 0;overflow-wrap:anywhere}.sbm-label{font-weight:700;color:#3c4043}'
+    + '.sbm-section{border:1px solid #dadce0;border-radius:10px;padding:15px;margin:14px 0;background:#fff}'
+    + '.sbm-section-title{font-size:16px;font-weight:700;color:#174ea6;margin:0 0 9px}'
+    + '.sbm-box{background:#f8f9fa;border-radius:8px;padding:10px 12px;white-space:pre-wrap;overflow-wrap:anywhere}'
+    + '.sbm-card{border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0;background:#fff}'
+    + '.sbm-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}'
+    + '.sbm-badge{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:#e8f0fe;color:#174ea6;white-space:nowrap}'
+    + '.sbm-weeks{margin-top:10px}.sbm-week{padding:4px 0;border-top:1px solid #f1f3f4}.sbm-week:first-child{border-top:0}'
+    + '.sbm-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}'
+    + '.sbm-metric{border:1px solid #dadce0;border-radius:8px;padding:10px;background:#fff}'
+    + '.sbm-table{border-collapse:collapse;width:100%;margin-top:8px}.sbm-table th,.sbm-table td{border:1px solid #dadce0;padding:8px}.sbm-table th{background:#f8f9fa}.sbm-table td:not(:first-child){text-align:right}'
+    + '.sbm-empty{background:#f8f9fa;border:1px dashed #bdc1c6;border-radius:8px;padding:14px;color:#5f6368}'
+    + '.sbm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
+    + '.sbm-btn{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + '@media(max-width:620px){.sbm-metrics{grid-template-columns:1fr}.sbm-card-head{display:block}.sbm-badge{margin-top:6px}}'
+    + '</style>';
+}
+function sbmHistoryDialogArticleHeaderHtml_(title, articleId, url, route, status) {
+  var e=function(v){return sbmEscapeHtml_(v===0?'0':v);};
+  var html='<div class="sbm-head"><h2>__TITLE__</h2><div class="sbm-title">'+e(sbmHistoryTitleText_(title,url))+'</div></div>';
+  html+='<div class="sbm-meta">';
+  if(articleId)html+='<div class="sbm-row"><span class="sbm-label">ArticleID：</span>'+e(articleId)+'</div>';
+  if(route)html+='<div class="sbm-row"><span class="sbm-label">改善経路：</span>'+e(route)+'</div>';
+  if(status)html+='<div class="sbm-row"><span class="sbm-label">現在の状態：</span>'+e(status)+'</div>';
+  if(url)html+='<div class="sbm-row"><span class="sbm-label">記事URL：</span>'+e(url)+'</div>';
+  html+='</div>';
+  return html;
+}
+function sbmHistoryDialogCloseHtml_(){return '<div class="sbm-actions" data-sbm-common-close="1"><button type="button" class="sbm-btn" onclick="google.script.host.close()">閉じる</button></div>';}
+
 function sbmHistoryDisplayValue_(v) {
   return sbmDisplayValueJa_(v);
 }
@@ -9495,43 +9537,26 @@ function sbmFormatEffectDateLabel_(value) {
 }
 
 function sbmEffectDetailHtmlV2_(o) {
-  var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
-  function cell(v) { return e(sbmDisplayValueJa_(v)); }
-  function num(v) { return e(sbmDetailNumber1_(v)); }
-  function ctr(v) { return e(sbmDetailCtr1_(v)); }
-  function tr(label, before, current, delta, kind) {
-    var f = kind === 'ctr' ? ctr : num;
-    return '<tr>'
-      + '<td style="border:1px solid #ddd;padding:8px;font-weight:700">' + e(label) + '</td>'
-      + '<td style="border:1px solid #ddd;padding:8px;text-align:right">' + f(before) + '</td>'
-      + '<td style="border:1px solid #ddd;padding:8px;text-align:right">' + f(current) + '</td>'
-      + '<td style="border:1px solid #ddd;padding:8px;text-align:right">' + f(delta) + '</td>'
-      + '</tr>';
-  }
+  var e=function(v){return sbmEscapeHtml_(v===0?'0':v);};
+  function cell(v){return e(sbmDisplayValueJa_(v));}
+  function num(v){return e(sbmDetailNumber1_(v));}
+  function ctr(v){return e(sbmDetailCtr1_(v));}
+  function tr(label,before,current,delta,kind){var f=kind==='ctr'?ctr:num;return '<tr><td>'+e(label)+'</td><td>'+f(before)+'</td><td>'+f(current)+'</td><td>'+f(delta)+'</td></tr>';}
   var historyRows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
   var history=historyRows.filter(function(h){return String(h['改善履歴ID']||'')===String(o['改善履歴ID']||'');})[0]||{};
   var weeklyHtml=sbmWeeklyHistoryHtml_(history);
-  var beforeDate = sbmFormatEffectDateLabel_(o['改善日']);
-  var currentDate = sbmFormatEffectDateLabel_(o['最終更新'] || o['更新日時'] || new Date());
-  return '<div style="font-family:Arial,Noto Sans JP,sans-serif;padding:20px;line-height:1.65;color:#202124">'
-    + '<h2 style="margin-top:0;color:#0b8043">改善の推移の詳細</h2>'
-    + '<h3>' + e(sbmHistoryTitleText_(o['記事タイトル'],o['記事URL'])) + '</h3>'
-    + '<p><b>判定：</b>' + cell(o['判定'])
-    + '　<b>経過日数：</b>' + num(o['経過日数']) + '日'
-    + '　<b>測定回数：</b>' + cell(o['測定回数']) + '　<b>次回予定：</b>' + cell(o['次回測定予定日']) + '</p>'
-    + '<h3>改善内容</h3><p>' + cell(o['改善概要']) + '</p><p><b>変更：</b>' + cell(o['変更箇所']) + '</p>'
-    + '<h3>改善前・現在の比較</h3>'
-    + '<table style="border-collapse:collapse;width:100%">'
-    + '<tr><th style="border:1px solid #ddd;padding:8px">指標</th><th style="border:1px solid #ddd;padding:8px">改善前（' + beforeDate + '）</th><th style="border:1px solid #ddd;padding:8px">現在（' + currentDate + '）</th><th style="border:1px solid #ddd;padding:8px">変化</th></tr>'
-    + tr('クリック数', o['改善前クリック'], o['現在クリック'], o['クリック変化'], 'num')
-    + tr('表示回数', o['改善前表示回数'], o['現在表示回数'], o['表示回数変化'], 'num')
-    + tr('CTR', o['改善前CTR'], o['現在CTR'], o['CTR変化'], 'ctr')
-    + tr('掲載順位', o['改善前順位'], o['現在順位'], o['順位変化'], 'num')
-    + '</table>'
-    + '<h3>4週間の測定履歴</h3>' + weeklyHtml
-    + '<h3>SIMS評価</h3><p>' + cell(o['SIMS評価']) + '</p>'
-    + '<h3>次のアクション</h3><p>' + cell(o['次のアクション']) + '</p><p>' + cell(o['測定コメント']) + '</p>'
-    + '</div>';
+  var beforeDate=sbmFormatEffectDateLabel_(o['改善日']);
+  var currentDate=sbmFormatEffectDateLabel_(o['最終更新']||o['更新日時']||new Date());
+  var route=o['改善経路']||history['改善経路']||'通常改善';
+  var articleId=o['ArticleID']||history['ArticleID']||'';
+  var head=sbmHistoryDialogArticleHeaderHtml_(o['記事タイトル'],articleId,o['記事URL'],route,o['判定']).replace('__TITLE__','改善の推移の詳細');
+  return '<!doctype html><html><head><base target="_top">'+sbmHistoryDialogCss_()+'</head><body>'+head
+    +'<div class="sbm-section"><div class="sbm-section-title">現在の測定状況</div><div class="sbm-row"><span class="sbm-label">経過日数：</span>'+num(o['経過日数'])+'日　<span class="sbm-label">測定回数：</span>'+cell(o['測定回数'])+'　<span class="sbm-label">次回予定：</span>'+cell(o['次回測定予定日'])+'</div></div>'
+    +'<div class="sbm-section"><div class="sbm-section-title">改善内容</div><div class="sbm-box">'+cell(o['改善概要'])+'</div><div class="sbm-row"><span class="sbm-label">変更箇所：</span>'+cell(o['変更箇所'])+'</div></div>'
+    +'<div class="sbm-section"><div class="sbm-section-title">改善前と現在の比較</div><table class="sbm-table"><tr><th>指標</th><th>改善前（'+e(beforeDate)+'）</th><th>現在（'+e(currentDate)+'）</th><th>変化</th></tr>'+tr('クリック数',o['改善前クリック'],o['現在クリック'],o['クリック変化'],'num')+tr('表示回数',o['改善前表示回数'],o['現在表示回数'],o['表示回数変化'],'num')+tr('CTR',o['改善前CTR'],o['現在CTR'],o['CTR変化'],'ctr')+tr('掲載順位',o['改善前順位'],o['現在順位'],o['順位変化'],'num')+'</table></div>'
+    +'<div class="sbm-section"><div class="sbm-section-title">4週間の効果測定</div>'+weeklyHtml+'</div>'
+    +'<div class="sbm-section"><div class="sbm-section-title">SIMS評価と次のアクション</div><div class="sbm-box">'+cell(o['SIMS評価'])+'</div><div class="sbm-row"><span class="sbm-label">次のアクション：</span>'+cell(o['次のアクション'])+'</div><div class="sbm-box">'+cell(o['測定コメント'])+'</div></div>'
+    +sbmHistoryDialogCloseHtml_()+'</body></html>';
 }
 
 function sbmShowSelectedEffectDetail() {
@@ -9713,10 +9738,9 @@ function sbmHistoryDetailHtmlV2_(o) {
   var description = sbmHistoryDisplayValue_(o['変更後メタディスクリプション'] || nv.description);
   var mainQuery = sbmHistoryDisplayValue_(o['メインクエリ'] || nv.main_query);
 
-  var css = '<style>'
-    + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:20px;line-height:1.65;color:#202124}'
-    + 'h2{margin:0 0 8px;color:#0b8043}h3{margin:22px 0 8px}'
-    + '.meta{background:#f8f9fa;border-radius:8px;padding:12px}'
+  var css = sbmHistoryDialogCss_() + '<style>'
+    + '.meta{background:#f8f9fa;border-radius:10px;padding:12px;border:1px solid #e0e0e0}'
+    + 'h3{margin:22px 0 8px}'
     + '.section{border:1px solid #dadce0;border-radius:10px;padding:16px;margin:16px 0}'
     + '.section h3{margin-top:0;color:#174ea6}.field{margin:8px 0}.label{font-weight:700}'
     + '.box{border:1px solid #dadce0;border-radius:8px;padding:12px;margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere;background:#fff}'
@@ -9789,15 +9813,15 @@ function sbmHistoryDetailHtmlV2_(o) {
     + '<div class="subsection"><h4>3-2. 4週間の効果測定</h4>'+weeklyHtml+'</div>'
     + '<div class="subsection"><h4>3-3. 最終判定</h4>'+finalHtml+'</div>';
 
-  return '<!doctype html><html><head><base target="_top">'+css+'</head><body>'
-    + '<h2>改善履歴の詳細</h2><h3>'+e(sbmHistoryTitleText_(o['記事タイトル'],o['記事URL']))+'</h3>'
+  var head=sbmHistoryDialogArticleHeaderHtml_(o['記事タイトル'],o['ArticleID'],o['記事URL'],o['改善経路'],o['最終判定']||o['状態']).replace('__TITLE__','改善履歴の詳細');
+  return '<!doctype html><html><head><base target="_top">'+css+'</head><body>'+head
     + '<div class="meta"><div class="field"><span class="label">改善履歴ID：</span>'+e(sbmHistoryDisplayValue_(o['改善履歴ID']))+'</div>'
     + '<div class="field"><span class="label">改善日時：</span>'+e(sbmHistoryDateTimeText_(o['改善日']))+'</div>'
     + '<div class="field"><span class="label">改善経路：</span>'+e(sbmHistoryDisplayValue_(o['改善経路']))+'　<span class="label">状態：</span>'+e(sbmHistoryDisplayValue_(o['最終判定']||o['状態']))+'</div></div>'
     + '<div class="section"><h3>1. 登録時の改善計画</h3>'+planHtml+'</div>'
     + '<div class="section"><h3>2. 公開した改善内容</h3>'+resultHtml+'</div>'
     + '<div class="section"><h3>3. 改善の推移</h3>'+effectHtml+'</div>'
-    + '<div style="display:flex;justify-content:flex-end;margin-top:18px"><button type="button" onclick="google.script.host.close()" style="border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer">閉じる</button></div>'
+    + sbmHistoryDialogCloseHtml_()
     + '</body></html>';
 }
 

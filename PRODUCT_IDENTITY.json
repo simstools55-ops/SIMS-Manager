@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.19",
+  "current_version": "6.2.20",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、既存の改善の推移に残る誤表示を開く時に軽量補正。Doctor再診→経過観察は従来どおり維持。",
-  "version": "6.2.19",
+  "notes": "v6.2.20: 改善の推移・記事別改善履歴・全改善履歴・改善履歴詳細を共通UIへ統一。記事情報→状態/経路→改善内容→測定結果の順に整理し、判定バッジ・カード・閉じる操作を統一。",
+  "version": "6.2.20",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.19-ST"
+  "starter_display_version": "6.2.20-ST"
 }
