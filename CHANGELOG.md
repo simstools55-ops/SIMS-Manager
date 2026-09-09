@@ -1,4 +1,4 @@
-## v6.2.13 - 2026-09-09
+## v6.2.14 - 2026-09-09
 
 - `MULTI_MERGE_STEP_COMPLETED` を未完了WorkflowのMerge recovery fallbackから除外。
 - 完了済みSequential Multi-Merge中間Stepが「未完了の作業を再開」に再表示される問題を修正。

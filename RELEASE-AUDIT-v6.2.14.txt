@@ -1,0 +1,9 @@
+SIMS Manager v6.2.14 Release Audit
+
+- Full canonical version: 6.2.14
+- Starter display version: 6.2.14-ST
+- 9 Code.gs copies passed node --check
+- product6214_merge_monitoring_sync_test.js: PASS (8/8)
+- Merge absorbed articles now supersede ACTIVE/REVIEW_REQUIRED monitoring cycles
+- Merge completion refreshes Improvement Trend cache with viewOnly + dailyFast
+- Multi-Merge route sync preserves 連続aMerge

@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.13
+# SIMS Manager v6.2.14
 
 ## Fix
 
@@ -12,5 +12,5 @@
 今回の実運用ケースでは、完了済み `CASE-20260909-A000068-001` が残件一覧から消え、A000082 / A000070 のWriter案件だけが残ることを期待します。
 
 Version:
-- Full: v6.2.13
-- Starter: v6.2.13-ST
+- Full: v6.2.14
+- Starter: v6.2.14-ST

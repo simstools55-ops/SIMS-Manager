@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.13",
+  "current_version": "6.2.14",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.13: MULTI_MERGE_STEP_COMPLETEDを未完了Workflowのrecovery fallbackから除外し、完了済み中間Stepの再表示を防止する。",
-  "version": "6.2.13",
+  "notes": "v6.2.14: Merge吸収記事のMonitoring Cycle終了、改善の推移即時同期、Multi-Merge改善経路の連続aMerge保持を追加。",
+  "version": "6.2.14",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.13-ST"
+  "starter_display_version": "6.2.14-ST"
 }
