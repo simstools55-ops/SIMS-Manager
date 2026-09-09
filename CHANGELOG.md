@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v6.2.3 - 2026-09-09
+- Unified normal-improvement launch through a single checkpoint-before-display entry for Today and Article Management detail flows.
+- Article Management detail -> Improvement Navi now records NORMAL_IMPROVEMENT before opening the dialog.
+- Resume validates saved ArticleID/URL against the restored article and stops instead of opening a stale article on mismatch.
+
+
 ## v6.2.2 - 2026-09-09
 - 「今日の改善」「記事管理」から開始する通常改善を `NORMAL_IMPROVEMENT` として軽量Checkpoint保存。
 - aWriter依頼文準備完了時に `WRITER_IN_PROGRESS` へ更新し、改善結果登録成功時にWorkflowを完了化。

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.2",
+  "current_version": "6.2.3",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.2: normal improvements started from Today or Article Management are checkpointed as lightweight workflows and can be resumed from the unified unfinished-work entry.",
-  "version": "6.2.2",
+  "notes": "v6.2.3: normal-improvement entry points now share one checkpoint path, and resume validates ArticleID/URL before restoring the Improvement Navi.",
+  "version": "6.2.3",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.2-ST"
+  "starter_display_version": "6.2.3-ST"
 }

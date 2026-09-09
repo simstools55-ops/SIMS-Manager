@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.2.2
+ * SIMS Manager Product v6.2.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.2';
+const SBM_VERSION = '6.2.3';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -8221,7 +8221,28 @@ function sbmResumeNormalImprovementWorkflow_(entry){
     if(entry&&entry.id)sbmDoctorWorkflowWriteMeta_(entry.id,{last_error:'対象記事が記事管理に見つかりません。'});
     return sbmAlert_('未完了の作業を再開','通常改善の対象記事が記事管理に見つかりません。\n\nArticleID：'+String(m.article_id||'')+'\nURL：'+String(m.article_url||''));
   }
+  // v6.2.3: 古いWorkflowから別記事を誤復元しないよう、保存Identityと復元記事を照合する。
+  var expectedId=String(m.article_id||'').trim(),expectedUrl=sbmNormalizeUrl_(String(m.article_url||''));
+  var actualId=String(article['ArticleID']||'').trim(),actualUrl=sbmNormalizeUrl_(String(article['記事URL']||''));
+  var mismatch=(expectedId&&actualId&&expectedId!==actualId)||(expectedUrl&&actualUrl&&expectedUrl!==actualUrl);
+  if(mismatch){
+    if(entry&&entry.id)sbmDoctorWorkflowWriteMeta_(entry.id,{last_error:'WorkflowのArticleID/URLと復元対象記事が一致しません。'});
+    return sbmAlert_('未完了の作業を再開',
+      '通常改善Workflowの復元情報が一致しないため、別の記事を開かず停止しました。\n\n'+
+      '保存ArticleID：'+expectedId+'\n復元ArticleID：'+actualId+'\n\n「データ整合性を点検・修復」で確認してください。');
+  }
   sbmShowImprovementNaviDialog_(article,String(m.kind||'改善候補'),String(m.reason||''));
+}
+
+// v6.2.3: 通常改善の入口を共通化する。どの画面から開いても
+// ArticleID/URLを確定 → Checkpoint保存 → 改善ナビ表示、の順を必ず通す。
+function sbmStartNormalImprovementAndShow_(record,sourceSheet,kind,reason){
+  record=record||{};
+  var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
+  if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
+  sbmNormalImprovementWorkflowStart_(record,sourceSheet,kind,reason);
+  sbmShowImprovementNaviDialog_(record,kind,reason);
+  return {ok:true,articleId:articleId,url:url};
 }
 
 function sbmOpenSelectedImprovementNavi(){
@@ -8238,11 +8259,8 @@ function sbmOpenSelectedImprovementNavi(){
     try{sbmLog_('ImprovementNaviLaunch','Info','stage=selected / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogStart){}
 
     // v6.2.2: 通常改善も「未完了の作業を再開」で復元できるよう、表示前に軽量Checkpointを保存する。
-    sbmNormalImprovementWorkflowStart_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
-    // v6.1.14: ダイアログ表示前の同期的な記事DB再検索を廃止する。
-    // 今日の改善行だけで改善ナビの枠を即時表示し、記事DB・GSC・本文の詳細は
-    // ダイアログ表示後の既存google.script.run経路で取得する。
-    sbmShowImprovementNaviDialog_(record,record['区分']||'改善候補',record['改善理由・期待効果']||'');
+    // v6.2.3: 今日の改善／記事管理のどちらからでも同じ通常改善開始処理を通す。
+    sbmStartNormalImprovementAndShow_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
     try{sbmLog_('ImprovementNaviLaunch','Done','stage=dialog_shown / elapsed='+(((new Date()).getTime()-started.getTime())/1000).toFixed(2)+'s / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogDone){}
   }catch(e){
     var msg=String(e&&e.message||e);
@@ -9434,7 +9452,8 @@ function sbmOpenImprovementNaviFromArticleDetail(articleUrl) {
   if (!url) return sbmAlert_('改善ナビ', '記事URLを取得できません。');
   var article = sbmFindArticleDbByUrlFast_(url);
   if (!article) return sbmAlert_('改善ナビ', '記事管理から対象記事を確認できません。');
-  sbmShowImprovementNaviDialog_(article, '記事管理から選択', '選択記事の改善方針を確認します。');
+  // v6.2.3: 記事詳細からの入口も必ず通常改善Checkpointを作成してから表示する。
+  return sbmStartNormalImprovementAndShow_(article,SBM_SHEETS.ARTICLE_DB,'記事管理から選択','選択記事の改善方針を確認します。');
 }
 
 function sbmShowArticleDbDetailForRow_(sh, row) {

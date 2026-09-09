@@ -1,7 +1,7 @@
 {
-  "version": "6.2.2",
+  "version": "6.2.3",
   "product": "SIMS Manager",
-  "generated_from": "v6.2.1 repository baseline",
+  "generated_from": "v6.2.2 repository baseline",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -60,8 +60,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 23162,
-      "sha256": "15b46807cf5f78c1d47bc4c965f240c8319a67dd686f8ad0ca9b436cdd331327"
+      "bytes": 23551,
+      "sha256": "8931cdfcc6ba422a49f54cbd3caa7bfa9b88249a7285294e78c95d68f4d9dcce"
     },
     {
       "path": "COMMIT_MESSAGE.txt",
@@ -75,13 +75,18 @@
     },
     {
       "path": "Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "EDITION_POLICY.md",
       "bytes": 1725,
       "sha256": "4f779cfbcf59c23d951723e6964fc890649cf3e369d411ea8608f3ff759f1402"
+    },
+    {
+      "path": "FILE_MANIFEST.txt",
+      "bytes": 149739,
+      "sha256": "3edb8f9b9a17d55dae655e62743eee7e4c0b8d44daa1c76559096459025f7445"
     },
     {
       "path": "GITHUB-RELEASE-NOTES-v6.1.42.md",
@@ -107,6 +112,11 @@
       "path": "GITHUB-RELEASE-NOTES-v6.2.2.md",
       "bytes": 1136,
       "sha256": "779589c9520bff717117480153b4fc2d80eee73214a37c340ff3f19521e79a7c"
+    },
+    {
+      "path": "GITHUB-RELEASE-NOTES-v6.2.3.md",
+      "bytes": 212,
+      "sha256": "3829743cca5aef05746d612ea614239659f57a4a4b4ba0186d3faa391e6d44a9"
     },
     {
       "path": "GITHUB_RELEASE_NOTES.md",
@@ -140,8 +150,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "bytes": 470,
-      "sha256": "a4e7481445845e22c2b434269122fcc74ddf246b867dadfc8051b1b5fd507373"
+      "bytes": 445,
+      "sha256": "68158dc03961537e277270441d686f7f86ebac933edb1af7325523f91a88a0b0"
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -381,7 +391,7 @@
     {
       "path": "README-FIRST.md",
       "bytes": 1026,
-      "sha256": "958aee3965eebba052054aab9c30c05d257e8b8a4a4467ae5c15a251e39be1c0"
+      "sha256": "0e73f5f9e37e948af4c22c0deb366922974dcdc0ff8e6cd525a451b45f538eaf"
     },
     {
       "path": "README-RC8.17.txt",
@@ -1052,6 +1062,11 @@
       "path": "RELEASE-NOTES-v6.2.2.md",
       "bytes": 1136,
       "sha256": "779589c9520bff717117480153b4fc2d80eee73214a37c340ff3f19521e79a7c"
+    },
+    {
+      "path": "RELEASE-NOTES-v6.2.3.md",
+      "bytes": 529,
+      "sha256": "5275ae1b31db5c78a5963802e9cbe4dc534097c66f5b1e1e43329fecc75bf64d"
     },
     {
       "path": "RELEASE_NOTES-v5.10.1.md",
@@ -1955,8 +1970,8 @@
     },
     {
       "path": "SHARED_VERSION",
-      "bytes": 7,
-      "sha256": "1f4e1c754cd29a35a4bbba6d5fe1d257cd216e610acd65328ab571108ceba067"
+      "bytes": 6,
+      "sha256": "c55a2ec9b9d5ca78f4281349ef612925879d134e8c7f983e3b13d5a887a723d9"
     },
     {
       "path": "SUPPORT.md",
@@ -1986,7 +2001,7 @@
     {
       "path": "VERSION",
       "bytes": 6,
-      "sha256": "e876c3ed077c5dc206ab8838e22bcaa4f2da98aeea2de66450c6118a09679f73"
+      "sha256": "c55a2ec9b9d5ca78f4281349ef612925879d134e8c7f983e3b13d5a887a723d9"
     },
     {
       "path": "VERSION-AUDIT-v5.10.1.md",
@@ -2025,8 +2040,8 @@
     },
     {
       "path": "apps-script/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "apps-script/appsscript.json",
@@ -2035,8 +2050,8 @@
     },
     {
       "path": "apps-script/full/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "apps-script/full/appsscript.json",
@@ -2045,8 +2060,8 @@
     },
     {
       "path": "apps-script/starter/Code.gs",
-      "bytes": 1342240,
-      "sha256": "f7cdf6b82d2765ed4901cb962c3648b8a2e5af87a3ad310fde7176612cd1a2da"
+      "bytes": 1343671,
+      "sha256": "6d20bc25c8ec50fbd9ea90d6d557999f7076f43e21b30234731b08e816855b82"
     },
     {
       "path": "apps-script/starter/appsscript.json",
@@ -2365,8 +2380,8 @@
     },
     {
       "path": "distribution/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "distribution/README-FIRST.md",
@@ -2830,8 +2845,8 @@
     },
     {
       "path": "editions/full/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "editions/full/README.md",
@@ -2845,8 +2860,8 @@
     },
     {
       "path": "editions/starter/Code.gs",
-      "bytes": 1342240,
-      "sha256": "f7cdf6b82d2765ed4901cb962c3648b8a2e5af87a3ad310fde7176612cd1a2da"
+      "bytes": 1343671,
+      "sha256": "6d20bc25c8ec50fbd9ea90d6d557999f7076f43e21b30234731b08e816855b82"
     },
     {
       "path": "editions/starter/README.md",
@@ -3825,8 +3840,8 @@
     },
     {
       "path": "shared/PRODUCT_IDENTITY.json",
-      "bytes": 562,
-      "sha256": "93dc7f5d4a884e4a6ade6e3a31106d156dfd3f4f8f673265a030e690e6fa1af5"
+      "bytes": 542,
+      "sha256": "b8607b5f7c362492db49aa378528bb67e4aadd2556ff981e61d23265ea99df49"
     },
     {
       "path": "shared/README.md",
@@ -4021,7 +4036,7 @@
     {
       "path": "shared/VERSION",
       "bytes": 6,
-      "sha256": "a704c93aab386cdf2e2b1a296d2b544f5ada3dc015dcb0d9dfadc6f550e70143"
+      "sha256": "c55a2ec9b9d5ca78f4281349ef612925879d134e8c7f983e3b13d5a887a723d9"
     },
     {
       "path": "shared/architecture/CLAUDE_OPERATIONS.md",
@@ -5190,13 +5205,13 @@
     },
     {
       "path": "src/apps-script/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "src/distribution/Code.gs",
-      "bytes": 1342237,
-      "sha256": "7903c9ebac0ccf02cf081dc87bf1ae726dbf73ea8ec753bf0b33d296e90826b2"
+      "bytes": 1343668,
+      "sha256": "02912ab9f64c3039dfa72e6480c98f9dd094591142fe4ccd7206634c1459a19b"
     },
     {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",
