@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.19",
+  "current_version": "6.2.21",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、既存の改善の推移に残る誤表示を開く時に軽量補正。Doctor再診→経過観察は従来どおり維持。",
-  "version": "6.2.19",
-  "starter_display_version": "6.2.19-ST"
+  "notes": "v6.2.21: 改善履歴系の実画面監査を反映。本文タイトル重複、欠損記事タイトルのプレースホルダー、未測定週の誤説明、日付/日時表記の混在を修正。",
+  "version": "6.2.21",
+  "starter_display_version": "6.2.21-ST"
 }

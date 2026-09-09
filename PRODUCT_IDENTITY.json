@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.20",
+  "current_version": "6.2.21",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.20: 改善の推移・記事別改善履歴・全改善履歴・改善履歴詳細を共通UIへ統一。記事情報→状態/経路→改善内容→測定結果の順に整理し、判定バッジ・カード・閉じる操作を統一。",
-  "version": "6.2.20",
+  "notes": "v6.2.21: 改善履歴系の実画面監査を反映。本文タイトル重複、欠損記事タイトルのプレースホルダー、未測定週の誤説明、日付/日時表記の混在を修正。",
+  "version": "6.2.21",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.20-ST"
+  "starter_display_version": "6.2.21-ST"
 }
