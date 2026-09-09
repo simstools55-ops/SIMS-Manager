@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.20
+ * SIMS Manager Product v6.2.22
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.21';
+const SBM_VERSION = '6.2.22';
+// v6.2.22: 「記事情報を更新」を記事DB全体の点検・補完入口へ統合。タイトル・実測メインクエリ・SEO情報の未取得件数を事前表示し、更新結果を可視化。
 // v6.2.20: 改善の推移・改善履歴・記事別履歴ダイアログを共通UIへ統一。記事情報→状態→内容→測定の順で表示し、閉じる操作・判定バッジ・カード装飾を統一。
 // v6.2.19: Creator DirectをaDoctor追加経過観察から明示除外し、旧『改善の推移』キャッシュの誤表示を開く時に軽量補正。
 // v6.2.18: 利用者目線の改善取りやめ確認へ統一。Writer/Merge結果登録文言を作業内容ベースへ変更し、Creator DirectをaDoctor追加経過観察へ誤分類する判定を修正。
@@ -889,8 +890,117 @@ function sbmShowNewArticleInfoPrompt_(count) {
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(250)), '新規記事の記事情報取得');
 }
 
+function sbmArticleInfoUpdateAudit_() {
+  var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB);
+  var out = {total:rows.length,titleMissing:0,queryMissing:0,queryFetchable:0,queryWaiting:0,seoMissing:0,descMissing:0,newArticles:0,updateCandidates:0};
+  var seen = {};
+  rows.forEach(function(r){
+    var url = sbmNormalizeUrl_(r['記事URL'] || r.URL || '');
+    var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', url);
+    var rawQuery = String(r['メインクエリ'] || '').trim();
+    var realQueryMissing = !rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery);
+    var seo = sbmCleanDataListText_(r['SEOタイトル'] || r['SEOタイトル（titleタグ）'] || r['titleタグ'] || '', url);
+    var desc = sbmCleanDataListText_(r['メタディスクリプション'] || r['meta description'] || '', url);
+    var imps = sbmNumber_(r['表示回数'] || 0);
+    var isNew = String(r['管理フラグ'] || '') === '新規記事';
+    var missTitle = !title || sbmIsTitlePlaceholder_(title,url);
+    var missSeo = !seo;
+    var missDesc = !desc;
+    if (missTitle) out.titleMissing++;
+    if (realQueryMissing) {
+      out.queryMissing++;
+      if (url && imps > 0) out.queryFetchable++;
+      else out.queryWaiting++;
+    }
+    if (missSeo) out.seoMissing++;
+    if (missDesc) out.descMissing++;
+    if (isNew) out.newArticles++;
+    if (url && (missTitle || missSeo || missDesc || (realQueryMissing && imps > 0) || isNew)) {
+      var key = String(r['ArticleID'] || '') || url;
+      if (!seen[key]) { seen[key] = true; out.updateCandidates++; }
+    }
+  });
+  return out;
+}
+
+function sbmOpenArticleInfoUpdate() {
+  var a = sbmArticleInfoUpdateAudit_();
+  var e = sbmEscapeHtml_;
+  var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
+    + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}'
+    + 'h2{color:#0b8043;margin:0 0 6px;font-size:21px}.lead{color:#5f6368;margin:0 0 16px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px 16px;margin:12px 0;background:#fff}'
+    + '.row{display:flex;justify-content:space-between;gap:18px;padding:5px 0;border-bottom:1px solid #f1f3f4}.row:last-child{border-bottom:0}.num{font-weight:700}.good{color:#0b8043}.warn{color:#b06000}.note{font-size:12px;color:#5f6368;margin-top:10px}'
+    + '.result{display:none;background:#f6f9f7;border:1px solid #d7e7dc;border-radius:10px;padding:14px 16px;margin-top:14px}.status{min-height:24px;margin:12px 0;font-weight:700;color:#174ea6}.buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}button:disabled{opacity:.55;cursor:default}.spin{display:inline-block;width:14px;height:14px;border:2px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:8px}@keyframes r{to{transform:rotate(360deg)}}</style></head><body>'
+    + '<h2>記事情報を更新</h2><p class="lead">記事管理全体を点検し、未取得のタイトル・メインクエリ・SEO情報を補完します。</p>'
+    + '<div class="card"><div class="row"><span>記事管理</span><span class="num">'+e(a.total)+'件</span></div>'
+    + '<div class="row"><span>記事タイトル未取得</span><span class="num '+(a.titleMissing?'warn':'good')+'">'+e(a.titleMissing)+'件</span></div>'
+    + '<div class="row"><span>実測メインクエリ未取得</span><span class="num '+(a.queryMissing?'warn':'good')+'">'+e(a.queryMissing)+'件</span></div>'
+    + '<div class="row"><span>└ Search Consoleから取得可能</span><span class="num">'+e(a.queryFetchable)+'件</span></div>'
+    + '<div class="row"><span>└ 検索露出待ち</span><span class="num">'+e(a.queryWaiting)+'件</span></div>'
+    + '<div class="row"><span>SEOタイトル未取得</span><span class="num">'+e(a.seoMissing)+'件</span></div>'
+    + '<div class="row"><span>メタディスクリプション未取得</span><span class="num">'+e(a.descMissing)+'件</span></div>'
+    + '<div class="row"><span>新規記事の情報取得待ち</span><span class="num">'+e(a.newArticles)+'件</span></div></div>'
+    + '<div><b>今回更新できる候補：'+e(a.updateCandidates)+'件</b></div><div class="note">検索露出がまだ無い記事の実測メインクエリは取得できません。次回以降の「記事情報を更新」で自動的に再確認します。</div>'
+    + '<div id="status" class="status"></div><div id="result" class="result"></div>'
+    + '<div class="buttons"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button id="run" class="primary" onclick="runUpdate()" '+(a.updateCandidates?'':'disabled')+'>記事情報を更新する</button></div>'
+    + '<script>function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"}[c]||c;});}function runUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result");b.disabled=true;s.innerHTML="<span class=spin></span>記事情報を確認・更新しています…";r.style.display="none";google.script.run.withFailureHandler(function(err){s.textContent=(err&&err.message)?err.message:String(err);b.disabled=false;}).withSuccessHandler(function(d){s.textContent="記事情報の更新が完了しました。";r.style.display="block";r.innerHTML="<b>更新結果</b><br>対象記事："+esc(d.processed)+"件<br>記事タイトル更新："+esc(d.titleUpdated)+"件<br>実測メインクエリ更新："+esc(d.queryUpdated)+"件<br>SEOタイトル更新："+esc(d.seoUpdated)+"件<br>メタディスクリプション更新："+esc(d.descUpdated)+"件<br>まだ取得できない情報："+esc(d.remaining)+"件"+(d.limitReached?"<br><span style=\"color:#b06000\">今回は安全上限まで処理しました。残りはもう一度「記事情報を更新」を実行してください。</span>":"");b.disabled=false;b.textContent="再点検して更新";}).sbmArticleInfoUpdateWorker_();}</script></body></html>';
+  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(640)), '記事情報を更新');
+}
+
+function sbmArticleInfoUpdateWorker_() {
+  var sh = sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
+  sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
+  var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB);
+  var limit = sbmNumber_(sbmGetSetting_('MetaFetchMaxRows', SBM_DEFAULTS.META_FETCH_MAX_ROWS)) || SBM_DEFAULTS.META_FETCH_MAX_ROWS;
+  limit = Math.max(1, Math.min(100, limit));
+  var started = new Date(), processed=0, titleUpdated=0, queryUpdated=0, seoUpdated=0, descUpdated=0, limitReached=false;
+  for (var i=0;i<rows.length;i++) {
+    if (processed >= limit || sbmSecondsSince_(started) >= 280) { limitReached=true; break; }
+    var r=rows[i], url=sbmNormalizeUrl_(r['記事URL'] || r.URL || '');
+    if (!url) continue;
+    var rawTitle=sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '',url);
+    var rawQuery=String(r['メインクエリ'] || '').trim();
+    var seo=sbmCleanDataListText_(r['SEOタイトル'] || '',url);
+    var desc=sbmCleanDataListText_(r['メタディスクリプション'] || '',url);
+    var imps=sbmNumber_(r['表示回数'] || 0);
+    var titleMissing=!rawTitle || sbmIsTitlePlaceholder_(rawTitle,url);
+    var queryMissing=!rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery);
+    var seoMissing=!seo, descMissing=!desc;
+    var isNew=String(r['管理フラグ'] || '')==='新規記事';
+    if (!(titleMissing || seoMissing || descMissing || (queryMissing && imps>0) || isNew)) continue;
+    processed++;
+    var updates={}, gotAny=false;
+    if (titleMissing || seoMissing || descMissing || isNew) {
+      var meta=sbmFetchArticleMetaInfo_(url) || {};
+      var fetchedTitle=sbmCleanDataListText_(meta.h1 || meta.titleTag || '',url);
+      var fetchedSeo=sbmCleanDataListText_(meta.titleTag || '',url);
+      var fetchedDesc=sbmCleanDataListText_(meta.metaDescription || '',url);
+      if (titleMissing && fetchedTitle && !sbmIsTitlePlaceholder_(fetchedTitle,url)) { updates['記事タイトル']=fetchedTitle; updates['H1タイトル']=fetchedTitle; titleUpdated++; gotAny=true; }
+      if (seoMissing && fetchedSeo) { updates['SEOタイトル']=fetchedSeo; seoUpdated++; gotAny=true; }
+      if (descMissing && fetchedDesc) { updates['メタディスクリプション']=fetchedDesc; descUpdated++; gotAny=true; }
+    }
+    if (queryMissing && imps>0) {
+      var q=String(sbmFetchMainQueryForUrl_(url) || '').trim();
+      if (q && !sbmIsMainQueryPlaceholder_(q)) { updates['メインクエリ']=q.replace(/^推定[:：]\s*/,''); queryUpdated++; gotAny=true; }
+    }
+    updates['補完日時']=sbmNowText_();
+    updates['記事情報補完済み']=gotAny?'○':String(r['記事情報補完済み']||'');
+    updates['補完エラー']=gotAny?'':'今回取得できる情報はありませんでした';
+    if (isNew && gotAny) updates['管理フラグ']='正常';
+    sbmSetObjectValues_(sh,r._rowNumber,updates);
+  }
+  try { sbmRepairArticleTitleCells_(SBM_SHEETS.ARTICLE_DB); } catch(ignore1) {}
+  try { sbmRepairArticleDisplayTitlesLight_(sh); } catch(ignore2) {}
+  try { sbmRefreshHome_({light:true}); } catch(ignore3) {}
+  var after=sbmArticleInfoUpdateAudit_();
+  var remaining=after.titleMissing + after.queryFetchable + after.seoMissing + after.descMissing;
+  sbmProcessLog_('記事情報を更新','完了',rows.length,processed,sbmSecondsSince_(started),'タイトル '+titleUpdated+' / 実測クエリ '+queryUpdated+' / SEOタイトル '+seoUpdated+' / description '+descUpdated+' / 検索露出待ち '+after.queryWaiting,'',sbmNowText_());
+  return {processed:processed,titleUpdated:titleUpdated,queryUpdated:queryUpdated,seoUpdated:seoUpdated,descUpdated:descUpdated,remaining:remaining,queryWaiting:after.queryWaiting,limitReached:limitReached,audit:after};
+}
+
 function sbmSupplementNewArticlesManual() {
-  return sbmShowAsyncProgressDialog_({title:'記事情報を取得しています',description:'新しく見つかった記事のタイトル・SEO情報・メインクエリを順番に確認しています。',worker:'sbmSupplementNewArticlesWorker_',steps:['対象記事を確認','記事タイトル・SEO情報を取得','メインクエリを確認','記事管理へ反映']});
+  // v6.2.22: 旧「新規記事だけ」の取得入口を、記事DB全体の情報点検・更新へ統合。
+  return sbmOpenArticleInfoUpdate();
 }
 function sbmSupplementNewArticlesWorker_() {
   var sh = sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
@@ -12118,7 +12228,7 @@ function onOpen() {
     .addItem('3．今日の改善を開く','sbmOpenTodayImprovement')
     .addItem('4．選択記事の改善内容を見る','sbmOpenSelectedImprovementNavi')
     .addSeparator()
-    .addItem('記事情報を更新','sbmSupplementNewArticlesManual')
+    .addItem('記事情報を更新','sbmOpenArticleInfoUpdate')
     .addToUi();
 
   ui.createMenu('改善の推移・履歴')

@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.21",
+  "current_version": "6.2.22",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.21: 改善履歴系の実画面監査を反映。本文タイトル重複、欠損記事タイトルのプレースホルダー、未測定週の誤説明、日付/日時表記の混在を修正。",
-  "version": "6.2.21",
-  "starter_display_version": "6.2.21-ST"
+  "notes": "v6.2.22: 「記事情報を更新」を記事DB全体の情報整合性チェック＋補完機能へ統合。タイトル・実測メインクエリ・SEO情報の欠損状況を事前表示し、更新結果を可視化。",
+  "version": "6.2.22",
+  "starter_display_version": "6.2.22-ST"
 }

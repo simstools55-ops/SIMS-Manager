@@ -1,0 +1,3 @@
+SIMS Manager v6.2.22
+- Article info audit dialog: implemented
+- Full/Starter version sync: pending static verification

@@ -1,8 +1,8 @@
-ui: polish history dialogs after live audit in v6.2.21
+feat: turn article info update into a full DB repair flow in v6.2.22
 
-- remove duplicate in-body dialog headings
-- recover missing article titles from Article DB and suppress legacy placeholder text
-- show pending weekly measurements as pending instead of recorded
-- normalize history date and datetime presentation
-- keep measurement data and judgment logic unchanged
-- synchronize Full and Starter to v6.2.21 / v6.2.21-ST
+- audit missing article titles, real main queries, SEO titles, and descriptions before updating
+- distinguish Search Console query candidates from search-exposure-waiting articles
+- update missing metadata across the Article DB instead of only new articles
+- show per-field update counts and remaining unresolved information
+- keep the legacy new-article entry point as a compatibility alias
+- synchronize Full and Starter to v6.2.22 / v6.2.22-ST

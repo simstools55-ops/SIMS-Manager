@@ -1,7 +1,7 @@
 const fs=require('fs');
 const s=fs.readFileSync('Code.gs','utf8');
 const checks=[
-  ['version 6.2.21', /const SBM_VERSION = '6\.2\.21';/],
+  ['version 6.2.22', /const SBM_VERSION = '6\.2\.22';/],
   ['no duplicate in-body dialog title', /function sbmHistoryDialogArticleHeaderHtml_[\s\S]*?var html='<div class="sbm-head"><div class="sbm-title">'/],
   ['legacy missing title detection', /function sbmHistoryTitleLooksMissing_/],
   ['Article DB title recovery', /function sbmHistoryResolvedTitle_[\s\S]*?sbmFindArticleDbByIdentity_/],
