@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.15",
+  "current_version": "6.2.16",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.15: 過去版Mergeの既存データ修復を追加。吸収記事の残存Monitoring Cycleを終了し、改善の推移を最新Merge履歴へ再同期。",
-  "version": "6.2.15",
+  "notes": "v6.2.16: Merge吸収記事補正の対象抽出を実Merge Caseへ限定。通常MONITORING Caseの誤カウントを解消し、301可否を維持する確認文言へ統一。",
+  "version": "6.2.16",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.15-ST"
+  "starter_display_version": "6.2.16-ST"
 }
