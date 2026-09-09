@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v6.2.5 - 2026-09-09
+
+- Fix unified unfinished-work resume ordering: the Dispatcher-selected latest Doctor Case is now shown first in the shared treatment dialog.
+- Preserve other pending treatment cases and sort remaining actions by updated timestamp descending.
+
 ## v6.2.4 - 2026-09-09
 - Unified normal-improvement launch through a single checkpoint-before-display entry for Today and Article Management detail flows.
 - Article Management detail -> Improvement Navi now records NORMAL_IMPROVEMENT before opening the dialog.

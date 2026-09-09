@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.4",
+  "current_version": "6.2.5",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.4: fixed aDoctor single-case resume ReferenceError and updated precision-diagnosis candidate guidance to match the latest Site Doctor-based regeneration behavior.",
-  "version": "6.2.4",
+  "notes": "v6.2.5: unified unfinished-work resume now reopens the most recently touched Doctor treatment case first, while preserving access to other pending treatments.",
+  "version": "6.2.5",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.4-ST"
+  "starter_display_version": "6.2.5-ST"
 }
