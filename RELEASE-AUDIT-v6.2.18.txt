@@ -1,0 +1,23 @@
+SIMS Manager v6.2.18 release audit
+
+Scope:
+- user-facing cancellation confirmation in shared unfinished-work dialog
+- aWriter/aMerge result-registration wording
+- Creator Direct monitoring classification
+- Creator measurement guidance
+- Full/Starter version synchronization
+
+Verified:
+1. Nine active Code.gs copies pass JavaScript syntax check.
+2. Full copies share the same code hash; Starter copies share the same code hash and preserve SBM_EDITION=STARTER.
+3. product6213 through product6218 targeted regression tests pass.
+4. Repository release_audit.py passes JSON/UTF-8/transient-file checks.
+5. Generic next_action=monitor no longer classifies Creator Direct as aDoctor additional observation.
+6. aDoctor additional observation remains available for Doctor route or WAIT / MONITOR evidence.
+7. Cancellation confirmation is route-specific and explains article improvement/merge/new-article consequences before execution.
+8. Internal TREATMENT_SKIPPED compatibility state is retained.
+9. Creator monitoring guidance uses the 7th/14th/21st/28th-day standard.
+
+Expected live verification after install:
+- unfinished Writer case: final cancellation dialog must say the planned article improvement will be cancelled; do not confirm on a real case unless cancellation is intended.
+- A000200 Creator Direct: after Improvement Trend refresh/rebuild, judgment should be normal initial measurement waiting rather than additional observation unless an aDoctor WAIT/MONITOR record exists.

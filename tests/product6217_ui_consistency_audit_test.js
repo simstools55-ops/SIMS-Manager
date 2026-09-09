@@ -1,9 +1,9 @@
 const fs=require('fs');
 const s=fs.readFileSync(process.argv[2]||'Code.gs','utf8');
 const checks=[
-  ['version',/const SBM_VERSION = '6\.2\.17';/],
+  ['version',/const SBM_VERSION = '6\.2\.18';/],
   ['unfinished counter',/へ依頼（未完了 /],
-  ['skip explicit',/この処置を行わず終了/],
+  ['skip explicit',/今回の改善を取りやめる/],
   ['copy confirmation',/コピーしました ✓/],
   ['merge restore wording',/aMerge Packageは短縮して保存されています/],
   ['multi merge completion guidance',/途中Stepでは次のaMerge Packageへ進み/],

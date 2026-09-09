@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.17",
+  "current_version": "6.2.18",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.17: Workflow系ダイアログのUI統一監査。未完了件数、コピー完了、復元、処置スキップ、Multi-Merge完了説明、aCreator新記事登録表示を統一。Creator Directの測定基準を28日へ同期。",
-  "version": "6.2.17",
+  "notes": "v6.2.18: 改善取りやめ確認を記事改善・記事統合・新記事作成の利用者目線へ統一。Writer/Merge結果登録文言を明確化し、Creator Directの通常モニタリングをaDoctor追加経過観察へ誤分類する判定を修正。",
+  "version": "6.2.18",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.17-ST"
+  "starter_display_version": "6.2.18-ST"
 }
