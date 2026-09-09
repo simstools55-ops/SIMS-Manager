@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.3",
+  "current_version": "6.2.4",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.3: normal-improvement entry points now share one checkpoint path, and resume validates ArticleID/URL before restoring the Improvement Navi.",
-  "version": "6.2.3",
+  "notes": "v6.2.4: fixed aDoctor single-case resume ReferenceError and updated precision-diagnosis candidate guidance to match the latest Site Doctor-based regeneration behavior.",
+  "version": "6.2.4",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.3-ST"
+  "starter_display_version": "6.2.4-ST"
 }

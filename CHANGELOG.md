@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v6.2.3 - 2026-09-09
+## v6.2.4 - 2026-09-09
 - Unified normal-improvement launch through a single checkpoint-before-display entry for Today and Article Management detail flows.
 - Article Management detail -> Improvement Navi now records NORMAL_IMPROVEMENT before opening the dialog.
 - Resume validates saved ArticleID/URL against the restored article and stops instead of opening a stale article on mismatch.

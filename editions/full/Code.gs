@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.2.3
+ * SIMS Manager Product v6.2.4
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.3';
+const SBM_VERSION = '6.2.4';
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
 // v6.1.25: 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
@@ -14876,7 +14876,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   var headers=['選択','重症度','記事タイトル','傾向','クリック','表示','順位','CTR','記事ID','記事URL','候補キー'];
   cand.setHiddenGridlines(true);
   cand.getRange('A1:H1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
-  cand.getRange('A2:H2').merge().setValue('Site Doctor健康診断で抽出された、詳しい診断が必要な未処理記事だけを表示しています。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はSite Doctor、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
+  cand.getRange('A2:H2').merge().setValue('Site Doctor健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はSite Doctor、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
   var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),key=String(id)+'|'+sbmNormalizeUrl_(url)+'|'+title;return [false,sev,title,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');
@@ -16502,7 +16502,6 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
 
 function sbmDoctorShowSingleCaseResumeDialog_(info){
   var encoded=Utilities.base64EncodeWebSafe(JSON.stringify(info),Utilities.Charset.UTF_8);
-  resumeOnly=resumeOnly===true;
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 10px;font-size:20px}.meta,.note{font-size:13px;line-height:1.7}.card{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}textarea{box-sizing:border-box;width:100%;min-height:170px;padding:10px;font:12px/1.45 monospace;white-space:pre;resize:vertical;border:1px solid #bdc1c6;border-radius:7px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}button,.link-button{display:inline-block;box-sizing:border-box;border:1px solid #dadce0;border-radius:18px;padding:8px 16px;background:#fff;font-weight:600;cursor:pointer;color:#202124;text-decoration:none}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.status{font-size:13px;white-space:pre-wrap;margin-top:8px}.ok{color:#137333}.err{color:#b3261e}.hidden{display:none}</style></head><body>'+
     '<h2>aDoctor 精密診断を途中から再開</h2><div id="meta" class="meta"></div>'+
@@ -16799,6 +16798,7 @@ function sbmDoctorSkipSiteDiagnosisTreatment(caseId, reason, detail){
 }
 
 function sbmDoctorRegisterSiteDiagnosisResult(resumeOnly){
+  resumeOnly=resumeOnly===true;
   // Product 5.10.0 RC8.14: Site DiagnosisのDoctor受取とaWriter結果登録を1つの導線へ統合。
   // 既存の登録トランザクションは変更せず、UIだけを「診断結果 → aWriter紹介状 → 修正結果登録」へ一本化する。
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
