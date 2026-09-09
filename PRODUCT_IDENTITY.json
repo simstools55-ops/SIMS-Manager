@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.6",
+  "current_version": "6.2.7",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.6: long Writer/Merge referrals can be restored from Doctor result + article/Evidence in both normal aDoctor and Site Doctor resume flows; restore and copy are now explicit separate steps.",
-  "version": "6.2.6",
+  "notes": "v6.2.7: normal Writer feedback follow_up_referrals: MERGE is promoted into the formal aMerge workflow; existing saved feedback is recovered on unfinished-work resume.",
+  "version": "6.2.7",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.6-ST"
+  "starter_display_version": "6.2.7-ST"
 }

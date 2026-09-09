@@ -1,3 +1,11 @@
+# CHANGELOG
+
+## v6.2.7 - 2026-09-09
+- Promote normal-improvement Writer `follow_up_referrals: MERGE` into the formal Doctor_Cases/aMerge workflow.
+- Recover previously saved Merge follow-ups, including A000068/H000050-style cases, when unfinished work is resumed.
+- Generate the aMerge Package from the selected target articles and their current article/Evidence data without fabricating test state.
+- Preserve idempotency by linking the generated Merge Case to the originating improvement history ID.
+
 # Changelog
 
 ## v6.2.6 - 2026-09-09

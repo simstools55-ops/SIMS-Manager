@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.6
+ * SIMS Manager Product v6.2.7
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.6';
+const SBM_VERSION = '6.2.7';
+// v6.2.7: 通常改善Writer結果の follow_up_referrals: MERGE を正式Workflowへ昇格。既存改善履歴も未完了再開時に安全検出し、aMerge Packageを生成して再開対象へ接続。
 // v6.2.6: 未完了処置の長文紹介状復元を通常aDoctor/Site Doctor共通化。セル上限stubから本文・Evidence・Doctor結果を使ってダイアログ内だけで全文復元し、復元とコピーを明確に二段階化。
 // v6.1.28: Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
 // v6.1.27: 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
@@ -6636,6 +6637,53 @@ function sbmFindExistingImprovementFeedback_(data) {
   return {found:false,historyId:'',rowNumber:0};
 }
 
+/** v6.2.7: Writer feedback の follow_up_referrals: MERGE を正式なDoctor_Cases Workflowへ昇格します。 */
+function sbmFeedbackMergeReferral_(data){
+  var raw=data&&data.raw_json||'',o={};try{o=JSON.parse(String(raw||'{}'));}catch(ignore){}
+  var ext=o&&o.analysis_extensions||{},refs=Array.isArray(ext.follow_up_referrals)?ext.follow_up_referrals:[];
+  for(var i=0;i<refs.length;i++){
+    var r=refs[i]||{},type=String(r.type||r.route||'').toUpperCase(),decision=String(r.user_decision||r.userDecision||'').trim();
+    if(type!=='MERGE')continue;
+    if(decision && !/(統合|merge|実施|進め)/i.test(decision))continue;
+    var targets=Array.isArray(r.target_articles)?r.target_articles:[];
+    if(targets.length<2)continue;
+    return {referral:r,targets:targets,source:o};
+  }
+  return null;
+}
+function sbmFeedbackMergeCaseByHistory_(historyId){
+  historyId=String(historyId||'').trim();if(!historyId)return null;
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];
+  for(var i=rows.length-1;i>=0;i--){var c=rows[i]||{};if(String(c['改善履歴ID']||'').trim()===historyId&&String(c['紹介先']||'').toUpperCase().indexOf('MERGE')>=0)return c;}
+  return null;
+}
+function sbmMaterializeFeedbackMergeReferral_(data,historyId){
+  var hit=sbmFeedbackMergeReferral_(data);if(!hit)return {ok:true,created:false};
+  historyId=String(historyId||'').trim();var existing=sbmFeedbackMergeCaseByHistory_(historyId);if(existing)return {ok:true,created:false,caseId:String(existing['CaseID']||''),existing:true};
+  var articleId=String(data.article_id||'').trim(),articleUrl=String(data.article_url||'').trim(),primary=sbmDoctorFindArticleByIdOrUrl_(articleId,articleUrl);
+  if(!primary)throw new Error('Merge引継ぎ元の記事を記事管理で確認できません。ArticleID='+articleId);
+  var caseId=sbmDoctorGenerateCaseId_(articleId),ctx={sourceType:'WRITER_FOLLOW_UP_MERGE',article:primary,effect:sbmDoctorFindEffectByUrl_(articleUrl)||{},history:sbmDoctorFindLatestHistory_(articleId,articleUrl)||{},sourceSheet:SBM_SHEETS.FEEDBACK_HISTORY,sourceRow:null};
+  var sourceReq=sbmDoctorBuildSingleCaseRequest_(ctx);sourceReq.case_id=caseId;if(sourceReq.request)sourceReq.request.case_id=caseId;
+  var targetArticles=hit.targets.map(function(t){return {article_id:String(t.article_id||'').trim(),url:String(t.url||t.article_url||'').trim(),title:String(t.title||t.article_title||'').trim()};});
+  var syntheticDoctor={format:'SIMS_WRITER_FOLLOW_UP_REFERRAL_V1',case_id:caseId,article_id:articleId,article_url:articleUrl,reason:String(hit.referral.reason||'Writer改善結果で記事統合が必要と判断され、利用者が統合を選択しました。'),user_decision:String(hit.referral.user_decision||''),target_articles:targetArticles,treatment_plan:{strategy:'MERGE'},workflow_handoff:{next_action:'MERGE'},source_feedback:hit.source};
+  var n={caseId:caseId,diagnosisId:'WRITER-FOLLOW-UP-'+historyId,diagnosisStatus:'Writer改善後の利用者判断で記事統合へ引継ぎ',primaryCode:'WRITER_FOLLOW_UP_MERGE',priority:'NORMAL',action:'TREATMENT_RECOMMENDED',treatmentLevel:'MERGE',destination:'SIMS_MERGE',allowed:['article_merge','canonical_selection','redirect_plan'],blocked:[],locked:false,mergeReady:true,nextAction:'MERGE'};
+  var req=sbmDoctorBuildMergeTreatmentRequest_(sourceReq,syntheticDoctor,n),sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),h=SBM_HEADERS.DOCTOR_CASES,row=new Array(h.length).fill('');
+  function put(k,v){if(hm[k])row[hm[k]-1]=v===undefined||v===null?'':v;}
+  put('CaseID',caseId);put('サイトID',String(data.site_id||sourceReq.site&&sourceReq.site.site_id||''));put('記事ID',articleId);put('記事URL',articleUrl);put('記事タイトル',String(primary['記事タイトル']||primary['H1タイトル']||''));put('状態コード','MERGE_REQUEST_READY');put('状態','aMerge依頼作成可能');put('診断ID',n.diagnosisId);put('診断状態',n.diagnosisStatus);put('主診断コード',n.primaryCode);put('優先度','NORMAL');put('治療アクション','TREATMENT_RECOMMENDED');put('治療レベル','MERGE');put('紹介先','SIMS_MERGE');put('許可範囲',JSON.stringify(n.allowed));put('Doctor結果JSON',JSON.stringify(syntheticDoctor));put('改善履歴ID',historyId);put('作成日時',sbmNowText_());put('更新日時',sbmNowText_());sh.appendRow(row);
+  sbmDoctorSaveGeneratedMergeRequest_(caseId,req);
+  return {ok:true,created:true,caseId:caseId,request:req};
+}
+function sbmMaterializePendingFeedbackMergeReferrals_(){
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],created=[];
+  for(var i=histories.length-1;i>=0&&i>=histories.length-80;i--){
+    var h=histories[i]||{},historyId=String(h['改善履歴ID']||'').trim(),raw=String(h['AI改善結果JSON']||'').trim();if(!historyId||!raw||sbmFeedbackMergeCaseByHistory_(historyId))continue;
+    var data;try{data=sbmNormalizeImprovementFeedback_(raw);}catch(ignore){continue;}
+    if(!sbmFeedbackMergeReferral_(data))continue;
+    try{var r=sbmMaterializeFeedbackMergeReferral_(data,historyId);if(r&&r.created)created.push(r.caseId);}catch(e){try{sbmLog_('FeedbackMergeReferral','Warning',historyId+': '+String(e&&e.message||e));}catch(ignoreLog){}}
+  }
+  return created;
+}
+
 function sbmRegisterImprovementFeedback(data, options) {
   try {
     var registerStarted = new Date();
@@ -6683,6 +6731,8 @@ function sbmRegisterImprovementFeedback(data, options) {
     registerLap('article_db_written');
     sbmFeedbackTrace_('REGISTER_DB_WRITTEN','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
     var historyId = sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
+    var mergeFollowUp={created:false};
+    try{mergeFollowUp=sbmMaterializeFeedbackMergeReferral_(data,historyId)||{created:false};}catch(eMergeFollowUp){sbmLog_('FeedbackMergeReferral','Warning',String(eMergeFollowUp&&eMergeFollowUp.message||eMergeFollowUp));}
     registerLap('history_written');
     sbmFeedbackTrace_('REGISTER_HISTORY_WRITTEN','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / historyId=' + String(historyId||''));
     sbmAppendLegacyImprovementLog_(data,row,before);
@@ -6717,7 +6767,7 @@ function sbmRegisterImprovementFeedback(data, options) {
     sbmFeedbackTrace_('REGISTER_HOME_DEFERRED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
     registerLap('completed');
     sbmFeedbackTrace_('REGISTER_COMPLETED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
-    return {ok:true,historyId:historyId||'',message:'改善結果を登録しました。\n・記事管理を「モニター中」に更新しました\n・改善履歴を作成しました\n・今日の改善を完了表示にしました\n・'+data.recommended_review_days+'日後を効果確認予定に設定しました'+(pkIngest.total?'\n・Personal Knowledge：候補'+pkIngest.total+'件 / 保存'+pkIngest.written+'件':'')};
+    return {ok:true,historyId:historyId||'',message:'改善結果を登録しました。\n・記事管理を「モニター中」に更新しました\n・改善履歴を作成しました\n・今日の改善を完了表示にしました\n・'+data.recommended_review_days+'日後を効果確認予定に設定しました'+(mergeFollowUp&&mergeFollowUp.created?'\n・記事統合の利用者判断をaMerge未完了Workflowへ引き継ぎました（CaseID：'+mergeFollowUp.caseId+'）':'')+(pkIngest.total?'\n・Personal Knowledge：候補'+pkIngest.total+'件 / 保存'+pkIngest.written+'件':'')};
   } catch(e) { return {ok:false,message:String(e.message||e)}; }
 }
 
@@ -16647,6 +16697,8 @@ function sbmDoctorResumePrecisionDiagnosis(){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   try{
+    // v6.2.7: 過去の通常改善に保存済みのMERGE follow-upも、再開時に一度だけ正式Workflowへ昇格する。
+    try{sbmMaterializePendingFeedbackMergeReferrals_();}catch(ignoreFeedbackMergeMigration){}
     var normal=sbmFindLatestNormalImprovementWorkflow_();
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[];
     var doctorOrConfirm={
