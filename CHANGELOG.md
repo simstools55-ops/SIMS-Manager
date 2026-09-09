@@ -1,3 +1,13 @@
+# Changelog
+
+## v6.2.6 - 2026-09-09
+
+- 共通「未完了の作業を再開」で、通常aDoctor案件の長文Writer紹介状がSiteDiagnosisCaseID必須判定により復元できない問題を修正。
+- Site Doctor由来はSite Diagnosis source、通常aDoctor由来はArticle Doctor sourceから紹介状/Packageを再構築するよう共通化。
+- 復元した完全版はGoogle Sheetsセルへ再保存せず、ダイアログへ直接返す方式へ変更。
+- 「全文を再生成」を「紹介状の全文を復元 / Package全文を復元」へ変更し、復元とコピーを明確な二段階操作に分離。
+- 復元中・復元完了・復元失敗をダイアログ内で明示。
+
 # CHANGELOG
 
 ## v6.2.5 - 2026-09-09

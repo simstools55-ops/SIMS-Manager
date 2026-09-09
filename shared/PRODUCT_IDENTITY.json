@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.5",
+  "current_version": "6.2.6",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.5: unified unfinished-work resume now reopens the most recently touched Doctor treatment case first, while preserving access to other pending treatments.",
-  "version": "6.2.5",
-  "starter_display_version": "6.2.5-ST"
+  "notes": "v6.2.6: long Writer/Merge referrals can be restored from Doctor result + article/Evidence in both normal aDoctor and Site Doctor resume flows; restore and copy are now explicit separate steps.",
+  "version": "6.2.6",
+  "starter_display_version": "6.2.6-ST"
 }
