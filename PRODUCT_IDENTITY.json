@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.49",
+  "current_version": "6.2.51",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.49: Homeの記事ランクまとめに未発芽件数を追加し、改善率の利用者向け説明を追記。診断メニューは「サイト健康診断」サブメニューに整理し「サイト健康診断を実施」を配置。健康診断所見の日本語接続も修正。未発芽判定・aDoctor連携・記事情報更新・日次処理ロジックは変更しない。",
-  "version": "6.2.49",
+  "notes": "v6.2.51: 日次の記事ランク判定を90日集計の評価可能性優先へ再構成。表示200以上またはクリック10以上は既存スコアで通常4ランク、未達はクリック3以上を育成、0〜2を未発芽として毎日再評価する。追加GSC取得なし。",
+  "version": "6.2.51",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.49-ST"
+  "starter_display_version": "6.2.51-ST"
 }

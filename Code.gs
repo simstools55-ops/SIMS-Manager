@@ -1,10 +1,12 @@
 /**
- * SIMS Manager Product v6.2.49
+ * SIMS Manager Product v6.2.51
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.49';
+const SBM_VERSION = '6.2.51';
+// v6.2.51: 記事ランク判定を90日データの評価可能性優先へ再構成。表示200以上またはクリック10以上を通常4ランク、未達はクリック3以上を育成、0〜2を未発芽として日次再評価。
+// v6.2.50: 未発芽記事は表示回数100以上で「🌱 育成」へ復帰。Homeの旧モニター集計説明文を全Code正本から削除し、改善率説明のみ残す。
 // v6.2.49: Home説明文を整理し、トップメニュー「診断」を「サイト健康診断」へ変更。診断ロジック・日次処理は変更なし。
 // v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
@@ -5681,16 +5683,20 @@ function sbmApplyArticleRanksToObjectMap_(map) {
   var rows = keys.map(function(k){ return map[k]; }).filter(function(r){ return r && r['記事URL']; });
   var clickVals = rows.map(function(r){ return sbmNumber_(r['クリック数'] || 0); }).sort(function(a,b){return a-b;});
   var impVals = rows.map(function(r){ return sbmNumber_(r['表示回数'] || 0); }).sort(function(a,b){return a-b;});
-  var minImps = sbmNumber_(sbmGetSetting_('MinImpressions', SBM_DEFAULTS.MIN_IMPRESSIONS)) || SBM_DEFAULTS.MIN_IMPRESSIONS;
   rows.forEach(function(r){
     if (!r['作業状態']) r['作業状態'] = sbmLegacyStatusToWorkState_(r['記事ステータス'] || '');
-    // v6.2.42: 明示的な未発芽判定は通常ランク再計算で上書きしない。
-    if (String(r['記事ランク']||'').trim() === '未発芽') return;
     var clicks = sbmNumber_(r['クリック数'] || 0);
     var imps = sbmNumber_(r['表示回数'] || 0);
+    // v6.2.51: 90日集計で評価可能性を先に判定。表示200以上またはクリック10以上なら通常4ランクへ。
+    // 通常評価に届かない記事は、クリック3以上なら育成、0〜2なら未発芽とする。
+    // 未発芽も固定せず、日次処理ごとに同じ基準で再評価する。
+    var hasEnoughRankData = (imps >= 200 || clicks >= 10);
+    if (!hasEnoughRankData) {
+      r['記事ランク'] = clicks >= 3 ? '🌱 育成' : '未発芽';
+      return;
+    }
     var ctr = sbmNumber_(r['CTR'] || 0);
     var pos = sbmNumber_(r['掲載順位'] || 0);
-    if (imps < minImps) { r['記事ランク'] = '🌱 育成'; return; }
     var clickPct = sbmPercentileRankSorted_(clickVals, clicks);
     var impPct = sbmPercentileRankSorted_(impVals, imps);
     var ctrScore = Math.max(0, Math.min(1, ctr / 0.08));
