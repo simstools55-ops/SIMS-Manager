@@ -1,7 +1,7 @@
-SIMS Manager v6.2.38: finish article info update and add ungerminated screening
+SIMS Manager v6.2.38: 記事情報更新の未取得記事一覧表示を追加
 
-- show ArticleID/title/URL for 6-month main-query misses
-- remove one-item query diagnostic UI and backend
-- add Site Doctor UNGERMINATED screening
-- preserve daily processing and existing article ranks
-- sync Full/Starter repository copies and version metadata
+- 実運用で高速点検確認済みのv6.2.37 Code.gsから再構築
+- 点検ロジック・日次処理・6か月取得条件は変更なし
+- 過去6か月でもメインクエリ取得不可の記事をArticleID・記事タイトル・URLで完了一覧表示
+- 未発芽判定は未実装、1件だけ診断は次工程まで維持
+- Full / StarterのCode.gsを同期

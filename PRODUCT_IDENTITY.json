@@ -2,7 +2,7 @@
   "product_name": "SIMS-Blog-Manager",
   "current_version": "6.2.38",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.38: 記事情報更新で6か月クエリ取得不可の記事をArticleID・タイトル・URL付きで表示し、1件だけ診断を削除。Site Doctor健康診断へ未発芽候補判定を追加。日次処理・既存記事ランク・SEOタイトル・メタディスクリプション処理は変更しない。",
+  "notes": "v6.2.38: 実運用で数秒点検を確認済みのv6.2.37 Code.gsを正本として再構築。点検・日次処理・6か月取得条件は変更せず、過去6か月でもメインクエリを取得できなかった記事を更新完了画面にArticleID＋記事タイトル＋URLで一覧表示する。",
   "version": "6.2.38",
   "display_name": "SIMS Manager",
   "edition": "FULL",

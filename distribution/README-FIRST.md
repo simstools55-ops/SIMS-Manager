@@ -1,10 +1,10 @@
-# SIMS Manager v6.2.38 Repository Baseline
+# SIMS Manager v6.2.37 Repository Baseline
 
-## v6.2.38の位置付け
+## v6.2.37の位置付け
 
 記事管理の「記事情報を更新」を、実運用で確認済みの軽量・安全な補完フローとして正本化した版です。
 
-- Full v6.2.38 / Starter v6.2.38-ST
+- Full v6.2.37 / Starter v6.2.37-ST
 - 点検・補完対象は記事タイトルとメインクエリ
 - 記事DB点検は全件走査を軽量化し、実運用200件で約1秒を確認
 - メインクエリ未取得記事のみSearch Consoleの過去6か月データを照会
