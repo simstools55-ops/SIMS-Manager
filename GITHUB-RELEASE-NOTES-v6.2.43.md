@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.46
+# SIMS Manager v6.2.47
 
 ## Site Doctor: 未発芽判定
 

@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.46
+# SIMS Manager v6.2.47
 
 ## Changes
 - aDoctor依頼JSONで記事ランク「未発芽」を `UNGERMINATED` として明示します。

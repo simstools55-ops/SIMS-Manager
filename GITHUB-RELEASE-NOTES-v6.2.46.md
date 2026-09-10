@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.46
+# SIMS Manager v6.2.47
 Manager内蔵の健康診断機能を、独立製品「Site Doctor」と区別するため利用者向け名称を「サイト健康診断」に統一しました。
 
 - 診断 → サイト健康診断

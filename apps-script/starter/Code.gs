@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.46
+ * SIMS Manager Product v6.2.47
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.46';
+const SBM_VERSION = '6.2.47';
+// v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
 // v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
 // v6.2.45: aDoctor精密診断依頼へ記事ランクを明示的に引継ぎ、未発芽をUNGERMINATEDとして識別。未発芽記事は部分修正ではなく全面リライト前提で検索意図・ターゲットクエリ・構成・タイトル・本文を再設計する診断方針を依頼JSONへ付与。
 // v6.2.44: aDoctor精密診断候補シートに記事管理番号（ArticleID）・記事URL・記事ランクを可視列として追加。候補生成時にArticle DBの最新記事ランクを参照し、診断用内部キーは非表示で維持。
@@ -12458,7 +12459,7 @@ function onOpen() {
 
   ui.createMenu('診断')
     .addItem('サイト健康診断','sbmDoctorRunHealthCheck')
-    .addItem('健康診断結果を開く','sbmDoctorOpenHealthReport')
+    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport')
     .addSeparator()
     .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
     .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
@@ -12639,7 +12640,7 @@ function sbmDoctorRunHealthCheck() {
 function sbmDoctorShowHealthCheckRunnerDialog_(){
   var html='<!doctype html><html><head><base target="_top"><style>'+ 
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:22px;color:#202124}.title{font-size:22px;font-weight:700;margin-bottom:8px}.sub{color:#5f6368;margin-bottom:16px;line-height:1.6}.bar{height:14px;background:#e8eaed;border-radius:8px;overflow:hidden}.fill{height:100%;width:0;background:#0b8043;transition:width .25s}.pct{font-weight:700;margin:10px 0;display:flex;align-items:center;gap:10px}.spinner{width:18px;height:18px;border:3px solid #dfe7df;border-top-color:#0b8043;border-radius:50%;animation:spin .85s linear infinite;flex:none}@keyframes spin{to{transform:rotate(360deg)}}.box{background:#f6f9f7;border:1px solid #dfe7e1;border-radius:8px;padding:14px;margin-top:14px;line-height:1.65}.step{font-weight:700}.small{font-size:12px;color:#5f6368;margin-top:10px;line-height:1.55}.done{background:#e6f4ea;border-color:#b7dfc4}.err{background:#fce8e6;border-color:#f3b7b1}.btn{margin-top:16px;padding:9px 18px;border:0;border-radius:6px;background:#0b8043;color:white;cursor:pointer}.btn.secondary{background:#5f6368;margin-left:8px}.meta{font-size:12px;color:#5f6368;margin-top:8px}</style></head><body>'+ 
-    '<div class="title">サイト健康診断</div><div class="sub">過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。</div>'+ 
+    '<div class="sub">過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。</div>'+ 
     '<div class="bar"><div id="fill" class="fill"></div></div><div class="pct"><span id="spinner" class="spinner"></span><span id="pct">準備中…</span></div>'+ 
     '<div id="box" class="box"><div id="step" class="step">STEP 1 / 8　開始準備</div><div id="detail">処理を開始しています。</div><div id="meta" class="meta">最終更新：--</div></div>'+ 
     '<div id="note" class="small">処理中はこのダイアログを閉じないでください。別ブログの日次処理など、重い処理の同時実行も避けてください。</div><button id="retry" class="btn" style="display:none">続きから再開</button><button id="close" class="btn secondary" style="display:none">閉じる</button>'+ 
@@ -13187,7 +13188,7 @@ function sbmDoctorSaveHealthRun_(run) {
   if(found) sh.getRange(found,1,1,h.length).setValues([row]); else sh.appendRow(row);
   try{sh.hideSheet();}catch(e){}
   // active health-check idだけを保存。Doctor全シート再装飾は行わない。
-  sbmSetSetting_('DoctorActiveHealthCheckId',run.healthCheckId,'現在のDoctorSite Doctor健康診断ID');
+  sbmSetSetting_('DoctorActiveHealthCheckId',run.healthCheckId,'現在のサイト健康診断ID');
 }
 function sbmDoctorGetHealthRun_() {
   var id=String(sbmGetSetting_('DoctorActiveHealthCheckId','')||''); if(!id)return null;
@@ -15001,7 +15002,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
     ['健康度',healthScore+'点 '+healthLabel],
     ['登録記事',Number(run.targetCount||0)+'件'],
     ['健康診断ID',healthCheckId],
-    ['Doctor所見',overall],
+    ['健康診断所見',overall],
     ['多く見られた傾向',trendText],
     ['検査結果',resultText],
     ['次に行うこと',nextText]
@@ -15123,7 +15124,7 @@ function sbmDoctorOverallComment_(score, issues, selected) {
 }
 function sbmDoctorTrendMessages_(issues){
   var a=[];
-  if(Number(issues.UNGERMINATED||0)>0)a.push('検索流入がほぼ発芽していない記事があります');
+  if(Number(issues.UNGERMINATED||0)>0)a.push('検索流入がほとんど発生していない記事があります');
   if(Number(issues.RECENT_DROP||0)>0)a.push('直近で検索される機会が急に減った記事があります');
   if(Number(issues.LONG_TERM_DECLINE||0)>0)a.push('半年の後半に検索流入が弱くなった記事があります');
   if(Number(issues.POSITION_OPPORTUNITY||0)>0)a.push('検索順位を少し上げると成果が期待できる記事があります');
