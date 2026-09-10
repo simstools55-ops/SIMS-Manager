@@ -4,12 +4,16 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.57';
+const SBM_VERSION = '6.2.58';
+// v6.2.58: Homeスナップショットを製品バージョン連動にし、コード差替え後の旧集計残存を防止。10列Homeの版表示同期先もJ1へ修正。
 // v6.2.57: Homeの未取得判定を記事ランク空欄ではなく管理フラグのデータ未取得・要確認から優先集計し、旧ランク保持記事でも総数整合するよう修正。
 // v6.2.56: Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
 // v6.2.54: Homeの記事改善状況を全記事の作業状態集計へ変更し、ランクと色を分離。改善率を右欄KPI化。モニター内訳を『判定可能』『判定待ち』へ分離し、経過観察系ラベルを明確化。Home横幅・アドバイス欄も拡張。
 // v6.2.53: 記事ランク名称を『迷走→育成』『旧育成→発芽』へ整理し、Homeを評価順の縦ランク＋改善状況＋改善モニター内訳の構成へ再配置。判定閾値はv6.2.51を維持。
 // v6.2.52: 日次処理STEP3でHomeスナップショット更新後に記事ランク表示セルだけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジックは変更なし。
+// v6.2.51: 記事ランク判定を90日データの評価可能性優先へ再構成。表示200以上またはクリック10以上を通常4ランク、未達はクリック3以上を育成、0〜2を未発芽として日次再評価。
+// v6.2.50: 未発芽記事は表示回数100以上で「🌱 育成」へ復帰。Homeの旧モニター集計説明文を全Code正本から削除し、改善率説明のみ残す。
+// v6.2.49: Home説明文を整理し、トップメニュー「診断」を「サイト健康診断」へ変更。診断ロジック・日次処理は変更なし。
 // v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
 // v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
@@ -10961,6 +10965,7 @@ function sbmBuildHomeSnapshot_(){
 
   var snapshot={
     version:1,
+    productVersion:String(SBM_DISPLAY_VERSION||SBM_VERSION||''),
     generatedAt:Date.now(),
     total:rows.length,
     counts:counts,
@@ -10981,7 +10986,7 @@ function sbmGetHomeSnapshot_(){
     var raw=PropertiesService.getDocumentProperties().getProperty('SBM_HOME_SNAPSHOT_V1');
     if(!raw)return null;
     var obj=JSON.parse(raw);
-    return obj&&obj.version===1?obj:null;
+    return obj&&obj.version===1&&String(obj.productVersion||'')===String(SBM_DISPLAY_VERSION||SBM_VERSION||'')?obj:null;
   }catch(e){return null;}
 }
 
@@ -11007,11 +11012,11 @@ function sbmRefreshHome_(options) {
 
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.HOME);
-  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
+  if(!sh||String(sh.getRange('J1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
-  try{sh.getRange('A1:G1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
+  try{sh.getRange('A1:I1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
 
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
@@ -12469,9 +12474,9 @@ function sbmSyncHomeVersionOnly_(){
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.HOME);
     if(!sh)return;
     var expected='v'+SBM_DISPLAY_VERSION;
-    if(String(sh.getRange('H1').getValue()||'')!==expected) sh.getRange('H1').setValue(expected);
+    if(String(sh.getRange('J1').getValue()||'')!==expected) sh.getRange('J1').setValue(expected);
     var expectedTitle=String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
-    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:G1').setValue(expectedTitle);
+    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:I1').setValue(expectedTitle);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
   }
@@ -12513,12 +12518,9 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
-  var healthDiagnosisMenu = ui.createMenu('サイト健康診断')
+  ui.createMenu('サイト健康診断')
     .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
-    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport');
-
-  ui.createMenu('診断')
-    .addSubMenu(healthDiagnosisMenu)
+    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport')
     .addSeparator()
     .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
     .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')

@@ -1,3 +1,6 @@
+## v6.2.58
+- Home snapshot version invalidation and J1 version sync fix.
+
 ## v6.2.57 - 2026-09-11
 
 - Homeの未取得集計を管理フラグ「データ未取得」「要確認」優先へ修正。

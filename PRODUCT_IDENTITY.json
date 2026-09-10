@@ -3,7 +3,7 @@
   "current_version": "6.2.57",
   "release_status": "REPOSITORY_BASELINE",
   "notes": "v6.2.57: Homeの未取得件数を管理フラグ「データ未取得」「要確認」から排他的に集計し、以前のランクが残る未取得記事でも記事ランク合計が総記事数と一致するよう修正。",
-  "version": "6.2.57",
+  "version": "6.2.58",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",

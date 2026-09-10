@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.57';
+const SBM_VERSION = '6.2.58';
+// v6.2.58: Homeスナップショットを製品バージョン連動にし、コード差替え後の旧集計残存を防止。10列Homeの版表示同期先もJ1へ修正。
 // v6.2.57: Homeの未取得判定を記事ランク空欄ではなく管理フラグのデータ未取得・要確認から優先集計し、旧ランク保持記事でも総数整合するよう修正。
 // v6.2.56: Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
 // v6.2.54: Homeの記事改善状況を全記事の作業状態集計へ変更し、ランクと色を分離。改善率を右欄KPI化。モニター内訳を『判定可能』『判定待ち』へ分離し、経過観察系ラベルを明確化。Home横幅・アドバイス欄も拡張。
@@ -55,7 +56,7 @@ const SBM_VERSION = '6.2.57';
 // v6.1.20: aDoctor WAIT/MONITORは治療ロック中でも追加経過観察へ正しく遷移。改善履歴を開く処理から全行修復・再装飾・選択列全消去を外し、新規行だけを整形して表示を軽量化。
 // v6.1.18: v6.1.16以前に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
-const SBM_EDITION = 'STARTER';
+const SBM_EDITION = 'FULL';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
 // v6.2.0: Workflow再開/復旧を正式再編。未完了再開を共通Dispatcherへ統一し、データ整合性点検を集約。再開時は新規Doctor結果登録欄を隠し、現在地点から直接続行する。
 // v6.1.43: 未完了Workflowの再開入口を共通Dispatcherへ統合。通常aDoctor/Site Doctorを利用者に選ばせず、Case状態からDoctor・確認・Writer・Merge・Creatorを自動判定する。
@@ -10964,6 +10965,7 @@ function sbmBuildHomeSnapshot_(){
 
   var snapshot={
     version:1,
+    productVersion:String(SBM_DISPLAY_VERSION||SBM_VERSION||''),
     generatedAt:Date.now(),
     total:rows.length,
     counts:counts,
@@ -10984,7 +10986,7 @@ function sbmGetHomeSnapshot_(){
     var raw=PropertiesService.getDocumentProperties().getProperty('SBM_HOME_SNAPSHOT_V1');
     if(!raw)return null;
     var obj=JSON.parse(raw);
-    return obj&&obj.version===1?obj:null;
+    return obj&&obj.version===1&&String(obj.productVersion||'')===String(SBM_DISPLAY_VERSION||SBM_VERSION||'')?obj:null;
   }catch(e){return null;}
 }
 
@@ -11010,11 +11012,11 @@ function sbmRefreshHome_(options) {
 
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.HOME);
-  if(!sh||String(sh.getRange('H1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
+  if(!sh||String(sh.getRange('J1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
-  try{sh.getRange('A1:G1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
+  try{sh.getRange('A1:I1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
 
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
@@ -12472,9 +12474,9 @@ function sbmSyncHomeVersionOnly_(){
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.HOME);
     if(!sh)return;
     var expected='v'+SBM_DISPLAY_VERSION;
-    if(String(sh.getRange('H1').getValue()||'')!==expected) sh.getRange('H1').setValue(expected);
+    if(String(sh.getRange('J1').getValue()||'')!==expected) sh.getRange('J1').setValue(expected);
     var expectedTitle=String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
-    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:G1').setValue(expectedTitle);
+    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:I1').setValue(expectedTitle);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
   }
