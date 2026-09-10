@@ -1,10 +1,10 @@
-# SIMS Manager v6.2.41 Repository Baseline
+# SIMS Manager v6.2.42 Repository Baseline
 
-## v6.2.41の位置付け
+## v6.2.42の位置付け
 
 最後に正常動作を確認できた v6.2.37 の Code.gs を正本として再構築した版です。v6.2.38～v6.2.40の試験コードは継承していません。
 
-- Full v6.2.41 / Starter v6.2.41-ST
+- Full v6.2.42 / Starter v6.2.42-ST
 - 「記事情報を更新」の点検は ArticleID・記事URL・記事タイトル・メインクエリの保存値だけを確認
 - 点検段階ではWebアクセス・GSC API・H1/SEOタイトル解析・表示回数判定を実行しない
 - 記事タイトルまたはメインクエリが空・未取得・推定状態の記事だけをArticleID＋URLで更新キューへ登録
