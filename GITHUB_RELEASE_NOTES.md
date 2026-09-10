@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.45
+# SIMS Manager v6.2.46
 
 v6.2.37の正常動作確認コードから「記事情報を更新」だけを再構築したRepository Baselineです。
 

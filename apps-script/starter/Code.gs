@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.45
+ * SIMS Manager Product v6.2.46
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.45';
+const SBM_VERSION = '6.2.46';
+// v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
 // v6.2.45: aDoctor精密診断依頼へ記事ランクを明示的に引継ぎ、未発芽をUNGERMINATEDとして識別。未発芽記事は部分修正ではなく全面リライト前提で検索意図・ターゲットクエリ・構成・タイトル・本文を再設計する診断方針を依頼JSONへ付与。
 // v6.2.44: aDoctor精密診断候補シートに記事管理番号（ArticleID）・記事URL・記事ランクを可視列として追加。候補生成時にArticle DBの最新記事ランクを参照し、診断用内部キーは非表示で維持。
 // v6.2.43: Site Doctor健康診断に未発芽判定を追加。既存の未発芽ランクを精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新。
@@ -404,7 +405,7 @@ function sbmDailyFetchStageStatus_() {
 function sbmOpenDailyUpdateDialog() {
   var activeHealth = sbmDoctorGetHealthRun_();
   if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
-    return sbmAlert_('日次処理を実行できません', 'Site Doctor健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。');
+    return sbmAlert_('日次処理を実行できません', 'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。');
   }
   if (!sbmIsSetupComplete_() || String(sbmGetSetting_('ConnectionStatus','')) !== 'OK') {
     return sbmAlert_('日次処理を実行できません', '初回セットアップとSearch Console接続テストを完了してください。');
@@ -12456,7 +12457,7 @@ function onOpen() {
     .addToUi();
 
   ui.createMenu('診断')
-    .addItem('サイト健康診断を開始','sbmDoctorRunHealthCheck')
+    .addItem('サイト健康診断','sbmDoctorRunHealthCheck')
     .addItem('健康診断結果を開く','sbmDoctorOpenHealthReport')
     .addSeparator()
     .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
@@ -12601,10 +12602,10 @@ function sbmDoctorRunHealthCheck() {
   try {
     sbmDoctorPrepareHealthCheckScreen_();
     var dailyState = sbmGetDailyRuntimeState_();
-    if (dailyState && dailyState.running) return sbmAlert_('Site Doctor健康診断を始められません','日次処理が実行中です。日次処理が完了してからSite Doctor健康診断を開始してください。');
+    if (dailyState && dailyState.running) return sbmAlert_('サイト健康診断を始められません','日次処理が実行中です。日次処理が完了してからサイト健康診断を開始してください。');
     // RC8 Final QA RC8 Final: 開始操作では重い事前処理を実行しない。
     // 先に確認・Runner UIを表示し、重い整合性確認は最初の分割STEP内で行う。
-    if (!sbmIsSetupComplete_() || sbmGetSetting_('ConnectionStatus','') !== 'OK') return sbmAlert_('Site Doctor健康診断を始められません','初回セットアップとSearch Console接続を完了してください。');
+    if (!sbmIsSetupComplete_() || sbmGetSetting_('ConnectionStatus','') !== 'OK') return sbmAlert_('サイト健康診断を始められません','初回セットアップとSearch Console接続を完了してください。');
 
     var run=sbmDoctorGetHealthRun_();
     if(run&&run.healthCheckId&&run.statusCode!=='COMPLETED'&&sbmDoctorSnapshotCountForRun_(run.healthCheckId)===0){
@@ -12613,7 +12614,7 @@ function sbmDoctorRunHealthCheck() {
 
     if(!run||!run.healthCheckId||run.statusCode==='COMPLETED'){
       var period=sbmDoctorHealthPeriod_(), articleCount=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB).length, ui=SpreadsheetApp.getUi();
-      var answer=ui.alert('Site Doctor健康診断を開始します','過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。\n\n対象期間：'+period.full.startDate+' ～ '+period.full.endDate+'\n登録記事数：'+articleCount+'件\n\n処理中は画面を切り替えず、完了後に健康診断書を表示します。',ui.ButtonSet.OK_CANCEL);
+      var answer=ui.alert('サイト健康診断を開始します','過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。\n\n対象期間：'+period.full.startDate+' ～ '+period.full.endDate+'\n登録記事数：'+articleCount+'件\n\n処理中は画面を切り替えず、完了後に健康診断書を表示します。',ui.ButtonSet.OK_CANCEL);
       if(answer!==ui.Button.OK)return;
       var id='HC-'+Utilities.formatDate(new Date(),SBM_DEFAULTS.TIMEZONE,'yyyyMMdd-HHmmss');
       run={healthCheckId:id,statusCode:'PREPARING',phase:'準備中',startDate:period.full.startDate,endDate:period.full.endDate,targetCount:articleCount,processedCount:0,nextStep:'180日集計',lastSuccessAt:'',retryCount:0,lastError:'',createdAt:sbmNowText_(),updatedAt:sbmNowText_()};
@@ -12622,7 +12623,7 @@ function sbmDoctorRunHealthCheck() {
     }
     sbmDoctorShowHealthCheckRunnerDialog_();
   } catch(e) {
-    sbmAlert_('Site Doctor健康診断を開始できません', String(e&&e.message?e.message:e));
+    sbmAlert_('サイト健康診断を開始できません', String(e&&e.message?e.message:e));
   }
 }
 
@@ -12638,12 +12639,12 @@ function sbmDoctorRunHealthCheck() {
 function sbmDoctorShowHealthCheckRunnerDialog_(){
   var html='<!doctype html><html><head><base target="_top"><style>'+ 
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:22px;color:#202124}.title{font-size:22px;font-weight:700;margin-bottom:8px}.sub{color:#5f6368;margin-bottom:16px;line-height:1.6}.bar{height:14px;background:#e8eaed;border-radius:8px;overflow:hidden}.fill{height:100%;width:0;background:#0b8043;transition:width .25s}.pct{font-weight:700;margin:10px 0;display:flex;align-items:center;gap:10px}.spinner{width:18px;height:18px;border:3px solid #dfe7df;border-top-color:#0b8043;border-radius:50%;animation:spin .85s linear infinite;flex:none}@keyframes spin{to{transform:rotate(360deg)}}.box{background:#f6f9f7;border:1px solid #dfe7e1;border-radius:8px;padding:14px;margin-top:14px;line-height:1.65}.step{font-weight:700}.small{font-size:12px;color:#5f6368;margin-top:10px;line-height:1.55}.done{background:#e6f4ea;border-color:#b7dfc4}.err{background:#fce8e6;border-color:#f3b7b1}.btn{margin-top:16px;padding:9px 18px;border:0;border-radius:6px;background:#0b8043;color:white;cursor:pointer}.btn.secondary{background:#5f6368;margin-left:8px}.meta{font-size:12px;color:#5f6368;margin-top:8px}</style></head><body>'+ 
-    '<div class="title">Site Doctor健康診断</div><div class="sub">過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。</div>'+ 
+    '<div class="title">サイト健康診断</div><div class="sub">過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。</div>'+ 
     '<div class="bar"><div id="fill" class="fill"></div></div><div class="pct"><span id="spinner" class="spinner"></span><span id="pct">準備中…</span></div>'+ 
     '<div id="box" class="box"><div id="step" class="step">STEP 1 / 8　開始準備</div><div id="detail">処理を開始しています。</div><div id="meta" class="meta">最終更新：--</div></div>'+ 
     '<div id="note" class="small">処理中はこのダイアログを閉じないでください。別ブログの日次処理など、重い処理の同時実行も避けてください。</div><button id="retry" class="btn" style="display:none">続きから再開</button><button id="close" class="btn secondary" style="display:none">閉じる</button>'+ 
     '<script>var retryCount=0,terminal=false,waiting=false,watch=null;function el(i){return document.getElementById(i)}function paint(r){var p=Math.max(0,Math.min(100,Number(r.progress||0)));el("fill").style.width=p+"%";el("pct").textContent="進捗 "+p+"%";el("step").textContent=(r.stepLabel||r.stage||"処理中");el("detail").textContent=r.message||"";el("meta").textContent="最終更新："+(r.lastSuccessAt||"処理開始直後");}function setWaiting(v){waiting=v;if(v){clearTimeout(watch);watch=setTimeout(function(){if(waiting&&!terminal){el("meta").textContent="サーバーからの応答を待っています。処理は継続中です。";}},90000);}}function next(){if(terminal)return;setWaiting(true);google.script.run.withSuccessHandler(function(r){setWaiting(false);paint(r||{});if(r&&r.done){terminal=true;el("spinner").style.display="inline-block";el("box").className="box done";el("step").textContent="健康診断が完了しました";el("detail").textContent="健康診断書を表示しています。画面が切り替わるまでそのままお待ちください。";el("note").textContent="健康診断書の表示処理中です。";setTimeout(function(){google.script.run.withSuccessHandler(function(){el("spinner").style.display="none";google.script.host.close();}).withFailureHandler(function(e){el("spinner").style.display="none";el("box").className="box err";el("detail").textContent=(e&&e.message)?e.message:String(e||"健康診断書を表示できませんでした");el("close").style.display="inline-block";}).sbmDoctorOpenHealthReport();},150);return;}retryCount=0;setTimeout(next,350);}).withFailureHandler(function(e){setWaiting(false);var msg=(e&&e.message)?e.message:String(e||"処理が停止しました");el("spinner").style.display="none";el("box").className="box err";el("step").textContent="処理を一時停止しました";el("detail").textContent=msg;el("note").textContent="保存済みの工程から再開できます。";if(retryCount<1 && /時間|timeout|maximum execution|exceeded|停止/i.test(msg)){retryCount++;setTimeout(function(){el("spinner").style.display="inline-block";next();},1500);return;}el("retry").style.display="inline-block";el("close").style.display="inline-block";}).sbmDoctorRunHealthStageFromDialog();}el("retry").onclick=function(){el("retry").style.display="none";el("close").style.display="none";el("spinner").style.display="inline-block";el("box").className="box";retryCount=0;next();};el("close").onclick=function(){google.script.host.close();};next();</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(660).setHeight(470),'Site Doctor健康診断');
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(660).setHeight(470),'サイト健康診断');
 }
 
 function sbmDoctorRecoverHealthRunForStage_(run){
@@ -12972,7 +12973,7 @@ function sbmDoctorFinalizeScreening_(silent,state){
   sbmDoctorBuildHealthReportSheets_(run.healthCheckId,run,{excluded:Number(state.excluded||0),eligible:Number(state.eligible||0),selected:selected,candidateTotal:candidates.length,lowSample:Number(state.lowSample||0),healthy:Number(state.healthy||0),ungerminated:Number(state.ungerminated||0),rankChanged:Number(state.rankChanged||0),rankHeld:Number(state.rankHeld||0)});
   sbmDoctorClearHealthScreenState_(run.healthCheckId);
   sbmDoctorDeleteContinuationTriggers_();
-  if(!silent){sbmAlert_('Site Doctor健康診断が完了しました','登録記事：'+run.targetCount+'件\n詳しい診断が必要な記事：'+selected+'件\n未発芽：'+Number(state.ungerminated||0)+'件\n経過を見る記事：'+Number(state.lowSample||0)+'件\n大きな問題が見つからなかった記事：'+Number(state.healthy||0)+'件\n\nまず健康診断書を確認してください。');sbmDoctorOpenHealthReport();}
+  if(!silent){sbmAlert_('サイト健康診断が完了しました','登録記事：'+run.targetCount+'件\n詳しい診断が必要な記事：'+selected+'件\n未発芽：'+Number(state.ungerminated||0)+'件\n経過を見る記事：'+Number(state.lowSample||0)+'件\n大きな問題が見つからなかった記事：'+Number(state.healthy||0)+'件\n\nまず健康診断書を確認してください。');sbmDoctorOpenHealthReport();}
   return {done:true,message:'健康状態の判定と診断書作成が完了しました。'};
 }
 
@@ -13283,7 +13284,7 @@ function sbmDoctorShowHealthCheckStatus(){
   var pct=sbmDoctorHealthProgress_(r.statusCode,r.processedCount,r.targetCount,r.phase), isError=r.statusCode==='RETRYABLE_ERROR';
   var progressText=pct===null?'停止中':('進捗：'+pct+'%');
   var articleText=(Number(r.targetCount||0)>0)?('記事：'+Number(r.processedCount||0)+' / '+Number(r.targetCount||0)+'件'):'';
-  var next=isError?'「診断」から再度「サイト健康診断を開始」を選ぶと、続きから再開します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
+  var next=isError?'「診断」から再度「サイト健康診断」を選ぶと、続きから再開します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
   var body=[
     progressText+'　'+sbmDoctorHealthStatusJa_(r.statusCode),
     articleText,
@@ -14502,7 +14503,7 @@ function sbmDoctorTriggerCode_(sourceType,judgement) {
   return 'SBM_MONITORING_REVIEW';
 }
 function sbmDoctorChiefComplaint_(sourceType,judgement) {
-  if (sourceType==='DETAILED_CANDIDATE') return 'Site Doctor健康診断で精密診断候補となったため、現在の状態・原因・必要な処置を詳しく診断したい。';
+  if (sourceType==='DETAILED_CANDIDATE') return 'サイト健康診断で精密診断候補となったため、現在の状態・原因・必要な処置を詳しく診断したい。';
   if (sourceType==='IMPROVEMENT_EFFECT') return judgement?('改善の推移が「'+judgement+'」のため、原因と次の対応を診断したい。'):'改善後の推移について原因と次の対応を診断したい。';
   return 'この記事の現在の状態、低迷・重複・検索意図・今後の処置を個別診断したい。';
 }
@@ -14973,7 +14974,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   try { report.showColumns(1, Math.min(report.getMaxColumns(), 20)); } catch(eShow) {}
 
   report.getRange('A1:B1').setBackground('#0b5d3b').setFontColor('#ffffff');
-  report.getRange('A1').setValue('Site Doctor').setFontSize(19).setFontWeight('bold');
+  report.getRange('A1').setValue('SIMS Manager').setFontSize(19).setFontWeight('bold');
   report.getRange('A2:B2').setBackground('#0b5d3b').setFontColor('#ffffff');
   report.getRange('A2').setValue('サイト健康診断書').setFontSize(15).setFontWeight('bold');
 
@@ -15319,7 +15320,7 @@ function sbmDoctorUpgradeReferralHumanView_(sh){
 }
 function sbmDoctorOpenHealthReport(){
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Doctor_健康診断書');
-  if(!sh) return sbmAlert_('Site Doctor健康診断書','まだ健康診断書は作成されていません。先にSite Doctor健康診断を実行してください。');
+  if(!sh) return sbmAlert_('サイト健康診断書','まだ健康診断書は作成されていません。先にサイト健康診断を実行してください。');
   sbmDoctorPolishHealthReportView_(sh);
   sh.showSheet(); SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sh); sh.activate();
 }
@@ -15453,7 +15454,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   var headers=['選択','重症度','記事タイトル','記事管理番号','記事URL','記事ランク','傾向','クリック','表示','順位','CTR','記事ID','内部URL','候補キー'];
   cand.setHiddenGridlines(true);
   cand.getRange('A1:K1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
-  cand.getRange('A2:K2').merge().setValue('Site Doctor健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はSite Doctor、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
+  cand.getRange('A2:K2').merge().setValue('サイト健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はサイト健康診断、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
   var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl+'|'+title;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');
@@ -15508,7 +15509,7 @@ function sbmDoctorOpenDetailedCandidates(){
 function sbmDoctorCandidateProgressStep1_(){
   try{sbmDoctorEnsureLatestUserViews_();}catch(eDoctorView){try{sbmLog_('DoctorCandidateViewGuard','Warning',String(eDoctorView));}catch(ignoreDoctorView){}}
   var ss=SpreadsheetApp.getActiveSpreadsheet(),snap=ss.getSheetByName(SBM_SHEETS.DOCTOR_HEALTH_SNAPSHOT);
-  if(!snap||snap.getLastRow()<2)throw new Error('健康診断結果がありません。先にSite Doctor健康診断を実行してください。');
+  if(!snap||snap.getLastRow()<2)throw new Error('健康診断結果がありません。先にサイト健康診断を実行してください。');
   return true;
 }
 var SBM_DOCTOR_CANDIDATE_CONTEXT_KEY='SBM_DOCTOR_CANDIDATE_CONTEXT_V1';
@@ -15567,7 +15568,7 @@ function sbmDoctorCandidateProgressStep3_(){
     throw eRebuild;
   }
   if(!sh) sh=ss.getSheetByName('aDoctor_精密診断候補');
-  if(!sh) return sbmAlert_('精密診断候補','まだ精密診断候補は作成されていません。先にSite Doctor健康診断を実行してください。');
+  if(!sh) return sbmAlert_('精密診断候補','まだ精密診断候補は作成されていません。先にサイト健康診断を実行してください。');
   if(!rebuilt)sbmDoctorEnsureReferralSelectionColumn_(sh);
   sh.showSheet();ss.setActiveSheet(sh);
 }
@@ -15613,7 +15614,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     var ss=SpreadsheetApp.getActiveSpreadsheet(),active=ss.getActiveSheet();
     if(!active||active.getName()!=='aDoctor_精密診断候補')throw new Error('精密診断候補シートを開き、対象記事を1件選択してください。');
     var sh=active;
-    if(!sh)throw new Error('精密診断候補がありません。先にSite Doctor健康診断を完了してください。');
+    if(!sh)throw new Error('精密診断候補がありません。先にサイト健康診断を完了してください。');
     var col=sbmDoctorReferralHeaderMap_(sh),last=sh.getLastRow();
     if(last<7)throw new Error('診断対象の記事がありません。');
     if(!col['選択'])throw new Error('候補一覧の選択欄を準備できませんでした。シートを閉じてもう一度開いてください。');

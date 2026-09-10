@@ -1,4 +1,4 @@
-# SIMS Manager v6.2.45
+# SIMS Manager v6.2.46
 
 ## Changes
 - `aDoctor_精密診断候補` に「記事管理番号」「記事URL」「記事ランク」を可視列として追加しました。
