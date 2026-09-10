@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.55';
-// v6.2.55: Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
+const SBM_VERSION = '6.2.56';
+// v6.2.56: Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
 // v6.2.54: Homeの記事改善状況を全記事の作業状態集計へ変更し、ランクと色を分離。改善率を右欄KPI化。モニター内訳を『判定可能』『判定待ち』へ分離し、経過観察系ラベルを明確化。Home横幅・アドバイス欄も拡張。
 // v6.2.53: 記事ランク名称を『迷走→育成』『旧育成→発芽』へ整理し、Homeを評価順の縦ランク＋改善状況＋改善モニター内訳の構成へ再配置。判定閾値はv6.2.51を維持。
 // v6.2.52: 日次処理STEP3でHomeスナップショット更新後に記事ランク表示セルだけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジックは変更なし。
@@ -1499,7 +1499,7 @@ function sbmBuildHomeSheet_() {
   sh.getRange('C3').setValue('サイトURL'); sh.getRange('D3:J3').merge();
   sh.getRange('A4').setValue('日次処理'); sh.getRange('B4:J4').merge().setValue('未実施');
 
-  // v6.2.55: ランクは未取得を含む7区分、改善状況は全記事6区分。改善率注記を削除し、モニター判定を3群へ整理。
+  // v6.2.56: ランクは未取得を含む7区分、改善状況は全記事6区分。改善率注記を削除し、モニター判定を3群へ整理。
   sh.getRange('A5:D5').merge().setValue('記事ランク');
   sh.getRange('E5:H5').merge().setValue('記事改善の状況');
   sh.getRange('I5:J5').merge().setValue('改善率');
@@ -1523,29 +1523,29 @@ function sbmBuildHomeSheet_() {
   }
   sh.getRange('I6:J11').merge().setValue('0%');
 
-  sh.getRange('A14:J14').merge().setValue('今日のメッセージ');
-  sh.getRange('A15:J16').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
+  sh.getRange('A13:J13').merge().setValue('今日のメッセージ');
+  sh.getRange('A14:J15').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
 
-  sh.getRange('A18:J18').merge().setValue('改善モニター中｜0件｜判定内訳');
-  sh.getRange('A19:C19').merge().setValue('改善が確認できる');
-  sh.getRange('D19:G19').merge().setValue('要注意・見直し');
-  sh.getRange('H19:J19').merge().setValue('まだ判定できない');
+  sh.getRange('A16:J16').merge().setValue('改善モニター中｜0件｜判定内訳');
+  sh.getRange('A17:C17').merge().setValue('改善が確認できる');
+  sh.getRange('D17:G17').merge().setValue('要注意・見直し');
+  sh.getRange('H17:J17').merge().setValue('まだ判定できない');
   var positive=['大きく改善','改善','改善傾向'];
   var caution=['変化小','要確認','見直し候補'];
   var waiting=['判定待ち','経過観察','再判定待ち','データ不足'];
   for(var k=0;k<4;k++){
-    var r=20+k;
+    var r=18+k;
     if(k<positive.length){sh.getRange(r,1,1,2).merge().setValue(positive[k]);sh.getRange(r,3).setValue('0件');}
     if(k<caution.length){sh.getRange(r,4,1,3).merge().setValue(caution[k]);sh.getRange(r,7).setValue('0件');}
     sh.getRange(r,8,1,2).merge().setValue(waiting[k]);sh.getRange(r,10).setValue('0件');
   }
 
-  sh.getRange('A25:J25').merge().setValue('今週のアドバイス');
-  sh.getRange('A26:J30').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
+  sh.getRange('A22:J22').merge().setValue('今週のアドバイス');
+  sh.getRange('A23:J30').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
 
   sh.setFrozenRows(3);
   [120,108,92,105,105,95,88,105,95,88].forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
-  sh.setRowHeights(1,30,24); sh.setRowHeights(15,2,30); sh.setRowHeights(20,4,25); sh.setRowHeights(26,5,34);
+  sh.setRowHeights(1,30,24); sh.setRowHeights(14,2,30); sh.setRowHeights(18,4,25); sh.setRowHeights(23,8,34);
   sh.getRange('A1:J30').setFontFamily('Arial').setVerticalAlignment('middle').setWrap(true);
   sh.getRange('A1:I1').setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setFontSize(16);
   sh.getRange('J1').setBackground('#0b8043').setFontColor('#d9ead3').setHorizontalAlignment('right');
@@ -1560,21 +1560,21 @@ function sbmBuildHomeSheet_() {
   sh.getRange('I5:J5').setBackground('#e8eaf6').setFontColor('#3f478f').setFontWeight('bold').setHorizontalAlignment('center');
   sh.getRange('I6:J11').setBackground('#f5f5ff').setFontColor('#3f478f').setFontWeight('bold').setFontSize(22).setHorizontalAlignment('center').setBorder(true,true,true,true,true,true,'#c5cae9',SpreadsheetApp.BorderStyle.SOLID);
 
-  sh.getRange('A14:J14').setBackground('#dbeafe').setFontWeight('bold');
-  sh.getRange('A15:J16').setBackground('#f8fbff').setBorder(true,true,true,true,false,false,'#cbdcf0',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
-  sh.getRange('A18:J18').setBackground('#e6f4ea').setFontWeight('bold');
-  sh.getRange('A19:C19').setBackground('#d9ead3').setFontWeight('bold').setHorizontalAlignment('center');
-  sh.getRange('D19:G19').setBackground('#fce8b2').setFontWeight('bold').setHorizontalAlignment('center');
-  sh.getRange('H19:J19').setBackground('#e8eaed').setFontWeight('bold').setHorizontalAlignment('center');
-  sh.getRange('A20:C22').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
-  sh.getRange('D20:G22').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
-  sh.getRange('H20:J23').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
-  var styleCells=[['A20:C20','大きく改善'],['A21:C21','改善'],['A22:C22','改善傾向'],['D20:G20','変化小'],['D21:G21','要確認'],['D22:G22','見直し候補'],['H20:J20','測定待ち'],['H21:J21','経過観察'],['H22:J22','追加経過観察'],['H23:J23','データ不足']];
+  sh.getRange('A13:J13').setBackground('#dbeafe').setFontWeight('bold');
+  sh.getRange('A14:J15').setBackground('#f8fbff').setBorder(true,true,true,true,false,false,'#cbdcf0',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
+  sh.getRange('A16:J16').setBackground('#e6f4ea').setFontWeight('bold');
+  sh.getRange('A17:C17').setBackground('#d9ead3').setFontWeight('bold').setHorizontalAlignment('center');
+  sh.getRange('D17:G17').setBackground('#fce8b2').setFontWeight('bold').setHorizontalAlignment('center');
+  sh.getRange('H17:J17').setBackground('#e8eaed').setFontWeight('bold').setHorizontalAlignment('center');
+  sh.getRange('A18:C20').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
+  sh.getRange('D18:G20').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
+  sh.getRange('H18:J21').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
+  var styleCells=[['A18:C18','大きく改善'],['A19:C19','改善'],['A20:C20','改善傾向'],['D18:G18','変化小'],['D19:G19','要確認'],['D20:G20','見直し候補'],['H18:J18','測定待ち'],['H19:J19','経過観察'],['H20:J20','追加経過観察'],['H21:J21','データ不足']];
   styleCells.forEach(function(x){var st=sbmHomeJudgmentStyle_(x[1]);sh.getRange(x[0]).setBackground(st.bg).setFontColor(st.fg).setFontWeight(st.weight);});
-  sh.getRangeList(['C20:C22','G20:G22','J20:J23']).setFontWeight('bold');
+  sh.getRangeList(['C18:C20','G18:G20','J18:J21']).setFontWeight('bold');
 
-  sh.getRange('A25:J25').setBackground('#fce8b2').setFontWeight('bold');
-  sh.getRange('A26:J30').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
+  sh.getRange('A22:J22').setBackground('#fce8b2').setFontWeight('bold').setFontSize(12);
+  sh.getRange('A23:J30').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(13).setFontWeight('normal').setVerticalAlignment('top');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
   try { sh.getRange('K:N').clearContent(); sh.showColumns(11,4); } catch(e) {}
 }
@@ -4972,7 +4972,7 @@ function sbmRankCountsFromRows_(rows) {
   var c = {'🏆 エース':0,'📈 成長':0,'✅ 安定':0,'🌱 育成':0,'🌿 発芽':0,'未発芽':0,'未取得':0};
   (rows || []).forEach(function(r){
     var rank = String((r || {})['記事ランク'] || '').trim();
-    // v6.2.55: 旧名称は互換集計し、空欄・未知値は「未取得」へ集約して総記事数と一致させる。
+    // v6.2.56: 旧名称は互換集計し、空欄・未知値は「未取得」へ集約して総記事数と一致させる。
     if (rank === '⚠️ 低迷' || rank === '⚠️ 迷走') rank = '🌱 育成';
     if (c.hasOwnProperty(rank) && rank !== '未取得') c[rank]++;
     else c['未取得']++;
@@ -11068,7 +11068,7 @@ function sbmRefreshHome_(options) {
   sh.getRange('C11').setValue(Number(counts['未発芽']||0)+'件 '+arrow(Number(counts['未発芽']||0),'PrevUngerminatedCount'));
   sh.getRange('C12').setValue(Number(counts['未取得']||0)+'件 '+arrow(Number(counts['未取得']||0),'PrevUnacquiredRankCount'));
 
-  sh.getRange('A15').setValue(sbmHomeOverallMessage_(blogName,snapshot));
+  sh.getRange('A14').setValue(sbmHomeOverallMessage_(blogName,snapshot));
   // 記事改善の状況はArticle DB全記事を排他的に集計するため、6区分の合計＝総記事数。
   sh.getRange('G6').setValue(Number(work.unstarted||0)+'件');
   sh.getRange('G7').setValue(Number(work.today||0)+'件');
@@ -11077,22 +11077,22 @@ function sbmRefreshHome_(options) {
   sh.getRange('G10').setValue(Number(work.done||0)+'件');
   sh.getRange('G11').setValue(Number(work.excluded||0)+'件');
   sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%');
-  sh.getRange('A18').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
+  sh.getRange('A16').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
   // 左＝効果判定可能、右＝まだ効果判定不能。表示名だけを明確化し、保存値は互換維持。
-  sh.getRange('C20').setValue(Number(mc['大きく改善']||0)+'件');
-  sh.getRange('C21').setValue(Number(mc['改善']||0)+'件');
-  sh.getRange('C22').setValue(Number(mc['改善傾向']||0)+'件');
-  sh.getRange('G20').setValue(Number(mc['変化小']||0)+'件');
-  sh.getRange('G21').setValue(Number(mc['要確認']||0)+'件');
-  sh.getRange('G22').setValue(Number(mc['見直し候補']||0)+'件');
-  sh.getRange('J20').setValue(Number(mc['測定待ち']||0)+'件');
-  sh.getRange('J21').setValue(Number(mc['経過観察']||0)+'件');
-  sh.getRange('J22').setValue(Number(mc['追加経過観察']||0)+'件');
-  sh.getRange('J23').setValue(Number(mc['データ不足']||0)+'件');
+  sh.getRange('C18').setValue(Number(mc['大きく改善']||0)+'件');
+  sh.getRange('C19').setValue(Number(mc['改善']||0)+'件');
+  sh.getRange('C20').setValue(Number(mc['改善傾向']||0)+'件');
+  sh.getRange('G18').setValue(Number(mc['変化小']||0)+'件');
+  sh.getRange('G19').setValue(Number(mc['要確認']||0)+'件');
+  sh.getRange('G20').setValue(Number(mc['見直し候補']||0)+'件');
+  sh.getRange('J18').setValue(Number(mc['測定待ち']||0)+'件');
+  sh.getRange('J19').setValue(Number(mc['経過観察']||0)+'件');
+  sh.getRange('J20').setValue(Number(mc['追加経過観察']||0)+'件');
+  sh.getRange('J21').setValue(Number(mc['データ不足']||0)+'件');
 
-  sh.getRange('A26').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
+  sh.getRange('A23').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
 
   sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
