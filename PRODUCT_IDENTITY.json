@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.51",
+  "current_version": "6.2.52",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.51: 日次の記事ランク判定を90日集計の評価可能性優先へ再構成。表示200以上またはクリック10以上は既存スコアで通常4ランク、未達はクリック3以上を育成、0〜2を未発芽として毎日再評価する。追加GSC取得なし。",
-  "version": "6.2.51",
+  "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
+  "version": "6.2.52",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.51-ST"
+  "starter_display_version": "6.2.52-ST"
 }

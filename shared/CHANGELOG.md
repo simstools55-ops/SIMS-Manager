@@ -1,3 +1,8 @@
+## v6.2.52
+- 日次処理STEP3でHomeスナップショット更新後、記事ランク件数表示セルのみを軽量同期する処理を追加。
+- Article DBではv6.2.51の新ランク判定が反映されている一方、Homeが旧件数のまま残る不整合を修正。
+- 追加GSC取得・ランク判定条件・サイト健康診断ロジックは変更なし。
+
 # 3.5.0
 
 - Added Platform-wide Human Experience Architecture and Presentation Framework.

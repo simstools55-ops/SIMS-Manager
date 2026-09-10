@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.51
+ * SIMS Manager Product v6.2.52
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.51';
+const SBM_VERSION = '6.2.52';
+// v6.2.52: 日次処理STEP3でHomeスナップショット更新後に記事ランク表示セルだけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジックは変更なし。
 // v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
 // v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
@@ -715,10 +716,11 @@ function sbmRunDailyFinalizeStageFromDialog() {
     });
 
     // Home全体を再集計すると改善の推移更新が再実行され得るため、
-    // 日次処理完了時は状態表示だけを軽量更新する。
+    // 日次処理完了時は状態表示と記事ランク件数だけを軽量更新する。
     try {
-      sbmBuildHomeSnapshot_();
+      var homeSnapshot = sbmBuildHomeSnapshot_();
       sbmSyncHomeVersionOnly_();
+      sbmRefreshHomeRankSummaryOnly_(homeSnapshot);
       sbmRefreshHomeDailyStatusOnly_();
     } catch(eHome) {
       sbmLog_('DailyHomeStatusRefresh','Warning',String(eHome));
@@ -11077,6 +11079,28 @@ function sbmRefreshHome_(options) {
 
   sh.getRange('A4:H4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
+}
+
+function sbmRefreshHomeRankSummaryOnly_(snapshot) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(SBM_SHEETS.HOME);
+  if (!sh) return false;
+  var snap = snapshot || sbmGetHomeSnapshot_();
+  if (!snap) return false;
+  var counts = snap.counts || {'🏆 エース':0,'✅ 安定':0,'📈 成長':0,'🌱 育成':0,'⚠️ 低迷':0,'未発芽':0};
+  var settingsMap = sbmGetSettingsMap_();
+  function arrow(current,key){
+    var prev = Number(Object.prototype.hasOwnProperty.call(settingsMap,key) ? settingsMap[key] : current);
+    return current > prev ? '↗' : (current < prev ? '↘' : '→');
+  }
+  sh.getRange('B3').setValue(Number(snap.total || 0) + '件');
+  sh.getRange('C6').setValue(Number(counts['🏆 エース'] || 0) + '件 ' + arrow(Number(counts['🏆 エース'] || 0),'PrevAceCount'));
+  sh.getRange('G6').setValue(Number(counts['🌱 育成'] || 0) + '件 ' + arrow(Number(counts['🌱 育成'] || 0),'PrevNurtureCount'));
+  sh.getRange('C7').setValue(Number(counts['✅ 安定'] || 0) + '件 ' + arrow(Number(counts['✅ 安定'] || 0),'PrevStableCount'));
+  sh.getRange('G7').setValue(Number(counts['⚠️ 低迷'] || 0) + '件 ' + arrow(Number(counts['⚠️ 低迷'] || 0),'PrevLowCount'));
+  sh.getRange('C8').setValue(Number(counts['📈 成長'] || 0) + '件 ' + arrow(Number(counts['📈 成長'] || 0),'PrevGrowthCount'));
+  sh.getRange('G8').setValue(Number(counts['未発芽'] || 0) + '件 ' + arrow(Number(counts['未発芽'] || 0),'PrevUngerminatedCount'));
+  return true;
 }
 
 function sbmRefreshHomeDailyStatusOnly_() {

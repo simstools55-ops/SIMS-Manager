@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.50",
+  "current_version": "6.2.52",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.50: 未発芽記事は日次の既存表示回数が100以上になった時点で「🌱 育成」へ復帰。Homeの旧モニター集計説明文を全Code正本から削除し、改善率説明のみ残す。追加のGSC取得は行わない。",
-  "version": "6.2.50",
-  "starter_display_version": "6.2.50-ST"
+  "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
+  "version": "6.2.52",
+  "starter_display_version": "6.2.52-ST"
 }
