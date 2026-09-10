@@ -8,6 +8,6 @@
   "current_version": "6.2.52",
   "release_status": "REPOSITORY_BASELINE",
   "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
-  "version": "6.2.52",
+  "version": "6.2.61",
   "starter_display_version": "6.2.52-ST"
 }

@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.60",
+  "current_version": "6.2.61",
   "release_status": "REPOSITORY_BASELINE",
   "notes": "v6.2.60: v6.2.59で欠落したsbmOpenHome等をv6.2.58正本から復旧し、Home表示時に記事管理だけを軽量再集計。検索露出待ちは正常な未発芽として未取得から除外。",
-  "version": "6.2.60",
+  "version": "6.2.61",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",

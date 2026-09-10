@@ -1,6 +1,6 @@
-# SIMS Manager v6.2.60
+# SIMS Manager v6.2.61
 
-## v6.2.60 変更点
+## v6.2.61 変更点
 
 - v6.2.59で欠落した `sbmOpenHome` をv6.2.58正本から復旧しました。
 - Home表示時に記事管理だけを軽量再集計し、記事ランク・未取得・記事改善状況を即時同期します。
@@ -32,3 +32,6 @@ Homeの余白を詰め、「今週のアドバイス」を今日のメッセー�
 - Full v6.2.55 / Starter v6.2.55-ST
 
 Repository root `Code.gs` がFull Editionの機能正本です。Starterは同一コードから `SBM_EDITION = 'STARTER'` のみを派生させています。
+
+## v6.2.61
+「記事情報を更新」の完了結果を整理し、6か月クエリ取得不可記事のArticleID・URL・未発芽処置結果を表示します。
