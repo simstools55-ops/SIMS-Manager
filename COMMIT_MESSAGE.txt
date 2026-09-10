@@ -1,9 +1,7 @@
-SIMS Manager v6.2.37: 記事情報更新の安全化・6か月メインクエリ補完を正本化
+SIMS Manager v6.2.38: finish article info update and add ungerminated screening
 
-- 記事情報更新を記事タイトル＋メインクエリに限定
-- Article DB点検を軽量化
-- メインクエリ未取得記事のみGSC過去6か月を照会
-- ArticleID・正規化URL・更新前値による三重照合で安全書込
-- 取得不可と書込保留/エラーを分離集計
-- 日次処理およびSEOタイトル・メタディスクリプション処理は既存仕様を維持
-- Full / StarterとRepository内Code.gsコピーをv6.2.37へ同期
+- show ArticleID/title/URL for 6-month main-query misses
+- remove one-item query diagnostic UI and backend
+- add Site Doctor UNGERMINATED screening
+- preserve daily processing and existing article ranks
+- sync Full/Starter repository copies and version metadata

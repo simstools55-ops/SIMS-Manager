@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.37",
+  "current_version": "6.2.38",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.37: 記事情報更新の安全書込インターフェース不整合を修正。記事タイトル・メインクエリ補完をArticleID＋正規化URL＋更新前値で安全照合し、メインクエリ未取得時は過去6か月GSCを使用。日次処理とSEOタイトル・メタディスクリプションの既存処理は変更しない。",
-  "version": "6.2.37",
+  "notes": "v6.2.38: 記事情報更新で6か月クエリ取得不可の記事をArticleID・タイトル・URL付きで表示し、1件だけ診断を削除。Site Doctor健康診断へ未発芽候補判定を追加。日次処理・既存記事ランク・SEOタイトル・メタディスクリプション処理は変更しない。",
+  "version": "6.2.38",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.37-ST"
+  "starter_display_version": "6.2.38-ST"
 }
