@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.53",
+  "current_version": "6.2.54",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.53: 記事ランク名称を「迷走→育成」「旧育成→発芽」へ整理し、HomeをSEO評価順の縦ランク一覧、記事改善状況、改善モニター判定内訳の3ブロックへ再配置。v6.2.51の90日判定閾値は変更なし。",
-  "version": "6.2.53",
+  "notes": "v6.2.54: Homeの記事改善状況を全記事の作業状態6区分へ整理し、合計が総記事数と一致する設計へ変更。記事ランクと色味を分離し、改善率を右欄KPI化。モニター内訳を効果判定可能／判定待ちに分離し、表示幅とアドバイス欄を拡張。",
+  "version": "6.2.54",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.53-ST"
+  "starter_display_version": "6.2.54-ST"
 }
