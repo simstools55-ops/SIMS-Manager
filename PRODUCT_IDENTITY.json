@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.61",
+  "current_version": "6.2.62",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.60: v6.2.59で欠落したsbmOpenHome等をv6.2.58正本から復旧し、Home表示時に記事管理だけを軽量再集計。検索露出待ちは正常な未発芽として未取得から除外。",
-  "version": "6.2.61",
+  "notes": "v6.2.62: 記事情報更新の6か月クエリ未取得結果を「未発芽へ変更／未発芽のまま／安全照合・保存確認で保留」に集計分離。取得・安全書込ロジックは変更なし。",
+  "version": "6.2.62",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.60-ST"
+  "starter_display_version": "6.2.62-ST"
 }
