@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.22",
+  "current_version": "6.2.48",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.22: 「記事情報を更新」を記事DB全体の情報整合性チェック＋補完機能へ統合。タイトル・実測メインクエリ・SEO情報の欠損状況を事前表示し、更新結果を可視化。",
-  "version": "6.2.22",
-  "starter_display_version": "6.2.22-ST"
+  "notes": "v6.2.48: Homeの記事ランクまとめに未発芽件数を追加し、改善率の利用者向け説明を追記。診断メニューは「サイト健康診断」サブメニューに整理し「サイト健康診断を実施」を配置。健康診断所見の日本語接続も修正。未発芽判定・aDoctor連携・記事情報更新・日次処理ロジックは変更しない。",
+  "version": "6.2.48",
+  "starter_display_version": "6.2.48-ST"
 }

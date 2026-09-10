@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.47
+ * SIMS Manager Product v6.2.48
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.47';
+const SBM_VERSION = '6.2.48';
+// v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
 // v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
 // v6.2.45: aDoctor精密診断依頼へ記事ランクを明示的に引継ぎ、未発芽をUNGERMINATEDとして識別。未発芽記事は部分修正ではなく全面リライト前提で検索意図・ターゲットクエリ・構成・タイトル・本文を再設計する診断方針を依頼JSONへ付与。
@@ -1496,7 +1497,7 @@ function sbmBuildHomeSheet_() {
   sh.getRange('A7:B7').merge().setValue('✅ 安定'); sh.getRange('C7:D7').merge().setValue('0件 →');
   sh.getRange('E7:F7').merge().setValue('⚠️ 迷走'); sh.getRange('G7:H7').merge().setValue('0件 →');
   sh.getRange('A8:B8').merge().setValue('📈 成長'); sh.getRange('C8:D8').merge().setValue('0件 →');
-  sh.getRange('E8:F8').merge().setValue('❓ 未取得'); sh.getRange('G8:H8').merge().setValue('0件 →');
+  sh.getRange('E8:F8').merge().setValue('🌰 未発芽'); sh.getRange('G8:H8').merge().setValue('0件 →');
 
   sh.getRange('A10:H10').merge().setValue('今日のメッセージ');
   sh.getRange('A11:H12').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
@@ -1522,14 +1523,14 @@ function sbmBuildHomeSheet_() {
     sh.getRange(rr,7).setValue(monitorLabels[j][1]); sh.getRange(rr,8).setValue('0件');
   }
 
-  sh.getRange('A20:H21').merge().setValue('現在モニター中の件数・判定内訳は「改善の推移」と同じ現役サイクルを集計します。表示値は直近の日次処理で保存されたSearch Consoleデータを使用し、Doctor再診結果は随時反映します。');
+  sh.getRange('A20:H21').merge().setValue('現在モニター中の件数・判定内訳は「改善の推移」と同じ現役サイクルを集計します。表示値は直近の日次処理で保存されたSearch Consoleデータを使用し、Doctor再診結果は随時反映します。\n\n改善率とは、改善後の効果測定が完了した記事のうち、実際に検索パフォーマンスの改善が確認できた記事の割合です。まだ効果測定中の記事は含まれないため、改善結果が確定した記事だけをもとに算出します。');
 
   sh.getRange('A22:H22').merge().setValue('今週のアドバイス');
   sh.getRange('A23:H24').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
 
   sh.setFrozenRows(3);
   [120,120,120,120,120,90,120,90].forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
-  sh.setRowHeights(1,24,24); sh.setRowHeights(11,2,28); sh.setRowHeights(15,5,24); sh.setRowHeights(20,2,22); sh.setRowHeights(23,2,28);
+  sh.setRowHeights(1,24,24); sh.setRowHeights(11,2,28); sh.setRowHeights(15,5,24); sh.setRowHeights(20,2,34); sh.setRowHeights(23,2,28);
   sh.getRange('A1:H24').setFontFamily('Arial').setVerticalAlignment('middle').setWrap(true);
   sh.getRange('A1:G1').setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setFontSize(16);
   sh.getRange('H1').setBackground('#0b8043').setFontColor('#d9ead3').setHorizontalAlignment('right');
@@ -4970,6 +4971,7 @@ function sbmStorePreviousRankCounts_(rows) {
   sbmSetSetting_('PrevGrowthCount', c['📈 成長'], '前回日次更新時の成長件数');
   sbmSetSetting_('PrevNurtureCount', c['🌱 育成'], '前回日次更新時の育成件数');
   sbmSetSetting_('PrevLowCount', c['⚠️ 低迷'], '前回日次更新時の低迷件数');
+  sbmSetSetting_('PrevUngerminatedCount', c['未発芽'], '前回日次更新時の未発芽件数');
 }
 
 function sbmSignedDelta_(n) { n = Number(n || 0); return n > 0 ? '+' + n : String(n); }
@@ -10882,6 +10884,7 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
       ['A17','改善確認'],
       ['A18','改善率'],
       ['A19','未取得記事'],
+      ['E8','🌰 未発芽'],
       ['E14','現在モニター中｜判定内訳']
     ];
     for (var i=0;i<expected.length;i++) {
@@ -11045,7 +11048,7 @@ function sbmRefreshHome_(options) {
   sh.getRange('C7').setValue(Number(counts['✅ 安定']||0)+'件 '+arrow(Number(counts['✅ 安定']||0),'PrevStableCount'));
   sh.getRange('G7').setValue(Number(counts['⚠️ 低迷']||0)+'件 '+arrow(Number(counts['⚠️ 低迷']||0),'PrevLowCount'));
   sh.getRange('C8').setValue(Number(counts['📈 成長']||0)+'件 '+arrow(Number(counts['📈 成長']||0),'PrevGrowthCount'));
-  sh.getRange('G8').setValue(missingCount+'件 '+arrow(missingCount,'PrevMissingCount'));
+  sh.getRange('G8').setValue(Number(counts['未発芽']||0)+'件 '+arrow(Number(counts['未発芽']||0),'PrevUngerminatedCount'));
 
   sh.getRange('A11').setValue(sbmHomeOverallMessage_(blogName,snapshot));
   sh.getRange('C15').setValue(Number(currentTreatment.total||0)+'件');
@@ -12457,9 +12460,12 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
+  var healthDiagnosisMenu = ui.createMenu('サイト健康診断')
+    .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
+    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport');
+
   ui.createMenu('診断')
-    .addItem('サイト健康診断','sbmDoctorRunHealthCheck')
-    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport')
+    .addSubMenu(healthDiagnosisMenu)
     .addSeparator()
     .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
     .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
@@ -13285,7 +13291,7 @@ function sbmDoctorShowHealthCheckStatus(){
   var pct=sbmDoctorHealthProgress_(r.statusCode,r.processedCount,r.targetCount,r.phase), isError=r.statusCode==='RETRYABLE_ERROR';
   var progressText=pct===null?'停止中':('進捗：'+pct+'%');
   var articleText=(Number(r.targetCount||0)>0)?('記事：'+Number(r.processedCount||0)+' / '+Number(r.targetCount||0)+'件'):'';
-  var next=isError?'「診断」から再度「サイト健康診断」を選ぶと、続きから再開します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
+  var next=isError?'「診断 → サイト健康診断 → サイト健康診断を実施」から再開すると、保存済みの続きから処理します。':(r.statusCode==='COMPLETED'?'健康診断書を確認し、必要な記事だけ精密診断します。':String(r.nextStep||'処理を続けます。'));
   var body=[
     progressText+'　'+sbmDoctorHealthStatusJa_(r.statusCode),
     articleText,
@@ -15118,7 +15124,7 @@ function sbmDoctorSeverityFromLatestSnapshot_(articleId,url,fallback){
 function sbmDoctorOverallComment_(score, issues, selected) {
   var intro=score>=85?'ブログ全体はおおむね良好です。':score>=70?'ブログ全体は概ね安定していますが、一部の記事は継続確認が必要です。':score>=55?'ブログ全体に改善余地が見られます。':'検索流入が弱くなっている記事が複数あり、優先的な確認が必要です。';
   var trends=sbmDoctorTrendMessages_(issues);
-  var middle=trends.length?' 特に、'+trends.slice(0,2).join('また、')+'。':'';
+  var middle=trends.length?' 特に、'+trends.slice(0,2).join('。また、')+'。':'';
   var end=selected>0?' 今回は'+selected+'記事を優先して詳しく診断します。':' 今回は精密診断を優先する記事はありません。';
   return intro+middle+end;
 }

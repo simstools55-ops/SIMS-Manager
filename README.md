@@ -1,18 +1,26 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.2.47
+> **Current product:** SIMS Manager v6.2.48
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.2.47`
+- Product Version: `6.2.48`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Main feature: Starter / Full Edition構成を正式な製品ベースラインとして導入。Fullを機能正本、Starterを同一リポジトリ内の派生Editionとして管理。
 
-> Current release: SIMS Manager Product v6.2.47
+> Current release: SIMS Manager Product v6.2.48
+
+## v6.2.48 — 未発芽Home可視化とサイト健康診断メニュー整理
+
+- Homeの記事ランクまとめに「🌰 未発芽」を追加
+- 改善率の算出対象を利用者向け文章で説明
+- 診断 → サイト健康診断 → サイト健康診断を実施、の階層へ整理
+- 健康診断所見の日本語接続を修正
+- 診断ロジック・日次処理は変更なし
 
 ## v6.2.47 — 記事情報更新を不足記事限定方式へ再構築
 
