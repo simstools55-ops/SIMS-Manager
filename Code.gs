@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.42
+ * SIMS Manager Product v6.2.43
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.42';
+const SBM_VERSION = '6.2.43';
+// v6.2.43: Site Doctor健康診断に未発芽判定を追加。既存の未発芽ランクを精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新。
 // v6.2.42: 6か月GSCでもメインクエリを取得できない記事を安全照合後に記事ランク「未発芽」へ変更。記事情報更新ダイアログの1件診断を削除し、未発芽ランクを通常再判定から保護。
 // v6.2.41: 正常動作確認済みv6.2.37から再構築。記事情報点検をArticleID＋URL＋記事タイトル＋メインクエリの不足抽出だけに簡素化し、対象記事だけ取得。安全書込後にArticleID＋URL＋保存値を再確認する。日次処理は変更しない。
 // v6.2.37: 記事情報更新の安全書込インターフェース不整合を修正。ArticleID＋URL＋更新前値の三重照合を維持し、取得成功・書込成功・安全保留・取得不可を正しく分離集計。
@@ -12522,6 +12523,9 @@ function onOpen() {
 
 const SBM_DOCTOR_HEALTH_DAYS = 180;
 const SBM_DOCTOR_HEALTH_PAGE_LIMIT = 25000;
+// v6.2.43: 健康診断での未発芽判定。公開直後を避けるため、現在28日より前の表示実績も必要とする。
+const SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS = 5;
+const SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS = 0;
 
 function sbmDoctorEnsureMedicalSheetStructure_() {
   var names = [
@@ -12803,10 +12807,13 @@ function sbmDoctorRunScreeningBatch_(silent) {
 
   var state=sbmDoctorLoadHealthScreenState_(run.healthCheckId);
   if(!state || run.statusCode!=='SCREENING'){
-    state={cursor:0,excluded:0,eligible:0,healthy:0,lowSample:0};
+    state={cursor:0,excluded:0,eligible:0,healthy:0,lowSample:0,ungerminated:0,rankChanged:0,rankHeld:0};
     run.statusCode='SCREENING'; run.phase='記事ごとの健康状態を分析中'; run.nextStep='記事の健康状態を判定'; run.updatedAt=sbmNowText_(); sbmDoctorSaveHealthRun_(run);
     sbmDoctorSaveHealthScreenState_(run.healthCheckId,state);
   }
+  state.ungerminated=Number(state.ungerminated||0);
+  state.rankChanged=Number(state.rankChanged||0);
+  state.rankHeld=Number(state.rankHeld||0);
 
   var tContextPerf=new Date();
   var context=sbmDoctorSelectionContextLite_();
@@ -12832,6 +12839,7 @@ function sbmDoctorRunScreeningBatch_(silent) {
   }
 
   var finish=Math.min(current.length,start+batchSize);
+  var rankPatches=[];
   var tClassPerf=new Date();
   for(var i=start;i<finish;i++){
     var item=current[i], row=item.row;
@@ -12865,7 +12873,7 @@ function sbmDoctorRunScreeningBatch_(silent) {
         recent:{c:Number(row[hm['直近28日クリック']-1]||0),i:Number(row[hm['直近28日表示']-1]||0),ctr:Number(row[hm['直近28日CTR']-1]||0),p:Number(row[hm['直近28日平均順位']-1]||0)},
         previous:{c:Number(row[hm['前28日クリック']-1]||0),i:Number(row[hm['前28日表示']-1]||0),ctr:Number(row[hm['前28日CTR']-1]||0),p:Number(row[hm['前28日平均順位']-1]||0)}
       };
-      var sc=sbmDoctorScreenMetrics_(m);
+      var sc=sbmDoctorScreenMetrics_(m,a);
       row[hm['一次検査コード']-1]=sc.code;
       row[hm['一次検査結果']-1]=sc.label;
       row[hm['詳細検査']-1]=sc.needsDetail?'候補':'不要';
@@ -12874,12 +12882,31 @@ function sbmDoctorRunScreeningBatch_(silent) {
       row[hm['データ品質']-1]=sc.quality;
       row[hm['取得状態']-1]='健康診断完了';
       row[hm['精密診断順位']-1]='';
+      if(sc.code==='UNGERMINATED'){
+        state.ungerminated++;
+        var currentRank=String(a['記事ランク']||'').trim();
+        var articleId=String(a['ArticleID']||row[hm['記事ID']-1]||'').trim();
+        if(currentRank!=='未発芽' && articleId && url){
+          rankPatches.push({articleId:articleId,url:url,expected:{'記事ランク':a['記事ランク']},updates:{'記事ランク':'未発芽'}});
+        }
+      }
       if(sc.code==='LOW_SAMPLE')state.lowSample++;
       else if(!sc.needsDetail)state.healthy++;
     }
     vals[item.idx]=row;
   }
   perf.classify=sbmSecondsSince_(tClassPerf);
+
+  // v6.2.43: 健康診断で新規検出した未発芽だけをArticleID＋URL＋更新前ランクで安全更新し、保存後も再確認する。
+  if(rankPatches.length){
+    var rankCommit=sbmCommitArticleInfoPatchesSafely_(rankPatches);
+    rankPatches.forEach(function(p){
+      var updated=(rankCommit.details||[]).some(function(d){return d.status==='UPDATED' && d.articleId===p.articleId && sbmNormalizeUrl_(d.url||'')===sbmNormalizeUrl_(p.url||'') && d.field==='記事ランク';});
+      if(!updated){state.rankHeld++;return;}
+      var verify=sbmVerifyArticleInfoWrite_(p.articleId,p.url,p.updates);
+      if(verify&&verify.ok)state.rankChanged++;else state.rankHeld++;
+    });
+  }
 
   var tWritePerf=new Date();
   if(finish>start){
@@ -12927,7 +12954,7 @@ function sbmDoctorFinalizeScreening_(silent,state){
   vals.forEach(function(row,idx){
     if(String(row[hm['健康診断ID']-1])!==run.healthCheckId)return;
     var code=String(row[hm['一次検査コード']-1]||'');
-    if(!/^(RECENT_DROP|LONG_TERM_DECLINE|CTR_OPPORTUNITY|POSITION_OPPORTUNITY|LONG_TERM_STAGNATION)$/.test(code))return;
+    if(!/^(UNGERMINATED|RECENT_DROP|LONG_TERM_DECLINE|CTR_OPPORTUNITY|POSITION_OPPORTUNITY|LONG_TERM_STAGNATION)$/.test(code))return;
     var m={full:{i:Number(row[hm['180日表示']-1]||0),c:Number(row[hm['180日クリック']-1]||0)}};
     candidates.push({idx:idx,score:sbmDoctorCandidateScore_({priorityJa:String(row[hm['優先度']-1]||''),code:code},m),impressions:m.full.i,clicks:m.full.c});
   });
@@ -12940,10 +12967,10 @@ function sbmDoctorFinalizeScreening_(silent,state){
   });
   sh.getRange(2,1,vals.length,vals[0].length).setValues(vals);
   run.statusCode='COMPLETED'; run.phase='完了'; run.nextStep='健康診断書を確認し、必要な記事だけ精密診断'; run.processedCount=Number(state.eligible||0); run.lastSuccessAt=sbmNowText_(); run.updatedAt=sbmNowText_(); sbmDoctorSaveHealthRun_(run);
-  sbmDoctorBuildHealthReportSheets_(run.healthCheckId,run,{excluded:Number(state.excluded||0),eligible:Number(state.eligible||0),selected:selected,candidateTotal:candidates.length,lowSample:Number(state.lowSample||0),healthy:Number(state.healthy||0)});
+  sbmDoctorBuildHealthReportSheets_(run.healthCheckId,run,{excluded:Number(state.excluded||0),eligible:Number(state.eligible||0),selected:selected,candidateTotal:candidates.length,lowSample:Number(state.lowSample||0),healthy:Number(state.healthy||0),ungerminated:Number(state.ungerminated||0),rankChanged:Number(state.rankChanged||0),rankHeld:Number(state.rankHeld||0)});
   sbmDoctorClearHealthScreenState_(run.healthCheckId);
   sbmDoctorDeleteContinuationTriggers_();
-  if(!silent){sbmAlert_('Site Doctor健康診断が完了しました','登録記事：'+run.targetCount+'件\n詳しい診断が必要な記事：'+selected+'件\n経過を見る記事：'+Number(state.lowSample||0)+'件\n大きな問題が見つからなかった記事：'+Number(state.healthy||0)+'件\n\nまず健康診断書を確認してください。');sbmDoctorOpenHealthReport();}
+  if(!silent){sbmAlert_('Site Doctor健康診断が完了しました','登録記事：'+run.targetCount+'件\n詳しい診断が必要な記事：'+selected+'件\n未発芽：'+Number(state.ungerminated||0)+'件\n経過を見る記事：'+Number(state.lowSample||0)+'件\n大きな問題が見つからなかった記事：'+Number(state.healthy||0)+'件\n\nまず健康診断書を確認してください。');sbmDoctorOpenHealthReport();}
   return {done:true,message:'健康状態の判定と診断書作成が完了しました。'};
 }
 
@@ -12957,7 +12984,9 @@ function sbmDoctorSelectionContextLite_(){
     var urls=sh.getRange(2,hm['記事URL'],n,1).getDisplayValues();
     var works=sh.getRange(2,hm['作業状態'],n,1).getDisplayValues();
     var flags=sh.getRange(2,hm['管理フラグ'],n,1).getDisplayValues();
-    for(var i=0;i<n;i++){var u=sbmNormalizeUrl_(urls[i][0]);if(u)byUrl[u]={'記事URL':urls[i][0],'作業状態':works[i][0],'管理フラグ':flags[i][0]};}
+    var ranks=sh.getRange(2,hm['記事ランク'],n,1).getDisplayValues();
+    var ids=sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues();
+    for(var i=0;i<n;i++){var u=sbmNormalizeUrl_(urls[i][0]);if(u)byUrl[u]={'記事URL':urls[i][0],'作業状態':works[i][0],'管理フラグ':flags[i][0],'記事ランク':ranks[i][0],'ArticleID':ids[i][0]};}
   }
   var candidateUrls={};
   try{var saved=JSON.parse(String(sbmGetSetting_('TodayRecommendationJson','[]')||'[]'));(saved||[]).forEach(function(x){var u=sbmNormalizeUrl_(x.url||x['記事URL']||'');if(u)candidateUrls[u]=true;});}catch(e){}
@@ -12990,14 +13019,26 @@ function sbmDoctorSelectionExclusion_(url,a,ctx){
 
 function sbmDoctorCandidateScore_(s,m){
   var p={'高':300,'中':200,'低':100}[s.priorityJa]||0;
-  var code={'RECENT_DROP':80,'LONG_TERM_DECLINE':70,'CTR_OPPORTUNITY':60,'POSITION_OPPORTUNITY':50,'LONG_TERM_STAGNATION':40}[s.code]||0;
+  var code={'UNGERMINATED':95,'RECENT_DROP':80,'LONG_TERM_DECLINE':70,'CTR_OPPORTUNITY':60,'POSITION_OPPORTUNITY':50,'LONG_TERM_STAGNATION':40}[s.code]||0;
   var volume=Math.min(99,Math.log(Math.max(1,m.full.i))*10);
   return p+code+volume;
 }
 
-function sbmDoctorScreenMetrics_(m) {
+function sbmDoctorScreenMetrics_(m, article) {
+  article=article||{};
   var reasons=[], code='HEALTHY', label='現在の状態はおおむね良好です', priority='低', detail=false;
   var quality = m.full.i >= 100 ? '十分' : (m.full.i >= 20 ? '限定的' : '不足');
+  var currentRank=String(article['記事ランク']||'').trim();
+  var knownUngerminated=currentRank==='未発芽';
+  // 公開直後の記事を誤判定しにくくするため、直近28日より前にも表示実績があることを条件にする。
+  var hasOlderExposure=(m.first.i>0 || m.previous.i>0);
+  var accessUngerminated=hasOlderExposure && m.second.c<=SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS && m.recent.c<=SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS;
+  if(knownUngerminated){
+    return {code:'UNGERMINATED',label:'未発芽として精密診断が必要です',needsDetail:true,priorityJa:'高',reasons:['記事ランクが未発芽です。検索需要・検索意図・インデックス・カニバリ等を精密診断します'],quality:quality};
+  }
+  if(accessUngerminated){
+    return {code:'UNGERMINATED',label:'検索流入がほぼ発芽していません',needsDetail:true,priorityJa:'高',reasons:['後半90日のクリックが'+m.second.c+'回、直近28日のクリックが0回です','直近28日より前には検索表示実績があるため、公開直後ではなく既存記事の未発芽候補として扱います'],quality:quality};
+  }
   if (m.full.i < 20) return {code:'LOW_SAMPLE',label:'データが少ないため、もう少し様子を見る必要があります',needsDetail:false,priorityJa:'低',reasons:['表示回数が少なく確定判断できません'],quality:quality};
   var impDrop = m.first.i>0 ? (m.second.i-m.first.i)/m.first.i : 0;
   var clickDrop = m.first.c>0 ? (m.second.c-m.first.c)/m.first.c : 0;
@@ -14877,12 +14918,12 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   var current = rows.filter(function(r){ return String(r[hm['健康診断ID']-1]) === healthCheckId; });
 
   var scoreTotal = 0, scoreCount = 0;
-  var issueCounts = {LONG_TERM_DECLINE:0,RECENT_DROP:0,POSITION_OPPORTUNITY:0,CTR_OPPORTUNITY:0,LONG_TERM_STAGNATION:0};
+  var issueCounts = {UNGERMINATED:0,LONG_TERM_DECLINE:0,RECENT_DROP:0,POSITION_OPPORTUNITY:0,CTR_OPPORTUNITY:0,LONG_TERM_STAGNATION:0};
   current.forEach(function(r){
     if (String(r[hm['Doctor診断対象']-1]) !== '対象') return;
     var code=String(r[hm['一次検査コード']-1]||''), pri=String(r[hm['優先度']-1]||'低');
     if (issueCounts.hasOwnProperty(code)) issueCounts[code]++;
-    var score = code === 'HEALTHY' ? 100 : code === 'LOW_SAMPLE' ? 72 : pri === '高' ? 42 : pri === '中' ? 62 : 78;
+    var score = code === 'HEALTHY' ? 100 : code === 'LOW_SAMPLE' ? 72 : code === 'UNGERMINATED' ? 35 : pri === '高' ? 42 : pri === '中' ? 62 : 78;
     scoreTotal += score; scoreCount++;
   });
   var healthScore = scoreCount ? Math.round(scoreTotal / scoreCount) : 0;
@@ -14909,6 +14950,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   var healthFg = healthScore < 55 ? '#b31412' : '#274e13';
   var trendBase=Math.max(1,scoreCount);
   var trendItems=[
+    ['未発芽',Number(issueCounts.UNGERMINATED||0)],
     ['長期流入低下',Number(issueCounts.LONG_TERM_DECLINE||0)],
     ['直近流入急減',Number(issueCounts.RECENT_DROP||0)],
     ['順位改善余地',Number(issueCounts.POSITION_OPPORTUNITY||0)],
@@ -14916,7 +14958,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
     ['長期停滞',Number(issueCounts.LONG_TERM_STAGNATION||0)]
   ].filter(function(x){return x[1]>0;}).sort(function(a,b){return b[1]-a[1];});
   var trendText=(trendItems.length?trendItems.slice(0,5).map(function(x){return '・'+x[0]+' '+x[1]+'件（'+Math.round(x[1]/trendBase*100)+'%）';}).join('\n'):'・健康診断で数値化できる共通傾向は見つかりませんでした。')+'\n※鮮度・競合強化・カニバリ等は精密診断で追加判定します。';
-  var resultText='大きな問題なし '+Number(counts.healthy||0)+'件 / 経過観察 '+observationCount+'件 / 改善管理中 '+Number(counts.excluded||0)+'件 / データ不足 '+Number(counts.lowSample||0)+'件 / 精密診断 '+Number(counts.selected||0)+'件';
+  var resultText='大きな問題なし '+Number(counts.healthy||0)+'件 / 未発芽 '+Number(counts.ungerminated||0)+'件 / 経過観察 '+observationCount+'件 / 改善管理中 '+Number(counts.excluded||0)+'件 / データ不足 '+Number(counts.lowSample||0)+'件 / 精密診断 '+Number(counts.selected||0)+'件';
   var nextText=Number(counts.selected||0)>0 ? '「診断」から「精密診断候補を見る」を開き、1件選択してaDoctor診断依頼文を作成します。' : '通常のSIMS運用を続け、次回の健康診断で推移を確認します。';
 
   var healthRows=[
@@ -14958,6 +15000,7 @@ function sbmDoctorSelectionReason_(code,row,hm){
   var firstCtr=n('前半90日CTR'), secondCtr=n('後半90日CTR'), firstP=n('前半90日平均順位'), secondP=n('後半90日平均順位');
   var recentC=n('直近28日クリック'), prevC=n('前28日クリック'), recentI=n('直近28日表示'), prevI=n('前28日表示');
   var recentCtr=n('直近28日CTR'), prevCtr=n('前28日CTR'), recentP=n('直近28日平均順位'), prevP=n('前28日平均順位');
+  if(code==='UNGERMINATED') return '未発芽｜後半90日クリック '+n('後半90日クリック')+'回 ／ 直近28日クリック '+n('直近28日クリック')+'回 ／ 180日表示 '+n('180日表示')+'回';
   if(code==='RECENT_DROP'){
     var rd=drop(prevC,recentC), ri=drop(prevI,recentI), parts=[];
     if(rd!==null&&rd>0)parts.push('クリック '+prevC+'→'+recentC+'（'+rd+'%減）');
@@ -15009,6 +15052,7 @@ function sbmDoctorCandidateMetrics_(code,row,hm){
   var recentC=n('直近28日クリック'), prevC=n('前28日クリック'), recentI=n('直近28日表示'), prevI=n('前28日表示');
   var recentCtr=n('直近28日CTR'), prevCtr=n('前28日CTR'), recentP=n('直近28日平均順位'), prevP=n('前28日平均順位');
   var fullC=n('180日クリック'), fullI=n('180日表示'), fullCtr=n('180日CTR'), fullP=n('180日平均順位');
+  if(code==='UNGERMINATED') return {trend:'未発芽',clicks:fmtInt(fullC)+'（後半90日 '+fmtInt(secondC)+' / 直近28日 '+fmtInt(recentC)+'）',impressions:fmtInt(fullI),position:fmtPos(fullP),ctr:fmtPct(fullCtr)};
   if(code==='RECENT_DROP') return {trend:'直近流入急減',clicks:arrowInt(prevC,recentC),impressions:arrowInt(prevI,recentI),position:arrowPos(prevP,recentP),ctr:arrowPct(prevCtr,recentCtr)};
   if(code==='LONG_TERM_DECLINE') return {trend:'長期流入低下',clicks:arrowInt(firstC,secondC),impressions:arrowInt(firstI,secondI),position:arrowPos(firstP,secondP),ctr:arrowPct(firstCtr,secondCtr)};
   if(code==='CTR_OPPORTUNITY') return {trend:'CTR低下・改善余地',clicks:fmtInt(fullC),impressions:fmtInt(fullI),position:fmtPos(fullP),ctr:fmtPct(fullCtr)};
@@ -15046,6 +15090,7 @@ function sbmDoctorOverallComment_(score, issues, selected) {
 }
 function sbmDoctorTrendMessages_(issues){
   var a=[];
+  if(Number(issues.UNGERMINATED||0)>0)a.push('検索流入がほぼ発芽していない記事があります');
   if(Number(issues.RECENT_DROP||0)>0)a.push('直近で検索される機会が急に減った記事があります');
   if(Number(issues.LONG_TERM_DECLINE||0)>0)a.push('半年の後半に検索流入が弱くなった記事があります');
   if(Number(issues.POSITION_OPPORTUNITY||0)>0)a.push('検索順位を少し上げると成果が期待できる記事があります');
@@ -15054,6 +15099,7 @@ function sbmDoctorTrendMessages_(issues){
   return a;
 }
 function sbmDoctorSeverity_(code,priority){
+  if(code==='UNGERMINATED') return '🟠 重症';
   if(code==='RECENT_DROP') return '🔴 緊急';
   if(code==='LONG_TERM_DECLINE' && priority==='高') return '🟠 重症';
   if(code==='CTR_OPPORTUNITY' || code==='POSITION_OPPORTUNITY' || code==='LONG_TERM_STAGNATION') return '🟡 中等症';
@@ -15066,6 +15112,7 @@ function sbmDoctorSeverityForRow_(code,priority,row,hm){
   var firstC=n('前半90日クリック'),secondC=n('後半90日クリック'),firstI=n('前半90日表示'),secondI=n('後半90日表示');
   var prevC=n('前28日クリック'),recentC=n('直近28日クリック'),prevI=n('前28日表示'),recentI=n('直近28日表示');
   var fullC=n('180日クリック'),fullI=n('180日表示');
+  if(code==='UNGERMINATED')return '🟠 重症';
   if(code==='RECENT_DROP'){
     var c28=decline(prevC,recentC),i28=decline(prevI,recentI);
     if((prevC>=20&&c28>=0.60)||(prevI>=500&&i28>=0.60))return '🔴 緊急';
@@ -15110,6 +15157,7 @@ function sbmDoctorPriorityDisplay_(priority){
 }
 function sbmDoctorPlannedExamination_(code){
   var map={
+    'UNGERMINATED':'検索需要・検索意図・インデックス・カニバリを確認',
     'RECENT_DROP':'直近の流入減少を確認',
     'LONG_TERM_DECLINE':'長期的な低下原因を確認',
     'POSITION_OPPORTUNITY':'順位停滞と改善余地を確認',
@@ -15121,6 +15169,7 @@ function sbmDoctorPlannedExamination_(code){
 }
 function sbmDoctorReasonForUser_(code, reason){
   var map={
+    'UNGERMINATED':'検索流入がほぼ発芽していません。検索需要、検索意図、インデックス、カニバリ、記事の役割を精密診断します。',
     'RECENT_DROP':'検索される機会が直近で急に減っています。季節変動、検索需要、順位変化などを詳しく確認します。',
     'LONG_TERM_DECLINE':'半年の前半より後半の検索流入が大きく減っています。長期的な低下の原因を確認します。',
     'POSITION_OPPORTUNITY':'検索結果の2ページ目前後にあり、内容を整えることで順位上昇が期待できます。',
@@ -15310,7 +15359,8 @@ function sbmDoctorApplyCandidateStatusColors_(sheet,startRow,rows,hm){
   rows.forEach(function(row){
     var code=String(row[hm['一次検査コード']-1]||''),sevText=sbmDoctorSeverityForRow_(code,String(row[hm['優先度']-1]||''),row,hm),sev=severityRank(sevText);
     var kinds=[sev>=2?'bad':sev===1?'warn':'neutral','neutral','neutral','neutral','neutral'], levels=[sev,0,0,0,0];
-    if(code==='RECENT_DROP'||code==='LONG_TERM_DECLINE'){
+    if(code==='UNGERMINATED'){for(var uj=1;uj<5;uj++){kinds[uj]='bad';levels[uj]=Math.max(sev,2);}}
+    else if(code==='RECENT_DROP'||code==='LONG_TERM_DECLINE'){
       var recent=code==='RECENT_DROP';
       var bC=n(row,recent?'前28日クリック':'前半90日クリック'),aC=n(row,recent?'直近28日クリック':'後半90日クリック');
       var bI=n(row,recent?'前28日表示':'前半90日表示'),aI=n(row,recent?'直近28日表示':'後半90日表示');
@@ -15334,7 +15384,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   if(!hm['詳細検査'])return null;
   var latestHealthCheckId=sbmDoctorLatestHealthCheckIdFromRows_(allRows,hm);
   var current=latestHealthCheckId?allRows.filter(function(r){return String(r[hm['健康診断ID']-1]||'')===latestHealthCheckId;}):allRows;
-  var detailCodes={'RECENT_DROP':1,'LONG_TERM_DECLINE':1,'CTR_OPPORTUNITY':1,'POSITION_OPPORTUNITY':1,'LONG_TERM_STAGNATION':1};
+  var detailCodes={'UNGERMINATED':1,'RECENT_DROP':1,'LONG_TERM_DECLINE':1,'CTR_OPPORTUNITY':1,'POSITION_OPPORTUNITY':1,'LONG_TERM_STAGNATION':1};
   var pool=sbmDoctorDedupeCandidateRows_(current.filter(function(r){
     var code=String(r[hm['一次検査コード']-1]||'');
     if(!detailCodes[code])return false;
