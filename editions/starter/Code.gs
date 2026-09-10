@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.44
+ * SIMS Manager Product v6.2.45
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.44';
+const SBM_VERSION = '6.2.45';
+// v6.2.45: aDoctor精密診断依頼へ記事ランクを明示的に引継ぎ、未発芽をUNGERMINATEDとして識別。未発芽記事は部分修正ではなく全面リライト前提で検索意図・ターゲットクエリ・構成・タイトル・本文を再設計する診断方針を依頼JSONへ付与。
 // v6.2.44: aDoctor精密診断候補シートに記事管理番号（ArticleID）・記事URL・記事ランクを可視列として追加。候補生成時にArticle DBの最新記事ランクを参照し、診断用内部キーは非表示で維持。
 // v6.2.43: Site Doctor健康診断に未発芽判定を追加。既存の未発芽ランクを精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新。
 // v6.2.42: 6か月GSCでもメインクエリを取得できない記事を安全照合後に記事ランク「未発芽」へ変更。記事情報更新ダイアログの1件診断を削除し、未発芽ランクを通常再判定から保護。
@@ -14156,6 +14157,9 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
     ctr:sbmDoctorCtrValue_(article['CTR']),
     position:sbmDoctorNumberOrNull_(article['掲載順位'])
   };
+  var rawArticleRank=String(article['記事ランク']||'').trim();
+  var articleRankCode=sbmDoctorRankCode_(rawArticleRank);
+  var isUngerminated=articleRankCode==='UNGERMINATED';
   var work=String(article['作業状態']||'未着手').trim();
   var workflow=sbmDoctorWorkflowCode_(work);
   var monitoring=workflow==='SBM_MONITORING';
@@ -14191,7 +14195,9 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       chief_complaint:sbmDoctorChiefComplaint_(ctx.sourceType, judgement),
       urgency:ctx.candidateUrgency|| (judgement.indexOf('悪化')>=0?'HIGH':'NORMAL'),
       health_screening_severity:ctx.candidateSeverity||null,
+      health_screening_code:ctx.healthScreeningCode||null,
       health_check_id:ctx.healthCheckId||null,
+      treatment_posture:isUngerminated?'FULL_REWRITE_DEFAULT':'STANDARD_DIAGNOSIS',
       source_sheet:ctx.sourceSheet,
       source_row:ctx.sourceRow
     },
@@ -14206,7 +14212,8 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       main_query:sbmRealMainQuery_(article['メインクエリ']),
       published_at:null,
       updated_at:sbmDoctorDateOrNull_(article['補完日時']||article['最終確認日']),
-      article_rank:sbmDoctorRankCode_(article['記事ランク']),
+      article_rank:articleRankCode,
+      article_rank_label:rawArticleRank||null,
       article_status:String(article['記事ステータス']||'ACTIVE').trim()||'ACTIVE'
     },
     current_performance:{
@@ -14257,6 +14264,23 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       optional_examinations:['INTERNAL_LINK_REVIEW','CONTENT_FRESHNESS_REVIEW','INDEX_STATUS_REVIEW'],
       excluded_examinations:[],
       allow_doctor_to_expand_scope:true,
+      treatment_policy:isUngerminated?{
+        mode:'FULL_REWRITE_DEFAULT',
+        partial_fix_default:false,
+        objective:'長期間ほとんど検索成果を得られていない未発芽記事として、収益記事として成立する状態まで根本から再設計する。',
+        required_review:[
+          'TARGET_QUERY_AND_SEARCH_DEMAND',
+          'SEARCH_INTENT',
+          'SERP_GAP_AND_COMPETITORS',
+          'TITLE_AND_H1',
+          'FULL_CONTENT_STRUCTURE',
+          'CONTENT_DEPTH_AND_USEFULNESS',
+          'CANNIBALIZATION',
+          'INTERNAL_LINK_ROLE',
+          'MONETIZATION_FIT'
+        ],
+        instruction:'記事ランクは未発芽です。原則としてタイトルや見出しだけの部分修正ではなく、検索意図・狙うクエリ・記事構成・タイトル・本文全体を全面リライト前提で診断してください。既存テーマ自体の収益性や検索需要が不適切な場合は、ターゲット変更・統合（Merge）・noindex/非公開を含む代替処置も根拠付きで提示してください。'
+      }:null,
       maximum_data_period_days:365
     },
     attachments:{
@@ -14311,6 +14335,10 @@ function sbmDoctorValidateSingleCaseRequest_(p) {
   if (!p || !p.article || !p.article.article_id) errors.push('article.article_idがありません。');
   if (!p || !p.article || !p.article.url) errors.push('article.urlがありません。');
   if (!p || !p.request || !p.request.request_id) errors.push('request.request_idがありません。');
+  if (p && p.article && p.article.article_rank==='UNGERMINATED') {
+    if (!p.request || p.request.treatment_posture!=='FULL_REWRITE_DEFAULT') errors.push('未発芽記事の全面リライト診断方針がありません。');
+    if (!p.diagnosis_scope || !p.diagnosis_scope.treatment_policy || p.diagnosis_scope.treatment_policy.mode!=='FULL_REWRITE_DEFAULT') errors.push('未発芽記事のtreatment_policyがありません。');
+  }
   if (!p || !p.evidence_package || !Array.isArray(p.evidence_package.evidence_index)) errors.push('evidence_package.evidence_indexがありません。');
   return {valid:errors.length===0,errors:errors};
 }
@@ -14322,6 +14350,8 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
   var title = sbmDoctorEscapeHtml_(payload.article.title || '選択記事');
   var articleId = sbmDoctorEscapeHtml_(payload.article.article_id || '');
   var requestId = sbmDoctorEscapeHtml_(payload.request.request_id || '');
+  var articleRankLabel = sbmDoctorEscapeHtml_(payload.article && payload.article.article_rank_label || payload.article && payload.article.article_rank || '');
+  var treatmentPosture = sbmDoctorEscapeHtml_(payload.request && payload.request.treatment_posture || '');
   var articleUrlRaw = String(payload.article && payload.article.url || '').trim();
   var articleUrl = sbmDoctorEscapeHtml_(articleUrlRaw);
   var encodedJson = Utilities.base64EncodeWebSafe(jsonText, Utilities.Charset.UTF_8);
@@ -14336,7 +14366,7 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
     'button,.link-button{display:inline-block;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:8px 16px;background:#fff;cursor:pointer;font-weight:600;color:#202124;text-decoration:none}button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}button:disabled{opacity:.55;cursor:default}button.busy:before{content:"";display:inline-block;width:13px;height:13px;margin-right:8px;vertical-align:-2px;border:2px solid rgba(255,255,255,.55);border-top-color:#fff;border-radius:50%;animation:sbmspin .8s linear infinite}@keyframes sbmspin{to{transform:rotate(360deg)}}' +
     '.status{font-size:13px;min-height:20px;margin-top:8px;white-space:pre-wrap}.next-title{font-size:16px;font-weight:700;color:#137333;margin-bottom:8px}' +
     '</style></head><body><h2>精密診断から次の処置まで</h2>' +
-    '<div class="meta"><b>記事：</b>' + title + '<br><b>ArticleID：</b>' + articleId + '<br><b>RequestID：</b>' + requestId + '</div>' +
+    '<div class="meta"><b>記事：</b>' + title + '<br><b>ArticleID：</b>' + articleId + '<br><b>記事ランク：</b>' + articleRankLabel + (treatmentPosture==='FULL_REWRITE_DEFAULT'?'<br><b>診断方針：</b>未発芽のため全面リライト前提':'') + '<br><b>RequestID：</b>' + requestId + '</div>' +
     '<div class="progress"><span id="p1" class="pill active">1 aDoctorへ依頼</span><span id="p2" class="pill">2 aDoctor回答を登録</span><span id="p3" class="pill">3 確認・再診</span><span id="p4" class="pill">4 処置担当へ依頼</span><span id="p5" class="pill">5 処置結果を登録</span></div>' +
     '<section class="step"><h3>① '+(resumeMode?'aDoctorへの依頼（完了済み）':'aDoctorへ精密診断を依頼する')+'</h3><div class="hint">'+(resumeMode?'この案件はすでにaDoctor依頼まで完了しています。通常は再送せず、②から続けてください。必要な場合だけ保存済み依頼JSONを再利用できます。':'下のJSONをすべてコピーし、aDoctorへ貼り付けてください。')+'</div>' +
     '<textarea id="doctorRequest" readonly></textarea><div id="copyStatus" class="status ok"></div><div class="actions"><button class="primary" onclick="copyArea(\'doctorRequest\',\'copyStatus\',\'aDoctor依頼JSONをコピーしました。aDoctorへ貼り付けてください。\')">aDoctor依頼JSONをコピー</button></div></section>' +
@@ -14446,6 +14476,7 @@ function sbmDoctorShowIntegrationStatus(){return sbmDoctorOpenDiagnosisStatus();
 
 function sbmDoctorRankCode_(value) {
   var s=String(value||'');
+  if (s.indexOf('未発芽')>=0) return 'UNGERMINATED';
   if (s.indexOf('エース')>=0) return 'ACE';
   if (s.indexOf('安定')>=0) return 'STABLE';
   if (s.indexOf('成長')>=0) return 'GROWTH';
@@ -15608,7 +15639,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     var dbTitle=dbTitleCol?String(db.getRange(dbRow,dbTitleCol).getDisplayValue()||'').trim():'';
     if(dbTitle&&dbTitle!==visibleTitle)throw new Error('選択した候補の記事タイトルと記事管理のタイトルが一致しません。誤診断防止のため停止しました。');
     var context=sbmDoctorResolveContext_('ARTICLE_LIST',db,dbRow);
-    context.sourceType='DETAILED_CANDIDATE';context.sourceSheet=sh.getName();context.sourceRow=row;context.candidateSeverity=severity;context.candidateUrgency=sbmDoctorUrgencyFromCandidateSeverity_(severity);context.healthCheckId=health.healthCheckId;
+    context.sourceType='DETAILED_CANDIDATE';context.sourceSheet=sh.getName();context.sourceRow=row;context.candidateSeverity=severity;context.candidateUrgency=sbmDoctorUrgencyFromCandidateSeverity_(severity);context.healthScreeningCode=health.code;context.healthCheckId=health.healthCheckId;
     var result=sbmDoctorCreateAndSaveResolvedRequest_(context);
     if(result&&result.ok){
       // 作成した依頼のArticleIDが選択行と一致することを最後に確認してから、選択した行だけを候補から外す。
