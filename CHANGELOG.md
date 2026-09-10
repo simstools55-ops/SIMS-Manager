@@ -1,5 +1,5 @@
-## v6.2.59
-- Home未取得を記事管理から軽量再集計し、検索露出待ち新規記事を除外。
+## v6.2.60
+- v6.2.59の公開関数欠落を復旧し、Home未取得の軽量再集計を安全実装。
 
 ## v6.2.58
 - Home snapshot version invalidation and J1 version sync fix.

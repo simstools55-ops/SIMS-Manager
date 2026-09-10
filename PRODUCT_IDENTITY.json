@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.59",
+  "current_version": "6.2.60",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.59: Homeの未取得を記事管理の実状態から毎回軽量再集計し、検索露出待ちの新規記事を未取得から除外。記事ランク合計と総記事数を一致させる。",
-  "version": "6.2.59",
+  "notes": "v6.2.60: v6.2.59で欠落したsbmOpenHome等をv6.2.58正本から復旧し、Home表示時に記事管理だけを軽量再集計。検索露出待ちは正常な未発芽として未取得から除外。",
+  "version": "6.2.60",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.59-ST"
+  "starter_display_version": "6.2.60-ST"
 }
