@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.24",
+  "current_version": "6.2.38",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.24: 実測メインクエリ取得を日次処理へ集約し、query×pageを1回だけ一括取得。記事情報更新はArticle DB内補完と必要記事ページのfetchAll小分け処理へ高速化し、個別GSC照会を廃止。",
-  "version": "6.2.24",
+  "notes": "v6.2.38: 記事情報更新を運用確定。Article DBを約1秒で点検し、記事タイトルと未取得メインクエリだけを対象化。メインクエリは未取得記事に限り過去6か月のSearch Consoleから1記事ずつ取得し、ArticleID＋正規化URL＋更新前値の三重照合後に書き込む。日次処理・SEOタイトル・メタディスクリプションの既存処理は変更しない。",
+  "version": "6.2.38",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.24-ST"
+  "starter_display_version": "6.2.38-ST"
 }

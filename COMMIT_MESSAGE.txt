@@ -1,8 +1,8 @@
-feat: turn article info update into a full DB repair flow in v6.2.22
+chore: freeze article info update flow in v6.2.38 repository baseline
 
-- audit missing article titles, real main queries, SEO titles, and descriptions before updating
-- distinguish Search Console query candidates from search-exposure-waiting articles
-- update missing metadata across the Article DB instead of only new articles
-- show per-field update counts and remaining unresolved information
-- keep the legacy new-article entry point as a compatibility alias
-- synchronize Full and Starter to v6.2.22 / v6.2.22-ST
+- finalize fast Article DB audit for title/main-query gaps
+- use six-month GSC query lookup only for missing main queries
+- keep one-article workers and triple safe-write verification
+- preserve daily processing and existing SEO metadata behavior
+- document measured operational results and unresolved-query handling
+- synchronize repository version metadata to v6.2.38 / v6.2.38-ST
