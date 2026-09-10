@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.52",
+  "current_version": "6.2.53",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
-  "version": "6.2.52",
+  "notes": "v6.2.53: 記事ランク名称を「迷走→育成」「旧育成→発芽」へ整理し、HomeをSEO評価順の縦ランク一覧、記事改善状況、改善モニター判定内訳の3ブロックへ再配置。v6.2.51の90日判定閾値は変更なし。",
+  "version": "6.2.53",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.52-ST"
+  "starter_display_version": "6.2.53-ST"
 }

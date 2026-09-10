@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.52
+ * SIMS Manager Product v6.2.53
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.52';
+const SBM_VERSION = '6.2.53';
+// v6.2.53: 記事ランク名称を『迷走→育成』『旧育成→発芽』へ整理し、Homeを評価順の縦ランク＋改善状況＋改善モニター内訳の構成へ再配置。判定閾値はv6.2.51を維持。
 // v6.2.52: 日次処理STEP3でHomeスナップショット更新後に記事ランク表示セルだけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジックは変更なし。
 // v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
@@ -1483,7 +1484,7 @@ function sbmGetTodayMaxDisplayCount_() { return SBM_DEFAULTS.TODAY_MAX_DISPLAY; 
 function sbmBuildHomeSheet_() {
   var sh = sbmGetOrCreateSheet_(SBM_SHEETS.HOME);
   sh.clear();
-  if (sh.getMaxRows() < 24) sh.insertRowsAfter(sh.getMaxRows(), 24 - sh.getMaxRows());
+  if (sh.getMaxRows() < 29) sh.insertRowsAfter(sh.getMaxRows(), 29 - sh.getMaxRows());
 
   sh.getRange('A1:G1').merge().setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');
   sh.getRange('H1').setValue('v' + SBM_DISPLAY_VERSION);
@@ -1493,25 +1494,39 @@ function sbmBuildHomeSheet_() {
   sh.getRange('C3').setValue('サイトURL'); sh.getRange('D3:H3').merge();
   sh.getRange('A4').setValue('日次処理'); sh.getRange('B4:H4').merge().setValue('未実施');
 
-  sh.getRange('A5:H5').merge().setValue('記事ランクのまとめ');
-  sh.getRange('A6:B6').merge().setValue('🏆 エース'); sh.getRange('C6:D6').merge().setValue('0件 →');
-  sh.getRange('E6:F6').merge().setValue('🌱 育成'); sh.getRange('G6:H6').merge().setValue('0件 →');
-  sh.getRange('A7:B7').merge().setValue('✅ 安定'); sh.getRange('C7:D7').merge().setValue('0件 →');
-  sh.getRange('E7:F7').merge().setValue('⚠️ 迷走'); sh.getRange('G7:H7').merge().setValue('0件 →');
-  sh.getRange('A8:B8').merge().setValue('📈 成長'); sh.getRange('C8:D8').merge().setValue('0件 →');
-  sh.getRange('E8:F8').merge().setValue('🌰 未発芽'); sh.getRange('G8:H8').merge().setValue('0件 →');
-
-  sh.getRange('A10:H10').merge().setValue('今日のメッセージ');
-  sh.getRange('A11:H12').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
-
-  sh.getRange('A14:D14').merge().setValue('改善・治療｜現在とこれまで');
-  sh.getRange('E14:H14').merge().setValue('現在モニター中｜判定内訳');
-  var left = [['現在モニター中','0件'],['改善・治療対象','0件'],['改善確認','0件'],['改善率','0%'],['未取得記事','0件']];
-  for (var i=0;i<5;i++) {
-    var r=15+i;
-    sh.getRange(r,1,1,2).merge().setValue(left[i][0]);
-    sh.getRange(r,3,1,2).merge().setValue(left[i][1]);
+  // v6.2.53: 左をSEO評価順の記事ランク、右を記事改善状況として分離。
+  sh.getRange('A5:D5').merge().setValue('記事ランク');
+  sh.getRange('E5:H5').merge().setValue('記事改善の状況');
+  var ranks = [
+    ['🏆 エース','0件 →'],
+    ['📈 成長','0件 →'],
+    ['✅ 安定','0件 →'],
+    ['🌱 育成','0件 →'],
+    ['🌿 発芽','0件 →'],
+    ['🌰 未発芽','0件 →']
+  ];
+  for (var i=0;i<ranks.length;i++) {
+    var rr=6+i;
+    sh.getRange(rr,1,1,2).merge().setValue(ranks[i][0]);
+    sh.getRange(rr,3,1,2).merge().setValue(ranks[i][1]);
   }
+  var improvement = [
+    ['現在モニター中','0件'],
+    ['改善・治療対象','0件'],
+    ['改善確認','0件'],
+    ['改善率','0%'],
+    ['未取得記事','0件']
+  ];
+  for (var j=0;j<improvement.length;j++) {
+    var ir=6+j;
+    sh.getRange(ir,5,1,2).merge().setValue(improvement[j][0]);
+    sh.getRange(ir,7,1,2).merge().setValue(improvement[j][1]);
+  }
+
+  sh.getRange('A13:H13').merge().setValue('今日のメッセージ');
+  sh.getRange('A14:H15').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
+
+  sh.getRange('A17:H17').merge().setValue('改善モニター中｜0件｜判定内訳');
   var monitorLabels = [
     ['測定待ち','追加経過観察'],
     ['経過観察','改善傾向'],
@@ -1519,50 +1534,48 @@ function sbmBuildHomeSheet_() {
     ['要確認','見直し候補'],
     ['変化小','データ不足']
   ];
-  for (var j=0;j<monitorLabels.length;j++) {
-    var rr=15+j;
-    sh.getRange(rr,5).setValue(monitorLabels[j][0]); sh.getRange(rr,6).setValue('0件');
-    sh.getRange(rr,7).setValue(monitorLabels[j][1]); sh.getRange(rr,8).setValue('0件');
+  for (var k=0;k<monitorLabels.length;k++) {
+    var mr=18+k;
+    sh.getRange(mr,1).setValue(monitorLabels[k][0]); sh.getRange(mr,2).setValue('0件');
+    sh.getRange(mr,5).setValue(monitorLabels[k][1]); sh.getRange(mr,6).setValue('0件');
+    sh.getRange(mr,3,1,2).merge();
+    sh.getRange(mr,7,1,2).merge();
   }
 
-  sh.getRange('A20:H21').merge().setValue('改善率とは、改善後の効果測定が完了した記事のうち、実際に検索パフォーマンスの改善が確認できた記事の割合です。まだ効果測定中の記事は含まれないため、改善結果が確定した記事だけをもとに算出します。');
-
-  sh.getRange('A22:H22').merge().setValue('今週のアドバイス');
-  sh.getRange('A23:H24').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
+  sh.getRange('A24:H25').merge().setValue('改善率とは、改善後の効果測定が完了した記事のうち、実際に検索パフォーマンスの改善が確認できた記事の割合です。まだ効果測定中の記事は含まれないため、改善結果が確定した記事だけをもとに算出します。');
+  sh.getRange('A27:H27').merge().setValue('今週のアドバイス');
+  sh.getRange('A28:H29').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
 
   sh.setFrozenRows(3);
   [120,120,120,120,120,90,120,90].forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
-  sh.setRowHeights(1,24,24); sh.setRowHeights(11,2,28); sh.setRowHeights(15,5,24); sh.setRowHeights(20,2,34); sh.setRowHeights(23,2,28);
-  sh.getRange('A1:H24').setFontFamily('Arial').setVerticalAlignment('middle').setWrap(true);
+  sh.setRowHeights(1,29,24); sh.setRowHeights(14,2,28); sh.setRowHeights(18,5,24); sh.setRowHeights(24,2,34); sh.setRowHeights(28,2,28);
+  sh.getRange('A1:H29').setFontFamily('Arial').setVerticalAlignment('middle').setWrap(true);
   sh.getRange('A1:G1').setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setFontSize(16);
   sh.getRange('H1').setBackground('#0b8043').setFontColor('#d9ead3').setHorizontalAlignment('right');
   sh.getRange('A2:H4').setBackground('#f8f9fa').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID);
   sh.getRange('A4').setFontWeight('bold'); sh.getRange('B4:H4').setFontWeight('bold');
-  sh.getRange('A5:H5').setBackground('#e6f4ea').setFontWeight('bold');
-  sh.getRange('A6:H8').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontWeight('bold');
-  sh.getRange('A6:D8').setBackground('#f3f8f3'); sh.getRange('E6:H8').setBackground('#fff8e8');
-  sh.getRange('A10:H10').setBackground('#dbeafe').setFontWeight('bold');
-  sh.getRange('A11:H12').setBackground('#f8fbff').setBorder(true,true,true,true,false,false,'#cbdcf0',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
-  sh.getRange('A14:D14').setBackground('#f1f3f4').setFontWeight('bold');
-  sh.getRange('E14:H14').setBackground('#e6f4ea').setFontWeight('bold');
-  sh.getRange('A15:H19').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange('A15:B19').setFontWeight('bold');
-  sh.getRange('C15:D19').setHorizontalAlignment('center').setFontWeight('bold').setFontSize(14);
-  sh.getRange('E15:H19').setHorizontalAlignment('center').setFontSize(10);
-  sh.getRange('E15:E19').setFontWeight('bold'); sh.getRange('G15:G19').setFontWeight('bold');
-  sh.getRange('F15:F19').setFontWeight('bold'); sh.getRange('H15:H19').setFontWeight('bold');
-  sh.getRange('A20:H21').setFontSize(9).setFontColor('#5f6368').setBackground('#fffdf5').setFontWeight('normal').setHorizontalAlignment('left').setBorder(true,true,true,true,false,false,'#eadca6',SpreadsheetApp.BorderStyle.SOLID);
-  sh.getRange('A22:H22').setBackground('#fce8b2').setFontWeight('bold');
-  sh.getRange('A23:H24').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
+  sh.getRange('A5:D5').setBackground('#e6f4ea').setFontWeight('bold');
+  sh.getRange('E5:H5').setBackground('#f1f3f4').setFontWeight('bold');
+  sh.getRange('A6:D11').setBackground('#f3f8f3').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontWeight('bold');
+  sh.getRange('E6:H10').setBackground('#f8f9fa').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('E6:F10').setFontWeight('bold'); sh.getRange('G6:H10').setHorizontalAlignment('center').setFontWeight('bold').setFontSize(14);
+  sh.getRange('A13:H13').setBackground('#dbeafe').setFontWeight('bold');
+  sh.getRange('A14:H15').setBackground('#f8fbff').setBorder(true,true,true,true,false,false,'#cbdcf0',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
+  sh.getRange('A17:H17').setBackground('#e6f4ea').setFontWeight('bold');
+  sh.getRange('A18:H22').setBorder(true,true,true,true,true,true,'#dadce0',SpreadsheetApp.BorderStyle.SOLID).setHorizontalAlignment('center').setFontSize(10);
+  sh.getRangeList(['A18:A22','E18:E22']).setFontWeight('bold');
+  sh.getRangeList(['B18:B22','F18:F22']).setFontWeight('bold');
+  sh.getRange('A24:H25').setFontSize(9).setFontColor('#5f6368').setBackground('#fffdf5').setFontWeight('normal').setHorizontalAlignment('left').setBorder(true,true,true,true,false,false,'#eadca6',SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A27:H27').setBackground('#fce8b2').setFontWeight('bold');
+  sh.getRange('A28:H29').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(12).setFontWeight('normal');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
 
-  // Product v5.21.8: 判定ラベルごとの色は固定なのでHome再読込のたびに塗らない。
   var fixedMonitorLabels=[
-    ['E15','F15','測定待ち'],['G15','H15','追加経過観察'],
-    ['E16','F16','経過観察'],['G16','H16','改善傾向'],
-    ['E17','F17','改善'],['G17','H17','大きく改善'],
-    ['E18','F18','要確認'],['G18','H18','見直し候補'],
-    ['E19','F19','変化小'],['G19','H19','データ不足']
+    ['A18','B18','測定待ち'],['E18','F18','追加経過観察'],
+    ['A19','B19','経過観察'],['E19','F19','改善傾向'],
+    ['A20','B20','改善'],['E20','F20','大きく改善'],
+    ['A21','B21','要確認'],['E21','F21','見直し候補'],
+    ['A22','B22','変化小'],['E22','F22','データ不足']
   ];
   fixedMonitorLabels.forEach(function(x){
     var st=sbmHomeJudgmentStyle_(x[2]);
@@ -4961,18 +4974,24 @@ function sbmOpenSheetByName_(name) { return sbmOpenSheet_(name); }
 function sbmOpenDataListSafe_() { sbmOpenSheetByName_(SBM_SHEETS.QUERY_DATA); }
 function sbmOpenDashboardSafe_() { sbmOpenSheetByName_(SBM_SHEETS.DIAGNOSIS); }
 function sbmRankCountsFromRows_(rows) {
-  var c = {'🏆 エース':0,'✅ 安定':0,'📈 成長':0,'🌱 育成':0,'⚠️ 低迷':0,'未発芽':0};
-  (rows || []).forEach(function(r){ var rank = String((r || {})['記事ランク'] || '').trim(); if (c.hasOwnProperty(rank)) c[rank]++; });
+  var c = {'🏆 エース':0,'📈 成長':0,'✅ 安定':0,'🌱 育成':0,'🌿 発芽':0,'未発芽':0};
+  (rows || []).forEach(function(r){
+    var rank = String((r || {})['記事ランク'] || '').trim();
+    // v6.2.53: 旧「⚠️ 低迷」は新「🌱 育成」として互換集計する。
+    if (rank === '⚠️ 低迷' || rank === '⚠️ 迷走') rank = '🌱 育成';
+    if (c.hasOwnProperty(rank)) c[rank]++;
+  });
   return c;
 }
 
 function sbmStorePreviousRankCounts_(rows) {
   var c = sbmRankCountsFromRows_(rows || []);
   sbmSetSetting_('PrevAceCount', c['🏆 エース'], '前回日次更新時のエース件数');
-  sbmSetSetting_('PrevStableCount', c['✅ 安定'], '前回日次更新時の安定件数');
   sbmSetSetting_('PrevGrowthCount', c['📈 成長'], '前回日次更新時の成長件数');
-  sbmSetSetting_('PrevNurtureCount', c['🌱 育成'], '前回日次更新時の育成件数');
-  sbmSetSetting_('PrevLowCount', c['⚠️ 低迷'], '前回日次更新時の低迷件数');
+  sbmSetSetting_('PrevStableCount', c['✅ 安定'], '前回日次更新時の安定件数');
+  // 旧キーをそのまま使い、名称変更前後の前回比を連続させる。
+  sbmSetSetting_('PrevLowCount', c['🌱 育成'], '前回日次更新時の育成件数');
+  sbmSetSetting_('PrevNurtureCount', c['🌿 発芽'], '前回日次更新時の発芽件数');
   sbmSetSetting_('PrevUngerminatedCount', c['未発芽'], '前回日次更新時の未発芽件数');
 }
 
@@ -4983,19 +5002,19 @@ function sbmBlogHealthComment_(counts, total) {
   if (!total) return '記事DBにデータがありません。日次更新を実行してください。';
   var strong = counts['🏆 エース'] + counts['✅ 安定'];
   var growth = counts['📈 成長'];
+  var sprout = counts['🌿 発芽'];
   var nurture = counts['🌱 育成'];
-  var low = counts['⚠️ 低迷'];
   var strongRate = strong / total;
-  var lowRate = low / total;
+  var lowRate = nurture / total;
   var prevAce = Number(sbmGetSetting_('PrevAceCount', counts['🏆 エース'])) || 0;
   var prevGrowth = Number(sbmGetSetting_('PrevGrowthCount', growth)) || 0;
   var dAce = counts['🏆 エース'] - prevAce;
   var dGrowth = growth - prevGrowth;
   var title = '育成中';
-  var body = '育成記事を積み上げながら、成長記事を増やす段階です。';
+  var body = '発芽記事を育てながら、育成・成長記事を増やす段階です。';
   if (strongRate >= 0.45 && lowRate <= 0.10) { title = '安定成長中'; body = 'エースと安定記事が全体の' + Math.round(strongRate*100) + '%を占め、ブログの土台は良好です。'; }
   else if (strongRate >= 0.30) { title = '成長基調'; body = '安定記事が増えつつあります。成長記事の改善が次の伸びにつながります。'; }
-  else if (lowRate >= 0.25) { title = '立て直し優先'; body = '低迷記事の割合が高めです。表示回数のある記事から優先的に見直しましょう。'; }
+  else if (lowRate >= 0.25) { title = '立て直し優先'; body = '育成記事の割合が高めです。表示回数のある記事から優先的に見直しましょう。'; }
   if (dAce < 0) body += ' エースが前回より' + Math.abs(dAce) + '件減っているため、順位低下の確認をおすすめします。';
   else if (dGrowth > 0) body += ' 成長記事が前回より' + dGrowth + '件増えています。';
   return '【' + title + '】' + body;
@@ -5007,8 +5026,9 @@ function sbmArticleRankComment_(rank) {
     '🏆 エース':'ブログを支える主力記事です。大きな変更より、順位低下やCTR悪化がないかを見守ります。',
     '✅ 安定':'検索流入が安定している記事です。急いで直す必要はなく、現状維持を基本にします。',
     '📈 成長':'表示や順位に伸びしろがある記事です。タイトルや検索意図の調整で成果が伸びる可能性があります。',
-    '🌱 育成':'まだ評価材料が少ない記事です。データが蓄積するまで様子を見ながら育てます。',
-    '⚠️ 低迷':'検索流入が弱い記事です。需要・検索意図・内容の見直し対象として検討します。'
+    '🌱 育成':'評価データは十分ありますが、検索成果がまだ弱い記事です。改善によって安定以上を目指します。',
+    '🌿 発芽':'検索成果が出始めていますが、通常評価にはまだデータが足りない記事です。',
+    '未発芽':'検索成果がまだほとんど発生していない記事です。'
   };
   return map[String(rank || '').trim()] || '記事DBの最新データを基に判定しています。';
 }
@@ -5038,8 +5058,9 @@ function sbmRankWorkRecommendation_(rank, state) {
     '🏆 エース':'未着手のままで問題ありません。主力記事なので大幅な変更は避け、順位やCTRの低下時だけ点検してください。',
     '✅ 安定':'未着手で問題ありません。現状維持を基本とし、成長記事や低迷記事を先に改善してください。',
     '📈 成長':'優先的に着手する価値があります。タイトル・検索意図・導入文の改善で成果が伸びる可能性があります。',
-    '🌱 育成':'現時点では未着手で構いません。データが増えるまで様子を見て、表示回数が伸びたら改善候補にします。',
-    '⚠️ 低迷':'需要と表示回数を確認してください。表示機会があるなら改善、ほとんどないなら優先度を下げて構いません。'
+    '🌱 育成':'評価データは十分あります。需要・検索意図・タイトル・本文を確認し、改善候補として扱います。',
+    '🌿 発芽':'検索成果が出始めた段階です。通常評価に必要なデータがそろうまで、急いで大幅修正せず観察します。',
+    '未発芽':'検索成果がほとんど出ていない段階です。サイト健康診断で長期データも確認し、必要に応じて精密診断します。'
   };
   return map[rank] || '現在は未着手です。記事ランクと検索データを確認して、着手の優先度を判断してください。';
 }
@@ -5633,7 +5654,7 @@ function sbmLegacyStatusToRank_(status) {
   status = sbmNormalizeStatus_(status || '');
   if (status === '良好') return '✅ 安定';
   if (status === '改善候補') return '📈 成長';
-  if (status === '様子見') return '🌱 育成';
+  if (status === '様子見') return '🌿 発芽';
   if (status === '管理対象外') return '—';
   return '';
 }
@@ -5687,11 +5708,11 @@ function sbmApplyArticleRanksToObjectMap_(map) {
     var clicks = sbmNumber_(r['クリック数'] || 0);
     var imps = sbmNumber_(r['表示回数'] || 0);
     // v6.2.51: 90日集計で評価可能性を先に判定。表示200以上またはクリック10以上なら通常4ランクへ。
-    // 通常評価に届かない記事は、クリック3以上なら育成、0〜2なら未発芽とする。
+    // 通常評価に届かない記事は、クリック3以上なら発芽、0〜2なら未発芽とする。
     // 未発芽も固定せず、日次処理ごとに同じ基準で再評価する。
     var hasEnoughRankData = (imps >= 200 || clicks >= 10);
     if (!hasEnoughRankData) {
-      r['記事ランク'] = clicks >= 3 ? '🌱 育成' : '未発芽';
+      r['記事ランク'] = clicks >= 3 ? '🌿 発芽' : '未発芽';
       return;
     }
     var ctr = sbmNumber_(r['CTR'] || 0);
@@ -5704,7 +5725,7 @@ function sbmApplyArticleRanksToObjectMap_(map) {
     if (score >= 82 && clickPct >= 0.85 && pos > 0 && pos <= 10) r['記事ランク'] = '🏆 エース';
     else if (score >= 62) r['記事ランク'] = '📈 成長';
     else if (score >= 42) r['記事ランク'] = '✅ 安定';
-    else r['記事ランク'] = '⚠️ 低迷';
+    else r['記事ランク'] = '🌱 育成';
   });
 }
 
@@ -6528,11 +6549,11 @@ function sbmDetailedQueryDataPromptText_(queries,status,totalImpressions){
 function sbmCoreRankText_(rank){
   rank=String(rank||'');
   if(/エース|^S/.test(rank))return 'S（エース）';
-  if(/安定|^A/.test(rank))return 'A（安定）';
-  if(/成長|^B/.test(rank))return 'B（成長）';
+  if(/成長|^A/.test(rank))return 'A（成長）';
+  if(/安定|^B/.test(rank))return 'B（安定）';
   if(/未発芽/.test(rank))return '未発芽';
-  if(/育成|^C/.test(rank))return 'C（育成）';
-  if(/迷走|低迷|^D/.test(rank))return 'D（迷走）';
+  if(/発芽|^D/.test(rank))return 'D（発芽）';
+  if(/育成|迷走|低迷|^C/.test(rank))return 'C（育成）';
   return '未判定';
 }
 function sbmImprovementPriorityText_(){
@@ -9049,7 +9070,7 @@ function sbmMarkArticleMeasurementComplete_(articleId){
 }
 
 
-function sbmSortArticleDbRows_(rows){rows=rows||[];rows.sort(function(a,b){var workOrder={'👀 モニター中':1,'✏️ 改善中':2,'🔥 今日の改善':3,'未着手':4,'✔️ 完了':5,'':9},rankOrder={'🏆 エース':1,'✅ 安定':2,'📈 成長':3,'🌱 育成':4,'⚠️ 低迷':5,'未発芽':6,'—':9,'':9};var aNew=String(a[a.length-1]||'')==='新規記事',bNew=String(b[b.length-1]||'')==='新規記事';if(aNew!==bNew)return aNew?-1:1;var aw=workOrder[String(a[2]||'').trim()]||99,bw=workOrder[String(b[2]||'').trim()]||99;if(aw!==bw)return aw-bw;var ar=rankOrder[String(a[1]||'').trim()]||99,br=rankOrder[String(b[1]||'').trim()]||99;if(ar!==br)return ar-br;return sbmNumber_(b[6])-sbmNumber_(a[6]);});return rows;}
+function sbmSortArticleDbRows_(rows){rows=rows||[];rows.sort(function(a,b){var workOrder={'👀 モニター中':1,'✏️ 改善中':2,'🔥 今日の改善':3,'未着手':4,'✔️ 完了':5,'':9},rankOrder={'🏆 エース':1,'📈 成長':2,'✅ 安定':3,'🌱 育成':4,'🌿 発芽':5,'未発芽':6,'⚠️ 低迷':4,'⚠️ 迷走':4,'—':9,'':9};var aNew=String(a[a.length-1]||'')==='新規記事',bNew=String(b[b.length-1]||'')==='新規記事';if(aNew!==bNew)return aNew?-1:1;var aw=workOrder[String(a[2]||'').trim()]||99,bw=workOrder[String(b[2]||'').trim()]||99;if(aw!==bw)return aw-bw;var ar=rankOrder[String(a[1]||'').trim()]||99,br=rankOrder[String(b[1]||'').trim()]||99;if(ar!==br)return ar-br;return sbmNumber_(b[6])-sbmNumber_(a[6]);});return rows;}
 
 
 function sbmMigrateArticleManagementSheet_() {
@@ -10884,24 +10905,22 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
   if (!sh) return true;
   try {
     var expected = [
-      ['A14','改善・治療｜現在とこれまで'],
-      ['A15','現在モニター中'],
-      ['A16','改善・治療対象'],
-      ['A17','改善確認'],
-      ['A18','改善率'],
-      ['A19','未取得記事'],
-      ['E8','🌰 未発芽'],
-      ['E14','現在モニター中｜判定内訳']
+      ['A5','記事ランク'],
+      ['E5','記事改善の状況'],
+      ['A6','🏆 エース'],
+      ['A7','📈 成長'],
+      ['A8','✅ 安定'],
+      ['A9','🌱 育成'],
+      ['A10','🌿 発芽'],
+      ['A11','🌰 未発芽'],
+      ['E6','現在モニター中'],
+      ['A17','改善モニター中｜0件｜判定内訳']
     ];
     for (var i=0;i<expected.length;i++) {
-      if (String(sh.getRange(expected[i][0]).getValue() || '').trim() !== expected[i][1]) return true;
-    }
-    // 旧Homeの「改善中」が残っていれば強制再構築。
-    var legacy = sh.getRange('A14:H19').getDisplayValues();
-    for (var r=0;r<legacy.length;r++) {
-      for (var c=0;c<legacy[r].length;c++) {
-        if (String(legacy[r][c] || '').indexOf('改善中') >= 0) return true;
-      }
+      var v=String(sh.getRange(expected[i][0]).getValue() || '').trim();
+      if (expected[i][0]==='A17') {
+        if (v.indexOf('改善モニター中｜')!==0 || v.indexOf('｜判定内訳')<0) return true;
+      } else if (v !== expected[i][1]) return true;
     }
     return false;
   } catch(e) {
@@ -11005,7 +11024,7 @@ function sbmRefreshHome_(options) {
   }
 
   var settingsMap=sbmGetSettingsMap_();
-  var counts=snap.counts||{'🏆 エース':0,'✅ 安定':0,'📈 成長':0,'🌱 育成':0,'⚠️ 低迷':0};
+  var counts=snap.counts||{'🏆 エース':0,'📈 成長':0,'✅ 安定':0,'🌱 育成':0,'🌿 発芽':0,'未発芽':0};
   var work=snap.work||{unstarted:0,today:0,progress:0,monitor:0,done:0,newArticles:0,unfilled:0,needsReview:0};
   var missingCount=Number(snap.missingCount||0);
   var currentTreatment=snap.currentTreatment||{total:0,counts:{}};
@@ -11027,8 +11046,8 @@ function sbmRefreshHome_(options) {
     leading:Number(counts['🏆 エース']||0),
     steady:Number(counts['✅ 安定']||0),
     rising:Number(counts['📈 成長']||0),
-    early:Number(counts['🌱 育成']||0),
-    weak:Number(counts['⚠️ 低迷']||0),
+    early:Number(counts['🌿 発芽']||0),
+    weak:Number(counts['🌱 育成']||0),
     trusted:Number(counts['🏆 エース']||0)+Number(counts['✅ 安定']||0),
     clicks:Number(snap.clicks||0),
     impressions:Number(snap.impressions||0),
@@ -11050,32 +11069,33 @@ function sbmRefreshHome_(options) {
   sh.getRange('B4').setValue(statusText);
 
   sh.getRange('C6').setValue(Number(counts['🏆 エース']||0)+'件 '+arrow(Number(counts['🏆 エース']||0),'PrevAceCount'));
-  sh.getRange('G6').setValue(Number(counts['🌱 育成']||0)+'件 '+arrow(Number(counts['🌱 育成']||0),'PrevNurtureCount'));
-  sh.getRange('C7').setValue(Number(counts['✅ 安定']||0)+'件 '+arrow(Number(counts['✅ 安定']||0),'PrevStableCount'));
-  sh.getRange('G7').setValue(Number(counts['⚠️ 低迷']||0)+'件 '+arrow(Number(counts['⚠️ 低迷']||0),'PrevLowCount'));
-  sh.getRange('C8').setValue(Number(counts['📈 成長']||0)+'件 '+arrow(Number(counts['📈 成長']||0),'PrevGrowthCount'));
-  sh.getRange('G8').setValue(Number(counts['未発芽']||0)+'件 '+arrow(Number(counts['未発芽']||0),'PrevUngerminatedCount'));
+  sh.getRange('C7').setValue(Number(counts['📈 成長']||0)+'件 '+arrow(Number(counts['📈 成長']||0),'PrevGrowthCount'));
+  sh.getRange('C8').setValue(Number(counts['✅ 安定']||0)+'件 '+arrow(Number(counts['✅ 安定']||0),'PrevStableCount'));
+  sh.getRange('C9').setValue(Number(counts['🌱 育成']||0)+'件 '+arrow(Number(counts['🌱 育成']||0),'PrevLowCount'));
+  sh.getRange('C10').setValue(Number(counts['🌿 発芽']||0)+'件 '+arrow(Number(counts['🌿 発芽']||0),'PrevNurtureCount'));
+  sh.getRange('C11').setValue(Number(counts['未発芽']||0)+'件 '+arrow(Number(counts['未発芽']||0),'PrevUngerminatedCount'));
 
-  sh.getRange('A11').setValue(sbmHomeOverallMessage_(blogName,snapshot));
-  sh.getRange('C15').setValue(Number(currentTreatment.total||0)+'件');
-  sh.getRange('C16').setValue(Number(historyStats.targets||0)+'件');
-  sh.getRange('C17').setValue(Number(historyStats.improved||0)+'件');
-  sh.getRange('C18').setValue(Number(historyStats.rate||0)+'%');
-  sh.getRange('C19').setValue(missingCount+'件');
+  sh.getRange('A14').setValue(sbmHomeOverallMessage_(blogName,snapshot));
+  sh.getRange('G6').setValue(Number(currentTreatment.total||0)+'件');
+  sh.getRange('G7').setValue(Number(historyStats.targets||0)+'件');
+  sh.getRange('G8').setValue(Number(historyStats.improved||0)+'件');
+  sh.getRange('G9').setValue(Number(historyStats.rate||0)+'%');
+  sh.getRange('G10').setValue(missingCount+'件');
+  sh.getRange('A17').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
-  sh.getRange('F15').setValue(Number(mc['測定待ち']||0)+'件');
-  sh.getRange('H15').setValue(Number(mc['追加経過観察']||0)+'件');
-  sh.getRange('F16').setValue(Number(mc['経過観察']||0)+'件');
-  sh.getRange('H16').setValue(Number(mc['改善傾向']||0)+'件');
-  sh.getRange('F17').setValue(Number(mc['改善']||0)+'件');
-  sh.getRange('H17').setValue(Number(mc['大きく改善']||0)+'件');
-  sh.getRange('F18').setValue(Number(mc['要確認']||0)+'件');
-  sh.getRange('H18').setValue(Number(mc['見直し候補']||0)+'件');
-  sh.getRange('F19').setValue(Number(mc['変化小']||0)+'件');
-  sh.getRange('H19').setValue(Number(mc['データ不足']||0)+'件');
+  sh.getRange('B18').setValue(Number(mc['測定待ち']||0)+'件');
+  sh.getRange('F18').setValue(Number(mc['追加経過観察']||0)+'件');
+  sh.getRange('B19').setValue(Number(mc['経過観察']||0)+'件');
+  sh.getRange('F19').setValue(Number(mc['改善傾向']||0)+'件');
+  sh.getRange('B20').setValue(Number(mc['改善']||0)+'件');
+  sh.getRange('F20').setValue(Number(mc['大きく改善']||0)+'件');
+  sh.getRange('B21').setValue(Number(mc['要確認']||0)+'件');
+  sh.getRange('F21').setValue(Number(mc['見直し候補']||0)+'件');
+  sh.getRange('B22').setValue(Number(mc['変化小']||0)+'件');
+  sh.getRange('F22').setValue(Number(mc['データ不足']||0)+'件');
 
-  sh.getRange('A23').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
+  sh.getRange('A28').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
 
   sh.getRange('A4:H4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
@@ -11087,7 +11107,7 @@ function sbmRefreshHomeRankSummaryOnly_(snapshot) {
   if (!sh) return false;
   var snap = snapshot || sbmGetHomeSnapshot_();
   if (!snap) return false;
-  var counts = snap.counts || {'🏆 エース':0,'✅ 安定':0,'📈 成長':0,'🌱 育成':0,'⚠️ 低迷':0,'未発芽':0};
+  var counts = snap.counts || {'🏆 エース':0,'📈 成長':0,'✅ 安定':0,'🌱 育成':0,'🌿 発芽':0,'未発芽':0};
   var settingsMap = sbmGetSettingsMap_();
   function arrow(current,key){
     var prev = Number(Object.prototype.hasOwnProperty.call(settingsMap,key) ? settingsMap[key] : current);
@@ -11095,11 +11115,11 @@ function sbmRefreshHomeRankSummaryOnly_(snapshot) {
   }
   sh.getRange('B3').setValue(Number(snap.total || 0) + '件');
   sh.getRange('C6').setValue(Number(counts['🏆 エース'] || 0) + '件 ' + arrow(Number(counts['🏆 エース'] || 0),'PrevAceCount'));
-  sh.getRange('G6').setValue(Number(counts['🌱 育成'] || 0) + '件 ' + arrow(Number(counts['🌱 育成'] || 0),'PrevNurtureCount'));
-  sh.getRange('C7').setValue(Number(counts['✅ 安定'] || 0) + '件 ' + arrow(Number(counts['✅ 安定'] || 0),'PrevStableCount'));
-  sh.getRange('G7').setValue(Number(counts['⚠️ 低迷'] || 0) + '件 ' + arrow(Number(counts['⚠️ 低迷'] || 0),'PrevLowCount'));
-  sh.getRange('C8').setValue(Number(counts['📈 成長'] || 0) + '件 ' + arrow(Number(counts['📈 成長'] || 0),'PrevGrowthCount'));
-  sh.getRange('G8').setValue(Number(counts['未発芽'] || 0) + '件 ' + arrow(Number(counts['未発芽'] || 0),'PrevUngerminatedCount'));
+  sh.getRange('C7').setValue(Number(counts['📈 成長'] || 0) + '件 ' + arrow(Number(counts['📈 成長'] || 0),'PrevGrowthCount'));
+  sh.getRange('C8').setValue(Number(counts['✅ 安定'] || 0) + '件 ' + arrow(Number(counts['✅ 安定'] || 0),'PrevStableCount'));
+  sh.getRange('C9').setValue(Number(counts['🌱 育成'] || 0) + '件 ' + arrow(Number(counts['🌱 育成'] || 0),'PrevLowCount'));
+  sh.getRange('C10').setValue(Number(counts['🌿 発芽'] || 0) + '件 ' + arrow(Number(counts['🌿 発芽'] || 0),'PrevNurtureCount'));
+  sh.getRange('C11').setValue(Number(counts['未発芽'] || 0) + '件 ' + arrow(Number(counts['未発芽'] || 0),'PrevUngerminatedCount'));
   return true;
 }
 
@@ -11152,8 +11172,8 @@ function sbmHomeRankSnapshot_(rows, counts, work) {
   var leading = Number(counts['🏆 エース'] || 0);
   var steady = Number(counts['✅ 安定'] || 0);
   var rising = Number(counts['📈 成長'] || 0);
-  var early = Number(counts['🌱 育成'] || 0);
-  var weak = Number(counts['⚠️ 低迷'] || 0);
+  var early = Number(counts['🌿 発芽'] || 0);
+  var weak = Number(counts['🌱 育成'] || 0);
   var clicks = 0, impressions = 0;
   rows.forEach(function(r){ clicks += sbmNumber_(r['クリック数']) || 0; impressions += sbmNumber_(r['表示回数']) || 0; });
   var trusted = leading + steady;
@@ -12408,7 +12428,7 @@ function sbmSortArticleDbBy_(key, label) {
   heads.forEach(function(h,i){ idx[String(h)] = i; });
   function num(v){ var n=Number(v); return isFinite(n)?n:0; }
   function text(v){ return String(v||''); }
-  var rankOrder={'🏆 エース':1,'✅ 安定':2,'📈 成長':3,'🌱 育成':4,'⚠️ 低迷':5,'未発芽':6,'—':9,'':9};
+  var rankOrder={'🏆 エース':1,'📈 成長':2,'✅ 安定':3,'🌱 育成':4,'🌿 発芽':5,'未発芽':6,'⚠️ 低迷':4,'⚠️ 迷走':4,'—':9,'':9};
   var workOrder={'🔥 今日の改善':1,'✏️ 改善中':2,'👀 モニター中':3,'未着手':4,'✔️ 完了':5,'':9};
   values.sort(function(a,b){
     if (key==='rank') return (rankOrder[text(a[idx['記事ランク']])]||99)-(rankOrder[text(b[idx['記事ランク']])]||99);
