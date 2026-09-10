@@ -1,3 +1,6 @@
+## v6.2.59
+- Home未取得を記事管理から軽量再集計し、検索露出待ち新規記事を除外。
+
 ## v6.2.58
 - Home snapshot version invalidation and J1 version sync fix.
 

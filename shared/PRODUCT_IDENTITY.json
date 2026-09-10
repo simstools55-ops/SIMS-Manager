@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.52",
+  "current_version": "6.2.59",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
-  "version": "6.2.52",
-  "starter_display_version": "6.2.52-ST"
+  "notes": "v6.2.59: Homeの未取得を記事管理の実状態から毎回軽量再集計し、検索露出待ちの新規記事を未取得から除外。記事ランク合計と総記事数を一致させる。",
+  "version": "6.2.59",
+  "starter_display_version": "6.2.59-ST"
 }

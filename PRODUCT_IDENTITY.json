@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.57",
+  "current_version": "6.2.59",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.57: Homeの未取得件数を管理フラグ「データ未取得」「要確認」から排他的に集計し、以前のランクが残る未取得記事でも記事ランク合計が総記事数と一致するよう修正。",
-  "version": "6.2.58",
+  "notes": "v6.2.59: Homeの未取得を記事管理の実状態から毎回軽量再集計し、検索露出待ちの新規記事を未取得から除外。記事ランク合計と総記事数を一致させる。",
+  "version": "6.2.59",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.57-ST"
+  "starter_display_version": "6.2.59-ST"
 }
