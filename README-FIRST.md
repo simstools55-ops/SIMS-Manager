@@ -1,4 +1,13 @@
-# SIMS Manager v6.2.63
+# SIMS Manager v6.2.64
+
+
+## v6.2.64 変更点
+
+- 「この記事を確認」追加時に混入したダイアログ内JavaScriptの構文エラーを修正
+- 点検開始時に `loadAudit()` が実行されず「点検中…」のまま停止する回帰を解消
+- `sbmArticleInfoUpdateAudit_` / `Prepare_` / `One_` / 6か月GSC取得の処理ロジックは変更なし
+- 日次処理・記事ランク判定・サイト健康診断・aDoctor連携は変更なし
+- Full / Starterを同期
 
 ## v6.2.63 変更点
 
