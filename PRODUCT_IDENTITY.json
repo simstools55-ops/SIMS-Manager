@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.43",
+  "current_version": "6.2.44",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.43: Site Doctor健康診断に未発芽判定を追加。既存の未発芽記事を精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新する。v6.2.42の記事情報更新・日次処理は変更しない。",
-  "version": "6.2.43",
+  "notes": "v6.2.44: Site Doctor健康診断に未発芽判定を追加。既存の未発芽記事を精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新する。v6.2.42の記事情報更新・日次処理は変更しない。",
+  "version": "6.2.44",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.43-ST"
+  "starter_display_version": "6.2.44-ST"
 }
