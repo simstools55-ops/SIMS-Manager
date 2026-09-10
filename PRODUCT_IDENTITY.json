@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.56",
+  "current_version": "6.2.57",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.56: Homeの空白行を上へ詰め、今週のアドバイスを大きなメッセージ領域へ拡張。日次処理・ランク判定・改善判定ロジックは変更なし。",
-  "version": "6.2.56",
+  "notes": "v6.2.57: Homeの未取得件数を管理フラグ「データ未取得」「要確認」から排他的に集計し、以前のランクが残る未取得記事でも記事ランク合計が総記事数と一致するよう修正。",
+  "version": "6.2.57",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.56-ST"
+  "starter_display_version": "6.2.57-ST"
 }

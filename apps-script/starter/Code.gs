@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.56';
+const SBM_VERSION = '6.2.57';
+// v6.2.57: Homeの未取得判定を記事ランク空欄ではなく管理フラグのデータ未取得・要確認から優先集計し、旧ランク保持記事でも総数整合するよう修正。
 // v6.2.56: Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
 // v6.2.54: Homeの記事改善状況を全記事の作業状態集計へ変更し、ランクと色を分離。改善率を右欄KPI化。モニター内訳を『判定可能』『判定待ち』へ分離し、経過観察系ラベルを明確化。Home横幅・アドバイス欄も拡張。
 // v6.2.53: 記事ランク名称を『迷走→育成』『旧育成→発芽』へ整理し、Homeを評価順の縦ランク＋改善状況＋改善モニター内訳の構成へ再配置。判定閾値はv6.2.51を維持。
@@ -4971,8 +4972,16 @@ function sbmOpenDashboardSafe_() { sbmOpenSheetByName_(SBM_SHEETS.DIAGNOSIS); }
 function sbmRankCountsFromRows_(rows) {
   var c = {'🏆 エース':0,'📈 成長':0,'✅ 安定':0,'🌱 育成':0,'🌿 発芽':0,'未発芽':0,'未取得':0};
   (rows || []).forEach(function(r){
-    var rank = String((r || {})['記事ランク'] || '').trim();
-    // v6.2.56: 旧名称は互換集計し、空欄・未知値は「未取得」へ集約して総記事数と一致させる。
+    r = r || {};
+    var flag = String(r['管理フラグ'] || '').trim();
+    var rank = String(r['記事ランク'] || '').trim();
+    // v6.2.57: 現在GSCデータを取得できていない記事は、以前のランクを保持していてもHOMEでは「未取得」に排他的に集計する。
+    // 「データ未取得」は一時未取得、「要確認」は未取得継続中のため、どちらも未取得として扱う。
+    if (flag === 'データ未取得' || flag === '要確認') {
+      c['未取得']++;
+      return;
+    }
+    // 旧名称は互換集計し、空欄・未知値も「未取得」へ集約して総記事数と一致させる。
     if (rank === '⚠️ 低迷' || rank === '⚠️ 迷走') rank = '🌱 育成';
     if (c.hasOwnProperty(rank) && rank !== '未取得') c[rank]++;
     else c['未取得']++;
@@ -10943,7 +10952,8 @@ function sbmBuildHomeSnapshot_(){
     else work.unstarted++;
     if(flag.indexOf('新規記事')>=0)work.newArticles++;
     if(String(r['記事情報補完済み']||'')!=='○')work.unfilled++;
-    if(flag==='要確認'){work.needsReview++;missingCount++;}
+    if(flag==='要確認')work.needsReview++;
+    if(flag==='データ未取得'||flag==='要確認')missingCount++;
     clicks+=sbmNumber_(r['クリック数'])||0;
     impressions+=sbmNumber_(r['表示回数'])||0;
   });
