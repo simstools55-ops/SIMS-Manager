@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.38
+ * SIMS Manager Product v6.2.39
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.38';
+const SBM_VERSION = '6.2.39';
+// v6.2.39: 記事情報点検をArticle DB全27列の全件オブジェクト化から、必要列だけの軽量スキャンへ変更。通常タイトル行ではSEOタイトル評価を省略し、キャッシュ非依存でも高速化。更新準備も同じ軽量読込を利用。日次処理・6か月GSC取得・1件診断・未発芽判定は変更しない。
 // v6.2.38: 確認済みv6.2.37の高速点検ロジックを維持し、記事情報更新後に過去6か月でもメインクエリを取得できなかった記事をArticleID＋記事タイトル＋URLで完了一覧表示。点検・日次処理・取得条件は変更しない。
 // v6.2.37: 記事情報更新の安全書込インターフェース不整合を修正。ArticleID＋URL＋更新前値の三重照合を維持し、取得成功・書込成功・安全保留・取得不可を正しく分離集計。
 // v6.2.36: 1件診断と実更新の6か月メインクエリ取得を同一共通関数へ一本化。取得エラーを握り潰さず実更新へ返し、診断成功・更新失敗の経路差を解消。
@@ -902,45 +903,103 @@ function sbmShowNewArticleInfoPrompt_(count) {
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(250)), '新規記事の記事情報取得');
 }
 
+function sbmArticleInfoLightRows_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if (!sh || sh.getLastRow() < 2) return [];
+
+  // v6.2.39: 点検・更新準備で必要なのは D:T 内の7項目だけ。
+  // getDataRange()で全27列を読み、全セルをオブジェクト化する旧経路を使わない。
+  var rowCount = sh.getLastRow() - 1;
+  var startCol = 4;  // D: 記事URL
+  var endCol = 20;   // T: ArticleID
+  var values = sh.getRange(2, startCol, rowCount, endCol - startCol + 1).getValues();
+  return values.map(function(row){
+    return {
+      url: row[0],             // D 記事URL
+      query: row[1],           // E メインクエリ
+      h1: row[2],              // F H1タイトル
+      impressions: row[4],     // H 表示回数
+      articleTitle: row[8],    // L 記事タイトル
+      seoTitle: row[10],       // N SEOタイトル
+      articleId: row[16]       // T ArticleID
+    };
+  });
+}
+
+function sbmArticleInfoEvaluateLightRow_(r, blogName) {
+  r = r || {};
+  var rawUrl = String(r.url || '').trim();
+  if (!rawUrl) return null;
+
+  // 通常行ではH1/記事タイトルだけで判定を完了し、SEOタイトルの解析は
+  // タイトル補完が必要な行に限定する。
+  var h1 = sbmCleanDataListText_(r.h1 || '', rawUrl, blogName);
+  var article = sbmCleanDataListText_(r.articleTitle || '', rawUrl, blogName);
+  var h1Bad = !h1 || sbmIsTitlePlaceholder_(h1, rawUrl);
+  var articleBad = !article || sbmIsTitlePlaceholder_(article, rawUrl);
+  var titleNeedsRepair = h1Bad || articleBad || (!!h1 && !!article && h1 !== article);
+  var seoTitleCandidate = '';
+  var seoCandidateBad = true;
+  if (titleNeedsRepair) {
+    var seoReadOnly = sbmCleanDataListText_(r.seoTitle || '', rawUrl, blogName);
+    seoTitleCandidate = seoReadOnly ? sbmCleanDataListText_(sbmStripSiteNameFromTitle_(seoReadOnly,rawUrl),rawUrl,blogName) : '';
+    seoCandidateBad = !seoTitleCandidate || sbmIsTitlePlaceholder_(seoTitleCandidate,rawUrl);
+  }
+
+  var rawQuery = String(r.query || '').trim();
+  var queryMissing = !rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery);
+  var impressions = sbmNumber_(r.impressions || 0);
+  var hasLocalTitle = !h1Bad || !articleBad || !seoCandidateBad;
+  var displayTitle = !h1Bad ? h1 : (!articleBad ? article : (!seoCandidateBad ? seoTitleCandidate : ''));
+
+  return {
+    articleId: String(r.articleId || '').trim(),
+    url: rawUrl,
+    titleNeedsRepair: titleNeedsRepair,
+    hasLocalTitle: hasLocalTitle,
+    displayTitle: displayTitle,
+    queryMissing: queryMissing,
+    queryFetchable: queryMissing && impressions > 0,
+    queryWaiting: queryMissing && impressions <= 0
+  };
+}
+
 function sbmArticleInfoAuditFromRows_(rows, blogName) {
+  // 互換用。旧形式の呼び出し元が残っていても同じ判定を返す。
+  rows = rows || [];
+  if (arguments.length < 2) blogName = sbmGetSetting_('BlogName','');
+  blogName = String(blogName || '').trim();
+  var lightRows = rows.map(function(r){
+    return {
+      url:r['記事URL'] || r.URL || '', query:r['メインクエリ'] || '', h1:r['H1タイトル'] || '',
+      impressions:r['表示回数'] || 0, articleTitle:r['記事タイトル'] || '', seoTitle:r['SEOタイトル'] || '',
+      articleId:r['ArticleID'] || ''
+    };
+  });
+  return sbmArticleInfoAuditFromLightRows_(lightRows, blogName);
+}
+
+function sbmArticleInfoAuditFromLightRows_(rows, blogName) {
   rows = rows || [];
   var started = new Date();
-  // 呼び出し側から渡せる場合は再利用。未指定でもSettingsはこの関数内で1回だけ読む。
-  if (arguments.length < 2) blogName = sbmGetSetting_('BlogName','');
   blogName = String(blogName || '').trim();
   var out = {total:rows.length,titleMissing:0,titleLocalRepairable:0,titleWebCandidates:0,queryMissing:0,queryFetchable:0,queryWaiting:0,updateCandidates:0,elapsedSeconds:0,cached:false};
   var seen = {};
   rows.forEach(function(r){
-    var url = sbmNormalizeUrl_(r['記事URL'] || r.URL || '');
-    if (!url) return;
-
-    var h1 = sbmCleanDataListText_(r['H1タイトル'] || '', url, blogName);
-    var article = sbmCleanDataListText_(r['記事タイトル'] || '', url, blogName);
-    var seoReadOnly = sbmCleanDataListText_(r['SEOタイトル'] || '', url, blogName);
-    var seoTitleCandidate = seoReadOnly ? sbmCleanDataListText_(sbmStripSiteNameFromTitle_(seoReadOnly,url),url,blogName) : '';
-    var h1Bad = !h1 || sbmIsTitlePlaceholder_(h1,url);
-    var articleBad = !article || sbmIsTitlePlaceholder_(article,url);
-    var seoCandidateBad = !seoTitleCandidate || sbmIsTitlePlaceholder_(seoTitleCandidate,url);
-    var titleNeedsRepair = h1Bad || articleBad || (!!h1 && !!article && h1 !== article);
-    // SEOタイトルは変更しない。既存値を記事タイトル修復の読み取り専用フォールバックとしてだけ利用する。
-    var hasLocalTitle = (!h1Bad || !articleBad || !seoCandidateBad);
-    if (titleNeedsRepair) {
+    var x = sbmArticleInfoEvaluateLightRow_(r, blogName);
+    if (!x) return;
+    if (x.titleNeedsRepair) {
       out.titleMissing++;
-      if (hasLocalTitle) out.titleLocalRepairable++;
+      if (x.hasLocalTitle) out.titleLocalRepairable++;
       else out.titleWebCandidates++;
     }
-
-    var rawQuery = String(r['メインクエリ'] || '').trim();
-    var queryMissing = !rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery);
-    var imps = sbmNumber_(r['表示回数'] || 0);
-    if (queryMissing) {
+    if (x.queryMissing) {
       out.queryMissing++;
-      if (imps > 0) out.queryFetchable++;
+      if (x.queryFetchable) out.queryFetchable++;
       else out.queryWaiting++;
     }
-
-    if (titleNeedsRepair || (queryMissing && imps > 0)) {
-      var key = String(r['ArticleID'] || '') || url;
+    if (x.titleNeedsRepair || x.queryFetchable) {
+      var key = x.articleId || x.url;
       if (!seen[key]) { seen[key] = true; out.updateCandidates++; }
     }
   });
@@ -948,7 +1007,7 @@ function sbmArticleInfoAuditFromRows_(rows, blogName) {
   return out;
 }
 
-function sbmArticleInfoAuditCacheKey_() { return 'article-info-audit-v6230'; }
+function sbmArticleInfoAuditCacheKey_() { return 'article-info-audit-v6239'; }
 function sbmArticleInfoUpdateAuditCache_(audit) {
   if (!audit) return;
   try { CacheService.getDocumentCache().put(sbmArticleInfoAuditCacheKey_(), JSON.stringify(audit), 600); } catch(e) {}
@@ -967,15 +1026,9 @@ function sbmArticleInfoUpdateAudit_(forceFresh) {
     if (cached) return cached;
   }
   var started = new Date();
-  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
   var blogName = String(sbmGetSetting_('BlogName','') || '').trim();
-  if (!sh || sh.getLastRow() < 2) return sbmArticleInfoAuditFromRows_([], blogName);
-  // v6.2.29: BlogNameは点検開始時に1回だけ読み、全行のタイトル正規化へ渡す。
-  // Article DB自体も1回だけ読み、記事タイトルとメインクエリの状態だけを判定する。
-  var vals = sh.getDataRange().getValues();
-  var heads = vals.shift().map(String), rows=[];
-  vals.forEach(function(row,idx){ var o={_rowNumber:idx+2}; heads.forEach(function(h,i){o[h]=row[i];}); rows.push(o); });
-  var out = sbmArticleInfoAuditFromRows_(rows, blogName);
+  var rows = sbmArticleInfoLightRows_();
+  var out = sbmArticleInfoAuditFromLightRows_(rows, blogName);
   out.elapsedSeconds = sbmSecondsSince_(started);
   sbmArticleInfoUpdateAuditCache_(out);
   return out;
@@ -1090,26 +1143,21 @@ function sbmArticleInfoQueryDiagnostic_() {
 
 /** v6.2.30: 不足情報の処理キューをArticle DBから軽量作成する。外部通信は行わない。 */
 function sbmArticleInfoUpdatePrepare_() {
-  var sh = sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
-  sbmEnsureHeaders_(sh, SBM_HEADERS.ARTICLE_DB);
-  var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || [];
   var blogName = String(sbmGetSetting_('BlogName','') || '').trim();
+  var rows = sbmArticleInfoLightRows_();
   var items = [];
   rows.forEach(function(r){
-    var articleId = String(r['ArticleID'] || '').trim();
-    var url = sbmNormalizeUrl_(r['記事URL'] || r.URL || '');
-    if (!articleId || !url) return;
-    var h1 = sbmCleanDataListText_(r['H1タイトル'] || '', url, blogName);
-    var article = sbmCleanDataListText_(r['記事タイトル'] || '', url, blogName);
-    var seo = sbmCleanDataListText_(r['SEOタイトル'] || '', url, blogName);
-    var seoCandidate = seo ? sbmCleanDataListText_(sbmStripSiteNameFromTitle_(seo,url),url,blogName) : '';
-    var h1Bad = !h1 || sbmIsTitlePlaceholder_(h1,url);
-    var articleBad = !article || sbmIsTitlePlaceholder_(article,url);
-    var titleNeeds = h1Bad || articleBad || (!!h1 && !!article && h1 !== article);
-    var displayTitle = !h1Bad ? h1 : (!articleBad ? article : (seoCandidate && !sbmIsTitlePlaceholder_(seoCandidate,url) ? seoCandidate : ''));
-    var rawQuery = String(r['メインクエリ'] || '').trim();
-    var queryNeeds = (!rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery)) && sbmNumber_(r['表示回数'] || 0) > 0;
-    if (titleNeeds || queryNeeds) items.push({articleId:articleId,url:url,title:displayTitle,needsTitle:titleNeeds,needsQuery:queryNeeds});
+    var x = sbmArticleInfoEvaluateLightRow_(r, blogName);
+    if (!x || !x.articleId || !x.url) return;
+    if (x.titleNeedsRepair || x.queryFetchable) {
+      items.push({
+        articleId:x.articleId,
+        url:sbmNormalizeUrl_(x.url),
+        title:x.displayTitle,
+        needsTitle:x.titleNeedsRepair,
+        needsQuery:x.queryFetchable
+      });
+    }
   });
   return {ok:true,total:items.length,items:items};
 }
