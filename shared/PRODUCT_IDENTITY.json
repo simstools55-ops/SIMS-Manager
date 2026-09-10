@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.38",
+  "current_version": "6.2.37",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.38: 記事情報更新を運用確定。Article DBを約1秒で点検し、記事タイトルと未取得メインクエリだけを対象化。メインクエリは未取得記事に限り過去6か月のSearch Consoleから1記事ずつ取得し、ArticleID＋正規化URL＋更新前値の三重照合後に書き込む。日次処理・SEOタイトル・メタディスクリプションの既存処理は変更しない。",
-  "version": "6.2.38",
-  "starter_display_version": "6.2.38-ST"
+  "notes": "v6.2.37: 記事情報更新の実運用確認済み正本。記事タイトルと未取得メインクエリを対象とし、未取得クエリは過去6か月GSCから1記事ずつ取得。ArticleID＋正規化URL＋更新前値の三重照合で安全書込み。日次処理・SEOタイトル・メタディスクリプションの既存処理は変更しない。",
+  "version": "6.2.37",
+  "starter_display_version": "6.2.37-ST"
 }

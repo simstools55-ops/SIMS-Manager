@@ -1,8 +1,8 @@
-chore: freeze article info update flow in v6.2.38 repository baseline
+SIMS Manager v6.2.37: 記事情報更新の高速化・6か月メインクエリ補完を正本化
 
-- finalize fast Article DB audit for title/main-query gaps
-- use six-month GSC query lookup only for missing main queries
-- keep one-article workers and triple safe-write verification
-- preserve daily processing and existing SEO metadata behavior
-- document measured operational results and unresolved-query handling
-- synchronize repository version metadata to v6.2.38 / v6.2.38-ST
+- 記事情報更新を記事タイトル＋メインクエリに限定
+- Article DB点検を約1秒まで高速化
+- 未取得メインクエリのみ過去6か月GSCから1記事ずつ取得
+- ArticleID＋正規化URL＋更新前値の三重照合を維持
+- 日次処理・SEOタイトル・メタディスクリプションの既存仕様を維持
+- Full/Starterを同一v6.2.37ラインへ同期

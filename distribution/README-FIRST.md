@@ -1,6 +1,6 @@
-# SIMS Manager v6.2.38 Repository Baseline
+# SIMS Manager v6.2.37 Repository Baseline
 
-## v6.2.38の位置付け
+## v6.2.37の位置付け
 
 「記事情報を更新」の実運用試験で確定した高速・安全な補完フローをRepository正本へまとめた版です。
 
@@ -9,9 +9,9 @@
 - 未取得メインクエリだけ過去6か月GSCで補完
 - 1記事ずつ処理し、ArticleID＋URL＋更新前値で安全照合
 - 日次処理、SEOタイトル、メタディスクリプションの既存処理は変更なし
-- Full v6.2.38 / Starter v6.2.38-ST
+- Full v6.2.37 / Starter v6.2.37-ST
 
-詳細は `GITHUB-RELEASE-NOTES-v6.2.38.md` を参照してください。
+詳細は `GITHUB-RELEASE-NOTES-v6.2.37.md` を参照してください。
 
 ---
 

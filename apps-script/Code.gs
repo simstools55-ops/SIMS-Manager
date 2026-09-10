@@ -1,11 +1,10 @@
 /**
- * SIMS Manager Product v6.2.38
+ * SIMS Manager Product v6.2.37
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.38';
-// v6.2.38: 記事情報更新フローを運用確定版としてRepositoryへ集約。機能ロジックはv6.2.37を維持し、タイトル点検・6か月GSCメインクエリ補完・三重安全照合・1件分割処理を正本化。
+const SBM_VERSION = '6.2.37';
 // v6.2.37: 記事情報更新の安全書込インターフェース不整合を修正。ArticleID＋URL＋更新前値の三重照合を維持し、取得成功・書込成功・安全保留・取得不可を正しく分離集計。
 // v6.2.36: 1件診断と実更新の6か月メインクエリ取得を同一共通関数へ一本化。取得エラーを握り潰さず実更新へ返し、診断成功・更新失敗の経路差を解消。
 // v6.2.35: 記事情報更新の未取得メインクエリ補完だけを過去6か月GSCで取得。既存クエリ・日次処理・通常GSC期間は変更しない。
