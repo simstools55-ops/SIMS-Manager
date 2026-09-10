@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.48
+ * SIMS Manager Product v6.2.49
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.48';
+const SBM_VERSION = '6.2.49';
+// v6.2.49: Home説明文を整理し、トップメニュー「診断」を「サイト健康診断」へ変更。診断ロジック・日次処理は変更なし。
 // v6.2.48: 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
 // v6.2.47: サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
 // v6.2.46: Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
@@ -1523,7 +1524,7 @@ function sbmBuildHomeSheet_() {
     sh.getRange(rr,7).setValue(monitorLabels[j][1]); sh.getRange(rr,8).setValue('0件');
   }
 
-  sh.getRange('A20:H21').merge().setValue('現在モニター中の件数・判定内訳は「改善の推移」と同じ現役サイクルを集計します。表示値は直近の日次処理で保存されたSearch Consoleデータを使用し、Doctor再診結果は随時反映します。\n\n改善率とは、改善後の効果測定が完了した記事のうち、実際に検索パフォーマンスの改善が確認できた記事の割合です。まだ効果測定中の記事は含まれないため、改善結果が確定した記事だけをもとに算出します。');
+  sh.getRange('A20:H21').merge().setValue('改善率とは、改善後の効果測定が完了した記事のうち、実際に検索パフォーマンスの改善が確認できた記事の割合です。まだ効果測定中の記事は含まれないため、改善結果が確定した記事だけをもとに算出します。');
 
   sh.getRange('A22:H22').merge().setValue('今週のアドバイス');
   sh.getRange('A23:H24').merge().setValue('今週の取り組みに合わせて、次の作業を案内します。');
@@ -12460,12 +12461,9 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
-  var healthDiagnosisMenu = ui.createMenu('サイト健康診断')
+  ui.createMenu('サイト健康診断')
     .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
-    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport');
-
-  ui.createMenu('診断')
-    .addSubMenu(healthDiagnosisMenu)
+    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport')
     .addSeparator()
     .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
     .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
