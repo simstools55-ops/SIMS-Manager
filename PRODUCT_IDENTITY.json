@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.62",
+  "current_version": "6.2.63",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.62: 記事情報更新の6か月クエリ未取得結果を「未発芽へ変更／未発芽のまま／安全照合・保存確認で保留」に集計分離。取得・安全書込ロジックは変更なし。",
-  "version": "6.2.62",
+  "notes": "v6.2.63: 記事情報更新の6か月クエリ未取得結果を「未発芽へ変更／未発芽のまま／安全照合・保存確認で保留」に集計分離。取得・安全書込ロジックは変更なし。",
+  "version": "6.2.63",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.62-ST"
+  "starter_display_version": "6.2.63-ST"
 }
