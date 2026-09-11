@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.87",
+  "current_version": "6.2.88",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.87: 未完了再開を一括読込・索引方式へ高速化。再開時の不要な移行/自動整理書込を廃止し、候補抽出に限定。待機・再開・整理の処理中表示を改善。",
-  "version": "6.2.87",
+  "notes": "v6.2.88: 未完了一覧の空白表示を修正。chooser内JavaScriptの改行escape不備を修正し、サーバー描画fallbackを追加。",
+  "version": "6.2.88",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.87-ST"
+  "starter_display_version": "v6.2.88-ST"
 }

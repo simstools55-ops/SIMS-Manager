@@ -1,10 +1,6 @@
-perf: streamline unfinished workflow resume scan (v6.2.87)
+fix: restore unfinished-work chooser rendering (v6.2.88)
 
-- replace per-Case WorkflowState full scans with one indexed read
-- reuse the same workflow index for normal improvement and Doctor follow-up detection
-- inspect monitoring Cases only when Writer follow-up referral actually exists
-- remove legacy referral migration and stale-case mutation from the resume read path
-- keep resume entry read-only until the user explicitly resumes or cleans up a Case
-- show what the resume scan is doing and stop asking users to wait after 45 seconds
-- fix busy-state feedback for resume and cleanup buttons
+- fix emitted chooser JavaScript syntax error caused by newline escaping
+- server-render fallback cards before client-side controls initialize
+- remove stale cleanup variable reference
 - sync Full and Starter editions
