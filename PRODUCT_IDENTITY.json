@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.83",
+  "current_version": "6.2.84",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.83: 長文化するカニバリ精密診断Requestの表示をサーバー側textarea直接埋め込み方式へ変更し、空欄表示を防止。",
-  "version": "6.2.83",
+  "notes": "v6.2.84: aDoctor精密診断ダイアログのコピー・診断結果登録を独立安全ハンドラ化。Code.gs先頭コメントも版整合チェック対象へ追加。",
+  "version": "6.2.84",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.83-ST"
+  "starter_display_version": "v6.2.84-ST"
 }

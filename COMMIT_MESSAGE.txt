@@ -1,8 +1,9 @@
-fix: render long cannibalization diagnosis request reliably (v6.2.83)
+fix: harden Doctor dialog copy and result registration (v6.2.84)
 
-- render long aDoctor request JSON directly inside the textarea
-- remove client-side Base64 decode dependency for diagnosis requests
-- keep displayed request and copied request identical
-- restore saved Doctor response with the same safe direct-render method
-- keep diagnosis generation, daily processing, rank criteria and Merge logic unchanged
+- isolate Doctor request copy into an independent safe handler
+- isolate Doctor result registration into an independent safe handler
+- fall back from execCommand copy to the Clipboard API
+- keep the primary workflow usable even if the legacy client script fails
+- add Code.gs header version to repository consistency checks
+- keep diagnosis, daily processing, rank criteria and Merge logic unchanged
 - sync Full and Starter editions

@@ -29,6 +29,9 @@ full=text(full_paths[0]); starter=text(starter_paths[0])
 m=re.search(r"const SBM_VERSION = '([^']+)'",full)
 if not m or m.group(1)!=EXPECTED:
     errors.append(f"SBM_VERSION mismatch: {m.group(1) if m else 'missing'} expected {EXPECTED}")
+hm=re.search(r"SIMS Manager Product v([0-9.]+)",full)
+if not hm or hm.group(1)!=EXPECTED:
+    errors.append(f"Code.gs header version mismatch: {hm.group(1) if hm else 'missing'} expected {EXPECTED}")
 if "const SBM_EDITION = 'FULL';" not in full:
     errors.append("Full edition marker missing")
 if "const SBM_EDITION = 'STARTER';" not in starter:
