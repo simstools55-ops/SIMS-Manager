@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.65",
+  "current_version": "6.2.66",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.65: GSCページデータの最終取得から14日以上を要確認ゲートに統一し、「要確認記事の処理」を追加。公開・noindex・URL変更・統合・Search Console index状態を1件ずつ確認し、問題なしは要改善、意図的変更は管理対象外へ整理。記事詳細は「最終データ取得日」「連続未取得日数」「管理状態」を表示。",
-  "version": "6.2.65",
+  "notes": "v6.2.66: 「要確認記事の処理」ダイアログの初期描画が空白になるクライアントJavaScript生成不具合を修正。処置ボタンは数値ディスパッチ方式へ変更し、14日判定・要改善/管理対象外処置・日次GSC取得は変更なし。",
+  "version": "6.2.66",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.65-ST"
+  "starter_display_version": "6.2.66-ST"
 }

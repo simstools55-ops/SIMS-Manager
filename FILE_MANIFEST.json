@@ -1,6 +1,6 @@
 {
   "product": "SIMS Manager",
-  "version": "6.2.65",
+  "version": "6.2.66",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -318,7 +318,7 @@
       "sha256": "5e27a1b2d27deec03757f88972da9ea5f7a52611d19502bb7cb860c42adf3457"
     },
     {
-      "path": "GITHUB-RELEASE-NOTES-v6.2.65.md",
+      "path": "GITHUB-RELEASE-NOTES-v6.2.66.md",
       "size": 825,
       "sha256": "11f8dd449b0d9e5712dd9dcc0ec5134bbf435dbeb47357648a16129cbdaa5a91"
     },
