@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.70",
+  "current_version": "6.2.71",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.70: WAIT結果に追加診断指定がある場合は単純経過観察へ送らず、カニバリ精密診断へ継続。類似記事本文・GSC Evidenceを自動収集。記事詳細の二重タイトルを解消。",
-  "version": "6.2.70",
+  "notes": "v6.2.71: 記事詳細から保存済みの追加診断待ちCaseを認識し、単体診断を再発行せず同一Caseのカニバリ精密診断へ復帰。既存v6.2.69登録済みCaseもオンデマンド復元。",
+  "version": "6.2.71",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.70-ST"
+  "starter_display_version": "6.2.71-ST"
 }

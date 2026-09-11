@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.70';
-// v6.2.70: aDoctorのWAIT結果に追加診断指定がある場合は単純な経過観察へ送らず、同一Caseの追加診断へ分岐。カニバリ精密診断用に類似記事本文・GSC Evidenceを自動収集。記事詳細の二重タイトルも解消。
+const SBM_VERSION = '6.2.71';
+// v6.2.71: 記事詳細が保存済みDoctor結果の「追加診断待ち」を認識し、単体診断を再発行せず同一Caseのカニバリ精密診断へ復帰できる導線を追加。
 // v6.2.69: 記事詳細の主操作を記事状態連動へ変更。通常記事では操作ボタンを出さず、要確認・インデックス要確認・要改善・改善中・モニター中に必要な操作だけ表示。要確認画面もSearch Console選択に応じて主ボタンを切替。
 // v6.2.68: 要確認記事のSearch Console確認を「Googleに登録／未登録」の選択式へ変更。未登録理由を記録し「インデックス要確認」として保持できる第三分岐を追加。
 // v6.2.65: GSCデータ最終取得から14日以上を要確認ゲートとし、要確認記事を1件ずつ確認・処置する専用フローを追加。確認済み正常記事は要改善へ送り、意図的な除外記事は管理対象外へ整理。記事詳細のデータ取得表示も明確化。
@@ -11653,6 +11653,8 @@ function sbmArticleDetailActionSpec_(o){
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
   var work=String(o['作業状態']||'').trim();
+  var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(o['ArticleID']||'',o['記事URL']||'',false);
+  if(pending.required)return {type:'ADDITIONAL_DIAGNOSIS',label:'カニバリ精密診断へ進む',color:'#174ea6'};
   if(flag==='管理対象外')return {type:'NONE',label:'',color:''};
   if(flag==='インデックス要確認')return {type:'INDEX_REVIEW',label:'インデックス問題を処置する',color:'#b06000'};
   if(flag==='要確認')return {type:'NEEDS_REVIEW',label:'要確認記事を処理する',color:'#b06000'};
@@ -11716,14 +11718,15 @@ function sbmOpenIndexIssueFromArticleDetail(articleId,url){
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;padding:20px;line-height:1.65;color:#202124}h2{margin:0 0 12px;color:#b06000}.box{background:#fef7e0;border-left:5px solid #f9ab00;padding:12px;margin:12px 0}.meta{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:12px}.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}button{border:0;border-radius:6px;padding:9px 15px;font-weight:700;cursor:pointer}.doctor{background:#174ea6;color:#fff}.close{border:1px solid #9aa0a6;background:#fff;color:#3c4043}#msg{font-size:12px;color:#b3261e;margin-top:8px;text-align:right}</style></head><body>'+
     '<h2>インデックス問題の処置</h2><div class="meta"><b>'+e(title)+'</b><br>ArticleID：'+e(a['ArticleID']||articleId)+'<br>管理状態：'+e(a['管理フラグ']||'')+'<br>Search Console：'+e(reason||'未登録理由を記録済み')+'</div>'+
-    '<div class="box">Googleに登録されていない原因を、記事品質・検索意図・重複・カニバリ・内部リンクなどからaDoctorで精密診断します。</div>'+
-    '<div class="actions"><button id="doctorBtn" class="doctor" onclick="openDoctor()">aDoctorで精密診断する</button><button class="close" onclick="google.script.host.close()">閉じる</button></div><div id="msg"></div>'+
-    '<script>var aid='+safeId+',u='+safeUrl+';function openDoctor(){var b=document.getElementById("doctorBtn"),m=document.getElementById("msg");b.disabled=true;m.textContent="aDoctor診断依頼を準備しています…";google.script.run.withFailureHandler(function(e){b.disabled=false;m.textContent=(e&&e.message)?e.message:String(e)}).withSuccessHandler(function(){google.script.host.close()}).sbmDoctorCreateRequestFromArticleIdentity(aid,u);}</script></body></html>';
+    '<div class="box">'+(pending.required?'前回のaDoctor診断でカニバリ精密診断が必要と判定されています。単体診断をやり直さず、類似記事を含む追加診断へ進みます。':'Googleに登録されていない原因を、記事品質・検索意図・重複・カニバリ・内部リンクなどからaDoctorで精密診断します。')+'</div>'+
+    '<div class="actions"><button id="doctorBtn" class="doctor" onclick="openDoctor()">'+(pending.required?'カニバリ精密診断へ進む':'aDoctorで精密診断する')+'</button><button class="close" onclick="google.script.host.close()">閉じる</button></div><div id="msg"></div>'+
+    '<script>var aid='+safeId+',u='+safeUrl+',follow='+(pending.required?'true':'false')+';function openDoctor(){var b=document.getElementById("doctorBtn"),m=document.getElementById("msg");b.disabled=true;m.textContent=follow?"カニバリ精密診断を準備しています…":"aDoctor診断依頼を準備しています…";var r=google.script.run.withFailureHandler(function(e){b.disabled=false;m.textContent=(e&&e.message)?e.message:String(e)}).withSuccessHandler(function(){google.script.host.close()});if(follow)r.sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(aid,u);else r.sbmDoctorCreateRequestFromArticleIdentity(aid,u);}</script></body></html>';
   SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(700).setHeight(470),'インデックス問題の処置');
 }
 
 function sbmRunArticleDetailAction(action,articleId,url){
   action=String(action||'');
+  if(action==='ADDITIONAL_DIAGNOSIS')return sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url);
   if(action==='INDEX_REVIEW')return sbmOpenIndexIssueFromArticleDetail(articleId,url);
   if(action==='NEEDS_REVIEW')return sbmOpenNeedsReviewArticles(articleId);
   if(action==='DOCTOR')return sbmDoctorCreateRequestFromArticleIdentity(articleId,url);
@@ -16380,6 +16383,49 @@ function sbmDoctorAdditionalDiagnosisSpec_(o){
     return {required:true,type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',label:'カニバリ精密診断',reason:'類似記事を含めた比較診断が必要です。'};
   }
   return {required:false,type:'',label:'',reason:''};
+}
+
+
+function sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,ensureRequest){
+  articleId=String(articleId||'').trim();var norm=sbmNormalizeUrl_(url||'');
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];
+  for(var i=rows.length-1;i>=0;i--){
+    var c=rows[i]||{},cid=String(c['CaseID']||'').trim();if(!cid)continue;
+    var aid=String(c['記事ID']||c['ArticleID']||'').trim(),cu=sbmNormalizeUrl_(c['記事URL']||'');
+    if(!((articleId&&aid===articleId)||(norm&&cu===norm)))continue;
+    var raw=String(c['Doctor結果JSON']||'').trim();if(!raw)continue;
+    var doctor={};try{doctor=JSON.parse(raw);}catch(ignoreResult){continue;}
+    var spec=sbmDoctorAdditionalDiagnosisSpec_(doctor);if(!spec.required)continue;
+    var meta=sbmDoctorWorkflowReadMeta_(cid)||{};
+    var stage=String(meta.current_stage||c['状態コード']||'').trim();
+    if(stage&&['WRITER_REQUEST_READY','WRITER_IN_PROGRESS','MERGE_REQUEST_READY','MERGE_IN_PROGRESS','TREATMENT_COMPLETED_MONITORING','DONE','CLOSED'].indexOf(stage)>=0)continue;
+    var follow=sbmDoctorWorkflowReadPayload_(cid,'FOLLOW_UP_REQUEST');
+    if(!follow&&ensureRequest){
+      var sourceRaw=sbmDoctorWorkflowReadPayload_(cid,'REQUEST'),source=null;
+      try{source=sourceRaw?JSON.parse(sourceRaw):null;}catch(ignoreSource){}
+      if(source){
+        try{
+          var n=sbmDoctorNormalizeCaseResult_(doctor),req=sbmDoctorBuildAdditionalDiagnosisRequest_(source,doctor,n);
+          follow=JSON.stringify(req,null,2);
+          sbmDoctorWorkflowWritePayload_(cid,'FOLLOW_UP_REQUEST',follow);
+          sbmDoctorWorkflowWriteMeta_(cid,{workflow_type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',current_stage:'FOLLOW_UP_REQUEST_READY',registration_status:'WAITING',repair_source:'ARTICLE_DETAIL'});
+        }catch(eBuild){try{sbmLog_('DoctorAdditionalDiagnosisRepair','Warning',String(eBuild));}catch(ignoreLog){}}
+      }
+    }
+    return {required:true,type:spec.type,label:spec.label,caseId:cid,request:follow,stage:stage};
+  }
+  return {required:false,type:'',label:'',caseId:'',request:'',stage:''};
+}
+
+function sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url){
+  try{
+    var p=sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,true);
+    if(!p.required)return sbmAlert_('追加診断','この記事には追加診断待ちのaDoctor結果がありません。');
+    if(!p.request)return sbmAlert_('追加診断','保存済みの診断結果は確認できましたが、追加診断依頼を復元できませんでした。設定・メンテナンスの「途中再開・やり直し」からCaseを確認してください。');
+    var req=JSON.parse(p.request);
+    sbmDoctorShowCopyDialog_(req,p.request);
+    return {ok:true,caseId:p.caseId};
+  }catch(e){sbmAlert_('追加診断を開けません',String(e&&e.message?e.message:e));return {ok:false,error:String(e)};}
 }
 
 function sbmDoctorAdditionalDiagnosisUrls_(source,doctor){

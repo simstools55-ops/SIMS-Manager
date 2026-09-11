@@ -1,7 +1,7 @@
-# SIMS Manager v6.2.70
+# SIMS Manager v6.2.71
 
 
-## v6.2.70 変更点
+## v6.2.71 変更点
 - aDoctorがWAITを返しても、追加診断が明示されている場合は「追加経過観察」へ自動移行しません。
 - `CANNIBALIZATION_PRECISION_DIAGNOSIS` / `NEEDS_EVIDENCE` を検出すると「追加診断が必要です」へ分岐します。
 - カニバリ精密診断では競合する自サイト記事の本文と180日GSC Evidenceを自動収集し、同一Caseの再診依頼JSONを生成します。

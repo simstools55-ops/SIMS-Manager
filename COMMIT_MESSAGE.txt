@@ -1,9 +1,9 @@
-SIMS Manager v6.2.70: WAITと追加診断を分離しカニバリ精密診断へ接続
+SIMS Manager v6.2.71: 記事詳細から追加診断待ちCaseへ復帰
 
-- aDoctorのWAIT結果に追加診断指定がある場合は経過観察へ自動移行しない
-- CANNIBALIZATION_PRECISION_DIAGNOSIS / NEEDS_EVIDENCEを追加診断として判定
-- 類似記事本文と180日GSC Evidenceを自動収集して追加診断依頼JSONを生成
-- 同一CaseのままaDoctor再診結果を登録できるよう接続
-- 記事詳細の二重タイトルを解消
+- 保存済みDoctor結果の追加診断指定を記事詳細で認識
+- インデックス要確認より追加診断待ちを優先表示
+- 「aDoctorで精密診断する」を「カニバリ精密診断へ進む」へ切替
+- 単体診断を再発行せず同一Caseの追加診断依頼を開く
+- v6.2.69でモニター中へ入った既存Caseもオンデマンド復元
 - 日次GSC取得・14日ゲート・記事ランク判定・記事情報更新は変更なし
 - Full / Starterを同期
