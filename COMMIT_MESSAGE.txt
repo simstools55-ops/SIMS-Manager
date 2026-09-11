@@ -1,6 +1,7 @@
-fix: restore unfinished-work chooser rendering (v6.2.88)
+fix: restore single-workflow resume dialog rendering (v6.2.89)
 
-- fix emitted chooser JavaScript syntax error caused by newline escaping
-- server-render fallback cards before client-side controls initialize
-- remove stale cleanup variable reference
+- fix newline escaping in the single-case resume client script
+- prevent the resume dialog JavaScript from failing before initialization
+- server-render workflow identity and current stage as a fallback
+- show an explicit resume-loading message during initialization
 - sync Full and Starter editions

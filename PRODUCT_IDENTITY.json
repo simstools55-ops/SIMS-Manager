@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.88",
+  "current_version": "6.2.89",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.88: 未完了一覧の空白表示を修正。chooser内JavaScriptの改行escape不備を修正し、サーバー描画fallbackを追加。",
-  "version": "6.2.88",
+  "notes": "v6.2.89: 個別Workflow再開画面のJavaScript改行escape不具合を修正。サーバー側初期表示fallbackを追加。",
+  "version": "6.2.89",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.88-ST"
+  "starter_display_version": "v6.2.89-ST"
 }
