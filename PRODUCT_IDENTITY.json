@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.74",
+  "current_version": "6.2.75",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.74: 後続Merge完了で役目を終えた古い重複aDoctor診断待ちCaseを安全条件で再開対象外へ整理。未完了再開・精密診断再開ダイアログの二重タイトルを解消。",
-  "version": "6.2.74",
+  "notes": "v6.2.75: Merge完了時の効果測定案内を実装済みの標準4回測定（7日目・14日目・21日目・28日目）へ統一。v6.2.74までの実運用修正を確定。",
+  "version": "6.2.75",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.74-Starter"
+  "starter_display_version": "v6.2.75-Starter"
 }
