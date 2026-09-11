@@ -1,9 +1,9 @@
-feat: unify monochrome theme across user-facing sheets (v6.2.92)
+style: refine monochrome Home visual hierarchy (v6.2.93)
 
-- use the Home top-bar palette for headings and field labels
-- apply monochrome styling to Home, Today, Effect, Article Management and Improvement History
-- keep data cells white while preserving existing text colors and weights
-- express monitoring judgments with semantic text color, weight and size instead of fill colors
-- keep STANDARD theme unchanged and restorable
-- keep data collection, diagnosis and workflow logic unchanged
+- reserve the darkest gray for the product top bar
+- tone down field labels and section headings by information priority
+- add subtle grayscale surfaces to selected data areas
+- keep semantic status colors in text instead of heavy fills
+- fix the invisible white text for the "大きく改善" judgment
+- keep STANDARD theme and processing logic unchanged
 - sync Full and Starter editions
