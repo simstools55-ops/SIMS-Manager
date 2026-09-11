@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.84",
+  "current_version": "6.2.85",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.84: aDoctor精密診断ダイアログのコピー・診断結果登録を独立安全ハンドラ化。Code.gs先頭コメントも版整合チェック対象へ追加。",
-  "version": "6.2.84",
+  "notes": "v6.2.85: 未完了作業の複数Case選択を共通Dispatcherへ復帰。作業要約・現在地・次操作・整理候補理由を表示し、旧Caseを履歴保持のまま整理可能。再開Doctor結果登録を通常精密診断と共通化。",
+  "version": "6.2.85",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.84-ST"
+  "starter_display_version": "v6.2.85-ST"
 }

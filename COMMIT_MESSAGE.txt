@@ -1,9 +1,10 @@
-fix: harden Doctor dialog copy and result registration (v6.2.84)
+feat: improve unfinished workflow resume and cleanup center (v6.2.85)
 
-- isolate Doctor request copy into an independent safe handler
-- isolate Doctor result registration into an independent safe handler
-- fall back from execCommand copy to the Clipboard API
-- keep the primary workflow usable even if the legacy client script fails
-- add Code.gs header version to repository consistency checks
-- keep diagnosis, daily processing, rank criteria and Merge logic unchanged
+- show a case chooser when multiple unfinished workflows exist
+- summarize each workflow in user-facing language instead of leading with CaseID
+- show current stage and the next required action
+- flag likely obsolete diagnosis cases with an explanation
+- allow users to archive obsolete cases without deleting audit history
+- unify resumed Doctor result registration with the standard checkpoint flow
+- keep daily processing, rank criteria, article update and Merge decision logic unchanged
 - sync Full and Starter editions
