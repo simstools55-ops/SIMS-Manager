@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.85",
+  "current_version": "6.2.86",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.85: 未完了作業の複数Case選択を共通Dispatcherへ復帰。作業要約・現在地・次操作・整理候補理由を表示し、旧Caseを履歴保持のまま整理可能。再開Doctor結果登録を通常精密診断と共通化。",
-  "version": "6.2.85",
+  "notes": "v6.2.86: モニター中Caseに残るカニバリ追加診断を未完了再開センターへ表示。旧Case整理候補、処理中表示、Case不一致メッセージを強化。",
+  "version": "6.2.86",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.85-ST"
+  "starter_display_version": "v6.2.86-ST"
 }

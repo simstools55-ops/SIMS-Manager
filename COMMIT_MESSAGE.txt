@@ -1,10 +1,10 @@
-feat: improve unfinished workflow resume and cleanup center (v6.2.85)
+fix: complete unfinished workflow follow-up and cleanup flow (v6.2.86)
 
-- show a case chooser when multiple unfinished workflows exist
-- summarize each workflow in user-facing language instead of leading with CaseID
-- show current stage and the next required action
-- flag likely obsolete diagnosis cases with an explanation
-- allow users to archive obsolete cases without deleting audit history
-- unify resumed Doctor result registration with the standard checkpoint flow
+- surface pending cannibalization follow-up diagnoses even when the parent Case is monitoring
+- show obsolete Doctor cases as cleanup candidates with user-facing reasons
+- preserve audit history by archiving obsolete cases instead of deleting rows
+- add busy feedback and double-click protection to resume and cleanup actions
+- report explicit Case mismatch when a Doctor response belongs to another workflow
+- keep resumed Doctor registration on the standard checkpoint flow
 - keep daily processing, rank criteria, article update and Merge decision logic unchanged
 - sync Full and Starter editions
