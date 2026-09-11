@@ -1,10 +1,9 @@
-SIMS Manager v6.2.72: Merge完了のArticleID照合とPrimary監視を修正
+SIMS Manager v6.2.73: 未完了Merge利用者処置を⑤へ直接復帰
 
-- Case記事が吸収元でもMerge完了できるよう安全照合を修正
-- Case記事がPrimaryまたはabsorbed_article_idsに存在することを検証
-- 統合先Primary ArticleID/URLを独立して検証
-- 完了後のモニター対象を統合先Primaryへ修正
-- 吸収元は既存のMerge管理対象外処理を維持
-- 統合先記事・吸収記事を開くボタンを維持
+- 未完了の作業を再開でMerge利用者処置待ちを最優先表示
+- aWriter等の別未完了案件にMerge処置が埋もれる問題を修正
+- 保存済みCaseから統合先・吸収元・⑤の確認項目を復元
+- Doctor診断・aMergeの再実行は不要
+- v6.2.72のMerge完了安全照合を維持
 - 日次GSC取得・14日ゲート・記事ランク判定・記事情報更新は変更なし
 - Full / Starterを同期

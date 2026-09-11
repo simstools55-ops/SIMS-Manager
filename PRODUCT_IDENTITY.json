@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.72",
+  "current_version": "6.2.73",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.72: aMerge完了時のArticleID照合をMergeの役割に合わせて修正。Case記事が吸収元でも正常完了し、統合先Primaryをモニター対象として登録。統合先・吸収記事を開く導線を維持。",
-  "version": "6.2.72",
+  "notes": "v6.2.73: aMerge完了時のArticleID照合をMergeの役割に合わせて修正。Case記事が吸収元でも正常完了し、統合先Primaryをモニター対象として登録。統合先・吸収記事を開く導線を維持。",
+  "version": "6.2.73",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.72-ST"
+  "starter_display_version": "v6.2.73-Starter"
 }

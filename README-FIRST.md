@@ -1,7 +1,7 @@
-# SIMS Manager v6.2.72
+# SIMS Manager v6.2.73
 
 
-## v6.2.72 変更点
+## v6.2.73 変更点
 - aMerge完了時、Case記事が統合先Primaryと一致することを必須にしていた誤判定を修正しました。
 - Case記事が `absorbed_article_ids` に含まれる通常のMerge（例：A000156 → A000164）を正常に完了できます。
 - 完了後のモニター対象は吸収元Case記事ではなく、統合先Primary記事です。
