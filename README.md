@@ -1,18 +1,26 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.2.76
+> **Current product:** SIMS Manager v6.2.77
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.2.76`
+- Product Version: `6.2.77`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.2.76
+> Current release: SIMS Manager Product v6.2.77
+
+## v6.2.77 — 未発芽処置導線と診断入口の整理
+
+- 未発芽記事は記事詳細からaDoctor精密診断へ進めます。
+- 記事管理の重複するaDoctor直結メニューを削除し、状態連動の主操作へ一本化しました。
+- インデックス問題処置の追加診断判定の潜在不具合を修正しました。
+- 未発芽判定式・日次処理・14日ゲート・記事情報更新・Merge処理は変更していません。
+
 
 ## v6.2.76 — Repository整合修正
 
@@ -56,13 +64,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.2.76
+# SIMS Manager v6.2.77
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.2.76`
+`6.2.77`
 
 ## Creatorで作った新記事の登録
 
@@ -74,8 +82,8 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 
 1. **SIMS今日の作業**：Home、日次処理、今日の改善、選択記事の改善内容
 2. **改善の推移・履歴**：改善効果、観察終了後の処置、改善履歴
-3. **記事管理**：記事一覧、記事詳細、aDoctor精密診断、管理状態
-4. **診断**：サイト全体の健康診断、記事の精密診断候補
+3. **記事管理**：記事一覧、要確認記事の処理、記事詳細、改善履歴、管理状態
+4. **サイト健康診断**：サイト健康診断、精密診断候補、選択候補のaDoctor診断
 5. **新記事関連**：新記事キーワードの参入余地確認、aCreator新記事登録（Full）
 6. **設定・メンテナンス**：設定、修復、途中再開、製品情報（サブメニューなし・直接実行）
 
@@ -87,7 +95,7 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 - ルート `Code.gs` は **Full Editionの機能正本**です。
 - Starter Editionは `editions/starter/Code.gs` を使用し、Full正本から派生管理します。
 - Starter / Fullは同一バージョン体系・同一Spreadsheetデータ構造を共有します。
-- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.2.76はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.2.76-ST です。
+- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.2.77はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.2.77-ST です。
 
 詳細は `EDITION_POLICY.md` を参照してください。
 

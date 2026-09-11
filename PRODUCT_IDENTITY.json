@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.76",
+  "current_version": "6.2.77",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.76: Repository整合修正。機能ロジックは変更せず、Full/StarterのEdition定義、コード先頭表記、README、リリースノート、版管理ファイルを同期。",
-  "version": "6.2.76",
+  "notes": "v6.2.77: 未発芽記事の処置導線を記事詳細へ統合し、記事管理の重複aDoctor直結メニューを削除。インデックス問題処置の追加診断判定変数欠落を修正。未発芽判定式・日次処理は変更なし。",
+  "version": "6.2.77",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.76-ST"
+  "starter_display_version": "v6.2.77-ST"
 }

@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.76
+ * SIMS Manager Product v6.2.77
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.76';
+const SBM_VERSION = '6.2.77';
+// v6.2.77: 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
 // v6.2.75: Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
 // v6.2.73: 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
 // v6.2.72: Merge完了時はCase記事が統合先またはabsorbed記事に含まれることを検証し、統合先Primaryをモニター対象として登録。
@@ -11656,6 +11657,7 @@ function sbmArticleDetailActionSpec_(o){
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
   var work=String(o['作業状態']||'').trim();
+  var rank=String(o['記事ランク']||'').trim();
   var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(o['ArticleID']||'',o['記事URL']||'',false);
   if(pending.required)return {type:'ADDITIONAL_DIAGNOSIS',label:'カニバリ精密診断へ進む',color:'#174ea6'};
   if(flag==='管理対象外')return {type:'NONE',label:'',color:''};
@@ -11664,6 +11666,7 @@ function sbmArticleDetailActionSpec_(o){
   if(flag==='要改善')return {type:'DOCTOR',label:'aDoctorで精密診断する',color:'#174ea6'};
   if(work.indexOf('モニター')>=0)return {type:'EFFECT',label:'改善効果・経過を見る',color:'#174ea6'};
   if(work.indexOf('今日の改善')>=0||work.indexOf('改善中')>=0||work.indexOf('処置中')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
+  if(rank==='未発芽')return {type:'DOCTOR',label:'未発芽をaDoctorで精密診断する',color:'#174ea6'};
   return {type:'NONE',label:'',color:''};
 }
 
@@ -11675,6 +11678,7 @@ function sbmArticleDetailStateAdvice_(o){
   if(flag==='インデックス要確認')return 'Search Consoleでインデックス問題が確認されています。通常の改善作業より先に、インデックス問題の処置を進めてください。';
   if(flag==='要確認')return '長期間GSCページデータを取得できていません。記事の公開状態とSearch ConsoleのURL検査結果を確認してください。';
   if(flag==='要改善')return '公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。';
+  if(rank==='未発芽' && work.indexOf('モニター')<0 && work.indexOf('改善中')<0 && work.indexOf('今日の改善')<0 && work.indexOf('処置中')<0)return '検索成果がほとんど出ていない未発芽記事です。記事詳細からaDoctor精密診断へ進み、検索需要・検索意図・インデックス・カニバリを確認してください。診断では全面リライト、統合、管理対象外を含めて処置を判断します。';
   return sbmArticleDbWorkAdvice_(rank,work);
 }
 
@@ -11712,6 +11716,7 @@ function sbmOpenIndexIssueFromArticleDetail(articleId,url){
   if(!a||!Object.keys(a).length)return sbmAlert_('インデックス問題','記事管理から対象記事を確認できません。');
   var e=function(v){return sbmEscapeHtml_(v===0?'0':v);};
   var title=String(a['記事タイトル']||a['H1タイトル']||a['記事URL']||'').trim();
+  var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(a['ArticleID']||articleId,a['記事URL']||url,false);
   var note=String(a['備考']||'').trim();
   var reason='';
   var m=note.match(/Search Console:\s*Googleに未登録\s*\/\s*理由:\s*([^\/]+)/);
@@ -12757,7 +12762,6 @@ function onOpen() {
     .addItem('要確認記事の処理','sbmOpenNeedsReviewArticles')
     .addSeparator()
     .addItem('選択記事の詳細を見る','sbmOpenSelectedArticleDbDetail')
-    .addItem('選択記事をaDoctorで精密診断','sbmDoctorCreateRequestFromArticleList')
     .addItem('選択記事の改善履歴を見る','sbmOpenSelectedArticleHistory')
     .addSeparator()
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')

@@ -1,10 +1,10 @@
-# SIMS Manager v6.2.76
+# SIMS Manager v6.2.77
 
-## v6.2.76 変更点
+## v6.2.77 変更点
 
 - Repositoryの版管理・Edition定義を整合しました。機能ロジックは変更していません。
 - Full Editionの正本は `SBM_EDITION = 'FULL'`、Starter派生コードは `SBM_EDITION = 'STARTER'` として明確化しました。
-- Code.gs先頭表記、SBM_VERSION、README、Starter README、PRODUCT_IDENTITY、VERSION、Release Notesをv6.2.76へ同期しました。
+- Code.gs先頭表記、SBM_VERSION、README、Starter README、PRODUCT_IDENTITY、VERSION、Release Notesをv6.2.77へ同期しました。
 - v6.2.75までのMerge完了・未完了再開・未発芽・14日ゲート・記事情報更新を維持します。
 
 

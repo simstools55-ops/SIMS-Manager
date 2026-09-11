@@ -1,7 +1,1 @@
-SIMS Manager v6.2.76: Repository版管理とEdition定義を同期
-
-- 機能ロジック変更なし
-- Code.gs系の製品コメントとSBM_VERSIONをv6.2.76へ同期
-- Full派生をSBM_EDITION=FULL、Starter派生をSBM_EDITION=STARTERへ是正
-- README / Starter README / PRODUCT_IDENTITY / VERSION / Release Notesを同期
-- v6.2.75までのMerge・未発芽・14日ゲート・記事情報更新を維持
+SIMS Manager v6.2.77: unify ungerminated article treatment in article detail and remove duplicate aDoctor menu entry
