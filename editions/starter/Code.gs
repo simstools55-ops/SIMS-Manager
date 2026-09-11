@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.98
+ * SIMS Manager Product v6.2.99
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.98';
+const SBM_VERSION = '6.2.99';
+// v6.2.99: 未発芽誤判定を修正。クエリ未取得だけで未発芽へ変更する処理を廃止し、クリック/表示回数の実績を正本とする。既存の誤判定記事を通常ランク基準で安全に復元する「未発芽判定を再確認」を追加。健康診断も保存済み未発芽ラベルより180日実績を優先。
 // v6.2.98: 改善ナビのaWriter依頼文生成条件を修正。本文取得済みならSearch Consoleクエリ0件でもLIMITEDモードで依頼文・改善ポイント・内部リンク候補を生成。クエリ未取得時は検索意図・タイトル・メインクエリの大幅変更を禁止し、本文構造と保存済みページ指標を根拠に限定改善する。
 // v6.2.97: 記事情報更新の初期点検で発生する「Exception: 引数が無効です」を修正。最終行取得をgetLastRow＋キー列実値走査へ変更し、工程付きエラーを追加。
 // v6.2.96: UI寸法・ダイアログ統一仕上げ。今日の改善ヘッダーを34pxへ統一し、利用者向け主要一覧のA列「選択」を56pxへ拡張。主要ダイアログへ共通余白・角丸・見出し・フォーム・ボタン寸法を適用し、MONOCHROME時は同じ階層グレースケールへ統一。
@@ -950,6 +951,42 @@ function sbmShowNewArticleInfoPrompt_(count) {
   SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(250)), '新規記事の記事情報取得');
 }
 
+function sbmRecheckUngerminatedRanks(){
+  var ui=SpreadsheetApp.getUi();
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return ui.alert('未発芽判定を再確認','記事管理に再確認できる記事がありません。',ui.ButtonSet.OK);
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+  var clickVals=rows.map(function(r){return sbmNumber_(r['クリック数']||0);}).sort(function(a,b){return a-b;});
+  var impVals=rows.map(function(r){return sbmNumber_(r['表示回数']||0);}).sort(function(a,b){return a-b;});
+  var patches=[],preview=[];
+  rows.forEach(function(r){
+    if(String(r['記事ランク']||'').trim()!=='未発芽')return;
+    var expected=sbmExpectedArticleRank_(r,clickVals,impVals);
+    if(expected==='未発芽')return;
+    var aid=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(r['記事URL']||'');
+    if(!aid||!url)return;
+    patches.push({articleId:aid,url:url,expected:{'記事ランク':r['記事ランク']},updates:{'記事ランク':expected}});
+    preview.push(aid+'：'+expected+'（クリック '+Math.round(sbmNumber_(r['クリック数']||0))+' / 表示 '+Math.round(sbmNumber_(r['表示回数']||0))+'）');
+  });
+  if(!patches.length)return ui.alert('未発芽判定を再確認','現在のクリック・表示回数に照らして、復元が必要な未発芽記事はありませんでした。',ui.ButtonSet.OK);
+  var sample=preview.slice(0,8).join('\n')+(preview.length>8?'\nほか '+(preview.length-8)+'件':'');
+  var r=ui.alert('未発芽判定を再確認',
+    '現在のページ実績から、未発芽ではない記事が '+patches.length+'件 見つかりました。\n\n'+sample+
+    '\n\n通常ランク基準で復元しますか？\nメインクエリや記事本文は変更しません。',
+    ui.ButtonSet.YES_NO);
+  if(r!==ui.Button.YES)return;
+  var result=sbmCommitArticleInfoPatchesSafely_(patches),verified=0,held=0;
+  patches.forEach(function(p){
+    var v=sbmVerifyArticleInfoWrite_(p.articleId,p.url,p.updates);
+    if(v&&v.ok)verified++;else held++;
+  });
+  try{sbmInvalidateHomeSnapshot_();}catch(ignoreHome){}
+  try{sbmRefreshHome_({light:true});}catch(ignoreRefresh){}
+  ui.alert('未発芽判定を再確認',
+    '復元完了：'+verified+'件\n保留：'+held+'件\n\nクエリ未取得だけを理由に未発芽へ変更する処理は廃止されています。',
+    ui.ButtonSet.OK);
+}
+
 function sbmArticleInfoActualLastRow_(sh, hm) {
   if (!sh) return 1;
   hm = hm || {};
@@ -1215,11 +1252,17 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
       patch.expected['メインクエリ']=r['メインクエリ'];
       patch.updates['メインクエリ']=query;
     } else {
-      // v6.2.42: 6か月でもqueryを取得できない記事だけ、同じ安全ゲートで未発芽へ変更する。
+      // v6.2.99: クエリ未取得はSearch Consoleの匿名化等でも起こるため、未発芽の根拠にしない。
+      // 保存済みページ実績から通常ランクを再計算し、過去の誤った未発芽だけ安全に復元する。
       var currentRank=String(r['記事ランク']||'').trim();
-      if (currentRank !== '未発芽') {
-        patch.expected['記事ランク']=r['記事ランク'];
-        patch.updates['記事ランク']='未発芽';
+      if(currentRank==='未発芽'){
+        var allRows=rows||[],clickVals=allRows.map(function(x){return sbmNumber_(x['クリック数']||0);}).sort(function(a,b){return a-b;});
+        var impVals=allRows.map(function(x){return sbmNumber_(x['表示回数']||0);}).sort(function(a,b){return a-b;});
+        var expectedRank=sbmExpectedArticleRank_(r,clickVals,impVals);
+        if(expectedRank!=='未発芽'){
+          patch.expected['記事ランク']=r['記事ランク'];
+          patch.updates['記事ランク']=expectedRank;
+        }
       }
     }
   }
@@ -1233,7 +1276,7 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
   var verifiedOk=verification.ok!==false;
   var titleUpdated=verifiedOk?Number(committed.titleUpdated||0):0;
   var queryUpdated=verifiedOk?Number(committed.queryUpdated||0):0;
-  var rankChanged=(verifiedOk && queryAttempted && !query && patch.updates['記事ランク']==='未発芽' && Number(committed.writtenArticles||0)>0)?1:0;
+  var rankChanged=(verifiedOk && patch.updates['記事ランク'] && String(patch.updates['記事ランク'])!=='未発芽' && Number(committed.writtenArticles||0)>0)?1:0;
   var safetySkipped=Number(committed.skipped||0)+(verifiedOk?0:1);
   var writeErrors=Number(committed.errors||0)+(verifiedOk?0:1);
 
@@ -1246,7 +1289,7 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
   }
   var elapsed=sbmSecondsSince_(started);
   sbmProcessLog_('記事情報を更新（1記事）',verifiedOk?'完了':'保存再確認エラー',1,verifiedOk?Number(committed.writtenArticles||0):0,elapsed,
-    'ArticleID '+articleId+' / URL '+url+' / タイトル更新 '+titleUpdated+' / メインクエリ更新 '+queryUpdated+' / 未発芽変更 '+rankChanged+' / 安全照合・再確認保留 '+safetySkipped+(verifiedOk?'':' / '+String(verification.reason||'')), '', sbmNowText_());
+    'ArticleID '+articleId+' / URL '+url+' / タイトル更新 '+titleUpdated+' / メインクエリ更新 '+queryUpdated+' / 未発芽誤判定復元 '+rankChanged+' / 安全照合・再確認保留 '+safetySkipped+(verifiedOk?'':' / '+String(verification.reason||'')), '', sbmNowText_());
   return {
     ok:writeErrors===0,articleId:articleId,url:url,title:resolvedTitle||rawTitle||'',query:query,
     queryAttempted:queryAttempted,queryFound:!!query,titleUpdated:titleUpdated,queryUpdated:queryUpdated,rankChanged:rankChanged,
@@ -5800,34 +5843,35 @@ function sbmPercentileRank_(sortedValues, value) {
   return sbmPercentileRankSorted_(a, value);
 }
 
+function sbmExpectedArticleRank_(r,clickVals,impVals){
+  r=r||{};
+  var clicks=sbmNumber_(r['クリック数']||0);
+  var imps=sbmNumber_(r['表示回数']||0);
+  // v6.2.99 canonical rank rule:
+  // page performance decides germination. Query availability never decides rank.
+  var hasEnoughRankData=(imps>=200||clicks>=10);
+  if(!hasEnoughRankData)return clicks>=3?'🌿 発芽':'未発芽';
+  clickVals=clickVals||[clicks];impVals=impVals||[imps];
+  var ctr=sbmNumber_(r['CTR']||0),pos=sbmNumber_(r['掲載順位']||0);
+  var clickPct=sbmPercentileRankSorted_(clickVals,clicks);
+  var impPct=sbmPercentileRankSorted_(impVals,imps);
+  var ctrScore=Math.max(0,Math.min(1,ctr/0.08));
+  var posScore=pos>0?Math.max(0,Math.min(1,(40-Math.min(pos,40))/39)):0;
+  var score=clickPct*50+impPct*20+ctrScore*15+posScore*15;
+  if(score>=82&&clickPct>=0.85&&pos>0&&pos<=10)return '🏆 エース';
+  if(score>=62)return '📈 成長';
+  if(score>=42)return '✅ 安定';
+  return '🌱 育成';
+}
+
 function sbmApplyArticleRanksToObjectMap_(map) {
-  var keys = Object.keys(map || {});
-  var rows = keys.map(function(k){ return map[k]; }).filter(function(r){ return r && r['記事URL']; });
-  var clickVals = rows.map(function(r){ return sbmNumber_(r['クリック数'] || 0); }).sort(function(a,b){return a-b;});
-  var impVals = rows.map(function(r){ return sbmNumber_(r['表示回数'] || 0); }).sort(function(a,b){return a-b;});
+  var keys=Object.keys(map||{});
+  var rows=keys.map(function(k){return map[k];}).filter(function(r){return r&&r['記事URL'];});
+  var clickVals=rows.map(function(r){return sbmNumber_(r['クリック数']||0);}).sort(function(a,b){return a-b;});
+  var impVals=rows.map(function(r){return sbmNumber_(r['表示回数']||0);}).sort(function(a,b){return a-b;});
   rows.forEach(function(r){
-    if (!r['作業状態']) r['作業状態'] = sbmLegacyStatusToWorkState_(r['記事ステータス'] || '');
-    var clicks = sbmNumber_(r['クリック数'] || 0);
-    var imps = sbmNumber_(r['表示回数'] || 0);
-    // v6.2.51: 90日集計で評価可能性を先に判定。表示200以上またはクリック10以上なら通常4ランクへ。
-    // 通常評価に届かない記事は、クリック3以上なら発芽、0〜2なら未発芽とする。
-    // 未発芽も固定せず、日次処理ごとに同じ基準で再評価する。
-    var hasEnoughRankData = (imps >= 200 || clicks >= 10);
-    if (!hasEnoughRankData) {
-      r['記事ランク'] = clicks >= 3 ? '🌿 発芽' : '未発芽';
-      return;
-    }
-    var ctr = sbmNumber_(r['CTR'] || 0);
-    var pos = sbmNumber_(r['掲載順位'] || 0);
-    var clickPct = sbmPercentileRankSorted_(clickVals, clicks);
-    var impPct = sbmPercentileRankSorted_(impVals, imps);
-    var ctrScore = Math.max(0, Math.min(1, ctr / 0.08));
-    var posScore = pos > 0 ? Math.max(0, Math.min(1, (40 - Math.min(pos,40)) / 39)) : 0;
-    var score = clickPct * 50 + impPct * 20 + ctrScore * 15 + posScore * 15;
-    if (score >= 82 && clickPct >= 0.85 && pos > 0 && pos <= 10) r['記事ランク'] = '🏆 エース';
-    else if (score >= 62) r['記事ランク'] = '📈 成長';
-    else if (score >= 42) r['記事ランク'] = '✅ 安定';
-    else r['記事ランク'] = '🌱 育成';
+    if(!r['作業状態'])r['作業状態']=sbmLegacyStatusToWorkState_(r['記事ステータス']||'');
+    r['記事ランク']=sbmExpectedArticleRank_(r,clickVals,impVals);
   });
 }
 
@@ -13170,6 +13214,7 @@ function onOpen() {
     .addItem('サイト設定','sbmOpenBlogInfoChange')
     .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
     .addItem('表示テーマを変更','sbmChangeDisplayTheme')
+    .addItem('未発芽判定を再確認','sbmRecheckUngerminatedRanks')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets');
 
@@ -13727,12 +13772,14 @@ function sbmDoctorScreenMetrics_(m, article) {
   var reasons=[], code='HEALTHY', label='現在の状態はおおむね良好です', priority='低', detail=false;
   var quality = m.full.i >= 100 ? '十分' : (m.full.i >= 20 ? '限定的' : '不足');
   var currentRank=String(article['記事ランク']||'').trim();
-  var knownUngerminated=currentRank==='未発芽';
+  // v6.2.99: 保存済み未発芽ラベルが古くても、180日実績が十分ならラベルだけを根拠にしない。
+  var strongPageEvidence=(m.full.c>=10 || m.full.i>=200);
+  var knownUngerminated=currentRank==='未発芽' && !strongPageEvidence;
   // 公開直後の記事を誤判定しにくくするため、直近28日より前にも表示実績があることを条件にする。
   var hasOlderExposure=(m.first.i>0 || m.previous.i>0);
-  var accessUngerminated=hasOlderExposure && m.second.c<=SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS && m.recent.c<=SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS;
+  var accessUngerminated=!strongPageEvidence && hasOlderExposure && m.second.c<=SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS && m.recent.c<=SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS;
   if(knownUngerminated){
-    return {code:'UNGERMINATED',label:'未発芽として精密診断が必要です',needsDetail:true,priorityJa:'高',reasons:['記事ランクが未発芽です。検索需要・検索意図・インデックス・カニバリ等を精密診断します'],quality:quality};
+    return {code:'UNGERMINATED',label:'未発芽として精密診断が必要です',needsDetail:true,priorityJa:'高',reasons:['保存済みランクが未発芽で、180日実績も通常評価基準に届いていません。検索需要・検索意図・インデックス・カニバリ等を精密診断します'],quality:quality};
   }
   if(accessUngerminated){
     return {code:'UNGERMINATED',label:'検索流入がほぼ発芽していません',needsDetail:true,priorityJa:'高',reasons:['後半90日のクリックが'+m.second.c+'回、直近28日のクリックが0回です','直近28日より前には検索表示実績があるため、公開直後ではなく既存記事の未発芽候補として扱います'],quality:quality};
