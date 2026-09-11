@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.64
+ * SIMS Manager Product v6.2.65
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.64';
+const SBM_VERSION = '6.2.65';
+// v6.2.65: GSCデータ最終取得から14日以上を要確認ゲートとし、要確認記事を1件ずつ確認・処置する専用フローを追加。確認済み正常記事は要改善へ送り、意図的な除外記事は管理対象外へ整理。記事詳細のデータ取得表示も明確化。
 // v6.2.63: 記事情報更新の完了画面から対象記事の詳細を同一ダイアログ内で確認できるようにし、利用者向け表現を簡略化。更新処理本体は変更しない。
 // v6.2.61: 「記事情報を更新」の完了表示を仕上げ。6か月クエリ取得不可の記事をArticleID・URL・処置結果付きで明示し、記事管理へ直接移動できるようにする。日次処理・取得判定ロジックは変更しない。
 // v6.2.60: v6.2.59の欠落回帰をv6.2.58正本から復旧。sbmOpenHomeを維持し、Home未取得を記事管理から軽量再集計。検索露出待ちは未発芽として未取得から除外。
@@ -2781,9 +2782,17 @@ function sbmMergeArticleDbDaily_(freshRows) {
       var excluded=String(r['管理フラグ']||'').indexOf('管理対象外')>=0||/noindex|統合済み|301リダイレクト済み/i.test(String(r['記事ステータス']||'')+' '+String(r['作業状態']||''));
       if(!excluded){
         var missing=Number(r['連続未取得日数']||0)+1; r['連続未取得日数']=missing;
-        var lastSeen=String(r['最終確認日']||''); var missingDays=lastSeen?Math.floor((new Date(today).getTime()-new Date(lastSeen).getTime())/86400000):missing;
-        if(missing>=3||missingDays>=14){r['管理フラグ']='要確認';needsReview++;if(missingDays>=30)stale30++;}
-        else if(String(r['管理フラグ']||'')!=='新規記事') r['管理フラグ']='データ未取得';
+        // v6.2.65: 要確認は「処理回数」ではなく、最後にGSCページデータを取得できた日から14日以上で判定する。
+        var lastSeenValue=r['データ更新日']||r['最終確認日']||'';
+        var lastSeenDate=sbmParseDate_(lastSeenValue);
+        var todayDate=sbmParseDate_(today)||new Date();
+        var missingDays=lastSeenDate?Math.max(0,Math.floor((todayDate.getTime()-lastSeenDate.getTime())/86400000)):missing;
+        var currentFlag=String(r['管理フラグ']||'');
+        if(currentFlag==='要改善'){
+          // 利用者が公開・index等を確認済みで改善対象へ送った記事は、同じ未取得理由で毎日「要確認」に戻さない。
+          if(missingDays>=30)stale30++;
+        }else if(missingDays>=14){r['管理フラグ']='要確認';needsReview++;if(missingDays>=30)stale30++;}
+        else if(currentFlag!=='新規記事') r['管理フラグ']='データ未取得';
       }
     }
   });
@@ -9133,6 +9142,62 @@ function sbmOpenSelectedArticleDbDetail(){var sh=SpreadsheetApp.getActiveSheet()
 
 
 
+
+/**
+ * v6.2.65: 14日以上GSCページデータを取得できていない「要確認」記事を、
+ * 利用者が1件ずつ公開状態・index・URL変更等を確認して処置する。
+ */
+function sbmNeedsReviewArticleList_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+  var today=sbmParseDate_(sbmDateText_(new Date()))||new Date();
+  return rows.filter(function(r){return String(r['管理フラグ']||'').trim()==='要確認';}).map(function(r){
+    var last=sbmParseDate_(r['データ更新日']||r['最終確認日']||'');
+    var days=last?Math.max(0,Math.floor((today.getTime()-last.getTime())/86400000)):Number(r['連続未取得日数']||0);
+    return {articleId:String(r['ArticleID']||''),title:String(r['記事タイトル']||r['H1タイトル']||''),url:String(r['記事URL']||''),rank:String(r['記事ランク']||''),work:String(r['作業状態']||''),lastData:sbmHistoryDateOnlyText_(r['データ更新日']||r['最終確認日']),missingDays:days};
+  }).sort(function(a,b){return b.missingDays-a.missingDays;});
+}
+function sbmGetNeedsReviewArticles(){
+  try{return {ok:true,items:sbmNeedsReviewArticleList_()};}catch(e){return {ok:false,message:String(e&&e.message?e.message:e),items:[]};}
+}
+function sbmApplyNeedsReviewDisposition(payload){
+  try{
+    payload=payload||{};
+    var id=String(payload.articleId||''),url=String(payload.articleUrl||''),action=String(payload.action||'');
+    var article=sbmDoctorFindArticleByIdOrUrl_(id,url);if(!article)throw new Error('記事管理に対象記事が見つかりません。');
+    if(String(article['管理フラグ']||'')!=='要確認')throw new Error('この記事は現在「要確認」ではありません。日次処理後の状態を確認してください。');
+    var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB),hm=sbmHeaderMap_(sh),rowNo=Number(article._rowNumber||0);
+    if(!rowNo)throw new Error('対象行を確認できません。');
+    var row=sh.getRange(rowNo,1,1,sh.getLastColumn()).getValues()[0],now=sbmNowText_();
+    function put(k,v){if(hm[k])row[hm[k]-1]=v;}
+    var oldNote=hm['備考']?String(row[hm['備考']-1]||'').trim():'';
+    if(action==='improve'){
+      if(payload.confirmed!==true)throw new Error('確認項目をすべて確認してください。');
+      put('選択',false);put('管理フラグ','要改善');put('記事ステータス','改善確認済み');
+      if(String(article['作業状態']||'').trim()==='')put('作業状態','未着手');
+      put('備考',(oldNote?oldNote+' / ':'')+'要確認処置: '+now+' / 公開・index・URL等を利用者確認済み / 改善対象');
+      sh.getRange(rowNo,1,1,row.length).setValues([row]);
+      return {ok:true,message:'公開・検索運用上の意図的な除外はないため、この記事を「要改善」として登録しました。未発芽記事としてサイト健康診断／aDoctorの改善対象にできます。'};
+    }
+    var labels={noindex:'noindex',unpublished:'非公開・削除',urlchange:'URL変更・リダイレクト',merged:'他記事へ統合'};
+    var label=labels[action];if(!label)throw new Error('処置を選択してください。');
+    put('選択',false);put('管理フラグ','管理対象外');put('記事ステータス',label);put('作業状態',action==='noindex'?'⏸️ noindex':'⏸️ 管理対象外');put('除外理由',label+'のため検索改善管理から除外');
+    put('備考',(oldNote?oldNote+' / ':'')+'要確認処置: '+label+' / '+now+' / 利用者確認済み');
+    sh.getRange(rowNo,1,1,row.length).setValues([row]);
+    try{sbmRemoveArticleFromOperationalViews_(id,url);}catch(ignoreView){}
+    return {ok:true,message:'「'+label+'」として管理対象外へ整理しました。'};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+function sbmOpenNeedsReviewArticles(){
+  var items=sbmNeedsReviewArticleList_();
+  if(!items.length)return sbmAlert_('要確認記事の処理','現在、処理が必要な要確認記事はありません。');
+  var itemsJson=JSON.stringify(items).replace(/</g,'\\u003c');
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;padding:18px;color:#202124;line-height:1.55}h2{margin:0 0 6px;color:#174ea6}.sub{color:#5f6368;font-size:13px;margin-bottom:12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.title{font-weight:700;font-size:15px}.meta{font-size:13px;color:#5f6368;margin-top:7px}.warn{background:#fef7e0;border-left:4px solid #f9ab00;padding:9px 11px;margin:10px 0;font-size:13px}.checks label{display:block;border:1px solid #dadce0;border-radius:7px;padding:8px 10px;margin:6px 0;background:#fff}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:6px;padding:9px 13px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.danger{background:#fce8e6;color:#b31412}.nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.status{margin-top:10px;font-size:13px;font-weight:700;white-space:pre-wrap}.ok{color:#188038}.err{color:#b31412}.dispositions{display:none;border-top:1px solid #dadce0;margin-top:12px;padding-top:10px}</style></head><body>'+
+    '<h2>要確認記事の処理</h2><div class="sub">最終データ取得から14日以上GSCページデータを取得できない記事を、1件ずつ確認します。</div><div id="root"></div>'+
+    '<script>var items='+itemsJson+',idx=0;function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"})[c]||c})}function render(){if(!items.length){document.getElementById("root").innerHTML="<div class=card>処理が必要な要確認記事はありません。</div>";return}if(idx>=items.length)idx=items.length-1;if(idx<0)idx=0;var x=items[idx],h="<div class=nav><b>"+(idx+1)+" / "+items.length+"件</b><span><button class=secondary onclick=move(-1)>前へ</button> <button class=secondary onclick=move(1)>次へ</button></span></div>";h+="<div class=card><div class=title>"+esc(x.articleId+"　"+x.title)+"</div><div class=meta>記事ランク："+esc(x.rank||"ー")+"　／　作業状態："+esc(x.work||"ー")+"<br>最終データ取得日："+esc(x.lastData||"ー")+"　／　未取得：<b>"+esc(x.missingDays)+"日</b><br><a href=\""+esc(x.url)+"\" target=_blank>記事を開く</a></div></div>";h+="<div class=warn>14日以上取得できないこと自体は、削除やnoindexを意味しません。まず記事の検索運用状態を確認してください。</div>";h+="<div class=checks><label><input type=checkbox class=ck> 記事は現在も公開されている</label><label><input type=checkbox class=ck> noindexではない</label><label><input type=checkbox class=ck> 削除・非公開にしていない</label><label><input type=checkbox class=ck> URL変更・リダイレクトをしていない</label><label><input type=checkbox class=ck> 他の記事へ統合していない</label><label><input type=checkbox class=ck> Search Consoleでインデックス状態を確認し、大きな問題がない</label></div>";h+="<div class=actions><button class=primary onclick=improve()>問題なし・改善対象へ</button><button class=danger onclick=showDisposition()>意図的な変更あり</button></div><div id=disp class=dispositions><b>該当する状態を選択してください。</b><div class=actions><button class=danger onclick=apply(\"noindex\")>noindex</button><button class=danger onclick=apply(\"unpublished\")>非公開・削除</button><button class=danger onclick=apply(\"urlchange\")>URL変更・リダイレクト</button><button class=danger onclick=apply(\"merged\")>他記事へ統合</button></div></div><div id=status class=status></div>";document.getElementById("root").innerHTML=h}function move(n){idx=Math.max(0,Math.min(items.length-1,idx+n));render()}function showDisposition(){document.getElementById("disp").style.display="block"}function improve(){var all=true;document.querySelectorAll(".ck").forEach(function(c){if(!c.checked)all=false});if(!all){var st=document.getElementById("status");st.className="status err";st.textContent="6項目をすべて確認してから改善対象へ進めてください。";return}apply("improve",true)}function apply(action,confirmed){var x=items[idx],st=document.getElementById("status");st.className="status";st.textContent="登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";items.splice(idx,1);if(idx>=items.length)idx=Math.max(0,items.length-1);setTimeout(render,700)}).withFailureHandler(function(e){st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyNeedsReviewDisposition({articleId:x.articleId,articleUrl:x.url,action:action,confirmed:confirmed===true})}render();</script></body></html>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'要確認記事の処理');
+}
+
 function sbmArticleManagementReasonCode_(article){
   var text=[article&&article['作業状態'],article&&article['記事ステータス'],article&&article['除外理由'],article&&article['備考']].join(' ');
   if(/301統合済み/.test(text))return 'MERGE_301';
@@ -11604,11 +11669,12 @@ function sbmArticleDbDetailHtml_(o) {
     + row('表示回数', o['表示回数表示'] || o['表示回数'])
     + row('CTR', o['CTR表示'] || o['CTR'])
     + row('掲載順位', o['掲載順位表示'] || o['掲載順位'])
-    + row('データ更新日', sbmHistoryDateOnlyText_(o['データ更新日']))
+    + row('最終データ取得日', sbmHistoryDateOnlyText_(o['データ更新日']))
     + row('記事タイトル', o['記事タイトル'])
     + row('SEOタイトル', o['SEOタイトル'])
     + row('メタディスクリプション', o['メタディスクリプション'])
-    + row('最終取得日時', o['最終取得日時'])
+    + row('連続未取得日数', o['連続未取得日数'] ? String(o['連続未取得日数']) + '日' : '0日')
+    + row('管理状態', o['管理フラグ'])
     + row('ArticleID', o['ArticleID'])
     + row('記事情報補完済み', o['記事情報補完済み'])
     + row('補完日時', o['補完日時'])
@@ -12566,6 +12632,7 @@ function onOpen() {
 
   ui.createMenu('記事管理')
     .addItem('記事一覧を開く','sbmOpenAllBlogArticles')
+    .addItem('要確認記事の処理','sbmOpenNeedsReviewArticles')
     .addSeparator()
     .addItem('選択記事の詳細を見る','sbmOpenSelectedArticleDbDetail')
     .addItem('選択記事をaDoctorで精密診断','sbmDoctorCreateRequestFromArticleList')

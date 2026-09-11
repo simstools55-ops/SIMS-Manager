@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.64",
+  "current_version": "6.2.65",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.64: 記事情報更新ダイアログのクライアントJavaScript構文エラーを修正。「この記事を確認」ボタン追加時のonclick生成を安全な形式へ変更し、点検処理が起動しない回帰を解消。点検・更新本体ロジックは変更なし。",
-  "version": "6.2.64",
+  "notes": "v6.2.65: GSCページデータの最終取得から14日以上を要確認ゲートに統一し、「要確認記事の処理」を追加。公開・noindex・URL変更・統合・Search Console index状態を1件ずつ確認し、問題なしは要改善、意図的変更は管理対象外へ整理。記事詳細は「最終データ取得日」「連続未取得日数」「管理状態」を表示。",
+  "version": "6.2.65",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.64-ST"
+  "starter_display_version": "6.2.65-ST"
 }
