@@ -1,7 +1,7 @@
-fix: restore single-workflow resume dialog rendering (v6.2.89)
+test: audit generated dialog JavaScript escaping (v6.2.90)
 
-- fix newline escaping in the single-case resume client script
-- prevent the resume dialog JavaScript from failing before initialization
-- server-render workflow identity and current stage as a fallback
-- show an explicit resume-loading message during initialization
+- fix five latent newline-escape hazards in the Doctor follow-up dialog
+- add pre-package audit for generated browser-side dialog scripts
+- cover unfinished-work chooser, wait screen, single-case resume and Doctor dialog
+- keep feature and diagnosis logic unchanged
 - sync Full and Starter editions

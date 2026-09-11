@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.89",
+  "current_version": "6.2.90",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.89: 個別Workflow再開画面のJavaScript改行escape不具合を修正。サーバー側初期表示fallbackを追加。",
-  "version": "6.2.89",
+  "notes": "v6.2.90: 生成HTML/ブラウザJavaScript監査。Doctorダイアログ内に残っていた改行escape不備5か所を修正し、自動監査テストを追加。",
+  "version": "6.2.90",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.89-ST"
+  "starter_display_version": "v6.2.90-ST"
 }
