@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.91",
+  "current_version": "6.2.92",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.91: 表示テーマ試作。標準/モノクロ切替を追加し、Home・記事管理・未完了作業再開ダイアログへ表示層だけで適用。",
-  "version": "6.2.91",
+  "notes": "v6.2.92: モノクロテーマを主要5シートへ拡張。見出し/項目をHomeトップバー配色、データセルを白背景へ統一し、判定は文字色・太さ・サイズで表現。",
+  "version": "6.2.92",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.91-ST"
+  "starter_display_version": "v6.2.92-ST"
 }

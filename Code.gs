@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.91
+ * SIMS Manager Product v6.2.92
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.91';
+const SBM_VERSION = '6.2.92';
+// v6.2.92: モノクロテーマを主要5シートへ拡張。Homeトップバー基準で見出し/項目セルを濃灰+白文字、データセルを白背景に統一。改善判定エリアは背景色を使わず、既存の意味色・太字・文字サイズで表現。標準テーマは従来配色を維持。
 // v6.2.91: 表示テーマ試作。設定・メンテナンスからSTANDARD / MONOCHROMEを切替可能。処理ロジックには触れず、Home・記事管理・未完了作業再開ダイアログだけを表示層で切替。意味色（青/緑/黄〜橙/赤）は維持。
 // v6.2.90: 生成HTML/ブラウザJS監査。通常aDoctorダイアログのWriter follow-up UIに残っていた単一\n 5か所を二重escape化。未完了一覧・個別再開・Doctorダイアログの生成script escapeをZIP前に検査する自動テストを追加。
 // v6.2.89: 個別Workflow再開ダイアログの空白表示を修正。meta表示に追加した\nがHTML出力後に実改行となりclient JavaScriptを構文エラー停止させていたため二重escape化。初期案件情報をサーバー側でも描画し、client script失敗時も空白にならないfallbackを追加。
@@ -5946,6 +5947,7 @@ function sbmOpenTodayImprovement() {
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
 
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
+  try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){}
   sh.showSheet(); ss.setActiveSheet(sh); sh.activate();
   var current = sbmGetTodayCandidates_().filter(function(c){return !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);});
   if (!current.length) {
@@ -7331,6 +7333,7 @@ function sbmApplyProductVisibleTabs_() {
   });
   var home = ss.getSheetByName(SBM_SHEETS.HOME);
   if (home) ss.setActiveSheet(home);
+  try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
 }
 
 /**
@@ -9470,6 +9473,7 @@ function sbmOpenEffectiveness(){
   }
   try{sbmRepairEffectTitleCells_(sh);}catch(ignoreEffectTitleRepair){}
   try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreViewStyle){}
+  try{sbmApplyEffectDisplayTheme_(sh);}catch(ignoreEffectTheme){}
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
 }
 
@@ -11663,6 +11667,7 @@ function sbmOpenImprovementHistory() {
     try{sbmLog_('OpenImprovementHistoryView','Warning',String(eView));}catch(ignoreLog){}
   }
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
+  try{sbmApplyHistoryDisplayTheme_(sh);}catch(ignoreHistoryTheme){}
   try{sh.showSheet();}catch(ignoreShow){}
   ss.setActiveSheet(sh);
 }
@@ -12768,7 +12773,9 @@ function sbmSyncHomeVersionOnly_(){
 
 
 /* ========================================================================== *
- * v6.2.91 Display Theme Prototype
+ * v6.2.92 Display Theme
+ * STANDARD keeps the current product colors.
+ * MONOCHROME uses the Home top bar as the common heading language.
  * ========================================================================== */
 function sbmDisplayTheme_(){
   var v=String(sbmGetSetting_('DisplayTheme','STANDARD')||'STANDARD').toUpperCase();
@@ -12776,35 +12783,125 @@ function sbmDisplayTheme_(){
 }
 function sbmIsMonochromeTheme_(){return sbmDisplayTheme_()==='MONOCHROME';}
 function sbmDisplayThemeLabel_(){return sbmIsMonochromeTheme_()?'モノクロ':'標準';}
+function sbmThemeTopBarBg_(){return '#3c4043';}
+function sbmThemeTopBarFg_(){return '#ffffff';}
 
 function sbmApplyHomeDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  sh.getRange('A1:J1').setBackground('#3c4043').setFontColor('#ffffff');
+  var top=sbmThemeTopBarBg_(),white='#ffffff',text='#202124',muted='#5f6368',border='#dadce0';
+
+  // Top bar.
+  sh.getRange('A1:J1').setBackground(top).setFontColor(white);
   sh.getRange('J1').setFontColor('#e8eaed');
-  sh.getRange('A2:J3').setBackground('#f1f3f4').setFontColor('#202124');
-  sh.getRange('A5:D5').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('A6:D12').setBackground('#f8f9fa').setFontColor('#202124');
-  sh.getRange('E5:H5').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('E6:H11').setBackground('#f8f9fa').setFontColor('#202124');
-  sh.getRange('I5:J5').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('I6:J11').setBackground('#f8f9fa').setFontColor('#202124');
-  sh.getRange('A13:J13').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('A14:J15').setBackground('#fafafa').setFontColor('#202124');
-  sh.getRange('A16:J16').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('H17:J17').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('A22:J22').setBackground('#e8eaed').setFontColor('#202124');
-  sh.getRange('A23:J30').setBackground('#fafafa').setFontColor('#202124');
+
+  // Label cells use the same language as the top bar; value cells stay white.
+  sh.getRangeList(['A2','E2','A3','C3','A4']).setBackground(top).setFontColor(white).setFontWeight('bold');
+  sh.getRangeList(['B2:D2','F2:J2','B3','D3:J3','B4:J4']).setBackground(white);
+  // Keep the existing value text colors/status colors. Only backgrounds are neutralized.
+  sh.getRange('B2:D3').setFontColor(text);
+  sh.getRange('D3:J3').setFontColor(text);
+
+  // Section headings = top bar.
+  sh.getRangeList(['A5:D5','E5:H5','I5:J5','A13:J13','A16:J16','A17:C17','D17:G17','H17:J17','A22:J22'])
+    .setBackground(top).setFontColor(white).setFontWeight('bold');
+
+  // Data surfaces = white.
+  sh.getRangeList(['A6:D12','E6:H11','I6:J11','A14:J15','A18:C20','D18:G20','H18:J21','A23:J30'])
+    .setBackground(white);
+
+  // Main blocks retain structure without decorative color fills.
+  sh.getRange('A6:D12').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('E6:H11').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('I6:J11').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A14:J15').setBorder(true,true,true,true,false,false,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A23:J30').setBorder(true,true,true,true,false,false,border,SpreadsheetApp.BorderStyle.SOLID);
+
+  // Rank area: icon + text only, no decorative colored cell background.
+  sh.getRange('A6:D12').setFontColor(text);
+  sh.getRange('A6:B12').setFontWeight('bold');
+  sh.getRange('C6:D12').setFontWeight('bold');
+
+  // Improvement-status data: white background; retain text itself.
+  sh.getRange('E6:H11').setFontColor(text);
+  sh.getRange('I6:J11').setFontColor(text);
+
+  // Judgment area: white cells, meaning expressed by text color/weight/size.
+  var styleCells=[
+    ['A18:C18','大きく改善'],['A19:C19','改善'],['A20:C20','改善傾向'],
+    ['D18:G18','変化小'],['D19:G19','要確認'],['D20:G20','見直し候補'],
+    ['H18:J18','測定待ち'],['H19:J19','経過観察'],['H20:J20','追加経過観察'],['H21:J21','データ不足']
+  ];
+  styleCells.forEach(function(x){
+    var st=sbmHomeJudgmentStyle_(x[1]),r=sh.getRange(x[0]);
+    r.setBackground(white).setFontColor(st.fg).setFontWeight(st.weight).setFontSize(11);
+  });
+  sh.getRangeList(['C18:C20','G18:G20','J18:J21']).setFontWeight('bold').setFontSize(12);
+
+  // Advice/message body stays neutral.
+  sh.getRange('A14:J15').setFontColor(text);
+  sh.getRange('A23:J30').setFontColor(text);
 }
+
+function sbmApplyMonochromeTableTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  var lr=sh.getLastRow(),lc=sh.getLastColumn();
+  if(lc<1)return;
+  sh.getRange(1,1,1,lc)
+    .setBackground(sbmThemeTopBarBg_())
+    .setFontColor(sbmThemeTopBarFg_())
+    .setFontWeight('bold');
+  if(lr>1){
+    // Only the background is normalized. Existing data font colors, weights and number formats remain.
+    sh.getRange(2,1,lr-1,lc).setBackground('#ffffff');
+  }
+}
+
 function sbmApplyArticleDbDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  var lc=Math.max(sh.getLastColumn(),SBM_HEADERS.ARTICLE_DB.length),lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
-  sh.getRange(1,1,1,lc).setBackground('#3c4043').setFontColor('#ffffff');
+  sbmApplyMonochromeTableTheme_(sh);
+  var lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
   if(lr>1){
-    sbmApplyArticleDbRowColors_(sh);
-    if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontColor('#202124').setFontWeight('normal');
+    // Article rank becomes icon + text centric.
+    if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontWeight('normal');
+    // Work-state meaning remains in text; do not repaint the whole row.
     if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],lr-1,1).setFontColor('#5f6368').setFontWeight('bold');
   }
 }
+function sbmApplyTodayDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh);
+}
+function sbmApplyEffectDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh);
+  var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
+  if(n&&hm['判定']){
+    // Preserve the judgment font colors/weights from the normal style, but remove the cell fill.
+    sh.getRange(2,hm['判定'],n,1).setBackground('#ffffff').setFontSize(11);
+  }
+}
+function sbmApplyHistoryDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh);
+  var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
+  if(n){
+    // Weekly/final judgment keeps semantic font color/weight; only the fill becomes white.
+    ['1週','2週','3週','4週','最終判定'].forEach(function(h){
+      if(hm[h])sh.getRange(2,hm[h],n,1).setBackground('#ffffff').setFontSize(11);
+    });
+    if(hm['改善経路'])sh.getRange(2,hm['改善経路'],n,1).setBackground('#ffffff');
+  }
+}
+function sbmApplyVisibleSheetDisplayThemes_(){
+  if(!sbmIsMonochromeTheme_())return;
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var home=ss.getSheetByName(SBM_SHEETS.HOME);if(home)sbmApplyHomeDisplayTheme_(home);
+  var today=ss.getSheetByName(SBM_SHEETS.TODAY);if(today)sbmApplyTodayDisplayTheme_(today);
+  var effect=ss.getSheetByName(SBM_SHEETS.EFFECT);if(effect)sbmApplyEffectDisplayTheme_(effect);
+  var article=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(article)sbmApplyArticleDbDisplayTheme_(article);
+  var history=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);if(history)sbmApplyHistoryDisplayTheme_(history);
+}
+
 function sbmMonochromeDialogOverrides_(){
   if(!sbmIsMonochromeTheme_())return '';
   return 'body{background:#f5f5f5!important;color:#202124!important}'+
@@ -12813,19 +12910,30 @@ function sbmMonochromeDialogOverrides_(){
     '.sub,.meta,.note,.small{color:#5f6368!important}'+
     '.next,.summary{background:#f1f3f4!important;border-color:#dadce0!important;color:#202124!important}';
 }
+
+function sbmRestoreStandardDisplayTheme_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh;
+  // Home can be safely rebuilt from the saved snapshot.
+  sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(sh){sbmBuildHomeSheet_();sbmRefreshHome_({light:true});}
+  // Article/Effect/History have dedicated display-only style functions.
+  sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(sh)try{sbmStyleArticleDbSheet_(sh);}catch(ignoreArticleStandard){}
+  sh=ss.getSheetByName(SBM_SHEETS.EFFECT);if(sh)try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreEffectStandard){}
+  sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(sh){
+    try{sbmInvalidateImprovementHistoryStyle_();}catch(ignoreHistoryInvalid){}
+    try{sbmEnsureImprovementHistoryViewLight_();}catch(ignoreHistoryStandard){}
+  }
+  // Today standard design uses a green header and already-white body.
+  sh=ss.getSheetByName(SBM_SHEETS.TODAY);
+  if(sh&&sh.getLastColumn()>0){
+    sh.getRange(1,1,1,sh.getLastColumn()).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold');
+    if(sh.getLastRow()>1)sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).setBackground('#ffffff');
+  }
+}
 function sbmApplyDisplayThemePrototype_(){
-  var ss=SpreadsheetApp.getActiveSpreadsheet(),home=ss.getSheetByName(SBM_SHEETS.HOME);
-  if(home){
-    sbmBuildHomeSheet_();
-    sbmRefreshHome_({light:true});
-    home=ss.getSheetByName(SBM_SHEETS.HOME);
-    if(home)sbmApplyHomeDisplayTheme_(home);
-  }
-  var article=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
-  if(article){
-    sbmStyleArticleDbSheet_(article);
-    sbmApplyArticleDbDisplayTheme_(article);
-  }
+  if(sbmIsMonochromeTheme_())sbmApplyVisibleSheetDisplayThemes_();
+  else sbmRestoreStandardDisplayTheme_();
   SpreadsheetApp.flush();
 }
 function sbmChangeDisplayTheme(){
@@ -12839,7 +12947,7 @@ function sbmChangeDisplayTheme(){
   var theme=(r===ui.Button.YES)?'MONOCHROME':'STANDARD';
   sbmSetSetting_('DisplayTheme',theme,'SIMS Manager表示テーマ');
   sbmApplyDisplayThemePrototype_();
-  ui.alert('表示テーマ','表示テーマを「'+(theme==='MONOCHROME'?'モノクロ':'標準')+'」へ変更しました。\n\nHome・記事管理・未完了作業再開ダイアログへ反映します。',ui.ButtonSet.OK);
+  ui.alert('表示テーマ','表示テーマを「'+(theme==='MONOCHROME'?'モノクロ':'標準')+'」へ変更しました。\n\nHome・今日の改善・改善の推移・記事管理・改善履歴へ反映します。',ui.ButtonSet.OK);
 }
 
 function onOpen() {
