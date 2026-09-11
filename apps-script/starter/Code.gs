@@ -4,7 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.80';
+const SBM_VERSION = '6.2.82';
+// v6.2.82: Writer follow_up由来のカニバリ精密診断でFOLLOW_UP_REQUESTが未保存でも、Doctor_CasesのWriter結果・記事DB・元Caseから追加診断依頼をオンデマンド再生成する。既存Caseをそのまま復旧し、機能ロジック本体は変更しない。
+// v6.2.81: Repository版管理を再監査し、VERSION/README/Distribution/Shared版情報の同期漏れを修正。版整合チェックを追加し、ZIP生成前の必須検証とする。機能ロジックは変更しない。
 // v6.2.80: カニバリ精密診断を開いた直後に親ダイアログのsuccess handlerがhost.close()して新ダイアログまで閉じる競合を修正。追加診断では成功時にcloseせず、失敗時は元画面にエラーを残す。Writer登録直後の追加診断導線も同様に修正。
 // v6.2.79: aWriter結果のfollow_up_referrals(MERGE)を自動Mergeせず「カニバリ精密診断候補」として同一Caseに保存。Writer本処置はモニターへ正常完了させ、記事詳細・未完了再開から追加診断へ進める。\n// v6.2.78: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
 // v6.2.77: 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
@@ -16429,6 +16431,15 @@ function sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,ensureRequ
     var writerSpec=sbmDoctorWriterFollowUpReferralSpec_(writerResult);
     if(writerSpec.required){
       var writerFollow=sbmDoctorWorkflowReadPayload_(cid,'FOLLOW_UP_REQUEST');
+      if(!writerFollow&&ensureRequest){
+        try{
+          var writerRec=sbmDoctorFindCaseRow_(cid);
+          if(writerRec){
+            var rebuiltWriterFollow=sbmDoctorPrepareWriterFollowUpDiagnosis_(writerResult,writerRec)||{};
+            writerFollow=String(rebuiltWriterFollow.request||'');
+          }
+        }catch(eWriterRepair){try{sbmLog_('DoctorWriterFollowUpArticleRepair','Warning',String(eWriterRepair));}catch(ignoreWriterRepairLog){}}
+      }
       return {required:true,type:writerSpec.type,label:writerSpec.label,caseId:cid,request:writerFollow,stage:'FOLLOW_UP_REQUEST_READY',source:'WRITER_RESULT'};
     }
     var raw=String(c['Doctor結果JSON']||'').trim();if(!raw)continue;
@@ -16458,12 +16469,18 @@ function sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,ensureRequ
 function sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url){
   try{
     var p=sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,true);
-    if(!p.required)return sbmAlert_('追加診断','この記事には追加診断待ちのaDoctor結果がありません。');
-    if(!p.request)return sbmAlert_('追加診断','保存済みの診断結果は確認できましたが、追加診断依頼を復元できませんでした。設定・メンテナンスの「途中再開・やり直し」からCaseを確認してください。');
+    if(!p.required){
+      var m1='この記事には追加診断待ちのaDoctor結果がありません。';
+      sbmAlert_('追加診断',m1);return {ok:false,message:m1};
+    }
+    if(!p.request){
+      var m2='保存済み結果は確認できましたが、追加診断依頼を再生成できませんでした。記事DBの対象記事情報とWriter結果を確認してください。';
+      sbmAlert_('追加診断',m2);return {ok:false,message:m2,caseId:p.caseId};
+    }
     var req=JSON.parse(p.request);
     sbmDoctorShowCopyDialog_(req,p.request);
     return {ok:true,caseId:p.caseId};
-  }catch(e){sbmAlert_('追加診断を開けません',String(e&&e.message?e.message:e));return {ok:false,error:String(e)};}
+  }catch(e){var msg=String(e&&e.message?e.message:e);sbmAlert_('追加診断を開けません',msg);return {ok:false,message:msg,error:msg};}
 }
 
 function sbmDoctorAdditionalDiagnosisUrls_(source,doctor){
@@ -19333,7 +19350,24 @@ function sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec){
   var spec=sbmDoctorWriterFollowUpReferralSpec_(o);if(!spec.required)return {required:false};
   var caseId=String(o.case_id||''),sourceRaw=sbmDoctorWorkflowReadPayload_(caseId,'REQUEST'),source=null;
   try{source=sourceRaw?JSON.parse(sourceRaw):null;}catch(ignoreSource){}
-  if(!source)return {required:true,ready:false,label:spec.label,reason:spec.reason};
+  // v6.2.82: v6.2.79以前の既存Caseやfinalize済みCaseではREQUEST payloadが残っていない場合がある。
+  // その場合はDoctor_Cases + 記事DBから元のArticle Doctor requestを再構築し、同一CaseIDを維持する。
+  if(!source){
+    try{
+      var articleId=rec&&rec.hm&&rec.hm['記事ID']?String(rec.values[rec.hm['記事ID']-1]||'').trim():String(o.article_id||'').trim();
+      var articleUrl=rec&&rec.hm&&rec.hm['記事URL']?String(rec.values[rec.hm['記事URL']-1]||'').trim():String(o.article_url||'').trim();
+      var siteId=rec&&rec.hm&&rec.hm['サイトID']?String(rec.values[rec.hm['サイトID']-1]||'').trim():String(o.site_id||'').trim();
+      var article=sbmDoctorFindArticleByIdOrUrl_(articleId,articleUrl);
+      if(article){
+        source=sbmDoctorBuildArticleDoctorImportSourceRequest_({caseId:caseId,articleId:articleId,articleUrl:articleUrl,siteId:siteId,siteDiagnosisCaseId:'',siteDiagnosisBatchId:''},article);
+        source.request=source.request||{};
+        source.request.trigger='WRITER_FOLLOW_UP_REBUILD';
+        source.request.requested_by='SBM';
+        try{sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',JSON.stringify(source,null,2));}catch(ignoreRebuiltSourceSave){}
+      }
+    }catch(eRebuildSource){try{sbmLog_('DoctorWriterFollowUpSourceRebuild','Warning',String(eRebuildSource));}catch(ignoreRebuildLog){}}
+  }
+  if(!source)return {required:true,ready:false,label:spec.label,reason:spec.reason,error:'元の診断依頼を記事DBから再構築できませんでした。'};
   var targetNorm=sbmNormalizeUrl_(o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''));
   var competing=spec.urls.filter(function(u){return sbmNormalizeUrl_(u)!==targetNorm;});
   var syntheticDoctor={
@@ -19351,10 +19385,18 @@ function sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec){
 }
 function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
   try{
-    var text=sbmDoctorWorkflowReadPayload_(String(caseId||''),'FOLLOW_UP_REQUEST');
-    if(!text)return {ok:false,message:'追加診断依頼を復元できませんでした。'};
+    caseId=String(caseId||'').trim();
+    var text=sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST');
+    if(!text){
+      var rec=sbmDoctorFindCaseRow_(caseId);
+      if(!rec)return {ok:false,message:'対応するCaseIDがありません：'+caseId};
+      var writer={};try{writer=JSON.parse(String(rec.hm['Writer結果JSON']?rec.values[rec.hm['Writer結果JSON']-1]||'{}':'{}'));}catch(ignoreWriterOpen){}
+      var rebuilt=sbmDoctorPrepareWriterFollowUpDiagnosis_(writer,rec)||{};
+      text=String(rebuilt.request||'');
+    }
+    if(!text)return {ok:false,message:'追加診断依頼を再生成できませんでした。'};
     sbmDoctorShowCopyDialog_(JSON.parse(text),text);
-    return {ok:true};
+    return {ok:true,caseId:caseId};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 

@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.2.52",
+  "current_version": "3.5.0",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.52: 日次処理STEP3で更新済みHomeスナップショットから記事ランク件数だけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジック・GSC取得条件は変更なし。",
-  "version": "6.2.61",
-  "starter_display_version": "6.2.52-ST"
+  "notes": "SIMS Shared Editorial Knowledge version is managed independently from SIMS Manager.",
+  "version": "3.5.0",
+  "starter_display_version": "3.5.0"
 }

@@ -1,6 +1,6 @@
 {
   "product": "SIMS Manager",
-  "version": "6.2.80",
+  "version": "6.2.82",
   "generated_for": "Repository",
   "files": [
     {
@@ -60,13 +60,13 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 39449,
-      "sha256": "78d658d17dded0227db207d123cd67ff0e0553299a7ffac5819c8515a11030dc"
+      "size": 40540,
+      "sha256": "ce01c210d0b00fcab9de5a4991c61f72219ef8f8afc3158794a9c95acb54a09a"
     },
     {
       "path": "COMMIT_MESSAGE.txt",
-      "size": 539,
-      "sha256": "c02dcabd1f52cdd3b79e92719670597fe3968c0b41320cf332a91f14d86a6d2b"
+      "size": 551,
+      "sha256": "9ba1ea7978a7af85f5c60ac7e1a7d59e8f9de4a2e0612da6e1532bfd4915f620"
     },
     {
       "path": "Code.base.gs",
@@ -75,8 +75,8 @@
     },
     {
       "path": "Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "EDITION_POLICY.md",
@@ -399,14 +399,24 @@
       "sha256": "9068f8e13ffa6b3a436845117842f5d11b527377f7a7551d722fbc8dd6cfc13f"
     },
     {
+      "path": "GITHUB-RELEASE-NOTES-v6.2.81.md",
+      "size": 338,
+      "sha256": "07339e4ab40e87e5f6df698c0904b27fae115c627da2aa1cbd6eb9457231af02"
+    },
+    {
+      "path": "GITHUB-RELEASE-NOTES-v6.2.82.md",
+      "size": 801,
+      "sha256": "e0f8c7c79a71123a9f68dc332a11b5db922b752e22c18f88949e9d70db2f8bab"
+    },
+    {
       "path": "GITHUB-RELEASE-NOTES-v6.2.9.md",
       "size": 769,
       "sha256": "07ff166b7dce85d02a144949d704a1df0401c9154db34cc1f0dd0d5ce9014eb5"
     },
     {
       "path": "GITHUB_RELEASE_NOTES.md",
-      "size": 2777,
-      "sha256": "3b554799ac879b7c1e0e70f24e969c8badb16f2cd312b89940185ee6d4ce3c27"
+      "size": 3868,
+      "sha256": "4609414883ef86a9307dd2ca2fc41b42fa1b5ad439c78b5b5e97440445aceb99"
     },
     {
       "path": "HOW_TO_PUBLISH.md",
@@ -435,8 +445,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "size": 659,
-      "sha256": "b92853801450f504df732e26e3a6260aa408b2fe0cd9d0dcdf795fbbaf4d17fa"
+      "size": 486,
+      "sha256": "a7dd40982d471b49d23fa19d92c568f03c69ac127fb42d5dac6bfd16c0f5ea30"
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -676,7 +686,7 @@
     {
       "path": "README-FIRST.md",
       "size": 6232,
-      "sha256": "327a63834280fd0be626bb2733d63371603fd520c611ddf2e8883fe9446f5515"
+      "sha256": "4b5f096c238040d595257bc0151e752a8dcdb7d12dde055e6b097db735a5d1f4"
     },
     {
       "path": "README-RC8.17.txt",
@@ -795,8 +805,8 @@
     },
     {
       "path": "README.md",
-      "size": 10221,
-      "sha256": "b22cf9d3b5f7552eaf2b4ba09ecfa35c49ce71f747c6907dc943bf811d04fe91"
+      "size": 10606,
+      "sha256": "7a146c0f525c2da200d7e56104a8bd889c39a30c723067129531ffdcea6741ab"
     },
     {
       "path": "README.txt",
@@ -2350,8 +2360,8 @@
     },
     {
       "path": "SHARED_VERSION",
-      "size": 7,
-      "sha256": "73d54385666a0022578438df48642ac17abf13b2f09002a27b7a4b9d2301aade"
+      "size": 6,
+      "sha256": "76120c1f2c4311c2154c22a6b58e00e411e0ebe76afae0daf608d9196c61f114"
     },
     {
       "path": "SUPPORT.md",
@@ -2381,7 +2391,7 @@
     {
       "path": "VERSION",
       "size": 7,
-      "sha256": "336b0a72cb966781749dfadc57fc79f518a06c4d88bb6747e490b26207074daa"
+      "sha256": "386ad9c0018656d44882d41caf522939c24cf2166921dcfcc8933a7d2e67ec73"
     },
     {
       "path": "VERSION-AUDIT-v5.10.1.md",
@@ -2415,13 +2425,13 @@
     },
     {
       "path": "VERSION_POLICY.md",
-      "size": 1064,
-      "sha256": "6da821a0450ce52938d2acd9bfbab23c460bec6a6318334dcc2ad17793067669"
+      "size": 738,
+      "sha256": "9517798acee0a05d925ff7960adf71f73fdbf8ea49cae930f527dc9c5e299cf9"
     },
     {
       "path": "apps-script/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "apps-script/appsscript.json",
@@ -2430,8 +2440,8 @@
     },
     {
       "path": "apps-script/full/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "apps-script/full/appsscript.json",
@@ -2440,8 +2450,8 @@
     },
     {
       "path": "apps-script/starter/Code.gs",
-      "size": 1492724,
-      "sha256": "0b6864805667d952da7c27bcebfc741c733bad0e5d6a92f05477bb69f1855379"
+      "size": 1495766,
+      "sha256": "fb991e8c908c980689a41ce8b7353b0a948da8c6385887b9be4a9a0b9a25eec8"
     },
     {
       "path": "apps-script/starter/appsscript.json",
@@ -2760,13 +2770,13 @@
     },
     {
       "path": "distribution/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "distribution/README-FIRST.md",
-      "size": 712,
-      "sha256": "e5399a975667bc207c4a97e643096216d16c58b343970e3ef01a49df07d07684"
+      "size": 783,
+      "sha256": "f3880a6e6b8de883adf1e1cd119bb1463d7de026f6f4a6b4faea0073cbf68fbb"
     },
     {
       "path": "distribution/appsscript.json",
@@ -3225,8 +3235,8 @@
     },
     {
       "path": "editions/full/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "editions/full/README.md",
@@ -3240,13 +3250,13 @@
     },
     {
       "path": "editions/starter/Code.gs",
-      "size": 1492724,
-      "sha256": "0b6864805667d952da7c27bcebfc741c733bad0e5d6a92f05477bb69f1855379"
+      "size": 1495766,
+      "sha256": "fb991e8c908c980689a41ce8b7353b0a948da8c6385887b9be4a9a0b9a25eec8"
     },
     {
       "path": "editions/starter/README.md",
       "size": 878,
-      "sha256": "69696f26e2144f93a28877698af0844feb9375c9be32b3e300afccc6ccdf83e5"
+      "sha256": "b24c23732eb9d58512e4c25b8119e21612d2752873138a6844536bcb05963fd6"
     },
     {
       "path": "editions/starter/appsscript.json",
@@ -4215,8 +4225,8 @@
     },
     {
       "path": "shared/PRODUCT_IDENTITY.json",
-      "size": 667,
-      "sha256": "8b023d5c60d7e9a44cba967aa740b9cde61abc9551ee878ef6a3cdb928b7448b"
+      "size": 478,
+      "sha256": "22b882552df970aa0e455aef47170d5ca5043c61dbb1d74ff20075f2d3399b61"
     },
     {
       "path": "shared/README.md",
@@ -4410,8 +4420,8 @@
     },
     {
       "path": "shared/VERSION",
-      "size": 7,
-      "sha256": "17e8fe011dc1909ac8b98a5638034fce010b92873adf803d5c5e1ff62e30657b"
+      "size": 6,
+      "sha256": "76120c1f2c4311c2154c22a6b58e00e411e0ebe76afae0daf608d9196c61f114"
     },
     {
       "path": "shared/architecture/CLAUDE_OPERATIONS.md",
@@ -5580,13 +5590,13 @@
     },
     {
       "path": "src/apps-script/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "src/distribution/Code.gs",
-      "size": 1492721,
-      "sha256": "29cd869a7fa9f430ce6094111325fbd87548d18d09263dc3ce1efa98e89b43e5"
+      "size": 1495763,
+      "sha256": "cd6ef8e9320057ccdebf5e9274b33c26192038e0e26d8f2d62f6d0495140fb87"
     },
     {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",
@@ -5727,6 +5737,11 @@
       "path": "tests/UAT_CHECKLIST.md",
       "size": 773,
       "sha256": "33651497415d61dad621e6e803e1a50fe9675d90851d81557f19af67e753ae2c"
+    },
+    {
+      "path": "tests/check_version_consistency.py",
+      "size": 3005,
+      "sha256": "644cd675745b55c8139e94f7df251a36b74278de9b58e891a5b3bce83dba8e72"
     },
     {
       "path": "tests/conftest.py",

@@ -1,9 +1,9 @@
-fix: keep cannibalization diagnosis dialog open (v6.2.80)
+fix: rebuild missing cannibalization follow-up request (v6.2.82)
 
-- prevent parent dialog success handler from closing the newly opened diagnosis dialog
-- keep the current dialog open on failure and show the error in place
-- add processing feedback and restore the action button after failures
-- apply the same transition fix to Writer follow-up diagnosis
-- apply the same protection to index-issue follow-up diagnosis
+- rebuild Writer follow-up diagnosis requests when FOLLOW_UP_REQUEST is missing
+- reconstruct the original Article Doctor request from the existing Case and article database
+- preserve the same CaseID while rebuilding the follow-up request
+- persist the regenerated request for later resume
+- return explicit errors without closing the article detail dialog
 - keep daily processing, rank criteria, 14-day gate, article update and Merge logic unchanged
 - sync Full and Starter editions

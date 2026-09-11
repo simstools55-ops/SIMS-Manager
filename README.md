@@ -1,19 +1,27 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.2.80
+> **Current product:** SIMS Manager v6.2.82
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.2.80`
+- Product Version: `6.2.82`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.2.80
+> Current release: SIMS Manager Product v6.2.82
 
+
+## v6.2.81 — Repository版管理の整合修正
+
+- Product versionを `6.2.81` に統一
+- `VERSION` / `PRODUCT_IDENTITY.json` / README / Distribution / Full / Starterを同期
+- Shared Editorial KnowledgeはManagerとは独立した `v3.5.0` として版情報を統一
+- ZIP生成前に実行する版整合チェックスクリプトを追加
+- 機能ロジックは変更なし
 
 ## v6.2.80 — 未発芽aDoctor診断を原因診断優先へ変更
 
@@ -72,13 +80,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.2.77
+# SIMS Manager v6.2.82
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.2.77`
+`6.2.82`
 
 ## Creatorで作った新記事の登録
 
