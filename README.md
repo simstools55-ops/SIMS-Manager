@@ -1,26 +1,31 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.2.48
+> **Current product:** SIMS Manager v6.2.76
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.2.48`
+- Product Version: `6.2.76`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
-- Main feature: Starter / Full Edition構成を正式な製品ベースラインとして導入。Fullを機能正本、Starterを同一リポジトリ内の派生Editionとして管理。
+- Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.2.48
+> Current release: SIMS Manager Product v6.2.76
 
-## v6.2.48 — 未発芽Home可視化とサイト健康診断メニュー整理
+## v6.2.76 — Repository整合修正
 
-- Homeの記事ランクまとめに「🌰 未発芽」を追加
-- 改善率の算出対象を利用者向け文章で説明
-- 診断 → サイト健康診断 → サイト健康診断を実施、の階層へ整理
-- 健康診断所見の日本語接続を修正
-- 診断ロジック・日次処理は変更なし
+- 機能ロジックは変更せず、Repository内の版番号・Edition定義・管理文書を同期。
+- root `Code.gs` / Full派生は `SBM_EDITION = 'FULL'`。
+- Starter派生コードは `SBM_EDITION = 'STARTER'`。
+- Code先頭製品表記、`SBM_VERSION`、README、PRODUCT_IDENTITY、VERSION、Release Notesをv6.2.76へ統一。
+- v6.2.75までのMerge、未発芽、14日ゲート、記事情報更新を維持。
+
+## v6.2.75 — Merge効果測定表示の標準化
+
+- Merge完了画面・処理中表示・完了メッセージを「7日目・14日目・21日目・28日目」に統一。
+- 実際の4回測定ロジックは変更なし。
 
 ## v6.2.47 — 記事情報更新を不足記事限定方式へ再構築
 
@@ -51,13 +56,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.2.47
+# SIMS Manager v6.2.76
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.2.47`
+`6.2.76`
 
 ## Creatorで作った新記事の登録
 
@@ -82,7 +87,7 @@ Creatorで新記事を公開したら、`SIMS-Blog-Manager` → `Creatorで作�
 - ルート `Code.gs` は **Full Editionの機能正本**です。
 - Starter Editionは `editions/starter/Code.gs` を使用し、Full正本から派生管理します。
 - Starter / Fullは同一バージョン体系・同一Spreadsheetデータ構造を共有します。
-- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.2.47はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.2.47-ST です。
+- 利用者向けDistribution ZIPは必要になった時だけ生成します。v6.2.76はRepository Baselineであり、配布版リリースではありません。Starterの利用者向け表示は v6.2.76-ST です。
 
 詳細は `EDITION_POLICY.md` を参照してください。
 

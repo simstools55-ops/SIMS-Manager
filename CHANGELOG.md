@@ -1,3 +1,11 @@
+## v6.2.76
+
+- Repository版管理の整合修正。機能ロジックは変更なし。
+- Code.gs系の製品コメントと `SBM_VERSION` を v6.2.76 へ同期。
+- Full Editionは `SBM_EDITION = 'FULL'`、Starter Edition派生コードは `SBM_EDITION = 'STARTER'` へ是正。
+- README / Starter README / PRODUCT_IDENTITY / VERSION / GitHub Release Notesをv6.2.76へ同期。
+- v6.2.75までのMerge、未発芽、14日ゲート、記事情報更新の処理をそのまま維持。
+
 ## v6.2.75
 
 - Merge完了時の効果測定案内を、実処理と一致する「7日目・14日目・21日目・28日目」に統一。

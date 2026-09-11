@@ -1,9 +1,7 @@
-SIMS Manager v6.2.75: Merge効果測定表示を4回測定へ統一
+SIMS Manager v6.2.76: Repository版管理とEdition定義を同期
 
-- Merge完了画面の案内を7日目・14日目・21日目・28日目へ修正
-- Merge完了処理中の進捗表示を4回測定表現へ修正
-- Merge完了メッセージを標準4回測定表現へ修正
-- 実際の測定登録ロジックは変更なし
-- v6.2.74までの未完了再開・重複Case整理・Merge完了処理を維持
-- 日次GSC取得・14日ゲート・記事ランク判定・記事情報更新は変更なし
-- Full / Starterを同期
+- 機能ロジック変更なし
+- Code.gs系の製品コメントとSBM_VERSIONをv6.2.76へ同期
+- Full派生をSBM_EDITION=FULL、Starter派生をSBM_EDITION=STARTERへ是正
+- README / Starter README / PRODUCT_IDENTITY / VERSION / Release Notesを同期
+- v6.2.75までのMerge・未発芽・14日ゲート・記事情報更新を維持

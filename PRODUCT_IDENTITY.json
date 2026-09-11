@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.75",
+  "current_version": "6.2.76",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.75: Merge完了時の効果測定案内を実装済みの標準4回測定（7日目・14日目・21日目・28日目）へ統一。v6.2.74までの実運用修正を確定。",
-  "version": "6.2.75",
+  "notes": "v6.2.76: Repository整合修正。機能ロジックは変更せず、Full/StarterのEdition定義、コード先頭表記、README、リリースノート、版管理ファイルを同期。",
+  "version": "6.2.76",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.75-Starter"
+  "starter_display_version": "v6.2.76-ST"
 }
