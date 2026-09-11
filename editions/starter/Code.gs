@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.90
+ * SIMS Manager Product v6.2.91
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.90';
+const SBM_VERSION = '6.2.91';
+// v6.2.91: 表示テーマ試作。設定・メンテナンスからSTANDARD / MONOCHROMEを切替可能。処理ロジックには触れず、Home・記事管理・未完了作業再開ダイアログだけを表示層で切替。意味色（青/緑/黄〜橙/赤）は維持。
 // v6.2.90: 生成HTML/ブラウザJS監査。通常aDoctorダイアログのWriter follow-up UIに残っていた単一\n 5か所を二重escape化。未完了一覧・個別再開・Doctorダイアログの生成script escapeをZIP前に検査する自動テストを追加。
 // v6.2.89: 個別Workflow再開ダイアログの空白表示を修正。meta表示に追加した\nがHTML出力後に実改行となりclient JavaScriptを構文エラー停止させていたため二重escape化。初期案件情報をサーバー側でも描画し、client script失敗時も空白にならないfallbackを追加。
 // v6.2.88: 未完了一覧が空白になる原因を修正。chooser内JavaScriptのconfirm文に実改行が生成されて構文エラーになっていたため、HTML出力後もJS文字列内の\nとして残るよう二重escape化。候補データをサーバー側でHTMLカード化し、クライアントJSが失敗しても一覧自体は必ず表示するfallbackを追加。
@@ -3053,6 +3054,7 @@ function sbmOpenArticleDb() {
   try { sbmRepairArticleDisplayTitlesLight_(sh); } catch(eDisplayTitle) { sbmLog_('ArticleDisplayTitleRepair','Warning',String(eDisplayTitle)); }
   sbmEnsureArticleListFilter_(sh);
   try { sbmStyleArticleDbSheet_(sh); } catch(eStyle) { sbmLog_('ArticleListStyle','Warning',String(eStyle)); }
+  try { sbmApplyArticleDbDisplayTheme_(sh); } catch(eThemeArticle) { sbmLog_('ArticleTheme','Warning',String(eThemeArticle)); }
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
   try { ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。', '記事一覧', 8); } catch(e) {}
 }
@@ -5859,6 +5861,7 @@ function sbmOpenHome() {
   // Homeを開くだけの操作では、Doctor再照合・効果測定再計算を実行しない。
   // 日次処理や結果登録で保存済みのデータから表示だけを更新する。
   try { sbmRefreshHome_({light:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
+  try { sh=ss.getSheetByName(SBM_SHEETS.HOME); sbmApplyHomeDisplayTheme_(sh); } catch(eThemeHome) { sbmLog_('HomeTheme','Warning',String(eThemeHome)); }
   if (sh) { sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); }
 }
 
@@ -10463,6 +10466,7 @@ function sbmStyleArticleDbSheet_(sh) {
     sbmApplyArticleDbRowColors_(sh);
   }
   sbmApplySelectionUi_(sh);
+  try{sbmApplyArticleDbDisplayTheme_(sh);}catch(ignoreArticleThemeStyle){}
 }
 
 /**
@@ -11286,6 +11290,7 @@ function sbmRefreshHome_(options) {
 
   sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
+  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
 }
 
 function sbmRefreshHomeRankSummaryOnly_(snapshot) {
@@ -11323,6 +11328,7 @@ function sbmRefreshHomeDailyStatusOnly_() {
   sh.getRange('B4:J4').setValue(statusText);
   sh.getRange('A4:J4').setBackground(runtimeState.running ? '#dbeafe' : (runtimeState.completedToday ? '#e6f4ea' : (runtimeState.continuationRequired ? '#fef7e0' : (runtimeState.label === 'エラー' ? '#fce8e6' : '#fff2cc'))));
   sh.getRange('B4:J4').setFontColor(runtimeState.running ? '#174ea6' : (runtimeState.completedToday ? '#0b8043' : '#b3261e')).setFontWeight(runtimeState.completedToday ? 'normal' : 'bold');
+  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeDailyTheme){}
   return true;
 }
 
@@ -12760,6 +12766,82 @@ function sbmSyncHomeVersionOnly_(){
   }
 }
 
+
+/* ========================================================================== *
+ * v6.2.91 Display Theme Prototype
+ * ========================================================================== */
+function sbmDisplayTheme_(){
+  var v=String(sbmGetSetting_('DisplayTheme','STANDARD')||'STANDARD').toUpperCase();
+  return v==='MONOCHROME'?'MONOCHROME':'STANDARD';
+}
+function sbmIsMonochromeTheme_(){return sbmDisplayTheme_()==='MONOCHROME';}
+function sbmDisplayThemeLabel_(){return sbmIsMonochromeTheme_()?'モノクロ':'標準';}
+
+function sbmApplyHomeDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sh.getRange('A1:J1').setBackground('#3c4043').setFontColor('#ffffff');
+  sh.getRange('J1').setFontColor('#e8eaed');
+  sh.getRange('A2:J3').setBackground('#f1f3f4').setFontColor('#202124');
+  sh.getRange('A5:D5').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('A6:D12').setBackground('#f8f9fa').setFontColor('#202124');
+  sh.getRange('E5:H5').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('E6:H11').setBackground('#f8f9fa').setFontColor('#202124');
+  sh.getRange('I5:J5').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('I6:J11').setBackground('#f8f9fa').setFontColor('#202124');
+  sh.getRange('A13:J13').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('A14:J15').setBackground('#fafafa').setFontColor('#202124');
+  sh.getRange('A16:J16').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('H17:J17').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('A22:J22').setBackground('#e8eaed').setFontColor('#202124');
+  sh.getRange('A23:J30').setBackground('#fafafa').setFontColor('#202124');
+}
+function sbmApplyArticleDbDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  var lc=Math.max(sh.getLastColumn(),SBM_HEADERS.ARTICLE_DB.length),lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
+  sh.getRange(1,1,1,lc).setBackground('#3c4043').setFontColor('#ffffff');
+  if(lr>1){
+    sbmApplyArticleDbRowColors_(sh);
+    if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontColor('#202124').setFontWeight('normal');
+    if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],lr-1,1).setFontColor('#5f6368').setFontWeight('bold');
+  }
+}
+function sbmMonochromeDialogOverrides_(){
+  if(!sbmIsMonochromeTheme_())return '';
+  return 'body{background:#f5f5f5!important;color:#202124!important}'+
+    '.item,.card,.box{background:#fff!important;border-color:#d0d3d6!important}'+
+    '.work,.title,h2,h3{color:#202124!important}'+
+    '.sub,.meta,.note,.small{color:#5f6368!important}'+
+    '.next,.summary{background:#f1f3f4!important;border-color:#dadce0!important;color:#202124!important}';
+}
+function sbmApplyDisplayThemePrototype_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),home=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(home){
+    sbmBuildHomeSheet_();
+    sbmRefreshHome_({light:true});
+    home=ss.getSheetByName(SBM_SHEETS.HOME);
+    if(home)sbmApplyHomeDisplayTheme_(home);
+  }
+  var article=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(article){
+    sbmStyleArticleDbSheet_(article);
+    sbmApplyArticleDbDisplayTheme_(article);
+  }
+  SpreadsheetApp.flush();
+}
+function sbmChangeDisplayTheme(){
+  var ui=SpreadsheetApp.getUi(),current=sbmDisplayThemeLabel_();
+  var r=ui.alert(
+    '表示テーマを変更',
+    '現在：'+current+'\n\n「はい」＝モノクロ\n「いいえ」＝標準\n\n表示だけを切り替えます。記事データ・GSC・診断・Workflowには影響しません。',
+    ui.ButtonSet.YES_NO_CANCEL
+  );
+  if(r===ui.Button.CANCEL||r===ui.Button.CLOSE)return;
+  var theme=(r===ui.Button.YES)?'MONOCHROME':'STANDARD';
+  sbmSetSetting_('DisplayTheme',theme,'SIMS Manager表示テーマ');
+  sbmApplyDisplayThemePrototype_();
+  ui.alert('表示テーマ','表示テーマを「'+(theme==='MONOCHROME'?'モノクロ':'標準')+'」へ変更しました。\n\nHome・記事管理・未完了作業再開ダイアログへ反映します。',ui.ButtonSet.OK);
+}
+
 function onOpen() {
   // Product v6.1.1: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
@@ -12815,6 +12897,7 @@ function onOpen() {
     .addItem('初期設定','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
     .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
+    .addItem('表示テーマを変更','sbmChangeDisplayTheme')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets');
 
@@ -18033,6 +18116,7 @@ function sbmDoctorShowResumeCaseChooser_(items){
       '<div class="next"><b>次にすること：</b>'+escServer_(x.nextAction||'')+'</div>'+
       '<div class="small">一覧の操作を準備しています…</div></div>';
   }).join('');
+  var themeCss=sbmMonochromeDialogOverrides_();
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 6px;font-size:20px}.sub{font-size:13px;color:#5f6368;line-height:1.6;margin-bottom:12px}.item{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.item.recommend{border-left:5px solid #f9ab00}.title{font-weight:700;font-size:14px}.work{font-size:15px;color:#174ea6;font-weight:700;margin:5px 0}.meta{font-size:12px;color:#5f6368;line-height:1.6}.next{background:#f1f5ff;border-radius:6px;padding:8px;margin-top:8px;font-size:13px}.cleanup{background:#fef7e0;border-radius:6px;padding:8px;margin-top:8px;font-size:12px;color:#7a4b00}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}button{border:1px solid #dadce0;border-radius:6px;padding:8px 14px;background:#fff;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.warn{background:#fff7e6;color:#7a4b00}.status{font-size:12px;white-space:pre-wrap;margin-top:8px}.err{color:#b3261e}.ok{color:#137333}.small{font-size:11px;color:#80868b}</style></head><body>'+
     '<h2>未完了の作業を選ぶ</h2><div class="sub">続けたい作業を1件選んでください。Case番号ではなく、何をしていた案件かを中心に表示しています。整理候補は履歴を消さず、未完了一覧から外せます。</div><div id="root">'+fallbackHtml+'</div><div id="status" class="status"></div><script>'+

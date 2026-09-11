@@ -1,7 +1,9 @@
-test: audit generated dialog JavaScript escaping (v6.2.90)
+feat: add standard and monochrome display theme prototype (v6.2.91)
 
-- fix five latent newline-escape hazards in the Doctor follow-up dialog
-- add pre-package audit for generated browser-side dialog scripts
-- cover unfinished-work chooser, wait screen, single-case resume and Doctor dialog
-- keep feature and diagnosis logic unchanged
+- add display theme switch under settings and maintenance
+- preserve the current product colors as STANDARD
+- add MONOCHROME styling for Home, article management and unfinished-work chooser
+- retain semantic blue, green, warning and danger colors
+- keep article ranks simple with icon and text emphasis
+- keep data collection, diagnosis and workflow logic unchanged
 - sync Full and Starter editions

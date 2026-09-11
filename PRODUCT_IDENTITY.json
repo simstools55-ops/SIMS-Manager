@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.90",
+  "current_version": "6.2.91",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.90: 生成HTML/ブラウザJavaScript監査。Doctorダイアログ内に残っていた改行escape不備5か所を修正し、自動監査テストを追加。",
-  "version": "6.2.90",
+  "notes": "v6.2.91: 表示テーマ試作。標準/モノクロ切替を追加し、Home・記事管理・未完了作業再開ダイアログへ表示層だけで適用。",
+  "version": "6.2.91",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.90-ST"
+  "starter_display_version": "v6.2.91-ST"
 }
