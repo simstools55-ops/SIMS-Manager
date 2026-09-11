@@ -1,9 +1,8 @@
-fix: rebuild missing cannibalization follow-up request (v6.2.82)
+fix: render long cannibalization diagnosis request reliably (v6.2.83)
 
-- rebuild Writer follow-up diagnosis requests when FOLLOW_UP_REQUEST is missing
-- reconstruct the original Article Doctor request from the existing Case and article database
-- preserve the same CaseID while rebuilding the follow-up request
-- persist the regenerated request for later resume
-- return explicit errors without closing the article detail dialog
-- keep daily processing, rank criteria, 14-day gate, article update and Merge logic unchanged
+- render long aDoctor request JSON directly inside the textarea
+- remove client-side Base64 decode dependency for diagnosis requests
+- keep displayed request and copied request identical
+- restore saved Doctor response with the same safe direct-render method
+- keep diagnosis generation, daily processing, rank criteria and Merge logic unchanged
 - sync Full and Starter editions

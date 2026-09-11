@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.82",
+  "current_version": "6.2.83",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.82: Writer follow-upカニバリ精密診断の既存Case復元を強化。FOLLOW_UP_REQUEST未保存でもWriter結果・記事DB・元Caseからオンデマンド再生成。",
-  "version": "6.2.82",
+  "notes": "v6.2.83: 長文化するカニバリ精密診断Requestの表示をサーバー側textarea直接埋め込み方式へ変更し、空欄表示を防止。",
+  "version": "6.2.83",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.82-ST"
+  "starter_display_version": "v6.2.83-ST"
 }
