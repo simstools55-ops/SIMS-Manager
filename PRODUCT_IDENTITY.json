@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.97",
+  "current_version": "6.2.98",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.97: 記事情報更新の初期点検で発生するInvalid argumentを修正。最終行取得を安全走査へ変更し、工程付きエラーを追加。",
-  "version": "6.2.97",
+  "notes": "v6.2.98: 改善ナビでSearch Consoleクエリ0件でも本文取得済みならLIMITEDモードでaWriter依頼文を生成。クエリ未取得時の安全制約と本文ベース改善ポイントを追加。",
+  "version": "6.2.98",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.97-ST"
+  "starter_display_version": "v6.2.98-ST"
 }

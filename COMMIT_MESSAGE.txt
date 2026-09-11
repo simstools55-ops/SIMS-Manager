@@ -1,7 +1,10 @@
-fix: harden article-info audit row detection (v6.2.97)
+fix: generate aWriter request when query data is unavailable (v6.2.98)
 
-- replace fragile last-row detection with a bounded key-column value scan
-- validate article-info column indexes before range reads
-- add stage-specific errors for article-info audit failures
-- keep update logic, Search Console behavior and display themes unchanged
+- make article source the required input for Improvement Navi
+- use LIMITED mode when Search Console returns zero query rows
+- generate body-based P0/P1/P2 guidance without inventing search queries
+- add safety constraints against title, main-query and intent changes in LIMITED mode
+- keep internal-link suggestions conservative when query evidence is unavailable
+- enable the aWriter request button in LIMITED mode
+- keep FULL mode and workflow registration unchanged
 - sync Full and Starter editions
