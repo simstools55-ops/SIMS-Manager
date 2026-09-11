@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.95
+ * SIMS Manager Product v6.2.96
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.95';
+const SBM_VERSION = '6.2.96';
+// v6.2.96: UI寸法・ダイアログ統一仕上げ。今日の改善ヘッダーを34pxへ統一し、利用者向け主要一覧のA列「選択」を56pxへ拡張。主要ダイアログへ共通余白・角丸・見出し・フォーム・ボタン寸法を適用し、MONOCHROME時は同じ階層グレースケールへ統一。
 // v6.2.95: モノクロテーマ最終実装。白〜淡灰データ面で不可視になる白文字を全主要シートで自動補正し、改善の推移/改善履歴の判定ラベルはモノクロ専用の意味色へ明示変換。「大きく改善」「元に戻す検討」等も白背景で必ず読めるよう修正。
 // v6.2.94: v6.2.93で確定した階層グレースケールを利用者向け主要シートと主要ダイアログへ統一。表見出しは中濃度グレー、データ面は白〜ごく淡灰、意味色は文字側に保持。標準テーマと処理ロジックは変更なし。
 // v6.2.93: モノクロHomeを階層グレースケールへ再設計。最上部のみ濃灰、主要セクション見出しは中濃度、補助見出しは淡灰。データ領域にごく淡い灰を使い、判定は意味色の文字＋必要最小限の淡灰で表現。「大きく改善」は白背景でも読める濃緑文字へ補正。
@@ -5928,8 +5929,9 @@ function sbmBuildTodayImprovementSheet_() {
   sh.getRange(1,1,1,SBM_HEADERS.TODAY.length)
     .setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  var widths = [48,110,360,520,95,105,190,80,90,70,75,220,95];
+  var widths = [56,110,360,520,95,105,190,80,90,70,75,220,95];
   widths.forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
+  sh.setRowHeight(1,34);
   sh.getRange(1,1,Math.max(2,sh.getMaxRows()),SBM_HEADERS.TODAY.length).setVerticalAlignment('middle');
   sh.getRange('C:C').setWrap(true);
   sh.getRange('D:D').setWrap(true);
@@ -8573,7 +8575,7 @@ function sbmPolishImprovementHistoryView_(){
     sh.setRowHeight(1,34);
 
     var widths={
-      '選択':48,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,
+      '選択':56,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,
       '1週':74,'2週':74,'3週':74,'4週':74,'最終判定':112
     };
     Object.keys(widths).forEach(function(h){
@@ -9488,7 +9490,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
   sh.getRange(1,1,1,lc).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   sh.setRowHeight(1,34);
   var hm=sbmHeaderMap_(sh);
-  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
   try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(e){}
   if(sh.getMaxColumns()>=14){try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(e){}}
@@ -9852,25 +9854,51 @@ function sbmDisplayValueJa_(v) {
   return sbmLooksLikeDateValue_(v) ? sbmJapaneseDateTimeText_(v) : String(v);
 }
 
+function sbmCommonDialogCss_(){
+  var mono=sbmIsMonochromeTheme_();
+  var neutral=mono
+    ? 'body{background:#f5f5f5;color:#202124}h1,h2,h3{color:#303134}.card,.box,.item,.panel,.section{background:#fff;border-color:#dadce0}.meta,.note,.sub,.help,.small{color:#5f6368}table th{background:#e8eaed;color:#202124}'
+    : '';
+  return '<style data-sbm-common-dialog-style="1">'+
+    'html,body{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}'+
+    'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:22px;line-height:1.65}'+
+    'h1,h2{margin-top:0}h2{font-size:22px}h3{font-size:17px}'+
+    '.card,.box,.item,.panel,.section{border-radius:10px}'+
+    'button,.btn,.sbm-btn{min-height:38px;border-radius:7px;padding:9px 16px;font-weight:700;cursor:pointer}'+
+    'input,select,textarea{border:1px solid #bdc1c6;border-radius:7px;padding:9px 10px;font:inherit;background:#fff;color:#202124}'+
+    'textarea{line-height:1.55}table{border-collapse:collapse}table th,table td{line-height:1.45}'+
+    '.actions,.sbm-actions{gap:10px}'+neutral+
+    '</style>';
+}
+
 function sbmEnsureCloseButton_(output) {
   var htmlOutput = output;
   if (typeof output === 'string') htmlOutput = HtmlService.createHtmlOutput(output);
   if (!htmlOutput || typeof htmlOutput.getContent !== 'function') return output;
 
   var content = htmlOutput.getContent();
-  if (content.indexOf('data-sbm-common-close') !== -1) return htmlOutput;
 
-  var footer = '<div data-sbm-common-close="1" style="display:flex;justify-content:flex-end;gap:10px;margin:22px 0 4px;padding-top:14px;border-top:1px solid #e5e7eb">'
-    + '<button type="button" onclick="google.script.host.close()" style="border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer">閉じる</button>'
-    + '</div>';
-
-  if (/<\/body>/i.test(content)) {
-    content = content.replace(/<\/body>/i, footer + '</body>');
-  } else if (/<\/div>\s*$/i.test(content)) {
-    content = content.replace(/<\/div>\s*$/i, footer + '</div>');
-  } else {
-    content += footer;
+  // v6.2.96: all dialogs using this guard receive the same spacing, form and button dimensions.
+  if (content.indexOf('data-sbm-common-dialog-style') === -1) {
+    var commonCss = sbmCommonDialogCss_();
+    if (/<\/head>/i.test(content)) content = content.replace(/<\/head>/i, commonCss + '</head>');
+    else content = commonCss + content;
   }
+
+  if (content.indexOf('data-sbm-common-close') === -1) {
+    var footer = '<div data-sbm-common-close="1" style="display:flex;justify-content:flex-end;gap:10px;margin:22px 0 4px;padding-top:14px;border-top:1px solid #e5e7eb">'
+      + '<button type="button" onclick="google.script.host.close()" style="min-height:38px;border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer">閉じる</button>'
+      + '</div>';
+
+    if (/<\/body>/i.test(content)) {
+      content = content.replace(/<\/body>/i, footer + '</body>');
+    } else if (/<\/div>\s*$/i.test(content)) {
+      content = content.replace(/<\/div>\s*$/i, footer + '</div>');
+    } else {
+      content += footer;
+    }
+  }
+
   return HtmlService.createHtmlOutput(content)
     .setWidth(typeof htmlOutput.getWidth === 'function' ? htmlOutput.getWidth() : 600)
     .setHeight(typeof htmlOutput.getHeight === 'function' ? htmlOutput.getHeight() : 500);
@@ -9896,6 +9924,8 @@ function sbmHistoryDialogCss_() {
     + '.sbm-empty{background:#f8f9fa;border:1px dashed #bdc1c6;border-radius:8px;padding:14px;color:#5f6368}'
     + '.sbm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
     + '.sbm-btn{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + 'button,.sbm-btn{min-height:38px;border-radius:7px;padding:9px 16px}input,select,textarea{border-radius:7px;padding:9px 10px;font:inherit}'
+    + (sbmIsMonochromeTheme_()?'.sbm-meta,.sbm-box{background:#f1f3f4}.sbm-section,.sbm-card,.sbm-metric{background:#fff}.sbm-section-title{color:#303134}.sbm-table th{background:#e8eaed;color:#202124}':'')
     + '@media(max-width:620px){.sbm-metrics{grid-template-columns:1fr}.sbm-card-head{display:block}.sbm-badge{margin-top:6px}}'
     + '</style>';
 }
@@ -10432,7 +10462,7 @@ function sbmStyleArticleDbSheet_(sh) {
   sh.setRowHeight(1, 34);
 
   var widths = {
-    '選択':48,'記事ランク':110,'作業状態':115,'記事URL':285,'メインクエリ':210,'H1タイトル':430,
+    '選択':56,'記事ランク':110,'作業状態':115,'記事URL':285,'メインクエリ':210,'H1タイトル':430,
     'クリック数':90,'表示回数':95,'CTR':72,'掲載順位':88,'ArticleID':105,'データ更新日':105,'記事タイトル':430
   };
   Object.keys(widths).forEach(function(h){
@@ -10650,7 +10680,7 @@ function sbmRebuildImprovementHistoryList_() {
   }
 
   var widths = {
-    '選択': 52,
+    '選択': 56,
     '改善日': 105,
     '記事タイトル': 360,
     '改善概要': 420,
@@ -11590,7 +11620,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   }
   sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
   sh.setRowHeight(1,34);
-  var widths={'選択':48,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
+  var widths={'選択':56,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
 
   // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
@@ -11955,7 +11985,7 @@ function sbmStyleEffectSheetV2_() {
 
   var hm = sbmHeaderMap_(sh);
   var widths = {
-    '選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
+    '選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
     '改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110
   };
   Object.keys(widths).forEach(function(h) {
@@ -12923,6 +12953,7 @@ function sbmApplyMonochromeTableTheme_(sh,opts){
 function sbmApplyArticleDbDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
   sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreArticleSelectWidth){}
   var lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
   if(lr>1){
     if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontWeight('normal');
@@ -12932,16 +12963,19 @@ function sbmApplyArticleDbDisplayTheme_(sh){
 function sbmApplyTodayDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
   sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setRowHeight(1,34);sh.setColumnWidth(1,56);}catch(ignoreTodayDimension){}
 }
 function sbmApplyEffectDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
   sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreEffectSelectWidth){}
   var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
   if(n&&hm['判定'])sbmApplyMonochromeSemanticColumn_(sh,hm['判定'],n);
 }
 function sbmApplyHistoryDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
   sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreHistorySelectWidth){}
   var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
   if(n){
     ['1週','2週','3週','4週','最終判定'].forEach(function(h){
@@ -14372,7 +14406,7 @@ function sbmFinishEffectOperationView_(sh,row){
     sh.getRange(1,1,1,Math.min(lc,13)).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
     sh.setRowHeight(1,34);
   }catch(ignoreHeader){}
-  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
   try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(ignoreShow){}
   if(sh.getMaxColumns()>=14)try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(ignoreHide){}

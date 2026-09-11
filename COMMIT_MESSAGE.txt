@@ -1,9 +1,9 @@
-fix: finalize monochrome readability across judgment cells (v6.2.95)
+style: align sheet dimensions and dialog UI (v6.2.96)
 
-- prevent inherited white text from disappearing on white and pale-gray data surfaces
-- add a shared monochrome semantic-text mapping for judgments
-- fix Effect judgment colors including "大きく改善" and "元に戻す検討"
-- apply the same mapping to weekly and final judgments in Improvement History
-- reuse the same semantic mapping on Home for visual consistency
+- match the Today header height to other primary sheets
+- widen selection columns to prevent clipped header text
+- add shared dialog spacing, radius, form and button sizing
+- align history and effect detail dialogs with the common dialog system
+- preserve the approved monochrome hierarchy in dialogs
 - keep STANDARD theme and processing logic unchanged
 - sync Full and Starter editions
