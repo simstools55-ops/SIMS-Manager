@@ -1,10 +1,12 @@
 /**
- * SIMS Manager Product v6.2.93
+ * SIMS Manager Product v6.2.95
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.93';
+const SBM_VERSION = '6.2.95';
+// v6.2.95: モノクロテーマ最終実装。白〜淡灰データ面で不可視になる白文字を全主要シートで自動補正し、改善の推移/改善履歴の判定ラベルはモノクロ専用の意味色へ明示変換。「大きく改善」「元に戻す検討」等も白背景で必ず読めるよう修正。
+// v6.2.94: v6.2.93で確定した階層グレースケールを利用者向け主要シートと主要ダイアログへ統一。表見出しは中濃度グレー、データ面は白〜ごく淡灰、意味色は文字側に保持。標準テーマと処理ロジックは変更なし。
 // v6.2.93: モノクロHomeを階層グレースケールへ再設計。最上部のみ濃灰、主要セクション見出しは中濃度、補助見出しは淡灰。データ領域にごく淡い灰を使い、判定は意味色の文字＋必要最小限の淡灰で表現。「大きく改善」は白背景でも読める濃緑文字へ補正。
 // v6.2.92: モノクロテーマを主要5シートへ拡張。Homeトップバー基準で見出し/項目セルを濃灰+白文字、データセルを白背景に統一。改善判定エリアは背景色を使わず、既存の意味色・太字・文字サイズで表現。標準テーマは従来配色を維持。
 // v6.2.91: 表示テーマ試作。設定・メンテナンスからSTANDARD / MONOCHROMEを切替可能。処理ロジックには触れず、Home・記事管理・未完了作業再開ダイアログだけを表示層で切替。意味色（青/緑/黄〜橙/赤）は維持。
@@ -12844,28 +12846,13 @@ function sbmApplyHomeDisplayTheme_(sh){
 
   // Judgment area: preserve semantic colors but make every value readable on pale backgrounds.
   // In particular, "大きく改善" used white text in STANDARD; MONOCHROME converts it to dark green.
-  var monoJudgment={
-    '大きく改善':{fg:'#0b8043',weight:'bold',size:12},
-    '改善':{fg:'#0d652d',weight:'bold',size:11},
-    '改善傾向':{fg:'#274e13',weight:'bold',size:11},
-    '変化小':{fg:'#7a4f01',weight:'bold',size:11},
-    '経過観察':{fg:'#7a4f01',weight:'bold',size:11},
-    '要確認':{fg:'#7f6000',weight:'bold',size:11},
-    '見直し候補':{fg:'#b31412',weight:'bold',size:11},
-    '測定待ち':{fg:'#5f6368',weight:'normal',size:11},
-    '未測定':{fg:'#5f6368',weight:'normal',size:11},
-    '未判定':{fg:'#5f6368',weight:'normal',size:11},
-    '追加経過観察':{fg:'#174ea6',weight:'bold',size:11},
-    '追加経過観察中':{fg:'#174ea6',weight:'bold',size:11},
-    'データ不足':{fg:'#351c75',weight:'bold',size:11}
-  };
   var styleCells=[
     ['A18:C18','大きく改善'],['A19:C19','改善'],['A20:C20','改善傾向'],
     ['D18:G18','変化小'],['D19:G19','要確認'],['D20:G20','見直し候補'],
     ['H18:J18','測定待ち'],['H19:J19','経過観察'],['H20:J20','追加経過観察'],['H21:J21','データ不足']
   ];
   styleCells.forEach(function(x){
-    var st=monoJudgment[x[1]]||{fg:text,weight:'normal',size:11};
+    var st=sbmMonochromeSemanticTextStyle_(x[1]);
     sh.getRange(x[0]).setFontColor(st.fg).setFontWeight(st.weight).setFontSize(st.size);
   });
   sh.getRangeList(['C18:C20','G18:G20','J18:J21']).setFontWeight('bold').setFontSize(12);
@@ -12874,56 +12861,97 @@ function sbmApplyHomeDisplayTheme_(sh){
   sh.getRange('A23:J30').setFontColor(text);
 }
 
-function sbmApplyMonochromeTableTheme_(sh){
+function sbmMonochromeSemanticTextStyle_(label){
+  var v=String(label||'').trim();
+  var st={fg:'#202124',weight:'normal',size:11};
+  if(v==='大きく改善'||v==='改善完了')return {fg:'#0b8043',weight:'bold',size:12};
+  if(v==='改善')return {fg:'#0d652d',weight:'bold',size:11};
+  if(v==='改善傾向')return {fg:'#274e13',weight:'bold',size:11};
+  if(v==='変化小'||v==='経過観察')return {fg:'#7a4f01',weight:'bold',size:11};
+  if(v==='要確認')return {fg:'#7f6000',weight:'bold',size:11};
+  if(v==='見直し候補'||v==='再改善必要'||v==='悪化'||v==='処置待ち'||v==='再診待ち'||v==='要再診'||v==='要処置'||v==='測定期限超過')return {fg:'#b31412',weight:'bold',size:11};
+  if(v==='元に戻す検討')return {fg:'#b31412',weight:'bold',size:12};
+  if(v==='追加経過観察'||v==='追加経過観察中'||v==='経過観察中'||v==='測定中'||v==='再判定待ち')return {fg:'#174ea6',weight:'bold',size:11};
+  if(v==='データ不足')return {fg:'#351c75',weight:'bold',size:11};
+  if(v==='測定待ち'||v==='判定待ち'||v==='未測定'||v==='未判定')return {fg:'#5f6368',weight:'normal',size:11};
+  return st;
+}
+function sbmEnsureMonochromeReadableText_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
+  var lr=sh.getLastRow(),lc=sh.getLastColumn();
+  if(lr<2||lc<1)return;
+  // Monochrome data surfaces are white/pale gray. Any white/light text inherited
+  // from STANDARD would become invisible, so convert only near-white font colors.
+  var rg=sh.getRange(2,1,lr-1,lc),colors=rg.getFontColors(),changed=false;
+  for(var r=0;r<colors.length;r++){
+    for(var c=0;c<colors[r].length;c++){
+      var x=String(colors[r][c]||'').toLowerCase();
+      if(x==='#ffffff'||x==='#fff'||x==='white'||x==='#f8f9fa'||x==='#f1f3f4'||x==='#e8eaed'){
+        colors[r][c]='#202124';
+        changed=true;
+      }
+    }
+  }
+  if(changed)rg.setFontColors(colors);
+}
+function sbmApplyMonochromeSemanticColumn_(sh,col,n){
+  if(!sh||!col||!n)return;
+  var rg=sh.getRange(2,col,n,1),vals=rg.getDisplayValues(),fgs=[],weights=[],sizes=[];
+  vals.forEach(function(row){
+    var st=sbmMonochromeSemanticTextStyle_(row[0]);
+    fgs.push([st.fg]);weights.push([st.weight]);sizes.push([st.size]);
+  });
+  rg.setFontColors(fgs).setFontWeights(weights).setFontSizes(sizes);
+}
+function sbmApplyMonochromeTableTheme_(sh,opts){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  opts=opts||{};
   var lr=sh.getLastRow(),lc=sh.getLastColumn();
   if(lc<1)return;
   sh.getRange(1,1,1,lc)
-    .setBackground(sbmThemeTopBarBg_())
-    .setFontColor(sbmThemeTopBarFg_())
+    .setBackground('#5f6368')
+    .setFontColor('#ffffff')
     .setFontWeight('bold');
   if(lr>1){
-    // Only the background is normalized. Existing data font colors, weights and number formats remain.
-    sh.getRange(2,1,lr-1,lc).setBackground('#ffffff');
+    sh.getRange(2,1,lr-1,lc).setBackground(opts.dataBg||'#ffffff');
+    if(opts.band!==false){
+      for(var r=3;r<=lr;r+=2)sh.getRange(r,1,1,lc).setBackground('#fafafa');
+    }
+    sbmEnsureMonochromeReadableText_(sh);
   }
 }
-
 function sbmApplyArticleDbDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  sbmApplyMonochromeTableTheme_(sh);
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
   var lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
   if(lr>1){
-    // Article rank becomes icon + text centric.
     if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontWeight('normal');
-    // Work-state meaning remains in text; do not repaint the whole row.
     if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],lr-1,1).setFontColor('#5f6368').setFontWeight('bold');
   }
 }
 function sbmApplyTodayDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  sbmApplyMonochromeTableTheme_(sh);
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
 }
 function sbmApplyEffectDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  sbmApplyMonochromeTableTheme_(sh);
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
   var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
-  if(n&&hm['判定']){
-    // Preserve the judgment font colors/weights from the normal style, but remove the cell fill.
-    sh.getRange(2,hm['判定'],n,1).setBackground('#ffffff').setFontSize(11);
-  }
+  if(n&&hm['判定'])sbmApplyMonochromeSemanticColumn_(sh,hm['判定'],n);
 }
 function sbmApplyHistoryDisplayTheme_(sh){
   if(!sh||!sbmIsMonochromeTheme_())return;
-  sbmApplyMonochromeTableTheme_(sh);
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
   var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
   if(n){
-    // Weekly/final judgment keeps semantic font color/weight; only the fill becomes white.
     ['1週','2週','3週','4週','最終判定'].forEach(function(h){
-      if(hm[h])sh.getRange(2,hm[h],n,1).setBackground('#ffffff').setFontSize(11);
+      if(hm[h])sbmApplyMonochromeSemanticColumn_(sh,hm[h],n);
     });
+    // Route has a blue text treatment in STANDARD and remains readable on neutral surfaces.
     if(hm['改善経路'])sh.getRange(2,hm['改善経路'],n,1).setBackground('#ffffff');
   }
 }
+
 function sbmApplyVisibleSheetDisplayThemes_(){
   if(!sbmIsMonochromeTheme_())return;
   var ss=SpreadsheetApp.getActiveSpreadsheet();
@@ -12937,10 +12965,11 @@ function sbmApplyVisibleSheetDisplayThemes_(){
 function sbmMonochromeDialogOverrides_(){
   if(!sbmIsMonochromeTheme_())return '';
   return 'body{background:#f5f5f5!important;color:#202124!important}'+
-    '.item,.card,.box{background:#fff!important;border-color:#d0d3d6!important}'+
-    '.work,.title,h2,h3{color:#202124!important}'+
+    '.item,.card,.box{background:#fff!important;border-color:#dadce0!important;box-shadow:none!important}'+
+    '.work,.title,h2,h3{color:#303134!important}'+
     '.sub,.meta,.note,.small{color:#5f6368!important}'+
-    '.next,.summary{background:#f1f3f4!important;border-color:#dadce0!important;color:#202124!important}';
+    '.next,.summary{background:#f1f3f4!important;border-color:#dadce0!important;color:#202124!important}'+
+    'details{background:#fafafa!important;border-color:#e0e0e0!important}';
 }
 
 function sbmRestoreStandardDisplayTheme_(){

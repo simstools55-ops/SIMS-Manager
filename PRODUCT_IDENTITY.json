@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.93",
+  "current_version": "6.2.95",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.93: モノクロHomeを階層グレースケールへ再設計。重要度に応じた濃淡、淡灰データ面、白背景でも読める意味色へ補正。",
-  "version": "6.2.93",
+  "notes": "v6.2.95: モノクロテーマ最終実装。白/淡灰背景で不可視になる白文字を全主要シートで補正し、判定ラベルをモノクロ専用意味色へ統一。",
+  "version": "6.2.95",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.93-ST"
+  "starter_display_version": "v6.2.95-ST"
 }

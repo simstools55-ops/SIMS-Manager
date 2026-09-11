@@ -1,9 +1,9 @@
-style: refine monochrome Home visual hierarchy (v6.2.93)
+fix: finalize monochrome readability across judgment cells (v6.2.95)
 
-- reserve the darkest gray for the product top bar
-- tone down field labels and section headings by information priority
-- add subtle grayscale surfaces to selected data areas
-- keep semantic status colors in text instead of heavy fills
-- fix the invisible white text for the "大きく改善" judgment
+- prevent inherited white text from disappearing on white and pale-gray data surfaces
+- add a shared monochrome semantic-text mapping for judgments
+- fix Effect judgment colors including "大きく改善" and "元に戻す検討"
+- apply the same mapping to weekly and final judgments in Improvement History
+- reuse the same semantic mapping on Home for visual consistency
 - keep STANDARD theme and processing logic unchanged
 - sync Full and Starter editions
