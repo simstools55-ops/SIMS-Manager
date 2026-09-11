@@ -1,9 +1,10 @@
-SIMS Manager v6.2.71: 記事詳細から追加診断待ちCaseへ復帰
+SIMS Manager v6.2.72: Merge完了のArticleID照合とPrimary監視を修正
 
-- 保存済みDoctor結果の追加診断指定を記事詳細で認識
-- インデックス要確認より追加診断待ちを優先表示
-- 「aDoctorで精密診断する」を「カニバリ精密診断へ進む」へ切替
-- 単体診断を再発行せず同一Caseの追加診断依頼を開く
-- v6.2.69でモニター中へ入った既存Caseもオンデマンド復元
+- Case記事が吸収元でもMerge完了できるよう安全照合を修正
+- Case記事がPrimaryまたはabsorbed_article_idsに存在することを検証
+- 統合先Primary ArticleID/URLを独立して検証
+- 完了後のモニター対象を統合先Primaryへ修正
+- 吸収元は既存のMerge管理対象外処理を維持
+- 統合先記事・吸収記事を開くボタンを維持
 - 日次GSC取得・14日ゲート・記事ランク判定・記事情報更新は変更なし
 - Full / Starterを同期

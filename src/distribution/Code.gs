@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.71';
+const SBM_VERSION = '6.2.72';
+// v6.2.72: Merge完了時はCase記事が統合先またはabsorbed記事に含まれることを検証し、統合先Primaryをモニター対象として登録。
 // v6.2.71: 記事詳細が保存済みDoctor結果の「追加診断待ち」を認識し、単体診断を再発行せず同一Caseのカニバリ精密診断へ復帰できる導線を追加。
 // v6.2.69: 記事詳細の主操作を記事状態連動へ変更。通常記事では操作ボタンを出さず、要確認・インデックス要確認・要改善・改善中・モニター中に必要な操作だけ表示。要確認画面もSearch Console選択に応じて主ボタンを切替。
 // v6.2.68: 要確認記事のSearch Console確認を「Googleに登録／未登録」の選択式へ変更。未登録理由を記録し「インデックス要確認」として保持できる第三分岐を追加。
@@ -19000,7 +19001,14 @@ function sbmDoctorCompleteMergeUserActions_(caseId,checks){
   if(checks.articlePublished!==true||!redirectMode)throw new Error('統合原稿の公開と、301設定または「301設定不可・検索対象外化」のどちらかを確認してください。');
   var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('対応するCaseIDがSIMSにありません：'+caseId);
   if(String(rec.hm['状態コード']?rec.values[rec.hm['状態コード']-1]:'')!=='MERGE_USER_ACTION_REQUIRED')throw new Error('このCaseはMerge利用者処置待ちではありません。');
-  var articleId=String(rec.hm['記事ID']?rec.values[rec.hm['記事ID']-1]:'').trim(),articleUrl=String(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:'').trim(),title=String(rec.hm['記事タイトル']?rec.values[rec.hm['記事タイトル']-1]:'').trim();var ctx=sbmDoctorLoadMergeCompletionContextFromRow_(rec.values,rec.hm),ctxPrimary=ctx&&ctx.primary||{};if(ctxPrimary.articleId&&articleId&&String(ctxPrimary.articleId)!==articleId)throw new Error('Merge完了対象ArticleIDがCaseと一致しません。処置完了を停止しました。');if(ctxPrimary.articleUrl&&articleUrl&&sbmNormalizeUrl_(ctxPrimary.articleUrl)!==sbmNormalizeUrl_(articleUrl))throw new Error('Merge完了対象URLがCaseと一致しません。処置完了を停止しました。');
+  var caseArticleId=String(rec.hm['記事ID']?rec.values[rec.hm['記事ID']-1]:'').trim(),caseArticleUrl=String(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:'').trim(),caseTitle=String(rec.hm['記事タイトル']?rec.values[rec.hm['記事タイトル']-1]:'').trim();
+  var ctx=sbmDoctorLoadMergeCompletionContextFromRow_(rec.values,rec.hm),ctxPrimary=ctx&&ctx.primary||{},ctxAbsorbed=ctx&&Array.isArray(ctx.absorbed)?ctx.absorbed:[];
+  var primaryId=String(ctxPrimary.articleId||'').trim(),primaryUrl=String(ctxPrimary.articleUrl||'').trim(),primaryTitle=String(ctxPrimary.articleTitle||'').trim();
+  var caseIsPrimary=!!((caseArticleId&&primaryId&&caseArticleId===primaryId)||(caseArticleUrl&&primaryUrl&&sbmNormalizeUrl_(caseArticleUrl)===sbmNormalizeUrl_(primaryUrl)));
+  var caseIsAbsorbed=ctxAbsorbed.some(function(x){x=x||{};var aid=String(x.articleId||'').trim(),au=String(x.articleUrl||'').trim();return !!((caseArticleId&&aid&&caseArticleId===aid)||(caseArticleUrl&&au&&sbmNormalizeUrl_(caseArticleUrl)===sbmNormalizeUrl_(au)));});
+  if(!caseIsPrimary&&!caseIsAbsorbed)throw new Error('Merge完了対象がCase記事と一致しません。統合先または吸収記事として安全に照合できないため、処置完了を停止しました。');
+  if(!primaryId&&!primaryUrl)throw new Error('Merge結果から統合先記事を確認できません。処置完了を停止しました。');
+  var articleId=primaryId||caseArticleId,articleUrl=primaryUrl||caseArticleUrl,title=primaryTitle||caseTitle;
   try{sbmDoctorEnsureArticleDbRowForMonitoring_(articleId,articleUrl,title);}catch(eRestore){sbmLog_('MergeArticleDbRestore','Warning',String(eRestore));}
   var absorbedResult=sbmDoctorFinalizeMergeAbsorbedArticles_(caseId,ctx,sbmNowText_(),redirectMode),multi=sbmDoctorMultiMergeMetaFromRec_(rec);
   if(multi&&multi.currentStep<multi.totalSteps){
