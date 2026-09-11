@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.69",
+  "current_version": "6.2.70",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.69: 記事詳細の主操作を記事状態連動へ変更。通常記事では操作ボタンを出さず、要確認・インデックス要確認・要改善・改善中・モニター中に必要な操作だけ表示。要確認画面の主ボタンもSearch Console選択に連動。",
-  "version": "6.2.69",
+  "notes": "v6.2.70: WAIT結果に追加診断指定がある場合は単純経過観察へ送らず、カニバリ精密診断へ継続。類似記事本文・GSC Evidenceを自動収集。記事詳細の二重タイトルを解消。",
+  "version": "6.2.70",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.69-ST"
+  "starter_display_version": "6.2.70-ST"
 }
