@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.99",
+  "current_version": "6.3.1",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.99: 未発芽誤判定修正。クエリ未取得だけでは未発芽にせずページ実績を優先。既存誤判定を通常ランクへ安全復元する再確認メニューを追加。",
-  "version": "6.2.99",
+  "notes": "v6.3.1: 利用者向け全モーダルを共通テーマ経由に統一し、健康診断書/精密診断候補もモノクロ対応。記事情報更新のクエリ未取得内訳表示を修正。",
+  "version": "6.3.1",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.99-ST"
+  "starter_display_version": "v6.3.1-ST"
 }

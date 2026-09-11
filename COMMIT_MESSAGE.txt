@@ -1,10 +1,8 @@
-fix: stop query absence from forcing ungerminated rank (v6.2.99)
+style: complete monochrome coverage for user-facing UI (v6.3.1)
 
-- make page performance the source of truth for article rank
-- remove query-unavailable => ungerminated fallback
-- restore stale ungerminated ranks when clicks or impressions prove germination
-- add a safe manual ungerminated-rank recheck command
-- stop Site Health from trusting stale ungerminated labels over strong 180-day evidence
-- route previously strong but recently declining pages to decline/opportunity diagnosis instead
-- keep article content, query values and treatment workflows unchanged
+- route all user-facing modal dialogs through the shared theme wrapper
+- apply monochrome hierarchy to Site Health report and aDoctor candidate sheet
+- preserve semantic action, success, warning and danger colors
+- fix article-info no-query reporting to distinguish normal-rank hold, true ungerminated, restored and held cases
+- keep STANDARD theme and processing logic unchanged
 - sync Full and Starter editions
