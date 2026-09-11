@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.73';
+const SBM_VERSION = '6.2.74';
+// v6.2.74: Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
 // v6.2.73: 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
 // v6.2.72: Merge完了時はCase記事が統合先またはabsorbed記事に含まれることを検証し、統合先Primaryをモニター対象として登録。
 // v6.2.71: 記事詳細が保存済みDoctor結果の「追加診断待ち」を認識し、単体診断を再発行せず同一Caseのカニバリ精密診断へ復帰できる導線を追加。
@@ -17523,7 +17524,7 @@ function sbmDoctorShowSingleCaseResumeDialog_(info){
   var encoded=Utilities.base64EncodeWebSafe(JSON.stringify(info),Utilities.Charset.UTF_8);
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 10px;font-size:20px}.meta,.note{font-size:13px;line-height:1.7}.card{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}textarea{box-sizing:border-box;width:100%;min-height:170px;padding:10px;font:12px/1.45 monospace;white-space:pre;resize:vertical;border:1px solid #bdc1c6;border-radius:7px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}button,.link-button{display:inline-block;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:8px 16px;background:#fff;font-weight:600;cursor:pointer;color:#202124;text-decoration:none}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.status{font-size:13px;white-space:pre-wrap;margin-top:8px}.ok{color:#137333}.err{color:#b3261e}.hidden{display:none}</style></head><body>'+
-    '<h2>aDoctor 精密診断を途中から再開</h2><div id="meta" class="meta"></div>'+
+    '<div id="meta" class="meta"></div>'+
     '<div id="articleCard" class="card hidden"><b>対象記事</b><div class="note">紹介状を確認・コピーした後、実際の記事を開いて処置内容を確認できます。</div><div class="actions" style="justify-content:flex-start"><a id="articleOpen" class="link-button" target="_blank" rel="noopener noreferrer">この記事を開く</a></div></div>'+
     '<div id="requestCard" class="card hidden"><b id="requestTitle">aDoctorへ依頼</b><div id="requestNote" class="note">保存済みCaseIDを使って続きから再開します。</div><textarea id="request" readonly></textarea><div id="requestCopyStatus" class="status"></div><div class="actions"><button class="primary" onclick="copyReq()">依頼文をコピー</button></div></div>'+
     '<div id="resultCard" class="card hidden"><b id="resultTitle">回答を登録</b><div id="resultNote" class="note"></div><textarea id="result" placeholder="回答全文またはJSONを貼り付けてください"></textarea><div id="resultStatus" class="status"></div><div class="actions"><button id="resultBtn" class="primary" onclick="submitResult()">回答を登録して次へ進む</button></div></div>'+
@@ -17653,11 +17654,58 @@ function sbmAuditAndRepairWorkflowIntegrity(){
 function sbmAuditWorkflowIntegrityForDialog(){return sbmAuditWorkflowIntegrity_();}
 function sbmAuditRepairCreatorDuplicates(){try{var r=sbmRepairCreatorDirectDuplicateHistory_();return {ok:true,message:r.removed?('Creator Direct重複履歴を'+r.removed+'件整理しました。除外内容はバックアップ済みです。'):'重複するCreator Direct履歴はありませんでした。'};}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
 
+
+// v6.2.74: 後続のMerge完了で役目を終えた古いaDoctor診断待ちCaseを安全に再開対象外へ整理する。
+// 条件は「同じ吸収記事」「別Case」「Merge最終完了(MONITORING + Merge結果保存済み)」「古いCase作成後にMerge完了」の全一致のみ。
+function sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals){
+  if(!sh||!hm||!vals||!vals.length||!hm['状態コード']||!hm['CaseID'])return {count:0,caseIds:[]};
+  var completed=[];
+  vals.forEach(function(row){
+    var state=String(row[hm['状態コード']-1]||'').trim();
+    if(state!=='MONITORING')return;
+    var mergeRaw=hm['Merge結果JSON']?String(row[hm['Merge結果JSON']-1]||'').trim():'';
+    if(!mergeRaw)return;
+    var completedAt=hm['更新日時']?sbmParseDate_(row[hm['更新日時']-1]):null,completedTs=completedAt&&!isNaN(completedAt.getTime())?completedAt.getTime():0;
+    if(!completedTs)return;
+    var ctx=null;try{ctx=sbmDoctorLoadMergeCompletionContextFromRow_(row,hm);}catch(ignoreCtx){}
+    var absorbed=ctx&&Array.isArray(ctx.absorbed)?ctx.absorbed:[];
+    if(!absorbed.length)return;
+    completed.push({caseId:String(row[hm['CaseID']-1]||'').trim(),ts:completedTs,absorbed:absorbed});
+  });
+  if(!completed.length)return {count:0,caseIds:[]};
+  var changed=0,ids=[],now=sbmNowText_();
+  vals.forEach(function(row,idx){
+    var state=String(row[hm['状態コード']-1]||'').trim();
+    if(state!=='DOCTOR_DIAGNOSIS_PENDING')return;
+    var caseId=String(row[hm['CaseID']-1]||'').trim(),articleId=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'',articleUrl=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';
+    if(!caseId||(!articleId&&!articleUrl))return;
+    var created=hm['作成日時']?sbmParseDate_(row[hm['作成日時']-1]):null,createdTs=created&&!isNaN(created.getTime())?created.getTime():0;
+    if(!createdTs)return; // 作成時刻を安全に比較できない旧Caseは自動整理しない。
+    var winner=null;
+    for(var j=0;j<completed.length&&!winner;j++){
+      var c=completed[j];if(!c||c.caseId===caseId||c.ts<createdTs)continue;
+      for(var k=0;k<c.absorbed.length;k++){
+        var a=c.absorbed[k]||{},aid=String(a.articleId||a.article_id||'').trim(),au=String(a.articleUrl||a.article_url||a.url||'').trim();
+        var same=(articleId&&aid&&articleId===aid)||(articleUrl&&au&&sbmNormalizeUrl_(articleUrl)===sbmNormalizeUrl_(au));
+        if(same){winner=c;break;}
+      }
+    }
+    if(!winner)return;
+    row[hm['状態コード']-1]='SUPERSEDED_COMPLETED_MERGE';
+    if(hm['状態'])row[hm['状態']-1]='後続Merge完了により再開不要';
+    if(hm['更新日時'])row[hm['更新日時']-1]=now;
+    sh.getRange(idx+2,1,1,row.length).setValues([row]);
+    changed++;ids.push(caseId);
+  });
+  return {count:changed,caseIds:ids};
+}
+
 function sbmDoctorResumePrecisionDiagnosis(){
   try{
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
     if(last<2)return sbmAlert_('aDoctor精密診断','途中から再開できる個別精密診断はありません。');
     var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals);
     var active={
       'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
       'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
@@ -17694,6 +17742,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
     try{sbmMaterializePendingFeedbackMergeReferrals_();}catch(ignoreFeedbackMergeMigration){}
     var normal=sbmFindLatestNormalImprovementWorkflow_();
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[];
+    var staleMergeCleanup=sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals);
     var doctorOrConfirm={
       'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,
       'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1
@@ -17732,7 +17781,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
         '正常再開できる作業はありません。\n\n処理失敗状態のCaseが'+failed.length+'件あります。\n'+
         'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
     }
-    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
+    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。'+(staleMergeCleanup&&staleMergeCleanup.count?'\n\n後続Merge完了済みの重複aDoctor Caseを'+staleMergeCleanup.count+'件、再開対象外に整理しました。':'')+'\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
   }catch(e){
     sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
   }
@@ -17869,7 +17918,7 @@ function sbmDoctorRegisterSiteDiagnosisResult(resumeOnly,preferredCaseId){
     'textarea{box-sizing:border-box;width:100%;height:190px;padding:10px;font:12px/1.45 monospace;white-space:pre;border:1px solid #bdc1c6;border-radius:7px;background:#fff}.writerText{height:190px}'+
     '.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:9px;flex-wrap:wrap}button{padding:9px 16px;border:0;border-radius:6px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#e8eaed;color:#202124}.outline{background:#fff;color:#1a73e8;border:1px solid #1a73e8}button:disabled{opacity:.45;cursor:default}'+
     '.status{font-size:12px;line-height:1.65;margin-top:9px;white-space:pre-wrap}.ok{color:#137333}.err{color:#b3261e}.hidden{display:none}.footer{display:flex;justify-content:flex-end;margin-top:14px;padding-top:10px;border-top:1px solid #dadce0}.skipOverlay{position:fixed;inset:0;background:rgba(32,33,36,.35);display:flex;align-items:center;justify-content:center;z-index:20000}.skipCard{width:520px;max-width:88vw;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 28px rgba(0,0,0,.25)}.skipCard h3{margin:0 0 8px;font-size:17px}.skipOption{display:block;padding:7px 4px;font-size:13px}.skipMemo{width:100%;height:90px;margin-top:9px}.skipHint{font-size:12px;color:#5f6368;line-height:1.5}'+
-    '</style></head><body><h2>'+ (resumeOnly?'未完了の作業を再開':'aDoctor診断結果の処置を進める') +'</h2><div class="flow">aDoctor / Site Doctor → SIMS → aWriter / aMerge / aCreator → SIMS</div><div id="resumeStatus" class="status"></div>'+
+    '</style></head><body><div class="flow">aDoctor / Site Doctor → SIMS → aWriter / aMerge / aCreator → SIMS</div><div id="resumeStatus" class="status"></div>'+
     '<div class="step '+(resumeOnly?'hidden':'')+'"><div class="stepTitle">① aDoctor診断結果を登録</div><div class="note">aDoctor回答のJSON部分を貼り付けてください。個別結果（SIMS_DOCTOR_CASE_RESULT_V2）、複数の個別結果を含むaDoctor回答全文、Site Doctor一括結果（SIMS_DOCTOR_SITE_WIDE_PRECISION_RESULT_V1）を受理します。一括結果はSIMSがクラスター／サブグループ単位へ分解し、aWriter / aMerge / aCreator / 経過観察へ振り分けます。</div><textarea id="doctorJson" placeholder="aDoctor結果JSONをここに貼り付けてください"></textarea><div class="actions"><button id="doctorSubmit" type="button" class="primary" style="pointer-events:auto;opacity:1;position:relative;z-index:9999">診断結果を登録</button></div><div id="doctorStatus" class="status"></div></div>'+
     '<div id="writerRequestStep" class="step hidden"><div id="treatmentRequestTitle" class="stepTitle">② 処置担当へ依頼</div><div id="treatmentArticleTitle" style="font-size:14px;font-weight:700;color:#174ea6;background:#f1f5ff;border-radius:6px;padding:8px 10px;margin:0 0 7px"></div><div id="treatmentRequestNote" class="note">aDoctor診断結果からSIMSが紹介状を作成しました。</div><textarea id="writerRequest" class="writerText" readonly></textarea><div class="actions"><button id="prevTreatment" class="secondary hidden" onclick="moveTreatment(-1)">前の紹介状</button><button id="nextTreatment" class="secondary hidden" onclick="moveTreatment(1)">次の紹介状</button><button id="creatorPublishedButton" class="outline hidden" onclick="openCreatorPublishDialog()">新記事の公開を登録</button><button id="skipTreatmentButton" class="outline" onclick="skipCurrentTreatment()">今回の改善を取りやめる</button><button id="copyTreatmentButton" class="primary" onclick="copyWriterRequest()">紹介状をコピー</button></div><div id="articleJumpAfterReferral" class="actions" style="justify-content:flex-start;margin-top:8px"><button id="openArticle" class="outline" onclick="openArticleUrl()" disabled>この記事を開く</button></div><div id="mergeArticleNavStep2" class="actions hidden" style="justify-content:flex-start;margin-top:8px"><button id="openMergePrimaryStep2" class="outline" type="button">統合先記事を開く</button><button id="openMergeAbsorbedStep2" class="outline" type="button">吸収記事を開く</button></div></div>'+
     '<div id="writerResultStep" class="step hidden"><div class="stepTitle">③ Writerの修正結果を登録</div><div class="note">aWriterの回答全文、または最後の <b>SIMS_WRITER_TREATMENT_RESULT_V1</b> JSONを貼り付けてください。登録すると改善履歴・記事管理・改善の推移をモニター状態へ同期します。</div><textarea id="writerJson" placeholder="aWriterの回答全文、またはaWriter処置結果JSONをここに貼り付けてください"></textarea><div class="actions"><button id="writerSubmit" class="primary" onclick="submitWriter()">aWriterの改善結果を登録</button></div><div id="writerStatus" class="status"></div></div>'+
