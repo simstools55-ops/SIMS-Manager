@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.86",
+  "current_version": "6.2.87",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.86: モニター中Caseに残るカニバリ追加診断を未完了再開センターへ表示。旧Case整理候補、処理中表示、Case不一致メッセージを強化。",
-  "version": "6.2.86",
+  "notes": "v6.2.87: 未完了再開を一括読込・索引方式へ高速化。再開時の不要な移行/自動整理書込を廃止し、候補抽出に限定。待機・再開・整理の処理中表示を改善。",
+  "version": "6.2.87",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.86-ST"
+  "starter_display_version": "v6.2.87-ST"
 }

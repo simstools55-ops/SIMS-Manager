@@ -1,10 +1,10 @@
-fix: complete unfinished workflow follow-up and cleanup flow (v6.2.86)
+perf: streamline unfinished workflow resume scan (v6.2.87)
 
-- surface pending cannibalization follow-up diagnoses even when the parent Case is monitoring
-- show obsolete Doctor cases as cleanup candidates with user-facing reasons
-- preserve audit history by archiving obsolete cases instead of deleting rows
-- add busy feedback and double-click protection to resume and cleanup actions
-- report explicit Case mismatch when a Doctor response belongs to another workflow
-- keep resumed Doctor registration on the standard checkpoint flow
-- keep daily processing, rank criteria, article update and Merge decision logic unchanged
+- replace per-Case WorkflowState full scans with one indexed read
+- reuse the same workflow index for normal improvement and Doctor follow-up detection
+- inspect monitoring Cases only when Writer follow-up referral actually exists
+- remove legacy referral migration and stale-case mutation from the resume read path
+- keep resume entry read-only until the user explicitly resumes or cleans up a Case
+- show what the resume scan is doing and stop asking users to wait after 45 seconds
+- fix busy-state feedback for resume and cleanup buttons
 - sync Full and Starter editions
