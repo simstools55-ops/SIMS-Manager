@@ -1,10 +1,9 @@
-feat: preserve Writer follow-up cannibalization diagnosis flow (v6.2.79)
+fix: keep cannibalization diagnosis dialog open (v6.2.80)
 
-- detect MERGE referrals in Writer follow_up_referrals
-- keep completed Writer treatment in monitoring
-- save cannibalization review as a separate follow-up diagnosis
-- add proceed or hold actions after Writer result registration
-- allow deferred follow-up to resume from article detail or unfinished workflow
-- prevent automatic Merge from low-confidence referral
-- keep daily processing, rank criteria, 14-day gate and article update unchanged
+- prevent parent dialog success handler from closing the newly opened diagnosis dialog
+- keep the current dialog open on failure and show the error in place
+- add processing feedback and restore the action button after failures
+- apply the same transition fix to Writer follow-up diagnosis
+- apply the same protection to index-issue follow-up diagnosis
+- keep daily processing, rank criteria, 14-day gate, article update and Merge logic unchanged
 - sync Full and Starter editions

@@ -1,21 +1,21 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.2.79
+> **Current product:** SIMS Manager v6.2.80
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.2.79`
+- Product Version: `6.2.80`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.2.79
+> Current release: SIMS Manager Product v6.2.80
 
 
-## v6.2.79 — 未発芽aDoctor診断を原因診断優先へ変更
+## v6.2.80 — 未発芽aDoctor診断を原因診断優先へ変更
 
 - 未発芽記事を「全面リライト前提」で診断する仕様を廃止しました。
 - aDoctorは検索需要・検索意図・インデックス・カニバリ・SERP Gap・現行内容を先に診断します。
