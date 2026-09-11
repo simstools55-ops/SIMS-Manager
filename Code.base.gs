@@ -1,11 +1,11 @@
 /**
- * SIMS Manager Product v6.2.66
+ * SIMS Manager Product v6.2.67
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.66';
-// v6.2.66: 要確認記事ダイアログのクライアントJavaScript生成を修正。処置ボタンの文字列引数を数値ディスパッチ化し、初期描画が空白になる回帰を解消。判定・処置ロジックは変更なし。
+const SBM_VERSION = '6.2.67';
+// v6.2.67: 要確認記事は未処理記事に限定し、改善中・モニター中・今日の改善など既存の改善フロー中の記事を要確認対象から除外。日次未取得判定でも既存改善フロー中は管理中を維持する。
 // v6.2.65: GSCデータ最終取得から14日以上を要確認ゲートとし、要確認記事を1件ずつ確認・処置する専用フローを追加。確認済み正常記事は要改善へ送り、意図的な除外記事は管理対象外へ整理。記事詳細のデータ取得表示も明確化。
 // v6.2.63: 記事情報更新の完了画面から対象記事の詳細を同一ダイアログ内で確認できるようにし、利用者向け表現を簡略化。更新処理本体は変更しない。
 // v6.2.61: 「記事情報を更新」の完了表示を仕上げ。6か月クエリ取得不可の記事をArticleID・URL・処置結果付きで明示し、記事管理へ直接移動できるようにする。日次処理・取得判定ロジックは変更しない。
@@ -2789,8 +2789,14 @@ function sbmMergeArticleDbDaily_(freshRows) {
         var todayDate=sbmParseDate_(today)||new Date();
         var missingDays=lastSeenDate?Math.max(0,Math.floor((todayDate.getTime()-lastSeenDate.getTime())/86400000)):missing;
         var currentFlag=String(r['管理フラグ']||'');
+        var workState=String(r['作業状態']||'').trim();
+        var inActiveImprovementFlow=/モニター中|改善中|今日の改善|処置中|治療中|診療中/.test(workState);
         if(currentFlag==='要改善'){
           // 利用者が公開・index等を確認済みで改善対象へ送った記事は、同じ未取得理由で毎日「要確認」に戻さない。
+          if(missingDays>=30)stale30++;
+        }else if(inActiveImprovementFlow){
+          // v6.2.67: 既に改善・経過観察フロー中の記事へ別の「要確認」作業を重ねない。
+          r['管理フラグ']='管理中';
           if(missingDays>=30)stale30++;
         }else if(missingDays>=14){r['管理フラグ']='要確認';needsReview++;if(missingDays>=30)stale30++;}
         else if(currentFlag!=='新規記事') r['管理フラグ']='データ未取得';
@@ -9151,7 +9157,11 @@ function sbmOpenSelectedArticleDbDetail(){var sh=SpreadsheetApp.getActiveSheet()
 function sbmNeedsReviewArticleList_(){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
   var today=sbmParseDate_(sbmDateText_(new Date()))||new Date();
-  return rows.filter(function(r){return String(r['管理フラグ']||'').trim()==='要確認';}).map(function(r){
+  return rows.filter(function(r){
+    if(String(r['管理フラグ']||'').trim()!=='要確認')return false;
+    var work=String(r['作業状態']||'').trim();
+    return !/モニター中|改善中|今日の改善|処置中|治療中|診療中/.test(work);
+  }).map(function(r){
     var last=sbmParseDate_(r['データ更新日']||r['最終確認日']||'');
     var days=last?Math.max(0,Math.floor((today.getTime()-last.getTime())/86400000)):Number(r['連続未取得日数']||0);
     return {articleId:String(r['ArticleID']||''),title:String(r['記事タイトル']||r['H1タイトル']||''),url:String(r['記事URL']||''),rank:String(r['記事ランク']||''),work:String(r['作業状態']||''),lastData:sbmHistoryDateOnlyText_(r['データ更新日']||r['最終確認日']),missingDays:days};
@@ -9166,6 +9176,8 @@ function sbmApplyNeedsReviewDisposition(payload){
     var id=String(payload.articleId||''),url=String(payload.articleUrl||''),action=String(payload.action||'');
     var article=sbmDoctorFindArticleByIdOrUrl_(id,url);if(!article)throw new Error('記事管理に対象記事が見つかりません。');
     if(String(article['管理フラグ']||'')!=='要確認')throw new Error('この記事は現在「要確認」ではありません。日次処理後の状態を確認してください。');
+    var currentWork=String(article['作業状態']||'').trim();
+    if(/モニター中|改善中|今日の改善|処置中|治療中|診療中/.test(currentWork))throw new Error('この記事は現在の改善フローを進行中です。要確認記事としては処置しません。');
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB),hm=sbmHeaderMap_(sh),rowNo=Number(article._rowNumber||0);
     if(!rowNo)throw new Error('対象行を確認できません。');
     var row=sh.getRange(rowNo,1,1,sh.getLastColumn()).getValues()[0],now=sbmNowText_();
