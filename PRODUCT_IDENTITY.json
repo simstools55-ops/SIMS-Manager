@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.67",
+  "current_version": "6.2.68",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.67: 要確認記事を未処理記事に限定。改善中・モニター中・今日の改善など既存改善フロー中の記事は要確認一覧から除外し、日次未取得判定でも管理中を維持。既存改善フローとの二重管理を防止。",
-  "version": "6.2.67",
+  "notes": "v6.2.68: 要確認記事のSearch Console確認を登録／未登録の選択式に変更。未登録理由を記録し、インデックス要確認として保持する第三分岐を追加。",
+  "version": "6.2.68",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "6.2.67-ST"
+  "starter_display_version": "6.2.68-ST"
 }
