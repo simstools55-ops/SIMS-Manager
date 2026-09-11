@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.2.96",
+  "current_version": "6.2.97",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.2.96: 今日の改善ヘッダー高さ、主要一覧A列幅、主要ダイアログの余白・角丸・フォーム・ボタン寸法を統一。",
-  "version": "6.2.96",
+  "notes": "v6.2.97: 記事情報更新の初期点検で発生するInvalid argumentを修正。最終行取得を安全走査へ変更し、工程付きエラーを追加。",
+  "version": "6.2.97",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.2.96-ST"
+  "starter_display_version": "v6.2.97-ST"
 }

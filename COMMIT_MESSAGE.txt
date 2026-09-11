@@ -1,9 +1,7 @@
-style: align sheet dimensions and dialog UI (v6.2.96)
+fix: harden article-info audit row detection (v6.2.97)
 
-- match the Today header height to other primary sheets
-- widen selection columns to prevent clipped header text
-- add shared dialog spacing, radius, form and button sizing
-- align history and effect detail dialogs with the common dialog system
-- preserve the approved monochrome hierarchy in dialogs
-- keep STANDARD theme and processing logic unchanged
+- replace fragile last-row detection with a bounded key-column value scan
+- validate article-info column indexes before range reads
+- add stage-specific errors for article-info audit failures
+- keep update logic, Search Console behavior and display themes unchanged
 - sync Full and Starter editions

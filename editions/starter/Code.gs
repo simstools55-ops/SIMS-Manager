@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.96
+ * SIMS Manager Product v6.2.97
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.96';
+const SBM_VERSION = '6.2.97';
+// v6.2.97: 記事情報更新の初期点検で発生する「Exception: 引数が無効です」を修正。最終行取得をgetLastRow＋キー列実値走査へ変更し、工程付きエラーを追加。
 // v6.2.96: UI寸法・ダイアログ統一仕上げ。今日の改善ヘッダーを34pxへ統一し、利用者向け主要一覧のA列「選択」を56pxへ拡張。主要ダイアログへ共通余白・角丸・見出し・フォーム・ボタン寸法を適用し、MONOCHROME時は同じ階層グレースケールへ統一。
 // v6.2.95: モノクロテーマ最終実装。白〜淡灰データ面で不可視になる白文字を全主要シートで自動補正し、改善の推移/改善履歴の判定ラベルはモノクロ専用の意味色へ明示変換。「大きく改善」「元に戻す検討」等も白背景で必ず読めるよう修正。
 // v6.2.94: v6.2.93で確定した階層グレースケールを利用者向け主要シートと主要ダイアログへ統一。表見出しは中濃度グレー、データ面は白〜ごく淡灰、意味色は文字側に保持。標準テーマと処理ロジックは変更なし。
@@ -950,18 +951,24 @@ function sbmShowNewArticleInfoPrompt_(count) {
 
 function sbmArticleInfoActualLastRow_(sh, hm) {
   if (!sh) return 1;
-  var keyCol = hm['ArticleID'] || hm['記事URL'] || 0;
-  if (!keyCol) return 1;
-  var maxRows = Math.max(1, sh.getMaxRows());
-  var last = sh.getRange(maxRows, keyCol).getNextDataCell(SpreadsheetApp.Direction.UP).getRow();
-  return last >= 2 ? last : 1;
+  hm = hm || {};
+  var keyCol = Number(hm['ArticleID'] || hm['記事URL'] || 0);
+  if (!keyCol || keyCol < 1 || keyCol > sh.getMaxColumns()) return 1;
+
+  // v6.2.97: 記事情報点検では物理最終行を上限に、キー列の実値を後方走査する。
+  var physicalLast = Number(sh.getLastRow() || 1);
+  if (physicalLast < 2) return 1;
+  physicalLast = Math.min(physicalLast, sh.getMaxRows());
+
+  var n = physicalLast - 1;
+  if (n <= 0) return 1;
+  var values = sh.getRange(2, keyCol, n, 1).getDisplayValues();
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][0] || '').trim()) return i + 2;
+  }
+  return 1;
 }
 
-/**
- * v6.2.41: 記事情報更新の軽量正本。
- * ArticleID / URL / 記事タイトル / メインクエリだけを読む。
- * H1・SEOタイトル・表示回数・外部通信・GSC通信は点検段階では使用しない。
- */
 function sbmArticleInfoStoredRows_() {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
   if (!sh || sh.getLastRow() < 2) return {rows:[], total:0, lastRow:1};
@@ -972,6 +979,12 @@ function sbmArticleInfoStoredRows_() {
   var lastRow = sbmArticleInfoActualLastRow_(sh, hm);
   if (lastRow < 2) return {rows:[], total:0, lastRow:lastRow};
   var n = lastRow - 1;
+  if (n < 1) return {rows:[], total:0, lastRow:1};
+  var maxCols = sh.getMaxColumns();
+  ['ArticleID','記事URL','記事タイトル','メインクエリ'].forEach(function(h){
+    var c=Number(hm[h]||0);
+    if(c<1||c>maxCols) throw new Error('記事情報点検: 列番号が不正です: '+h+'='+c);
+  });
   var ids = sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues();
   var urls = sh.getRange(2,hm['記事URL'],n,1).getDisplayValues();
   var titles = sh.getRange(2,hm['記事タイトル'],n,1).getDisplayValues();
@@ -1020,12 +1033,18 @@ function sbmArticleInfoUpdateAuditCached_() { return null; }
 
 function sbmArticleInfoUpdateAudit_(forceFresh) {
   var started = new Date();
-  var stored = sbmArticleInfoStoredRows_();
-  var out = sbmArticleInfoAuditFromRows_(stored.rows);
-  out.total = stored.total;
-  out.lastRow = stored.lastRow;
-  out.elapsedSeconds = sbmSecondsSince_(started);
-  return out;
+  try {
+    var stored = sbmArticleInfoStoredRows_();
+    var out = sbmArticleInfoAuditFromRows_(stored.rows);
+    out.total = stored.total;
+    out.lastRow = stored.lastRow;
+    out.elapsedSeconds = sbmSecondsSince_(started);
+    return out;
+  } catch (e) {
+    var msg=String(e&&e.message?e.message:e);
+    try{sbmLog_('ArticleInfoAudit','Error',msg);}catch(ignoreAuditLog){}
+    throw new Error('記事情報の初期点検で停止しました: '+msg);
+  }
 }
 
 function sbmOpenArticleInfoUpdate() {
