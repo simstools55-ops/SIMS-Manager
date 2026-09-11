@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.2.77
+ * SIMS Manager Product v6.2.78
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.77';
+const SBM_VERSION = '6.2.78';
+// v6.2.78: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
 // v6.2.77: 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
 // v6.2.75: Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
 // v6.2.73: 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
@@ -11678,7 +11679,7 @@ function sbmArticleDetailStateAdvice_(o){
   if(flag==='インデックス要確認')return 'Search Consoleでインデックス問題が確認されています。通常の改善作業より先に、インデックス問題の処置を進めてください。';
   if(flag==='要確認')return '長期間GSCページデータを取得できていません。記事の公開状態とSearch ConsoleのURL検査結果を確認してください。';
   if(flag==='要改善')return '公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。';
-  if(rank==='未発芽' && work.indexOf('モニター')<0 && work.indexOf('改善中')<0 && work.indexOf('今日の改善')<0 && work.indexOf('処置中')<0)return '検索成果がほとんど出ていない未発芽記事です。記事詳細からaDoctor精密診断へ進み、検索需要・検索意図・インデックス・カニバリを確認してください。診断では全面リライト、統合、管理対象外を含めて処置を判断します。';
+  if(rank==='未発芽' && work.indexOf('モニター')<0 && work.indexOf('改善中')<0 && work.indexOf('今日の改善')<0 && work.indexOf('処置中')<0)return '検索成果がほとんど出ていない未発芽記事です。記事詳細からaDoctor精密診断へ進み、検索需要・検索意図・インデックス・カニバリを確認してください。診断では全面リライト、部分改善、統合、インデックス対応、管理対象外、観察を含めて処置を判断します。';
   return sbmArticleDbWorkAdvice_(rank,work);
 }
 
@@ -14509,7 +14510,7 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       health_screening_severity:ctx.candidateSeverity||null,
       health_screening_code:ctx.healthScreeningCode||null,
       health_check_id:ctx.healthCheckId||null,
-      treatment_posture:isUngerminated?'FULL_REWRITE_DEFAULT':'STANDARD_DIAGNOSIS',
+      treatment_posture:isUngerminated?'CAUSE_DIAGNOSIS':'STANDARD_DIAGNOSIS',
       source_sheet:ctx.sourceSheet,
       source_row:ctx.sourceRow
     },
@@ -14577,12 +14578,13 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       excluded_examinations:[],
       allow_doctor_to_expand_scope:true,
       treatment_policy:isUngerminated?{
-        mode:'FULL_REWRITE_DEFAULT',
+        mode:'CAUSE_DIAGNOSIS',
         partial_fix_default:false,
-        objective:'長期間ほとんど検索成果を得られていない未発芽記事として、収益記事として成立する状態まで根本から再設計する。',
+        objective:'長期間ほとんど検索成果を得られていない未発芽記事について、まず未発芽の原因を特定し、その原因に合う最小かつ有効な処置を決定する。',
         required_review:[
           'TARGET_QUERY_AND_SEARCH_DEMAND',
           'SEARCH_INTENT',
+          'INDEX_STATUS',
           'SERP_GAP_AND_COMPETITORS',
           'TITLE_AND_H1',
           'FULL_CONTENT_STRUCTURE',
@@ -14591,7 +14593,23 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
           'INTERNAL_LINK_ROLE',
           'MONETIZATION_FIT'
         ],
-        instruction:'記事ランクは未発芽です。原則としてタイトルや見出しだけの部分修正ではなく、検索意図・狙うクエリ・記事構成・タイトル・本文全体を全面リライト前提で診断してください。既存テーマ自体の収益性や検索需要が不適切な場合は、ターゲット変更・統合（Merge）・noindex/非公開を含む代替処置も根拠付きで提示してください。'
+        allowed_treatments:[
+          'FULL_REWRITE',
+          'PARTIAL_IMPROVEMENT',
+          'MERGE',
+          'INDEX_ACTION',
+          'EXCLUDE_OR_NOINDEX',
+          'OBSERVE'
+        ],
+        handoff_mapping:{
+          FULL_REWRITE:'WRITER',
+          PARTIAL_IMPROVEMENT:'WRITER',
+          MERGE:'MERGE',
+          INDEX_ACTION:'USER_CONFIRMATION',
+          EXCLUDE_OR_NOINDEX:'USER_CONFIRMATION',
+          OBSERVE:'MONITOR'
+        },
+        instruction:'記事ランクは未発芽です。全面リライトを初期前提にせず、検索需要、検索意図、インデックス状態、カニバリ、SERPとのギャップ、現行記事の内容とサイト内役割を診断してください。そのうえで、全面リライト、部分改善、Merge、インデックス対応、管理対象外/noindex、観察の中から最も適切な処置を根拠付きで選び、次に実行すべき内容を具体化してください。複数処置が必要な場合は優先順位を示してください。本文改善はWRITER、統合はMERGE、インデックス対応または管理対象外/noindexはUSER_CONFIRMATION、観察はMONITORへ引き継げるよう、workflow_handoff.next_actionも処置に合わせて返してください。'
       }:null,
       maximum_data_period_days:365
     },
@@ -14648,8 +14666,8 @@ function sbmDoctorValidateSingleCaseRequest_(p) {
   if (!p || !p.article || !p.article.url) errors.push('article.urlがありません。');
   if (!p || !p.request || !p.request.request_id) errors.push('request.request_idがありません。');
   if (p && p.article && p.article.article_rank==='UNGERMINATED') {
-    if (!p.request || p.request.treatment_posture!=='FULL_REWRITE_DEFAULT') errors.push('未発芽記事の全面リライト診断方針がありません。');
-    if (!p.diagnosis_scope || !p.diagnosis_scope.treatment_policy || p.diagnosis_scope.treatment_policy.mode!=='FULL_REWRITE_DEFAULT') errors.push('未発芽記事のtreatment_policyがありません。');
+    if (!p.request || p.request.treatment_posture!=='CAUSE_DIAGNOSIS') errors.push('未発芽記事の原因診断方針がありません。');
+    if (!p.diagnosis_scope || !p.diagnosis_scope.treatment_policy || p.diagnosis_scope.treatment_policy.mode!=='CAUSE_DIAGNOSIS') errors.push('未発芽記事の原因診断treatment_policyがありません。');
   }
   if (!p || !p.evidence_package || !Array.isArray(p.evidence_package.evidence_index)) errors.push('evidence_package.evidence_indexがありません。');
   return {valid:errors.length===0,errors:errors};
@@ -14678,7 +14696,7 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
     'button,.link-button{display:inline-block;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:8px 16px;background:#fff;cursor:pointer;font-weight:600;color:#202124;text-decoration:none}button.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}button:disabled{opacity:.55;cursor:default}button.busy:before{content:"";display:inline-block;width:13px;height:13px;margin-right:8px;vertical-align:-2px;border:2px solid rgba(255,255,255,.55);border-top-color:#fff;border-radius:50%;animation:sbmspin .8s linear infinite}@keyframes sbmspin{to{transform:rotate(360deg)}}' +
     '.status{font-size:13px;min-height:20px;margin-top:8px;white-space:pre-wrap}.next-title{font-size:16px;font-weight:700;color:#137333;margin-bottom:8px}' +
     '</style></head><body><h2>精密診断から次の処置まで</h2>' +
-    '<div class="meta"><b>記事：</b>' + title + '<br><b>ArticleID：</b>' + articleId + '<br><b>記事ランク：</b>' + articleRankLabel + (treatmentPosture==='FULL_REWRITE_DEFAULT'?'<br><b>診断方針：</b>未発芽のため全面リライト前提':'') + '<br><b>RequestID：</b>' + requestId + '</div>' +
+    '<div class="meta"><b>記事：</b>' + title + '<br><b>ArticleID：</b>' + articleId + '<br><b>記事ランク：</b>' + articleRankLabel + (treatmentPosture==='CAUSE_DIAGNOSIS'?'<br><b>診断方針：</b>未発芽原因を精密診断':'') + '<br><b>RequestID：</b>' + requestId + '</div>' +
     '<div class="progress"><span id="p1" class="pill active">1 aDoctorへ依頼</span><span id="p2" class="pill">2 aDoctor回答を登録</span><span id="p3" class="pill">3 確認・再診</span><span id="p4" class="pill">4 処置担当へ依頼</span><span id="p5" class="pill">5 処置結果を登録</span></div>' +
     '<section class="step"><h3>① '+(resumeMode?'aDoctorへの依頼（完了済み）':'aDoctorへ精密診断を依頼する')+'</h3><div class="hint">'+(resumeMode?'この案件はすでにaDoctor依頼まで完了しています。通常は再送せず、②から続けてください。必要な場合だけ保存済み依頼JSONを再利用できます。':'下のJSONをすべてコピーし、aDoctorへ貼り付けてください。')+'</div>' +
     '<textarea id="doctorRequest" readonly></textarea><div id="copyStatus" class="status ok"></div><div class="actions"><button class="primary" onclick="copyArea(\'doctorRequest\',\'copyStatus\',\'aDoctor依頼JSONをコピーしました。aDoctorへ貼り付けてください。\')">aDoctor依頼JSONをコピー</button></div></section>' +

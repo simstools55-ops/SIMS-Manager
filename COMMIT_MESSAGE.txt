@@ -1,1 +1,7 @@
-SIMS Manager v6.2.77: unify ungerminated article treatment in article detail and remove duplicate aDoctor menu entry
+feat: diagnose ungerminated causes before choosing treatment (v6.2.78)
+
+- replace full-rewrite-default posture with cause-first diagnosis for ungerminated articles
+- evaluate search demand, intent, index status, cannibalization, SERP gap and current content
+- allow full rewrite, partial improvement, Merge, index action, exclusion/noindex or observation
+- keep ungerminated rank criteria, daily processing, 14-day gate, article update and Merge logic unchanged
+- sync Full and Starter editions
