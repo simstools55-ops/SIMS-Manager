@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.2
+ * SIMS Manager Product v6.3.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.2';
+const SBM_VERSION = '6.3.3';
+// v6.3.3: モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
 // v6.3.2: GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
 // v6.3.1: モノクロテーマを利用者向け動的UIへ横断適用。全showModalDialogを共通テーマラッパー経由に統一し、記事情報更新・日次処理・改善ナビ・履歴・設定・Doctor/Creator/SERP等の主要ダイアログへ反映。サイト健康診断書・aDoctor精密診断候補シートもモノクロ対応。記事情報更新の「クエリ未取得31件＝未発芽31件」誤表示を修正し、通常ランク維持/未発芽維持/復元/更新保留を正しく分類。
 // v6.3.0: サイト健康診断の開始前OK/キャンセル確認ダイアログを廃止。メニュー選択後は前提条件を確認して直ちに進捗Runnerを表示し、診断を開始する。未発芽再判定v6.2.99の安全ゲートは維持。
@@ -10051,8 +10052,11 @@ function sbmGlobalMonochromeDialogCss_(){
     'table th{background:#e8eaed!important;color:#202124!important;border-color:#dadce0!important}'+
     'table td{background:#fff!important;border-color:#e5e7eb!important}'+
     'input,select,textarea{background:#fff!important;color:#202124!important;border-color:#bdc1c6!important}'+
-    '.mini{background:#f1f3f4!important;color:#174ea6!important}'+
+    '.mini{background:#f1f3f4!important;color:#3c4043!important}'+
     '.done{background:#f1f3f4!important;border-color:#dadce0!important}'+
+    '.work,.reason,.source-loading,.registerStatus.busy,.query-details summary{background:#f1f3f4!important;color:#3c4043!important;border-color:#dadce0!important}'+
+    '.hint,.note:not(.warn):not(.warning),.source-ok{background:#f8f9fa!important;border-color:#dadce0!important}'+
+    '.link-candidate a,.query-details summary a{color:#3c4043!important}'+
     '.good,.ok,.success{color:#0b8043!important}'+
     '.warn,.warning{color:#8a4b00!important}'+
     '.err,.error,.errline,.danger{color:#b31412!important}'+
@@ -15835,9 +15839,10 @@ function sbmDoctorApplyHealthReportTheme_(report,healthScore){
 function sbmDoctorApplyCandidateTheme_(cand){
   if(!cand||!sbmIsMonochromeTheme_())return;
   var top='#303134',section='#5f6368',white='#ffffff',soft='#f8f9fa';
-  cand.getRange('A1:K1').setBackground(top).setFontColor(white);
-  cand.getRange('A2:K2').setBackground(soft).setFontColor('#202124');
-  cand.getRange(6,1,1,Math.max(1,cand.getLastColumn())).setBackground(section).setFontColor(white).setFontWeight('bold');
+  var lastCol=Math.max(1,cand.getLastColumn());
+  cand.getRange(1,1,1,lastCol).setBackground(top).setFontColor(white).setFontWeight('bold');
+  cand.getRange(2,1,1,lastCol).setBackground(soft).setFontColor('#202124');
+  cand.getRange(6,1,1,lastCol).setBackground(section).setFontColor(white).setFontWeight('bold');
   var n=Math.max(0,cand.getLastRow()-6);
   if(n>0){
     cand.getRange(7,1,n,Math.max(1,cand.getLastColumn())).setBackground(white);

@@ -1,10 +1,7 @@
-fix: resolve GSC URL variants without slowing normal updates (v6.3.2)
+style: finalize monochrome UI hierarchy (v6.3.3)
 
-- separate internal canonical URLs from GSC query URLs
-- use staged batch exact lookups for canonical, trailing-slash, protocol and www variants
-- retry only unresolved articles at each stage
-- reserve contains fallback for single-article lookups
-- cache successful GSC page URLs for future requests
-- share the resolver across setup, article-info update and Improvement Navi
-- preserve rank, content and workflow logic
+- extend the aDoctor candidate top bar across all used columns
+- neutralize decorative information colors in user-facing dialogs
+- keep blue for normal actions and semantic green, amber and red states
+- preserve GSC URL resolution and workflow logic
 - sync Full and Starter editions

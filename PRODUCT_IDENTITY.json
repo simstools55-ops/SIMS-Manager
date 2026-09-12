@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.3.2",
+  "current_version": "6.3.3",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.3.2: GSC URL解決層を共通化。高速一括exact→未取得のみ末尾スラッシュ差→http/https・www差→単記事containsの段階フォールバックと成功URLキャッシュを導入。",
-  "version": "6.3.2",
+  "notes": "v6.3.3: モノクロテーマ最終統一。精密診断候補シートと利用者向けダイアログの非意味色をグレースケール化。意味色と処理ロジックは維持。",
+  "version": "6.3.3",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.3.2-ST"
+  "starter_display_version": "v6.3.3-ST"
 }

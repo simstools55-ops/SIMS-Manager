@@ -1,11 +1,35 @@
 /**
- * SIMS Manager Product v6.2.78
+ * SIMS Manager Product v6.3.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.2.78';
-// v6.2.78: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
+const SBM_VERSION = '6.3.3';
+// v6.3.3: モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
+// v6.3.2: GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
+// v6.3.1: モノクロテーマを利用者向け動的UIへ横断適用。全showModalDialogを共通テーマラッパー経由に統一し、記事情報更新・日次処理・改善ナビ・履歴・設定・Doctor/Creator/SERP等の主要ダイアログへ反映。サイト健康診断書・aDoctor精密診断候補シートもモノクロ対応。記事情報更新の「クエリ未取得31件＝未発芽31件」誤表示を修正し、通常ランク維持/未発芽維持/復元/更新保留を正しく分類。
+// v6.3.0: サイト健康診断の開始前OK/キャンセル確認ダイアログを廃止。メニュー選択後は前提条件を確認して直ちに進捗Runnerを表示し、診断を開始する。未発芽再判定v6.2.99の安全ゲートは維持。
+// v6.2.99: 未発芽誤判定を修正。クエリ未取得だけで未発芽へ変更する処理を廃止し、クリック/表示回数の実績を正本とする。既存の誤判定記事を通常ランク基準で安全に復元する「未発芽判定を再確認」を追加。健康診断も保存済み未発芽ラベルより180日実績を優先。
+// v6.2.98: 改善ナビのaWriter依頼文生成条件を修正。本文取得済みならSearch Consoleクエリ0件でもLIMITEDモードで依頼文・改善ポイント・内部リンク候補を生成。クエリ未取得時は検索意図・タイトル・メインクエリの大幅変更を禁止し、本文構造と保存済みページ指標を根拠に限定改善する。
+// v6.2.97: 記事情報更新の初期点検で発生する「Exception: 引数が無効です」を修正。最終行取得をgetLastRow＋キー列実値走査へ変更し、工程付きエラーを追加。
+// v6.2.96: UI寸法・ダイアログ統一仕上げ。今日の改善ヘッダーを34pxへ統一し、利用者向け主要一覧のA列「選択」を56pxへ拡張。主要ダイアログへ共通余白・角丸・見出し・フォーム・ボタン寸法を適用し、MONOCHROME時は同じ階層グレースケールへ統一。
+// v6.2.95: モノクロテーマ最終実装。白〜淡灰データ面で不可視になる白文字を全主要シートで自動補正し、改善の推移/改善履歴の判定ラベルはモノクロ専用の意味色へ明示変換。「大きく改善」「元に戻す検討」等も白背景で必ず読めるよう修正。
+// v6.2.94: v6.2.93で確定した階層グレースケールを利用者向け主要シートと主要ダイアログへ統一。表見出しは中濃度グレー、データ面は白〜ごく淡灰、意味色は文字側に保持。標準テーマと処理ロジックは変更なし。
+// v6.2.93: モノクロHomeを階層グレースケールへ再設計。最上部のみ濃灰、主要セクション見出しは中濃度、補助見出しは淡灰。データ領域にごく淡い灰を使い、判定は意味色の文字＋必要最小限の淡灰で表現。「大きく改善」は白背景でも読める濃緑文字へ補正。
+// v6.2.92: モノクロテーマを主要5シートへ拡張。Homeトップバー基準で見出し/項目セルを濃灰+白文字、データセルを白背景に統一。改善判定エリアは背景色を使わず、既存の意味色・太字・文字サイズで表現。標準テーマは従来配色を維持。
+// v6.2.91: 表示テーマ試作。設定・メンテナンスからSTANDARD / MONOCHROMEを切替可能。処理ロジックには触れず、Home・記事管理・未完了作業再開ダイアログだけを表示層で切替。意味色（青/緑/黄〜橙/赤）は維持。
+// v6.2.90: 生成HTML/ブラウザJS監査。通常aDoctorダイアログのWriter follow-up UIに残っていた単一\n 5か所を二重escape化。未完了一覧・個別再開・Doctorダイアログの生成script escapeをZIP前に検査する自動テストを追加。
+// v6.2.89: 個別Workflow再開ダイアログの空白表示を修正。meta表示に追加した\nがHTML出力後に実改行となりclient JavaScriptを構文エラー停止させていたため二重escape化。初期案件情報をサーバー側でも描画し、client script失敗時も空白にならないfallbackを追加。
+// v6.2.88: 未完了一覧が空白になる原因を修正。chooser内JavaScriptのconfirm文に実改行が生成されて構文エラーになっていたため、HTML出力後もJS文字列内の\nとして残るよう二重escape化。候補データをサーバー側でHTMLカード化し、クライアントJSが失敗しても一覧自体は必ず表示するfallbackを追加。
+// v6.2.87: 未完了再開を軽量化。WorkflowStateを1回だけ一括読込して索引化し、Caseごとの全表再読込(N+1)を廃止。再開時の旧Merge移行・自動整理など不要な書込処理を外し、候補抽出と表示だけに限定。待機画面と再開/整理ボタンの処理中表示も修正。
+// v6.2.86: モニター中Caseに残るWriter follow-upカニバリ追加診断を仮想未完了案件として再開センターへ表示。旧Case整理候補判定、再開/整理ボタンの処理中表示、Doctor回答のCase不一致メッセージを強化。
+// v6.2.85: 「未完了の作業を再開」の既存複数案件運用を共通Dispatcherへ復帰。複数Case時は利用者向け作業要約・現在地・次操作・整理候補理由を表示して1件選択。旧Caseは物理削除せず利用者承認でCANCELLED_BY_USERへ整理。再開Doctor回答登録は通常精密診断と同じcheckpoint登録へ統一。
+// v6.2.84: aDoctor精密診断ダイアログのコピー・診断結果登録を独立した安全ハンドラへ分離し、長文Request表示後に既存client scriptが停止しても主要操作を継続可能にする。Code.gs先頭コメントも版整合チェック対象へ追加。
+// v6.2.83: 長文化するカニバリ精密診断RequestをBase64+client復号ではなくtextareaへサーバー側でHTML escapeして直接埋め込み、空欄表示を防止。コピー対象と表示内容を同一化。機能判定ロジックは変更しない。
+// v6.2.82: Writer follow_up由来のカニバリ精密診断でFOLLOW_UP_REQUESTが未保存でも、Doctor_CasesのWriter結果・記事DB・元Caseから追加診断依頼をオンデマンド再生成する。既存Caseをそのまま復旧し、機能ロジック本体は変更しない。
+// v6.2.81: Repository版管理を再監査し、VERSION/README/Distribution/Shared版情報の同期漏れを修正。版整合チェックを追加し、ZIP生成前の必須検証とする。機能ロジックは変更しない。
+// v6.2.80: カニバリ精密診断を開いた直後に親ダイアログのsuccess handlerがhost.close()して新ダイアログまで閉じる競合を修正。追加診断では成功時にcloseせず、失敗時は元画面にエラーを残す。Writer登録直後の追加診断導線も同様に修正。
+// v6.2.79: aWriter結果のfollow_up_referrals(MERGE)を自動Mergeせず「カニバリ精密診断候補」として同一Caseに保存。Writer本処置はモニターへ正常完了させ、記事詳細・未完了再開から追加診断へ進める。\n// v6.2.78: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
 // v6.2.77: 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
 // v6.2.75: Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
 // v6.2.73: 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
@@ -463,7 +487,7 @@ function sbmOpenDailyUpdateDialog() {
     + 'function runInitialBuild(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("記事DBの初回構築に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(!r.done){showRunning("初回の記事DB構築","記事DBを分割作成しています。 "+Number(r.processed||0)+" / "+Number(r.total||0)+"記事");setTimeout(runInitialBuild,150);return;}showRunning("STEP 2 / 3　データ分析・記事DB更新中","初回構築が完了しました。ランクと今日の改善を確定しています。");setTimeout(runAnalysis,150);}).sbmRunArticleDbInitialBatchFromDialog();}'
     + 'function retryFinalize(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 3 / 3　改善の推移・完了処理を再実行中","STEP 1・2の取得結果は保持したまま、STEP 3だけを再実行しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に再度失敗しました。",e,true,3);}).withSuccessHandler(function(r){showComplete(r||{});}).sbmRunDailyFinalizeStageFromDialog();}function showComplete(r){if(terminal)return;terminal=true;var updated=Math.max(0,Number(r.updated||0)),added=Math.max(0,Number(r.added||0)),total=Math.max(0,Number(r.total||0)),outside=Math.max(0,total-updated-added);el("spinner").style.display="none";el("message").className="box done";el("message").innerHTML="✓ 日次処理が完了しました。<div class=result><div class=group><div class=groupTitle>Search Console</div><div class=resultGrid><span>取得行</span><b>"+Number(r.rawRows||0).toLocaleString()+"件</b><span>有効な記事URL</span><b>"+Number(r.validRows||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>記事DB</div><div class=resultGrid><span>更新記事</span><b>"+updated.toLocaleString()+"件</b><span>更新対象外</span><b>"+outside.toLocaleString()+"件</b><span>新規記事</span><b>"+added.toLocaleString()+"件</b><span>総記事数</span><b>"+total.toLocaleString()+"件</b></div><div class=groupNote>※更新対象外：今回のSearch Consoleデータ取得で対象とならなかった記事です。</div></div><div class=group><div class=groupTitle>改善効果</div><div class=resultGrid><span>モニタ中</span><b>"+Number(r.monitoringCount||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>処理時間</div><div class=resultGrid><span>Search Console取得</span><b>"+formatTime(r.fetchElapsedSeconds)+"</b><span>分析・処理</span><b>"+formatTime(r.analysisElapsedSeconds)+"</b><span>全体所要時間</span><b>"+formatTime(r.totalElapsedSeconds)+"</b></div></div></div>";el("note").textContent="結果を確認して「閉じる」を押してください。";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";}'
     + '</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(790), '日次処理');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(790), '日次処理');
 }
 
 function sbmGetDailyUpdateClientStatus() {
@@ -928,23 +952,65 @@ function sbmShowNewArticleInfoPrompt_(count) {
   count = Number(count || 0);
   if (!count) return;
   var html = '<!DOCTYPE html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}h2{color:#0b8043;margin-top:0}.buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}button{border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}.run{background:#1a73e8;color:#fff}.later{background:#f1f3f4;color:#3c4043}.status{min-height:20px;margin-top:12px;color:#b3261e;font-weight:700}</style></head><body><h2>新規記事が ' + count + '件見つかりました</h2><p>記事タイトル・SEOタイトル・メタディスクリプションを取得しますか？\nメインクエリ未取得の場合は「記事情報を更新」から確認します。</p><div id="status" class="status"></div><div class="buttons"><button class="later" onclick="google.script.host.close()">あとで</button><button class="run" onclick="runNow()">記事情報を取得</button></div><script>function runNow(){var st=document.getElementById("status");document.querySelectorAll("button").forEach(function(b){b.disabled=true});st.textContent="記事情報取得を開始しています…";google.script.run.withFailureHandler(function(e){st.textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false})}).withSuccessHandler(function(){google.script.host.close()}).sbmSupplementNewArticlesManual()}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(250)), '新規記事の記事情報取得');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(250)), '新規記事の記事情報取得');
+}
+
+function sbmRecheckUngerminatedRanks(){
+  var ui=SpreadsheetApp.getUi();
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return ui.alert('未発芽判定を再確認','記事管理に再確認できる記事がありません。',ui.ButtonSet.OK);
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+  var clickVals=rows.map(function(r){return sbmNumber_(r['クリック数']||0);}).sort(function(a,b){return a-b;});
+  var impVals=rows.map(function(r){return sbmNumber_(r['表示回数']||0);}).sort(function(a,b){return a-b;});
+  var patches=[],preview=[];
+  rows.forEach(function(r){
+    if(String(r['記事ランク']||'').trim()!=='未発芽')return;
+    var expected=sbmExpectedArticleRank_(r,clickVals,impVals);
+    if(expected==='未発芽')return;
+    var aid=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(r['記事URL']||'');
+    if(!aid||!url)return;
+    patches.push({articleId:aid,url:url,expected:{'記事ランク':r['記事ランク']},updates:{'記事ランク':expected}});
+    preview.push(aid+'：'+expected+'（クリック '+Math.round(sbmNumber_(r['クリック数']||0))+' / 表示 '+Math.round(sbmNumber_(r['表示回数']||0))+'）');
+  });
+  if(!patches.length)return ui.alert('未発芽判定を再確認','現在のクリック・表示回数に照らして、復元が必要な未発芽記事はありませんでした。',ui.ButtonSet.OK);
+  var sample=preview.slice(0,8).join('\n')+(preview.length>8?'\nほか '+(preview.length-8)+'件':'');
+  var r=ui.alert('未発芽判定を再確認',
+    '現在のページ実績から、未発芽ではない記事が '+patches.length+'件 見つかりました。\n\n'+sample+
+    '\n\n通常ランク基準で復元しますか？\nメインクエリや記事本文は変更しません。',
+    ui.ButtonSet.YES_NO);
+  if(r!==ui.Button.YES)return;
+  var result=sbmCommitArticleInfoPatchesSafely_(patches),verified=0,held=0;
+  patches.forEach(function(p){
+    var v=sbmVerifyArticleInfoWrite_(p.articleId,p.url,p.updates);
+    if(v&&v.ok)verified++;else held++;
+  });
+  try{sbmInvalidateHomeSnapshot_();}catch(ignoreHome){}
+  try{sbmRefreshHome_({light:true});}catch(ignoreRefresh){}
+  ui.alert('未発芽判定を再確認',
+    '復元完了：'+verified+'件\n保留：'+held+'件\n\nクエリ未取得だけを理由に未発芽へ変更する処理は廃止されています。',
+    ui.ButtonSet.OK);
 }
 
 function sbmArticleInfoActualLastRow_(sh, hm) {
   if (!sh) return 1;
-  var keyCol = hm['ArticleID'] || hm['記事URL'] || 0;
-  if (!keyCol) return 1;
-  var maxRows = Math.max(1, sh.getMaxRows());
-  var last = sh.getRange(maxRows, keyCol).getNextDataCell(SpreadsheetApp.Direction.UP).getRow();
-  return last >= 2 ? last : 1;
+  hm = hm || {};
+  var keyCol = Number(hm['ArticleID'] || hm['記事URL'] || 0);
+  if (!keyCol || keyCol < 1 || keyCol > sh.getMaxColumns()) return 1;
+
+  // v6.2.97: 記事情報点検では物理最終行を上限に、キー列の実値を後方走査する。
+  var physicalLast = Number(sh.getLastRow() || 1);
+  if (physicalLast < 2) return 1;
+  physicalLast = Math.min(physicalLast, sh.getMaxRows());
+
+  var n = physicalLast - 1;
+  if (n <= 0) return 1;
+  var values = sh.getRange(2, keyCol, n, 1).getDisplayValues();
+  for (var i = values.length - 1; i >= 0; i--) {
+    if (String(values[i][0] || '').trim()) return i + 2;
+  }
+  return 1;
 }
 
-/**
- * v6.2.41: 記事情報更新の軽量正本。
- * ArticleID / URL / 記事タイトル / メインクエリだけを読む。
- * H1・SEOタイトル・表示回数・外部通信・GSC通信は点検段階では使用しない。
- */
 function sbmArticleInfoStoredRows_() {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
   if (!sh || sh.getLastRow() < 2) return {rows:[], total:0, lastRow:1};
@@ -955,6 +1021,12 @@ function sbmArticleInfoStoredRows_() {
   var lastRow = sbmArticleInfoActualLastRow_(sh, hm);
   if (lastRow < 2) return {rows:[], total:0, lastRow:lastRow};
   var n = lastRow - 1;
+  if (n < 1) return {rows:[], total:0, lastRow:1};
+  var maxCols = sh.getMaxColumns();
+  ['ArticleID','記事URL','記事タイトル','メインクエリ'].forEach(function(h){
+    var c=Number(hm[h]||0);
+    if(c<1||c>maxCols) throw new Error('記事情報点検: 列番号が不正です: '+h+'='+c);
+  });
   var ids = sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues();
   var urls = sh.getRange(2,hm['記事URL'],n,1).getDisplayValues();
   var titles = sh.getRange(2,hm['記事タイトル'],n,1).getDisplayValues();
@@ -1003,12 +1075,18 @@ function sbmArticleInfoUpdateAuditCached_() { return null; }
 
 function sbmArticleInfoUpdateAudit_(forceFresh) {
   var started = new Date();
-  var stored = sbmArticleInfoStoredRows_();
-  var out = sbmArticleInfoAuditFromRows_(stored.rows);
-  out.total = stored.total;
-  out.lastRow = stored.lastRow;
-  out.elapsedSeconds = sbmSecondsSince_(started);
-  return out;
+  try {
+    var stored = sbmArticleInfoStoredRows_();
+    var out = sbmArticleInfoAuditFromRows_(stored.rows);
+    out.total = stored.total;
+    out.lastRow = stored.lastRow;
+    out.elapsedSeconds = sbmSecondsSince_(started);
+    return out;
+  } catch (e) {
+    var msg=String(e&&e.message?e.message:e);
+    try{sbmLog_('ArticleInfoAudit','Error',msg);}catch(ignoreAuditLog){}
+    throw new Error('記事情報の初期点検で停止しました: '+msg);
+  }
 }
 
 function sbmOpenArticleInfoUpdate() {
@@ -1036,14 +1114,14 @@ function sbmOpenArticleInfoUpdate() {
     + 'function showAudit(a){document.getElementById("progress").style.display="none";document.getElementById("audit").style.display="block";document.getElementById("candidate").style.display="block";setNum("total",a.total,false);setNum("titleMissing",a.titleMissing,true);setNum("queryMissing",a.queryMissing,true);setNum("updateCandidates",a.updateCandidates,true);var b=document.getElementById("run");b.disabled=!Number(a.updateCandidates);b.textContent=Number(a.updateCandidates)?"不足情報を更新する":"更新対象なし";document.getElementById("status").textContent="点検時間：約"+Number(a.elapsedSeconds||0)+"秒";}'
     + 'function auditFail(err){var p=document.getElementById("progress");p.innerHTML="点検に失敗しました："+esc((err&&err.message)?err.message:String(err));p.style.color="#b3261e";}'
     + 'function loadAudit(force){google.script.run.withFailureHandler(auditFail).withSuccessHandler(showAudit).sbmArticleInfoUpdateAuditFreshBridge();}'
-    + 'var queue=[],idx=0,total={titleUpdated:0,queryUpdated:0,rankChanged:0,rankUnchanged:0,safetySkipped:0,notFound:0,notFoundItems:[],failed:0,totalSeconds:0};'
-    + 'function runUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result");b.disabled=true;b.innerHTML="<span class=spin></span>更新対象を準備中…";r.style.display="none";s.innerHTML="<span class=spin></span>不足記事のArticleID＋URLを抽出しています。";google.script.run.withFailureHandler(function(err){s.textContent="更新準備に失敗しました："+((err&&err.message)?err.message:String(err));b.disabled=false;b.textContent="不足情報を更新する";}).withSuccessHandler(function(d){queue=(d&&d.items)||[];idx=0;total={titleUpdated:0,queryUpdated:0,rankChanged:0,rankUnchanged:0,safetySkipped:0,notFound:0,notFoundItems:[],failed:0,totalSeconds:0};if(!queue.length){s.textContent="更新対象はありません。";b.disabled=false;b.textContent="再点検";return;}processNext();}).sbmArticleInfoUpdatePrepareBridge();}'
-    + 'function processNext(){var b=document.getElementById("run"),s=document.getElementById("status");if(idx>=queue.length){finishUpdate();return;}var item=queue[idx],n=idx+1,all=queue.length;s.innerHTML="<div><span class=spin></span><b>"+n+" / "+all+"件</b> を処理しています</div><div class=detail><b>ArticleID：</b>"+esc(item.articleId)+"<br><b>記事タイトル：</b>"+esc(item.title||"（未取得）")+"<br><b>URL：</b>"+esc(item.url)+"<br><b>処理：</b>"+esc(item.needsTitle&&item.needsQuery?"記事タイトル＋メインクエリ":(item.needsTitle?"記事タイトル":"メインクエリ"))+"</div>";b.innerHTML="<span class=spin></span>"+n+" / "+all+"件 処理中";google.script.run.withFailureHandler(function(err){total.failed++;s.innerHTML+="<div class=errline>この1件でエラー："+esc((err&&err.message)?err.message:String(err))+"</div>";idx++;setTimeout(processNext,120);}).withSuccessHandler(function(d){d=d||{};total.titleUpdated+=Number(d.titleUpdated||0);total.queryUpdated+=Number(d.queryUpdated||0);total.rankChanged+=Number(d.rankChanged||0);total.safetySkipped+=Number(d.safetySkipped||0);total.failed+=Number(d.writeErrors||0);total.totalSeconds+=Number(d.elapsedSeconds||0);if(d.queryAttempted&&!d.queryFound){total.notFound++;var outcome=(d.writeVerified===false||Number(d.safetySkipped||0)>0)?"更新できず":(Number(d.rankChanged||0)>0?"未発芽へ変更":"未発芽のまま");if(outcome==="未発芽のまま")total.rankUnchanged++;total.notFoundItems.push({articleId:item.articleId,title:d.title||item.title||"",url:item.url,outcome:outcome});}s.innerHTML="<div><b>"+n+" / "+all+"件 完了</b>　約"+Number(d.elapsedSeconds||0)+"秒</div><div class=detail><b>ArticleID：</b>"+esc(item.articleId)+"<br><b>記事タイトル：</b>"+esc(d.title||item.title||"（未取得）")+"<br><b>URL：</b>"+esc(item.url)+(d.queryAttempted?"<br><b>メインクエリ：</b>"+esc(d.query||"取得できませんでした"):"")+(d.queryAttempted&&!d.queryFound?"<br><b>判定：</b>"+esc((d.writeVerified===false||Number(d.safetySkipped||0)>0)?"更新できず":(Number(d.rankChanged||0)>0?"未発芽へ変更":"未発芽のまま")):"")+(d.writeVerified===false?"<br><b style=color:#b3261e>保存後の再確認に失敗しました</b>":"")+"</div>";idx++;setTimeout(processNext,180);}).sbmArticleInfoUpdateOneBridge(item.articleId,item.url);}'
-    + 'function finishUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result"),dv=document.getElementById("articleDetailView");dv.style.display="none";s.textContent="記事情報の更新が完了しました。";r.style.display="block";var h="<b>更新結果</b><br>処理対象："+esc(queue.length)+"件<br>記事タイトル更新："+esc(total.titleUpdated)+"件<br>メインクエリ更新："+esc(total.queryUpdated)+"件<br>過去6か月でもクエリ取得できず："+esc(total.notFound)+"件<br>└ 未発芽へ変更："+esc(total.rankChanged)+"件<br>└ 未発芽のまま："+esc(total.rankUnchanged)+"件<br>└ 更新できず："+esc(total.safetySkipped)+"件<br>処理エラー："+esc(total.failed)+"件<br>各記事処理時間の合計：約"+esc(Math.round(total.totalSeconds))+"秒";if(total.notFoundItems.length){h+="<hr><b>過去6か月でもメインクエリを取得できなかった記事</b><div class=note>必要な記事は、その場で記事管理と同じ詳細内容を確認できます。</div>";total.notFoundItems.forEach(function(x,i){h+="<div class=detail><b>ArticleID：</b>"+esc(x.articleId)+"<br><b>記事タイトル：</b>"+esc(x.title||"（未取得）")+"<br><b>URL：</b>"+esc(x.url)+"<br><b>判定：</b>"+esc(x.outcome||"")+"<div class=item-actions><button type=button class=mini onclick=showArticleDetail("+i+")>この記事を確認</button></div></div>";});}else{h+="<hr><span class=good><b>過去6か月でクエリを取得できない記事はありませんでした。</b></span>";}r.innerHTML=h;b.disabled=false;b.textContent="再点検";b.onclick=function(){dv.style.display="none";document.getElementById("progress").style.display="flex";document.getElementById("audit").style.display="none";document.getElementById("candidate").style.display="none";r.style.display="none";s.textContent="";loadAudit(true);};}'
+    + 'var queue=[],idx=0,total={titleUpdated:0,queryUpdated:0,rankRestored:0,rankNormalHeld:0,rankUngerminatedHeld:0,notFoundHeld:0,safetySkipped:0,notFound:0,notFoundItems:[],failed:0,totalSeconds:0};'
+    + 'function runUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result");b.disabled=true;b.innerHTML="<span class=spin></span>更新対象を準備中…";r.style.display="none";s.innerHTML="<span class=spin></span>不足記事のArticleID＋URLを抽出しています。";google.script.run.withFailureHandler(function(err){s.textContent="更新準備に失敗しました："+((err&&err.message)?err.message:String(err));b.disabled=false;b.textContent="不足情報を更新する";}).withSuccessHandler(function(d){queue=(d&&d.items)||[];idx=0;total={titleUpdated:0,queryUpdated:0,rankRestored:0,rankNormalHeld:0,rankUngerminatedHeld:0,notFoundHeld:0,safetySkipped:0,notFound:0,notFoundItems:[],failed:0,totalSeconds:0};if(!queue.length){s.textContent="更新対象はありません。";b.disabled=false;b.textContent="再点検";return;}processNext();}).sbmArticleInfoUpdatePrepareBridge();}'
+    + 'function processNext(){var b=document.getElementById("run"),s=document.getElementById("status");if(idx>=queue.length){finishUpdate();return;}var item=queue[idx],n=idx+1,all=queue.length;s.innerHTML="<div><span class=spin></span><b>"+n+" / "+all+"件</b> を処理しています</div><div class=detail><b>ArticleID：</b>"+esc(item.articleId)+"<br><b>記事タイトル：</b>"+esc(item.title||"（未取得）")+"<br><b>URL：</b>"+esc(item.url)+"<br><b>処理：</b>"+esc(item.needsTitle&&item.needsQuery?"記事タイトル＋メインクエリ":(item.needsTitle?"記事タイトル":"メインクエリ"))+"</div>";b.innerHTML="<span class=spin></span>"+n+" / "+all+"件 処理中";google.script.run.withFailureHandler(function(err){total.failed++;s.innerHTML+="<div class=errline>この1件でエラー："+esc((err&&err.message)?err.message:String(err))+"</div>";idx++;setTimeout(processNext,120);}).withSuccessHandler(function(d){d=d||{};total.titleUpdated+=Number(d.titleUpdated||0);total.queryUpdated+=Number(d.queryUpdated||0);total.rankRestored+=Number(d.rankChanged||0);total.safetySkipped+=Number(d.safetySkipped||0);total.failed+=Number(d.writeErrors||0);total.totalSeconds+=Number(d.elapsedSeconds||0);if(d.queryAttempted&&!d.queryFound){total.notFound++;if(d.writeVerified===false||Number(d.safetySkipped||0)>0)total.notFoundHeld++;var outcome=(d.writeVerified===false||Number(d.safetySkipped||0)>0)?"更新できず":(Number(d.rankChanged||0)>0?"未発芽から通常ランクへ復元":(String(d.rankAfter||"")==="未発芽"?"未発芽のまま":"通常ランクを維持"));if(outcome==="未発芽のまま")total.rankUngerminatedHeld++;else if(outcome==="通常ランクを維持")total.rankNormalHeld++;total.notFoundItems.push({articleId:item.articleId,title:d.title||item.title||"",url:item.url,outcome:outcome});}s.innerHTML="<div><b>"+n+" / "+all+"件 完了</b>　約"+Number(d.elapsedSeconds||0)+"秒</div><div class=detail><b>ArticleID：</b>"+esc(item.articleId)+"<br><b>記事タイトル：</b>"+esc(d.title||item.title||"（未取得）")+"<br><b>URL：</b>"+esc(item.url)+(d.queryAttempted?"<br><b>メインクエリ：</b>"+esc(d.query||"取得できませんでした"):"")+(d.queryAttempted&&!d.queryFound?"<br><b>判定：</b>"+esc((d.writeVerified===false||Number(d.safetySkipped||0)>0)?"更新できず":(Number(d.rankChanged||0)>0?"未発芽から通常ランクへ復元":(String(d.rankAfter||"")==="未発芽"?"未発芽のまま":"通常ランクを維持"))):"")+(d.writeVerified===false?"<br><b style=color:#b3261e>保存後の再確認に失敗しました</b>":"")+"</div>";idx++;setTimeout(processNext,180);}).sbmArticleInfoUpdateOneBridge(item.articleId,item.url);}'
+    + 'function finishUpdate(){var b=document.getElementById("run"),s=document.getElementById("status"),r=document.getElementById("result"),dv=document.getElementById("articleDetailView");dv.style.display="none";s.textContent="記事情報の更新が完了しました。";r.style.display="block";var h="<b>更新結果</b><br>処理対象："+esc(queue.length)+"件<br>記事タイトル更新："+esc(total.titleUpdated)+"件<br>メインクエリ更新："+esc(total.queryUpdated)+"件<br>過去6か月でもクエリ取得できず："+esc(total.notFound)+"件<br>└ 通常ランクを維持："+esc(total.rankNormalHeld)+"件<br>└ 未発芽のまま："+esc(total.rankUngerminatedHeld)+"件<br>└ 未発芽から通常ランクへ復元："+esc(total.rankRestored)+"件<br>└ 更新できず："+esc(total.notFoundHeld)+"件<br>処理エラー："+esc(total.failed)+"件<br>各記事処理時間の合計：約"+esc(Math.round(total.totalSeconds))+"秒";if(total.notFoundItems.length){h+="<hr><b>過去6か月でもメインクエリを取得できなかった記事</b><div class=note>必要な記事は、その場で記事管理と同じ詳細内容を確認できます。</div>";total.notFoundItems.forEach(function(x,i){h+="<div class=detail><b>ArticleID：</b>"+esc(x.articleId)+"<br><b>記事タイトル：</b>"+esc(x.title||"（未取得）")+"<br><b>URL：</b>"+esc(x.url)+"<br><b>判定：</b>"+esc(x.outcome||"")+"<div class=item-actions><button type=button class=mini onclick=showArticleDetail("+i+")>この記事を確認</button></div></div>";});}else{h+="<hr><span class=good><b>過去6か月でクエリを取得できない記事はありませんでした。</b></span>";}r.innerHTML=h;b.disabled=false;b.textContent="再点検";b.onclick=function(){dv.style.display="none";document.getElementById("progress").style.display="flex";document.getElementById("audit").style.display="none";document.getElementById("candidate").style.display="none";r.style.display="none";s.textContent="";loadAudit(true);};}'
     + 'function showArticleDetail(i){var x=total.notFoundItems[i];if(!x)return;var r=document.getElementById("result"),dv=document.getElementById("articleDetailView"),s=document.getElementById("status");s.textContent="記事詳細を読み込んでいます…";google.script.run.withFailureHandler(function(err){s.textContent="記事詳細を取得できませんでした："+((err&&err.message)?err.message:String(err));}).withSuccessHandler(function(d){if(!d||!d.ok){s.textContent=(d&&d.message)?d.message:"記事詳細を取得できませんでした。";return;}var a=d.article||{},rows=d.rows||[];var h="<h3>選択記事の詳細</h3><b>"+esc(d.displayTitle||"（タイトル未取得）")+"</b><div class=summary><b>"+esc(a.rank||"—")+" × "+esc(a.workState||"—")+"</b><br>"+esc(d.advice||"")+"</div><table>";rows.forEach(function(y){h+="<tr><th>"+esc(y.label)+"</th><td>"+esc(y.value||"—")+"</td></tr>";});h+="</table><div class=backbar><button type=button class=secondary onclick=backToUpdateResult()>更新結果へ戻る</button></div>";dv.innerHTML=h;r.style.display="none";dv.style.display="block";s.textContent="記事詳細を表示しています。";dv.scrollTop=0;}).sbmArticleInfoUpdateDetailBridge(x.articleId,x.url);}'
     + 'function backToUpdateResult(){document.getElementById("articleDetailView").style.display="none";document.getElementById("result").style.display="block";document.getElementById("status").textContent="記事情報の更新が完了しました。";}'
     + 'loadAudit(true);</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(560)), '記事情報を更新');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(560)), '記事情報を更新');
 }
 
 // v6.2.25: google.script.run用の公開ブリッジ。private末尾_関数は直接呼ばない。
@@ -1144,6 +1222,7 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
     return {ok:false,articleId:articleId,url:url,title:'',query:'',titleUpdated:0,queryUpdated:0,safetySkipped:1,writeVerified:false,elapsedSeconds:sbmSecondsSince_(started),message:'ArticleID＋URLの一意一致を確認できないため更新しませんでした。'};
   }
   var r = matches[0];
+  var rankBefore=String(r['記事ランク']||'').trim(),rankPlanned=rankBefore;
   var blogName = String(sbmGetSetting_('BlogName','') || '').trim();
   var rawTitle=String(r['記事タイトル']||'').trim();
   var titleNeeds=!rawTitle || sbmIsTitlePlaceholder_(rawTitle,url);
@@ -1178,11 +1257,18 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
       patch.expected['メインクエリ']=r['メインクエリ'];
       patch.updates['メインクエリ']=query;
     } else {
-      // v6.2.42: 6か月でもqueryを取得できない記事だけ、同じ安全ゲートで未発芽へ変更する。
+      // v6.2.99: クエリ未取得はSearch Consoleの匿名化等でも起こるため、未発芽の根拠にしない。
+      // 保存済みページ実績から通常ランクを再計算し、過去の誤った未発芽だけ安全に復元する。
       var currentRank=String(r['記事ランク']||'').trim();
-      if (currentRank !== '未発芽') {
-        patch.expected['記事ランク']=r['記事ランク'];
-        patch.updates['記事ランク']='未発芽';
+      if(currentRank==='未発芽'){
+        var allRows=rows||[],clickVals=allRows.map(function(x){return sbmNumber_(x['クリック数']||0);}).sort(function(a,b){return a-b;});
+        var impVals=allRows.map(function(x){return sbmNumber_(x['表示回数']||0);}).sort(function(a,b){return a-b;});
+        var expectedRank=sbmExpectedArticleRank_(r,clickVals,impVals);
+        if(expectedRank!=='未発芽'){
+          patch.expected['記事ランク']=r['記事ランク'];
+          patch.updates['記事ランク']=expectedRank;
+          rankPlanned=expectedRank;
+        }
       }
     }
   }
@@ -1196,7 +1282,7 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
   var verifiedOk=verification.ok!==false;
   var titleUpdated=verifiedOk?Number(committed.titleUpdated||0):0;
   var queryUpdated=verifiedOk?Number(committed.queryUpdated||0):0;
-  var rankChanged=(verifiedOk && queryAttempted && !query && patch.updates['記事ランク']==='未発芽' && Number(committed.writtenArticles||0)>0)?1:0;
+  var rankChanged=(verifiedOk && patch.updates['記事ランク'] && String(patch.updates['記事ランク'])!=='未発芽' && Number(committed.writtenArticles||0)>0)?1:0;
   var safetySkipped=Number(committed.skipped||0)+(verifiedOk?0:1);
   var writeErrors=Number(committed.errors||0)+(verifiedOk?0:1);
 
@@ -1208,11 +1294,13 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
     });
   }
   var elapsed=sbmSecondsSince_(started);
+  var rankAfter=(verifiedOk&&patch.updates['記事ランク'])?String(patch.updates['記事ランク']):rankBefore;
   sbmProcessLog_('記事情報を更新（1記事）',verifiedOk?'完了':'保存再確認エラー',1,verifiedOk?Number(committed.writtenArticles||0):0,elapsed,
-    'ArticleID '+articleId+' / URL '+url+' / タイトル更新 '+titleUpdated+' / メインクエリ更新 '+queryUpdated+' / 未発芽変更 '+rankChanged+' / 安全照合・再確認保留 '+safetySkipped+(verifiedOk?'':' / '+String(verification.reason||'')), '', sbmNowText_());
+    'ArticleID '+articleId+' / URL '+url+' / タイトル更新 '+titleUpdated+' / メインクエリ更新 '+queryUpdated+' / 未発芽誤判定復元 '+rankChanged+' / 安全照合・再確認保留 '+safetySkipped+(verifiedOk?'':' / '+String(verification.reason||'')), '', sbmNowText_());
   return {
     ok:writeErrors===0,articleId:articleId,url:url,title:resolvedTitle||rawTitle||'',query:query,
     queryAttempted:queryAttempted,queryFound:!!query,titleUpdated:titleUpdated,queryUpdated:queryUpdated,rankChanged:rankChanged,
+    rankBefore:rankBefore,rankAfter:rankAfter,
     safetySkipped:safetySkipped,writeErrors:writeErrors,writeVerified:verifiedOk,verificationReason:String(verification.reason||''),
     titleHistorySynced:titleHistorySynced,titleEffectSynced:titleEffectSynced,titleSyncSkipped:titleSyncSkipped,
     elapsedSeconds:elapsed,message:!verifiedOk?'保存後の再確認に失敗したため更新完了扱いにしません。':(queryAttempted?(query?(queryUpdated?'メインクエリ取得・更新完了':(safetySkipped?'メインクエリ取得済み・安全照合で更新保留':'メインクエリ取得済み')):'対象URLのクエリを取得できませんでした'):'タイトル確認完了')
@@ -2163,7 +2251,7 @@ function sbmPersonalKnowledgeInspectionHtml_(data) {
 function sbmPersonalKnowledgeCheckAndInitializeMenu() {
   var data=sbmPersonalKnowledgeInspectionData_();
   var html=HtmlService.createHtmlOutput(sbmPersonalKnowledgeInspectionHtml_(data)).setWidth(820).setHeight(640);
-  SpreadsheetApp.getUi().showModalDialog(html,'Personal Knowledgeを点検');
+  sbmShowThemedModalDialog_(html,'Personal Knowledgeを点検');
 }
 
 function sbmEnsureSiteIdentity_() {
@@ -2435,7 +2523,7 @@ function sbmShowArticleInfoContinuationDialog_(summary) {
     '<div class="note">続けるたびに新しいApps Script実行として処理します。処理中は他のメニューを実行しないでください。</div>' +
     '<script>var state=' + payload + ';var batch=' + batch + ';function render(s){state=s||{};document.getElementById("processed").textContent=(Number(state.processed||0))+"件";document.getElementById("success").textContent=(Number(state.success||0))+"件";document.getElementById("errors").textContent=(Number(state.errors||0))+"件";document.getElementById("completed").textContent=(Number(state.completed||0))+" / "+(Number(state.total||0))+"件";document.getElementById("remaining").textContent=(Number(state.remaining||0))+"件";var btn=document.getElementById("continueBtn");var msg=document.getElementById("message");if(state.finished||Number(state.remaining||0)===0){document.getElementById("title").textContent="記事情報補完が完了しました";btn.style.display="none";msg.className="done";msg.textContent="初回記事DBセットアップが完了しました。";}else{btn.style.display="inline-block";btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="";msg.textContent="";}}function continueRun(){var btn=document.getElementById("continueBtn"),msg=document.getElementById("message"),sp=document.createElement("span");btn.disabled=true;btn.textContent="処理中…";msg.className="";msg.textContent="";sp.className="spin";msg.appendChild(sp);msg.appendChild(document.createTextNode("この画面を閉じずに完了までお待ちください。"));google.script.run.withFailureHandler(function(e){btn.disabled=false;btn.textContent="続けて"+batch+"件処理";msg.className="error";msg.textContent=(e&&e.message)?e.message:String(e);}).withSuccessHandler(function(res){render(res||{});}).sbmContinueArticleInfoFromDialog();}document.getElementById("continueBtn").addEventListener("click",continueRun);document.getElementById("articleInfoStopBtn").addEventListener("click",function(){google.script.host.close();});render(state);</script>' +
     '</body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(420)), '記事情報補完');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(520).setHeight(420)), '記事情報補完');
 }
 
 function sbmContinueArticleInfoFromDialog() {
@@ -3042,6 +3130,7 @@ function sbmOpenArticleDb() {
   try { sbmRepairArticleDisplayTitlesLight_(sh); } catch(eDisplayTitle) { sbmLog_('ArticleDisplayTitleRepair','Warning',String(eDisplayTitle)); }
   sbmEnsureArticleListFilter_(sh);
   try { sbmStyleArticleDbSheet_(sh); } catch(eStyle) { sbmLog_('ArticleListStyle','Warning',String(eStyle)); }
+  try { sbmApplyArticleDbDisplayTheme_(sh); } catch(eThemeArticle) { sbmLog_('ArticleTheme','Warning',String(eThemeArticle)); }
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
   try { ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。', '記事一覧', 8); } catch(e) {}
 }
@@ -3088,7 +3177,7 @@ function sbmOpenSelectedArticleUrl() {
   if (!d || !d.ok || !d.url) return sbmAlert_('記事を開けません', '記事DBで対象記事の行を選択してください。');
   var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   var html = '<div style="font-family:Arial,sans-serif;padding:20px;line-height:1.7"><h2 style="color:#0b8043;margin-top:0">記事を開く</h2><p><b>' + e(d.title || '選択記事') + '</b></p><p><a href="' + e(d.url) + '" target="_blank" style="display:inline-block;background:#1a73e8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:700">ブラウザで記事を開く</a></p></div>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(460).setHeight(240)), '記事を開く');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(460).setHeight(240)), '記事を開く');
 }
 
 function sbmFetchOnlyManual(silent) {
@@ -3433,85 +3522,34 @@ function sbmUniqueCount_(arr) {
  * 取得結果はSearchConsole_Dataへ保存し、依頼文と内部リンク候補の両方に利用します。
  */
 function sbmFetchTopQueriesForUrlNow_(url, limit) {
-  var originalUrl = String(url || '').trim().split('#')[0].split('?')[0];
-  var normalizedUrl = sbmNormalizeUrl_(originalUrl);
-  limit = Math.max(1, Math.min(QUERY_ROW_LIMIT, Number(limit || QUERY_ROW_LIMIT)));
-  if (!normalizedUrl) return {ok:false, queries:[], message:'記事URLが正しくありません。'};
-  var property = sbmGetSetting_('SearchConsoleProperty','');
-  if (!property) return {ok:false, queries:[], message:'Search Consoleプロパティが設定されていません。'};
-  try {
-    var range = sbmSearchConsoleDateRange_();
-    var variants = [];
-    function addVariant(v){ v=String(v||'').trim(); if(v && variants.indexOf(v)<0) variants.push(v); }
-    addVariant(originalUrl);
-    addVariant(normalizedUrl);
-    addVariant(normalizedUrl.replace(/\/$/,''));
-    addVariant(normalizedUrl + (normalizedUrl.slice(-1)==='/'?'':'/'));
-
-    var apiRows = [];
-    var matchedUrl = '';
-    for (var vi=0; vi<variants.length && !apiRows.length; vi++) {
-      var data = sbmSearchConsoleApiRequest_(property, {
-        startDate: range.startDate,
-        endDate: range.endDate,
-        dimensions: ['query'],
-        // 改善依頼文へ最大200件を渡すため、少し余裕を持って取得します。
-        rowLimit: Math.max(QUERY_ROW_LIMIT, 250),
-        dimensionFilterGroups: [{filters:[{dimension:'page', operator:'equals', expression:variants[vi]}]}]
-      });
-      apiRows = data.rows || [];
-      if (apiRows.length) matchedUrl = variants[vi];
-    }
-
-    // Canonical URLや末尾スラッシュ差でequalsが0件の場合は、query×pageを取得して正規化照合します。
-    if (!apiRows.length) {
-      var pathMatch = normalizedUrl.match(/^https?:\/\/[^/]+(\/.*)$/i);
-      var pathExpr = pathMatch ? pathMatch[1].replace(/\/$/,'') : '';
-      if (pathExpr) {
-        var fallback = sbmSearchConsoleApiRequest_(property, {
-          startDate: range.startDate,
-          endDate: range.endDate,
-          dimensions: ['query','page'],
-          // フォールバックは候補確認用に限定し、大量取得によるタイムアウトを防ぎます。
-          rowLimit: 1000,
-          dimensionFilterGroups: [{filters:[{dimension:'page', operator:'contains', expression:pathExpr}]}]
-        });
-        apiRows = (fallback.rows || []).filter(function(r){
-          return r.keys && r.keys.length > 1 && sbmNormalizeUrl_(r.keys[1]) === normalizedUrl;
-        }).map(function(r){
-          return {keys:[r.keys[0]], clicks:r.clicks, impressions:r.impressions, ctr:r.ctr, position:r.position};
-        });
-        if (apiRows.length) matchedUrl = normalizedUrl;
-      }
-    }
-
-    var capturedAt = sbmNowText_();
-    var queries = apiRows.map(function(r){
+  var originalUrl=String(url||'').trim().split('#')[0].split('?')[0];
+  var normalizedUrl=sbmNormalizeUrl_(originalUrl);
+  limit=Math.max(1,Math.min(QUERY_ROW_LIMIT,Number(limit||QUERY_ROW_LIMIT)));
+  if(!normalizedUrl)return {ok:false,queries:[],message:'記事URLが正しくありません。'};
+  var property=sbmGetSetting_('SearchConsoleProperty','');
+  if(!property)return {ok:false,queries:[],message:'Search Consoleプロパティが設定されていません。'};
+  try{
+    var range=sbmSearchConsoleDateRange_();
+    var resolved=sbmGscFetchQueryRowsResolved_(originalUrl||normalizedUrl,range,Math.max(QUERY_ROW_LIMIT,250),true);
+    var apiRows=resolved.rows||[],capturedAt=sbmNowText_();
+    var queries=apiRows.map(function(r){
       return {
-        query: r.keys && r.keys[0] ? String(r.keys[0]) : '',
-        clicks: sbmNumber_(r.clicks || 0),
-        imps: sbmNumber_(r.impressions || 0),
-        ctr: sbmNormalizeCtrNumber_(r.ctr || 0),
-        position: sbmNumber_(r.position || 0)
+        query:r.keys&&r.keys[0]?String(r.keys[0]):'',
+        clicks:sbmNumber_(r.clicks||0),
+        imps:sbmNumber_(r.impressions||0),
+        ctr:sbmNormalizeCtrNumber_(r.ctr||0),
+        position:sbmNumber_(r.position||0)
       };
-    }).filter(function(r){ return r.query; });
-    queries.sort(function(a,b){
-      return (b.imps-a.imps) || (b.clicks-a.clicks) || (a.position-b.position);
-    });
-    // 改善ナビでは取得結果をそのまま利用します。
-    // SearchConsole_Data全体の読み直し・全件書き換えは行わず、タイムアウトと画面遷移を防ぎます。
+    }).filter(function(r){return r.query;});
+    queries.sort(function(a,b){return (b.imps-a.imps)||(b.clicks-a.clicks)||(a.position-b.position);});
     return {
-      ok:true,
-      queries:queries.slice(0, limit),
-      total:queries.length,
-      fetchedAt:capturedAt,
-      startDate:range.startDate,
-      endDate:range.endDate,
-      matchedUrl:matchedUrl,
-      message:queries.length ? ('最新クエリを'+queries.length+'件取得しました。') : '対象URLに一致するクエリは取得できませんでした。'
+      ok:true,queries:queries.slice(0,limit),total:queries.length,fetchedAt:capturedAt,
+      startDate:range.startDate,endDate:range.endDate,matchedUrl:String(resolved.matchedUrl||''),
+      matchStage:String(resolved.stage||''),
+      message:queries.length?('最新クエリを'+queries.length+'件取得しました。'):'対象URLに一致するクエリは取得できませんでした。'
     };
-  } catch(e) {
-    return {ok:false, queries:[], message:'最新クエリの取得に失敗しました。'+String(e && e.message || e)};
+  }catch(e){
+    return {ok:false,queries:[],message:'最新クエリの取得に失敗しました。'+String(e&&e.message||e)};
   }
 }
 
@@ -3551,41 +3589,27 @@ function sbmReplaceRawQueriesForUrl_(url, range, capturedAt, queries) {
  * エラーは握り潰さない。呼び出し側で明示的に処理する。
  */
 function sbmArticleInfoFetchMainQueryResult6Months_(url) {
-  url = sbmNormalizeUrl_(url || '');
-  if (!url) throw new Error('メインクエリ取得対象URLが空です。');
+  var originalUrl=String(url||'').trim();
+  var norm=sbmNormalizeUrl_(originalUrl);
+  if(!norm)throw new Error('メインクエリ取得対象URLが空です。');
 
-  var baseRange = sbmSearchConsoleDateRange_();
-  var endParts = String(baseRange.endDate || '').split('-');
-  if (endParts.length !== 3) throw new Error('Search Console対象期間の終了日を解釈できません。');
-  var endDateObj = new Date(Number(endParts[0]), Number(endParts[1]) - 1, Number(endParts[2]));
-  var startDateObj = new Date(endDateObj.getFullYear(), endDateObj.getMonth() - 6, endDateObj.getDate() + 1);
-  var startDate = sbmDateText_(startDateObj);
-  var endDate = String(baseRange.endDate || '');
-  var property = String(sbmGetSetting_('SearchConsoleProperty','') || '').trim();
-  if (!property) throw new Error('Search Consoleプロパティが設定されていません。');
+  var baseRange=sbmSearchConsoleDateRange_(),endParts=String(baseRange.endDate||'').split('-');
+  if(endParts.length!==3)throw new Error('Search Console対象期間の終了日を解釈できません。');
+  var endDateObj=new Date(Number(endParts[0]),Number(endParts[1])-1,Number(endParts[2]));
+  var startDateObj=new Date(endDateObj.getFullYear(),endDateObj.getMonth()-6,endDateObj.getDate()+1);
+  var range={startDate:sbmDateText_(startDateObj),endDate:String(baseRange.endDate||'')};
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
+  if(!property)throw new Error('Search Consoleプロパティが設定されていません。');
 
-  var data = sbmSearchConsoleApiRequest_(property, {
-    startDate: startDate,
-    endDate: endDate,
-    dimensions: ['query'],
-    rowLimit: 10,
-    dimensionFilterGroups: [{filters:[{dimension:'page', operator:'equals', expression:url}]}]
-  }) || {};
-  var rows = data.rows || [];
-  rows.sort(function(a,b){
-    var ac = sbmNumber_(a.clicks || 0), bc = sbmNumber_(b.clicks || 0);
-    var ai = sbmNumber_(a.impressions || 0), bi = sbmNumber_(b.impressions || 0);
-    if (ai !== bi) return bi - ai;
-    if (ac !== bc) return bc - ac;
-    var ap = sbmNumber_(a.position || 0), bp = sbmNumber_(b.position || 0);
-    if (ap && bp && ap !== bp) return ap - bp;
-    return 0;
-  });
-  var query = rows[0] && rows[0].keys && rows[0].keys[0] ? String(rows[0].keys[0]) : '';
-  return {query:query,rows:rows,startDate:startDate,endDate:endDate,property:property,url:url};
+  var resolved=sbmGscFetchQueryRowsResolved_(originalUrl||norm,range,10,true);
+  var rows=resolved.rows||[];
+  var query=rows[0]&&rows[0].keys&&rows[0].keys[0]?String(rows[0].keys[0]):'';
+  return {
+    query:query,rows:rows,startDate:range.startDate,endDate:range.endDate,property:property,
+    url:norm,matchedUrl:String(resolved.matchedUrl||''),matchStage:String(resolved.stage||'')
+  };
 }
 
-// 旧v6.2.35関数名は互換用に残す。内部では必ず共通関数を使用する。
 function sbmArticleInfoFetchMainQueryForUrl6Months_(url) {
   return sbmArticleInfoFetchMainQueryResult6Months_(url).query;
 }
@@ -4708,45 +4732,174 @@ function sbmRunSetupStep5DiagnosticOnly() {
 
 
 
+function sbmGscUrlCacheKey_(url){
+  var norm=sbmNormalizeUrl_(url||'');
+  if(!norm)return '';
+  var digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,norm,Utilities.Charset.UTF_8);
+  var hex=digest.map(function(b){var n=(b<0?b+256:b).toString(16);return n.length<2?'0'+n:n;}).join('');
+  return 'SBM_GSC_MATCH_'+hex.substring(0,40);
+}
+function sbmGscMatchedUrlGet_(url){
+  try{
+    var k=sbmGscUrlCacheKey_(url);if(!k)return '';
+    return String(PropertiesService.getDocumentProperties().getProperty(k)||'').trim();
+  }catch(e){return '';}
+}
+function sbmGscMatchedUrlPut_(url,matchedUrl){
+  try{
+    var k=sbmGscUrlCacheKey_(url),v=String(matchedUrl||'').trim();if(!k||!v)return;
+    PropertiesService.getDocumentProperties().setProperty(k,v);
+  }catch(e){}
+}
+function sbmGscUrlVariants_(url){
+  var raw=String(url||'').trim().split('#')[0].split('?')[0],norm=sbmNormalizeUrl_(raw),out=[];
+  function add(v){v=String(v||'').trim();if(v&&out.indexOf(v)<0)out.push(v);}
+  var cached=sbmGscMatchedUrlGet_(norm||raw);if(cached)add(cached);
+  add(raw);add(norm);
+  if(norm){
+    // Most common CMS/service difference: trailing slash.
+    add(norm==='/'?norm:(norm.slice(-1)==='/'?norm.replace(/\/+$/,''):norm+'/'));
+    var m=norm.match(/^(https?):\/\/([^/]+)(\/.*)?$/i);
+    if(m){
+      var scheme=String(m[1]||'https').toLowerCase(),host=String(m[2]||''),path=String(m[3]||'/');
+      // Protocol difference.
+      add((scheme==='https'?'http':'https')+'://'+host+path);
+      add((scheme==='https'?'http':'https')+'://'+host+(path==='/'?path:(path.slice(-1)==='/'?path.replace(/\/+$/,''):path+'/')));
+      // www difference. Domain properties may surface either representation.
+      var altHost=/^www\./i.test(host)?host.replace(/^www\./i,''):'www.'+host;
+      add(scheme+'://'+altHost+path);
+      add(scheme+'://'+altHost+(path==='/'?path:(path.slice(-1)==='/'?path.replace(/\/+$/,''):path+'/')));
+    }
+  }
+  return out;
+}
+function sbmGscSortQueryRows_(rows){
+  rows=(rows||[]).slice();
+  rows.sort(function(a,b){
+    var ai=sbmNumber_(a.impressions||0),bi=sbmNumber_(b.impressions||0);
+    if(ai!==bi)return bi-ai;
+    var ac=sbmNumber_(a.clicks||0),bc=sbmNumber_(b.clicks||0);
+    if(ac!==bc)return bc-ac;
+    var ap=sbmNumber_(a.position||0),bp=sbmNumber_(b.position||0);
+    return (ap||999)-(bp||999);
+  });
+  return rows;
+}
+function sbmGscFetchAllChunked_(requests,chunkSize){
+  requests=requests||[];chunkSize=Math.max(1,Math.min(100,Number(chunkSize||80)));
+  var out=[];
+  for(var i=0;i<requests.length;i+=chunkSize){
+    var chunk=requests.slice(i,i+chunkSize),res=[];
+    try{res=chunk.length?UrlFetchApp.fetchAll(chunk):[];}catch(e){res=[];}
+    for(var j=0;j<chunk.length;j++)out.push(res[j]||null);
+  }
+  return out;
+}
+function sbmGscExactRequest_(endpoint,token,range,pageUrl,rowLimit){
+  return {
+    url:endpoint,method:'post',contentType:'application/json',
+    payload:JSON.stringify({
+      startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
+      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:pageUrl}]}]
+    }),
+    headers:{Authorization:'Bearer '+token},muteHttpExceptions:true
+  };
+}
+function sbmGscParseQueryResponse_(res){
+  try{
+    if(!res||res.getResponseCode()<200||res.getResponseCode()>=300)return [];
+    return sbmGscSortQueryRows_((JSON.parse(res.getContentText()||'{}').rows||[]));
+  }catch(e){return [];}
+}
+function sbmGscFetchQueryRowsResolved_(url,range,rowLimit,allowContains){
+  var norm=sbmNormalizeUrl_(url||'');
+  if(!norm)return {rows:[],matchedUrl:'',stage:'INVALID'};
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
+  if(!property)return {rows:[],matchedUrl:'',stage:'NO_PROPERTY'};
+  var variants=sbmGscUrlVariants_(url),rows=[],matched='',stage='';
+  for(var i=0;i<variants.length&&!rows.length;i++){
+    var data=sbmSearchConsoleApiRequest_(property,{
+      startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
+      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:variants[i]}]}]
+    })||{};
+    rows=sbmGscSortQueryRows_(data.rows||[]);
+    if(rows.length){matched=variants[i];stage=(i===0?'EXACT_PRIMARY':'EXACT_VARIANT');}
+  }
+  if(!rows.length&&allowContains!==false){
+    var pathMatch=norm.match(/^https?:\/\/[^/]+(\/.*)$/i);
+    var pathExpr=pathMatch?String(pathMatch[1]||'').replace(/\/+$/,''):'';
+    if(pathExpr&&pathExpr!=='/'){
+      var fallback=sbmSearchConsoleApiRequest_(property,{
+        startDate:range.startDate,endDate:range.endDate,dimensions:['query','page'],rowLimit:1000,
+        dimensionFilterGroups:[{filters:[{dimension:'page',operator:'contains',expression:pathExpr}]}]
+      })||{};
+      rows=(fallback.rows||[]).filter(function(r){
+        return r.keys&&r.keys.length>1&&sbmNormalizeUrl_(r.keys[1])===norm;
+      }).map(function(r){
+        return {keys:[r.keys[0]],clicks:r.clicks,impressions:r.impressions,ctr:r.ctr,position:r.position};
+      });
+      rows=sbmGscSortQueryRows_(rows);
+      if(rows.length){matched=norm;stage='CONTAINS_NORMALIZED';}
+    }
+  }
+  if(rows.length&&matched)sbmGscMatchedUrlPut_(norm,matched);
+  return {rows:rows,matchedUrl:matched,stage:stage||'NOT_FOUND'};
+}
+
 function sbmFetchMainQueriesForUrlsBatch_(urls) {
-  urls=(urls||[]).map(function(u){return sbmNormalizeUrl_(u||'');});
-  var out=new Array(urls.length).fill('');
-  if(!urls.length)return out;
+  var originals=(urls||[]).map(function(u){return String(u||'').trim();});
+  var norms=originals.map(function(u){return sbmNormalizeUrl_(u||'');});
+  var out=new Array(norms.length).fill('');
+  if(!norms.length)return out;
 
   var range=sbmSearchConsoleDateRange_();
-  var property=sbmGetSetting_('SearchConsoleProperty','');
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
   if(!property)return out;
-
-  // まず従来どおりexact一致をfetchAllで高速確認する。
   var endpoint='https://www.googleapis.com/webmasters/v3/sites/'+encodeURIComponent(property)+'/searchAnalytics/query';
-  var token=ScriptApp.getOAuthToken();
-  var requests=[],indexes=[];
-  urls.forEach(function(url,i){
-    if(!url)return;
-    var body={startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:10,
-      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:url}]}]};
-    requests.push({url:endpoint,method:'post',contentType:'application/json',payload:JSON.stringify(body),headers:{Authorization:'Bearer '+token},muteHttpExceptions:true});
-    indexes.push(i);
-  });
-  var responses=[];
-  try{responses=requests.length?UrlFetchApp.fetchAll(requests):[];}catch(batchError){responses=[];}
-  indexes.forEach(function(originalIndex,j){
-    try{
-      var res=responses[j];
-      if(!res||res.getResponseCode()<200||res.getResponseCode()>=300)return;
-      var data=JSON.parse(res.getContentText()||'{}'),rows=data.rows||[];
-      rows.sort(function(a,b){
-        var as=sbmNumber_(a.clicks||0)*1000+sbmNumber_(a.impressions||0);
-        var bs=sbmNumber_(b.clicks||0)*1000+sbmNumber_(b.impressions||0);
-        return bs-as;
-      });
-      out[originalIndex]=rows.length&&rows[0].keys&&rows[0].keys[0]?String(rows[0].keys[0]):'';
-    }catch(ignoreExact){}
-  });
+  var token=ScriptApp.getOAuthToken(),tried={};
 
-  // v6.2.27: exact一致で0件だったURLはここで深追いしない。
-  // URL variants / contains の個別照会は改善ナビ等の既存機能側に残し、
-  // 「記事情報を更新」では一括fetchAll 1回だけで終了する。
+  function runStage(candidates){
+    var req=[],meta=[];
+    candidates.forEach(function(x){
+      if(!x||!x.url||out[x.index])return;
+      var key=x.index+'\n'+x.url;if(tried[key])return;tried[key]=true;
+      req.push(sbmGscExactRequest_(endpoint,token,range,x.url,10));
+      meta.push(x);
+    });
+    var responses=sbmGscFetchAllChunked_(req,80);
+    responses.forEach(function(res,j){
+      var x=meta[j];if(!x||out[x.index])return;
+      var rows=sbmGscParseQueryResponse_(res);
+      if(rows.length&&rows[0].keys&&rows[0].keys[0]){
+        out[x.index]=String(rows[0].keys[0]);
+        sbmGscMatchedUrlPut_(norms[x.index],x.url);
+      }
+    });
+  }
+
+  // Stage 1: cached matched URL first; otherwise canonical internal URL.
+  runStage(norms.map(function(norm,i){
+    return {index:i,url:sbmGscMatchedUrlGet_(norm)||norm};
+  }));
+
+  // Stage 2: unresolved only, trailing-slash counterpart. This fixes the common WP/CMS mismatch cheaply.
+  runStage(norms.map(function(norm,i){
+    if(out[i]||!norm)return null;
+    return {index:i,url:(norm.slice(-1)==='/'?norm.replace(/\/+$/,''):norm+'/')};
+  }).filter(Boolean));
+
+  // Stage 3: unresolved only, remaining exact variants (http/https and www differences).
+  var variants=[];
+  norms.forEach(function(norm,i){
+    if(out[i]||!norm)return;
+    sbmGscUrlVariants_(originals[i]||norm).forEach(function(v){
+      variants.push({index:i,url:v});
+    });
+  });
+  runStage(variants);
+
+  // Batch path intentionally stops here. Heavy contains fallback is reserved for single-article
+  // requests (article-info worker / Improvement Navi), so a large site does not multiply latency.
   return out;
 }
 
@@ -4987,7 +5140,7 @@ function sbmShowSelectedDataListDetail() {
   var obj = {};
   headers.forEach(function(h,i){ obj[String(h||'')] = vals[i]; });
   var html = HtmlService.createHtmlOutput(sbmDataListDetailHtml_(obj)).setWidth(760).setHeight(620);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(html), 'データ一覧 詳細');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(html), 'データ一覧 詳細');
 }
 
 function sbmDataListDetailHtml_(o) {
@@ -5149,7 +5302,7 @@ function sbmShowArticleDbOpenLinkForRow_(sh, row) {
   if (!url) return sbmAlert_('記事を開けません', '記事URLがありません。');
   var e = function(v){ return sbmEscapeHtml_(v===0?'0':v); };
   var html = '<div style="font-family:Arial,sans-serif;padding:20px;line-height:1.7"><h2 style="color:#0b8043;margin-top:0">記事を開く</h2><p><b>' + e(title || '選択記事') + '</b></p><p><a href="' + e(url) + '" target="_blank" style="display:inline-block;background:#1a73e8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:700">ブラウザで記事を開く</a></p></div>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(500).setHeight(250)), '記事を開く');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(500).setHeight(250)), '記事を開く');
 }
 
 
@@ -5497,7 +5650,7 @@ function sbmShowEffectDetailForRow_(row) {
   var vals = sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0];
   var o = {}; heads.forEach(function(h,i){ o[h]=vals[i]; });
   var html = HtmlService.createHtmlOutput(sbmEffectDetailHtml_(o)).setWidth(820).setHeight(680);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(html), '改善の推移の詳細');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(html), '改善の推移の詳細');
 }
 
 function sbmEffectDetailHtml_(o) {
@@ -5523,7 +5676,7 @@ function sbmShowInProgressDetailForRow_(row) {
   var map = sbmHeaderMap_(sh);
   var obj = {}; Object.keys(map).forEach(function(k){ obj[k] = sh.getRange(row,map[k]).getValue(); });
   var html = HtmlService.createHtmlOutput(sbmInProgressDetailHtml_(obj)).setWidth(760).setHeight(620);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(html), '改善中の詳細');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(html), '改善中の詳細');
 }
 
 function sbmInProgressDetailHtml_(o) {
@@ -5762,34 +5915,35 @@ function sbmPercentileRank_(sortedValues, value) {
   return sbmPercentileRankSorted_(a, value);
 }
 
+function sbmExpectedArticleRank_(r,clickVals,impVals){
+  r=r||{};
+  var clicks=sbmNumber_(r['クリック数']||0);
+  var imps=sbmNumber_(r['表示回数']||0);
+  // v6.2.99 canonical rank rule:
+  // page performance decides germination. Query availability never decides rank.
+  var hasEnoughRankData=(imps>=200||clicks>=10);
+  if(!hasEnoughRankData)return clicks>=3?'🌿 発芽':'未発芽';
+  clickVals=clickVals||[clicks];impVals=impVals||[imps];
+  var ctr=sbmNumber_(r['CTR']||0),pos=sbmNumber_(r['掲載順位']||0);
+  var clickPct=sbmPercentileRankSorted_(clickVals,clicks);
+  var impPct=sbmPercentileRankSorted_(impVals,imps);
+  var ctrScore=Math.max(0,Math.min(1,ctr/0.08));
+  var posScore=pos>0?Math.max(0,Math.min(1,(40-Math.min(pos,40))/39)):0;
+  var score=clickPct*50+impPct*20+ctrScore*15+posScore*15;
+  if(score>=82&&clickPct>=0.85&&pos>0&&pos<=10)return '🏆 エース';
+  if(score>=62)return '📈 成長';
+  if(score>=42)return '✅ 安定';
+  return '🌱 育成';
+}
+
 function sbmApplyArticleRanksToObjectMap_(map) {
-  var keys = Object.keys(map || {});
-  var rows = keys.map(function(k){ return map[k]; }).filter(function(r){ return r && r['記事URL']; });
-  var clickVals = rows.map(function(r){ return sbmNumber_(r['クリック数'] || 0); }).sort(function(a,b){return a-b;});
-  var impVals = rows.map(function(r){ return sbmNumber_(r['表示回数'] || 0); }).sort(function(a,b){return a-b;});
+  var keys=Object.keys(map||{});
+  var rows=keys.map(function(k){return map[k];}).filter(function(r){return r&&r['記事URL'];});
+  var clickVals=rows.map(function(r){return sbmNumber_(r['クリック数']||0);}).sort(function(a,b){return a-b;});
+  var impVals=rows.map(function(r){return sbmNumber_(r['表示回数']||0);}).sort(function(a,b){return a-b;});
   rows.forEach(function(r){
-    if (!r['作業状態']) r['作業状態'] = sbmLegacyStatusToWorkState_(r['記事ステータス'] || '');
-    var clicks = sbmNumber_(r['クリック数'] || 0);
-    var imps = sbmNumber_(r['表示回数'] || 0);
-    // v6.2.51: 90日集計で評価可能性を先に判定。表示200以上またはクリック10以上なら通常4ランクへ。
-    // 通常評価に届かない記事は、クリック3以上なら発芽、0〜2なら未発芽とする。
-    // 未発芽も固定せず、日次処理ごとに同じ基準で再評価する。
-    var hasEnoughRankData = (imps >= 200 || clicks >= 10);
-    if (!hasEnoughRankData) {
-      r['記事ランク'] = clicks >= 3 ? '🌿 発芽' : '未発芽';
-      return;
-    }
-    var ctr = sbmNumber_(r['CTR'] || 0);
-    var pos = sbmNumber_(r['掲載順位'] || 0);
-    var clickPct = sbmPercentileRankSorted_(clickVals, clicks);
-    var impPct = sbmPercentileRankSorted_(impVals, imps);
-    var ctrScore = Math.max(0, Math.min(1, ctr / 0.08));
-    var posScore = pos > 0 ? Math.max(0, Math.min(1, (40 - Math.min(pos,40)) / 39)) : 0;
-    var score = clickPct * 50 + impPct * 20 + ctrScore * 15 + posScore * 15;
-    if (score >= 82 && clickPct >= 0.85 && pos > 0 && pos <= 10) r['記事ランク'] = '🏆 エース';
-    else if (score >= 62) r['記事ランク'] = '📈 成長';
-    else if (score >= 42) r['記事ランク'] = '✅ 安定';
-    else r['記事ランク'] = '🌱 育成';
+    if(!r['作業状態'])r['作業状態']=sbmLegacyStatusToWorkState_(r['記事ステータス']||'');
+    r['記事ランク']=sbmExpectedArticleRank_(r,clickVals,impVals);
   });
 }
 
@@ -5848,6 +6002,7 @@ function sbmOpenHome() {
   // Homeを開くだけの操作では、Doctor再照合・効果測定再計算を実行しない。
   // 日次処理や結果登録で保存済みのデータから表示だけを更新する。
   try { sbmRefreshHome_({light:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
+  try { sh=ss.getSheetByName(SBM_SHEETS.HOME); sbmApplyHomeDisplayTheme_(sh); } catch(eThemeHome) { sbmLog_('HomeTheme','Warning',String(eThemeHome)); }
   if (sh) { sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); }
 }
 
@@ -5910,8 +6065,9 @@ function sbmBuildTodayImprovementSheet_() {
   sh.getRange(1,1,1,SBM_HEADERS.TODAY.length)
     .setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold')
     .setHorizontalAlignment('center').setVerticalAlignment('middle');
-  var widths = [48,110,360,520,95,105,190,80,90,70,75,220,95];
+  var widths = [56,110,360,520,95,105,190,80,90,70,75,220,95];
   widths.forEach(function(w,i){ sh.setColumnWidth(i+1,w); });
+  sh.setRowHeight(1,34);
   sh.getRange(1,1,Math.max(2,sh.getMaxRows()),SBM_HEADERS.TODAY.length).setVerticalAlignment('middle');
   sh.getRange('C:C').setWrap(true);
   sh.getRange('D:D').setWrap(true);
@@ -5932,6 +6088,7 @@ function sbmOpenTodayImprovement() {
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
 
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
+  try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){}
   sh.showSheet(); ss.setActiveSheet(sh); sh.activate();
   var current = sbmGetTodayCandidates_().filter(function(c){return !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);});
   if (!current.length) {
@@ -6645,11 +6802,12 @@ function sbmInternalLinkCandidatesHtml_(candidates){
 function sbmBuildImprovementPrompt_(meta, articleData) {
   var articleId=String(meta.articleId||''), url=String(meta.url||''), title=String(meta.title||''), seoTitle=String(meta.seoTitle||''), description=String(meta.description||''), query=String(meta.query||'');
   var site = sbmEnsureSiteIdentity_(), siteId=String(site.siteId||''), siteName=String(site.siteName||''), siteUrl=String(site.siteUrl||site.blogUrl||'');
-  var internalLinkCandidates=Array.isArray(meta.internalLinkCandidates)?meta.internalLinkCandidates:[],topQueries=Array.isArray(meta.topQueries)?meta.topQueries:[];
+  var internalLinkCandidates=Array.isArray(meta.internalLinkCandidates)?meta.internalLinkCandidates:[],topQueries=Array.isArray(meta.topQueries)?meta.topQueries:[],limitedMode=String(meta.queryEvidenceMode||'FULL')==='LIMITED';
   var prompt='【サイト情報】\nSiteID：'+siteId+'\nSiteName：'+siteName+'\nSiteURL：'+siteUrl+'\n' +
     '\n【記事基本情報】\nArticleID：'+articleId+'\nURL：'+url+'\n記事タイトル：'+title+'\nSEOタイトル：'+seoTitle+'\nメタディスクリプション：'+description+'\nメインクエリ：'+query+'\n' +
     '\n【Search Console 概要】\nクリック：'+meta.clicks+'\n表示回数：'+meta.imps+'\nCTR：'+meta.ctrText+'\n平均順位：'+meta.posText+'\n' +
     sbmTopQueriesPromptText_(topQueries,meta.topQueryStatus) +
+    (limitedMode?'\n【重要：クエリ未取得の限定モード】\nSearch ConsoleのURL別実クエリを取得できていません。実際の検索語を推測・捏造しないでください。現在の記事本文、記事タイトル、保存済みページ指標を根拠に、既存の検索意図を変えない範囲だけ改善してください。タイトル・SEOタイトル・メインクエリの変更、記事テーマの拡張、大規模な見出し再編は原則禁止です。必要性を感じても実施せず、利用者判断が必要な提案としてuser_decision_changesへ入れてください。\n':'') +
     '\n【改善目的】\n'+meta.kind+'。検索意図を優先し、既存記事の良い部分を残したまま改善してください。\n' +
     sbmImprovementPriorityText_() +
     '\n【記事ランク】\n'+sbmCoreRankText_(meta.rank)+'\n' +
@@ -6660,6 +6818,7 @@ function sbmBuildImprovementPrompt_(meta, articleData) {
   return prompt+'\n【SIMSへのフィードバック出力ルール】\n回答の最後に、aWriter Contract v4.2準拠のJSONをコードブロックで必ず1つ出力してください。公開OKの修正はpublication_result.public_ok_changes、利用者判断が必要な修正はpublication_result.user_decision_changesへ分けてください。\n'+
     '{\n  "format": "SIMS_FEEDBACK_V2",\n  "contract_version": "4.2",\n  "site_id": "'+siteId+'",\n  "site_name": "'+siteName+'",\n  "site_url": "'+siteUrl+'",\n  "article_id": "'+articleId+'",\n  "article_url": "'+url+'",\n  "completed_at": "YYYY-MM-DD",\n  "publication_result": {\n    "public_ok_changes": [],\n    "user_decision_changes": [],\n    "change_summary": "実施した改善の要約"\n  },\n  "new_values": {\n    "article_title": "", "seo_title": "", "description": "", "main_query": "'+query+'"\n  },\n  "improvement_type": "normal",\n  "confidence": "high",\n  "expected_effect": {"ctr": "", "clicks": ""},\n  "next_action": "monitor",\n  "warnings": [],\n  "estimated_minutes": 20,\n  "recommended_review_days": 14\n}\n'+
     'public_ok_changesとuser_decision_changesは配列形式で出力し、各変更にはtarget・before・after・reasonを含めてください。変更がない場合は空配列にしてください。recommended_review_daysは7・14・30のいずれか、improvement_typeはminor・normal・major、confidenceはhigh・medium・low、next_actionはmonitor・remeasure・rewrite・noneのいずれかにしてください。'+
+    (limitedMode?'限定モードではconfidenceをmedium以下とし、実クエリが無いことをwarningsへ明記してください。':'')+
     sbmDetailedQueryDataPromptText_(topQueries,meta.topQueryStatus,meta.imps);
 }
 
@@ -6734,9 +6893,14 @@ function sbmBuildConcreteImprovementAdvice_(meta,source){
   while(out.length<3){
     var intro=String(source.introduction||'');
     var idx=out.length;
-    if(idx===1)out.push('P1｜導入文を確認：'+(intro?'現在の導入文を残しつつ、':'導入文が十分に取得できないため本文冒頭を確認し、')+'メインクエリへの結論・原因・対処の方向性を最初の数段落にまとめてください。');
-    else if(idx===2)out.push('P2｜情報の重複を避けて不足箇所だけ補強：上位クエリからP0/P1と十分に異なる追加テーマを抽出できませんでした。同じ内容を別見出しで繰り返さず、既存本文の不足説明・具体例・注意点のいずれか1点だけを追加してください。');
-    else break;
+    if(idx===0){
+      var first=sections.length?label(sections[0]):'本文冒頭';
+      out.push('P0｜'+first+'を基準に記事の主目的を明確化：Search Consoleの実クエリを取得できていないため、検索語を推測して見出しを増やさず、現在の記事タイトル・本文構造から読者が最初に知りたい結論を2～3文で明確にしてください。');
+    }else if(idx===1){
+      out.push('P1｜導入文を確認：'+(intro?'現在の導入文を残しつつ、':'導入文が十分に取得できないため本文冒頭を確認し、')+'記事タイトルに対する結論・対象読者・この記事で分かることを最初の数段落にまとめてください。クエリ未取得のため新しい検索意図は追加しません。');
+    }else if(idx===2){
+      out.push('P2｜既存H2/H3の不足説明だけを補強：実クエリの根拠がないため、タイトル・SEOタイトル・メインクエリの変更は行わず、既存本文の具体例・手順・注意点・FAQのうち不足している1点だけを追加してください。');
+    }else break;
   }
   return out.slice(0,3);
 }
@@ -6837,16 +7001,58 @@ function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   seed=seed||{};queryPayload=queryPayload||{};sourcePayload=sourcePayload||{};
   var url=String(seed.url||'').trim(); if(!url)return {ok:false,message:'記事URLを取得できません。'};
   var a=sbmFindArticleDbByUrlFast_(url)||{};
-  var top=Array.isArray(queryPayload.topQueries)?queryPayload.topQueries:[],query=sbmRealMainQuery_(queryPayload.query||a['メインクエリ']||seed.query||'');
-  var clicks=sbmNumber_(a['クリック数']||seed.clicks)||0,imps=sbmNumber_(a['表示回数']||seed.imps)||0,ctr=sbmNormalizeCtrNumber_(a['CTR']!=null?a['CTR']:seed.ctr),pos=sbmNumber_(a['掲載順位']||seed.pos)||0;
-  var meta={articleId:String(a['ArticleID']||seed.articleId||'').trim(),url:url,title:sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||seed.title||'（タイトル未取得）',url)||'（タイトル未取得）',seoTitle:sbmCleanDataListText_(a['SEOタイトル']||seed.seoTitle||'',url),description:sbmCleanDataListText_(a['メタディスクリプション']||seed.description||'',url),query:query,rank:String(a['記事ランク']||seed.rank||''),clicks:clicks,imps:imps,ctrText:(ctr*100).toFixed(1)+'%',posText:pos.toFixed(1),kind:String(seed.kind||'改善候補'),topQueries:top,topQueryStatus:queryPayload.queryResult||{}};
-  var qReady=top.length>0,sReady=!!(sourcePayload.fetchedOk&&sourcePayload.source),ready=qReady&&sReady,linkMax=(String(SBM_EDITION||'').toUpperCase()==='STARTER'?3:8),links=ready?sbmFindInternalLinkCandidates_(a,3,linkMax,top):[],advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source):[];
+  var top=Array.isArray(queryPayload.topQueries)?queryPayload.topQueries:[],
+      query=sbmRealMainQuery_(queryPayload.query||a['メインクエリ']||seed.query||'');
+  var clicks=sbmNumber_(a['クリック数']||seed.clicks)||0,
+      imps=sbmNumber_(a['表示回数']||seed.imps)||0,
+      ctr=sbmNormalizeCtrNumber_(a['CTR']!=null?a['CTR']:seed.ctr),
+      pos=sbmNumber_(a['掲載順位']||seed.pos)||0;
+  var qReady=top.length>0,
+      sReady=!!(sourcePayload.fetchedOk&&sourcePayload.source),
+      ready=sReady,
+      limitedMode=sReady&&!qReady;
+  var meta={
+    articleId:String(a['ArticleID']||seed.articleId||'').trim(),
+    url:url,
+    title:sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||seed.title||'（タイトル未取得）',url)||'（タイトル未取得）',
+    seoTitle:sbmCleanDataListText_(a['SEOタイトル']||seed.seoTitle||'',url),
+    description:sbmCleanDataListText_(a['メタディスクリプション']||seed.description||'',url),
+    query:query,
+    rank:String(a['記事ランク']||seed.rank||''),
+    clicks:clicks,imps:imps,ctrText:(ctr*100).toFixed(1)+'%',posText:pos.toFixed(1),
+    kind:String(seed.kind||'改善候補'),
+    topQueries:top,
+    topQueryStatus:queryPayload.queryResult||{},
+    queryEvidenceMode:limitedMode?'LIMITED':'FULL'
+  };
+  var linkMax=(String(SBM_EDITION||'').toUpperCase()==='STARTER'?3:8),
+      links=ready?sbmFindInternalLinkCandidates_(a,3,linkMax,top):[],
+      advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source):[];
   meta.internalLinkCandidates=links;
-  var wait=''; if(!sReady&&!qReady)wait='記事本文とSearch Consoleクエリを取得できないため、改善ポイントの生成を保留しています。'; else if(!sReady)wait='記事本文を取得できないため、改善ポイントの生成を保留しています。本文を貼り付けてから解析してください。'; else if(!qReady)wait='Search Consoleクエリを取得できないため、改善ポイントの生成を保留しています。';
-  return {ok:true,meta:meta,prompt:ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',queryResult:queryPayload.queryResult||{},topQueries:top,fetchedOk:sReady,fetchedMessage:String(sourcePayload.fetchedMessage||''),characterCount:Number(sourcePayload.characterCount||0),sectionCount:Number(sourcePayload.sectionCount||0),internalLinks:links,improvementReady:ready,improvementWaitMessage:wait,improvementAdvice:advice};
+
+  var wait='';
+  if(!sReady&&!qReady)wait='記事本文とSearch Consoleクエリを取得できないため、改善ポイントの生成を保留しています。';
+  else if(!sReady)wait='記事本文を取得できないため、改善ポイントの生成を保留しています。本文を貼り付けてから解析してください。';
+  else if(limitedMode)wait='Search Consoleクエリは取得できませんでしたが、記事本文と保存済みページ指標を使う限定モードで改善案を生成しました。';
+
+  return {
+    ok:true,meta:meta,
+    prompt:ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',
+    queryResult:queryPayload.queryResult||{},
+    topQueries:top,
+    fetchedOk:sReady,
+    fetchedMessage:String(sourcePayload.fetchedMessage||''),
+    characterCount:Number(sourcePayload.characterCount||0),
+    sectionCount:Number(sourcePayload.sectionCount||0),
+    internalLinks:links,
+    improvementReady:ready,
+    improvementMode:limitedMode?'LIMITED':'FULL',
+    queryLimitedMode:limitedMode,
+    improvementWaitMessage:wait,
+    improvementAdvice:advice
+  };
 }
 
-/** v6.1.8: 改善ナビは日次取得済みクエリを優先し、無い場合だけSearch Console APIへ取りに行く。 */
 function sbmImprovementNaviQueries_(url, limit) {
   var local=sbmTopQueriesForUrlLocal_(url,limit);
   if(local.length){
@@ -6875,8 +7081,8 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     '<div class="sec"><b>記事本文データ</b><div id="sourceStatus" class="source-loading"><span class="miniSpinner"></span>記事本文を取得しています…</div><div id="pastedTools" style="display:none"><textarea id="pasted" placeholder="記事タイトル、見出し、本文を貼り付けてください。"></textarea><br><button class="btn" onclick="analyzePasted()">貼り付け本文を解析</button><span id="analyzeMsg"></span></div></div>'+ 
     '<div class="sec"><b>なぜ今改善するのか</b><div class="reason">'+esc(reason||('表示回数とCTR・順位から改善余地がある記事です。期待効果：約'+expected+'クリック増。'))+'</div></div>'+ 
     '<div class="sec"><b>今やる価値</b><p>'+(expected>=30?'★★★★★ 非常に高い':expected>=10?'★★★★☆ 高い':'★★★☆☆ 検討価値あり')+'</p></div>'+ 
-    '<div class="sec"><b>改善ポイント</b><p style="color:#5f6368;font-size:13px">記事本文のH2/H3とSearch Consoleクエリの両方が揃ってから、修正位置と対象クエリを生成します。</p><div id="improvementAdvice" class="source-loading"><span class="miniSpinner"></span>本文とクエリを確認しています。情報が揃うまで改善ポイントは表示しません。</div></div>'+ 
-    '<div class="sec"><b>内部リンク候補（<span id="internalLinkCount">待機中</span>）</b><p style="color:#5f6368;font-size:13px">改善ポイントと同じ取得情報を使い、情報確認完了後に候補を表示します。</p><div id="internalLinks" class="source-loading"><span class="miniSpinner"></span>本文・クエリ確認後に抽出します…</div></div>'+ 
+    '<div class="sec"><b>改善ポイント</b><p style="color:#5f6368;font-size:13px">記事本文を基準に改善案を生成します。Search Consoleクエリが取得できた場合は精密モード、取得できない場合は検索意図を変えない限定モードで進めます。</p><div id="improvementAdvice" class="source-loading"><span class="miniSpinner"></span>本文とクエリを確認しています…</div></div>'+ 
+    '<div class="sec"><b>内部リンク候補（<span id="internalLinkCount">待機中</span>）</b><p style="color:#5f6368;font-size:13px">記事タイトル・メインクエリ・本文テーマを使って候補を抽出します。実クエリがない場合は関連度を保守的に判定します。</p><div id="internalLinks" class="source-loading"><span class="miniSpinner"></span>関連度を確認しています…</div></div>'+ 
     '<div class="sec"><b>作業時間の目安</b><p>'+(kind.indexOf('即効性')>=0?'約15～20分':'約20分')+'</p></div>'+ 
     (isFullEdition?'<div class="sec"><b>aWriterへの改善依頼文</b><div class="prompt" id="prompt">依頼文を準備しています…</div><button id="copyPromptBtn" class="btn" onclick="copyPrompt()" disabled>aWriter依頼文をコピー</button><div id="copyStatus" class="inlineStatus"></div></div>':'<div id="prompt" style="display:none"></div><div id="copyStatus" style="display:none"></div>')+
     '<div class="sec"><b>改善後の流れ</b><p>① 記事を開く → ② 上記ポイントを修正 → ③ ブログで更新・公開 → ④ 公開後に「改善完了を登録」を押します。登録日を起点に7日目・14日目・21日目・28日目の効果測定へ進みます。</p><a class="btn" href="'+esc(url)+'" target="_blank">記事を開く</a>'+(isFullEdition?'':'<button id="starterCompleteBtn" class="btn" style="background:#0b8043" onclick="registerStarterComplete()">改善完了を登録</button><div id="starterCompleteStatus" class="registerStatus"></div>')+'</div>'+ 
@@ -6885,12 +7091,12 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     'function eh(x){return String(x==null?"":x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;")}function setInline(id,msg,cls){var e=document.getElementById(id);if(!e)return;e.className="inlineStatus "+(cls||"");e.textContent=msg||""}'+
     'function renderQueries(r){var q=r.queryResult||{},arr=r.topQueries||[],mq=String((r.meta||{}).query||""),norm=function(s){return String(s||"").toLowerCase().replace(/\\s+/g," ").trim()},found=arr.some(function(x){return norm(x.query)===norm(mq)}),note=mq?"<br>メインクエリ：<b>"+eh(mq)+"</b>"+(found?"（取得クエリ内に一致あり）":"<br><span style=\\"color:#5f6368\\">※今回取得した上位クエリには完全一致で含まれていません。</span>"):"<br>メインクエリ：<b>未設定</b>";var h;if(q.ok&&Number(q.total||0)>0)h="<div class=\\"source-ok\\">✅ 最新クエリを取得しました。"+note+"<br>取得件数：<b>"+Number(q.total||0).toLocaleString()+"件</b> ／ 依頼文へ使用：<b>"+arr.length+"件</b><br>取得日時："+eh(q.fetchedAt||"－")+"<br>対象期間："+eh(q.startDate||"－")+" ～ "+eh(q.endDate||"－")+"</div>";else h="<div class=\\"source-ng\\">⚠️ "+eh(q.message||"クエリを取得できませんでした。")+note+"<br>依頼文へ使用：<b>"+arr.length+"件</b></div>";document.getElementById("queryStatus").outerHTML="<div id=\\"queryStatus\\">"+h+"</div>";if(arr.length){var rows=arr.map(function(x){return "<tr><td>"+((mq&&norm(x.query)===norm(mq))?"★ ":"")+eh(x.query)+"</td><td>"+Number(x.clicks||0).toLocaleString()+"</td><td>"+Number(x.imps||0).toLocaleString()+"</td><td>"+(Number(x.ctr||0)*100).toFixed(2)+"%</td><td>"+Number(x.position||0).toFixed(1)+"</td></tr>"}).join("");document.getElementById("queryList").innerHTML="<details class=\\"query-details\\"><summary>取得したクエリを見る（依頼文使用 "+arr.length+"件）</summary><div class=\\"query-table-wrap\\"><table class=\\"query-table\\"><thead><tr><th>クエリ</th><th>クリック</th><th>表示回数</th><th>CTR</th><th>順位</th></tr></thead><tbody>"+rows+"</tbody></table></div></details>"}}'+
     'function renderLinks(arr){arr=arr||[];document.getElementById("internalLinkCount").textContent=arr.length+"件";var box=document.getElementById("internalLinks");box.className="";box.innerHTML=arr.length?arr.map(function(c,i){return "<div class=\\"link-candidate\\"><b>"+(i+1)+". "+eh(c.title)+"</b><br><a href=\\""+eh(c.url)+"\\" target=\\"_blank\\">"+eh(c.url)+"</a><br><span>推奨アンカー："+eh(c.anchor)+"</span><br><span>関連クエリ："+eh(c.relatedQuery||"－")+"</span><br><span>関連度："+eh(c.stars)+"</span><br><span><b>活用の考え方：</b>関連クエリやアンカーに自然につながる段落があれば、この関連記事を補足情報として案内してください。上記アンカーテキストを目安にし、関連する文脈がない場合は無理に追加する必要はありません。</span></div>"}).join(""):"<div class=\\"source-ng\\">十分な関連性を持つ内部リンク候補は見つかりませんでした。無理に追加する必要はありません。</div>"}'+
-    'var qPayload=null,sPayload=null,qDone=false,sDone=false,finalizing=false,finalAdvice=[];function tryFinalize(){if(!qDone||!sDone||finalizing)return;finalizing=true;var ab=document.getElementById("improvementAdvice"),ib=document.getElementById("internalLinks");if(ab){ab.className="source-loading";ab.innerHTML="<span class=miniSpinner></span>取得した本文とクエリを照合しています…"}if(ib){ib.className="source-loading";ib.innerHTML="<span class=miniSpinner></span>内部リンク候補を計算しています…"}google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"改善情報を生成できませんでした。";if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent=m}setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);ab.className="";ab.innerHTML=finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");renderLinks(r.internalLinks);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;google.script.run.sbmMarkNormalImprovementWriterReady(meta.articleId,meta.url)}else{ab.className="source-ng";ab.textContent=r.improvementWaitMessage||"本文とクエリの両方が揃っていないため、改善ポイントは生成していません。";document.getElementById("internalLinkCount").textContent="保留";ib.className="source-ng";ib.textContent="改善ポイントの根拠情報が揃ってから内部リンク候補を生成します。";setInline("copyStatus","本文・クエリ確認後に依頼文を準備します。","error")}}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent="内部リンク候補を生成できませんでした。"}setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmFinalizeImprovementNaviData(seed,qPayload,sPayload)}function loadDetail(){setTimeout(function(){if(!qDone){var q=document.getElementById("queryStatus");if(q){q.className="source-loading";q.innerHTML="<span class=miniSpinner></span>Search Consoleクエリの確認に時間がかかっています…"}}if(!sDone){var s=document.getElementById("sourceStatus");if(s){s.className="source-loading";s.innerHTML="<span class=miniSpinner></span>記事本文の取得に時間がかかっています…"}}},12000);google.script.run.withSuccessHandler(function(r){qPayload=r||{ok:false,message:"クエリを取得できませんでした。",topQueries:[]};qDone=true;renderQueries({queryResult:qPayload.queryResult||{},topQueries:qPayload.topQueries||[],meta:{query:qPayload.query||seed.query||""}});tryFinalize()}).withFailureHandler(function(e){qPayload={ok:false,message:(e&&e.message)||String(e),queryResult:{ok:false,message:(e&&e.message)||String(e)},topQueries:[],query:seed.query||""};qDone=true;renderQueries({queryResult:qPayload.queryResult,topQueries:[],meta:{query:qPayload.query}});tryFinalize()}).sbmLoadImprovementNaviQueries(seed);google.script.run.withSuccessHandler(function(r){sPayload=r||{ok:false,fetchedOk:false,fetchedMessage:"記事本文を取得できませんでした。"};sDone=true;var ss=document.getElementById("sourceStatus");if(sPayload.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(sPayload.characterCount||0).toLocaleString()+"文字・"+Number(sPayload.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(sPayload.fetchedMessage||sPayload.message||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}tryFinalize()}).withFailureHandler(function(e){sPayload={ok:false,fetchedOk:false,fetchedMessage:(e&&e.message)||String(e)};sDone=true;var ss=document.getElementById("sourceStatus");ss.className="source-ng";ss.textContent="⚠️ "+sPayload.fetchedMessage;document.getElementById("pastedTools").style.display="block";tryFinalize()}).sbmLoadImprovementNaviSource(seed)}'+
+    'var qPayload=null,sPayload=null,qDone=false,sDone=false,finalizing=false,finalAdvice=[];function tryFinalize(){if(!qDone||!sDone||finalizing)return;finalizing=true;var ab=document.getElementById("improvementAdvice"),ib=document.getElementById("internalLinks");if(ab){ab.className="source-loading";ab.innerHTML="<span class=miniSpinner></span>取得した本文とクエリを照合しています…"}if(ib){ib.className="source-loading";ib.innerHTML="<span class=miniSpinner></span>内部リンク候補を計算しています…"}google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){var m=(r&&r.message)||"改善情報を生成できませんでした。";if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent=m}setInline("copyStatus","依頼文を準備できませんでした。","error");return}meta=r.meta||meta;if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);ab.className="";ab.innerHTML=(r.queryLimitedMode?"<div class=\\"source-ng\\" style=\\"margin-bottom:8px\\">⚠️ Search Consoleクエリ未取得のため限定モードです。検索意図・タイトルを大きく変えず、本文中心で改善します。</div>":"")+finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");renderLinks(r.internalLinks);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;setInline("copyStatus",r.queryLimitedMode?"限定モードのaWriter依頼文を準備しました。":"aWriter依頼文を準備しました。","ok");google.script.run.sbmMarkNormalImprovementWriterReady(meta.articleId,meta.url)}else{ab.className="source-ng";ab.textContent=r.improvementWaitMessage||"本文とクエリの両方が揃っていないため、改善ポイントは生成していません。";document.getElementById("internalLinkCount").textContent="保留";ib.className="source-ng";ib.textContent="改善ポイントの根拠情報が揃ってから内部リンク候補を生成します。";setInline("copyStatus","本文・クエリ確認後に依頼文を準備します。","error")}}).withFailureHandler(function(e){var m=(e&&e.message)||String(e);if(ab){ab.className="source-ng";ab.textContent=m}if(ib){ib.className="source-ng";ib.textContent="内部リンク候補を生成できませんでした。"}setInline("copyStatus","依頼文を準備できませんでした。","error")}).sbmFinalizeImprovementNaviData(seed,qPayload,sPayload)}function loadDetail(){setTimeout(function(){if(!qDone){var q=document.getElementById("queryStatus");if(q){q.className="source-loading";q.innerHTML="<span class=miniSpinner></span>Search Consoleクエリの確認に時間がかかっています…"}}if(!sDone){var s=document.getElementById("sourceStatus");if(s){s.className="source-loading";s.innerHTML="<span class=miniSpinner></span>記事本文の取得に時間がかかっています…"}}},12000);google.script.run.withSuccessHandler(function(r){qPayload=r||{ok:false,message:"クエリを取得できませんでした。",topQueries:[]};qDone=true;renderQueries({queryResult:qPayload.queryResult||{},topQueries:qPayload.topQueries||[],meta:{query:qPayload.query||seed.query||""}});tryFinalize()}).withFailureHandler(function(e){qPayload={ok:false,message:(e&&e.message)||String(e),queryResult:{ok:false,message:(e&&e.message)||String(e)},topQueries:[],query:seed.query||""};qDone=true;renderQueries({queryResult:qPayload.queryResult,topQueries:[],meta:{query:qPayload.query}});tryFinalize()}).sbmLoadImprovementNaviQueries(seed);google.script.run.withSuccessHandler(function(r){sPayload=r||{ok:false,fetchedOk:false,fetchedMessage:"記事本文を取得できませんでした。"};sDone=true;var ss=document.getElementById("sourceStatus");if(sPayload.fetchedOk){ss.className="source-ok";ss.textContent="✅ URLから記事本文を取得しました（"+Number(sPayload.characterCount||0).toLocaleString()+"文字・"+Number(sPayload.sectionCount||0)+"セクション）"}else{ss.className="source-ng";ss.textContent="⚠️ "+(sPayload.fetchedMessage||sPayload.message||"記事本文を取得できませんでした。");document.getElementById("pastedTools").style.display="block"}tryFinalize()}).withFailureHandler(function(e){sPayload={ok:false,fetchedOk:false,fetchedMessage:(e&&e.message)||String(e)};sDone=true;var ss=document.getElementById("sourceStatus");ss.className="source-ng";ss.textContent="⚠️ "+sPayload.fetchedMessage;document.getElementById("pastedTools").style.display="block";tryFinalize()}).sbmLoadImprovementNaviSource(seed)}'+
     'function copyPrompt(){var b=document.getElementById("copyPromptBtn"),t=document.getElementById("prompt").innerText;if(b.disabled){setInline("copyStatus","依頼文の準備完了後にコピーできます。","error");return}var done=function(){setInline("copyStatus","✓ aWriter依頼文をコピーしました。","ok")},fail=function(){setInline("copyStatus","コピーできませんでした。もう一度お試しください。","error")};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fail);else fail()}'+
-    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);var ab=document.getElementById("improvementAdvice");ab.className="";ab.innerHTML=finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"クエリ情報がないため改善ポイントは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
+    'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){finalAdvice=(r.improvementAdvice||[]).slice(0,3);var ab=document.getElementById("improvementAdvice");ab.className="";ab.innerHTML=finalAdvice.map(function(x){return "<div class=\\"p\\">"+eh(x)+"</div>"}).join("");var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"本文情報を確認できないため改善ポイントは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
     'function registerStarterComplete(){var b=document.getElementById("starterCompleteBtn"),st=document.getElementById("starterCompleteStatus");if(!b||!st)return;if(!confirm("ブログ側で記事の修正を公開済みですか？\\n公開後に登録すると、今日を起点に効果測定を開始します。"))return;b.disabled=true;b.textContent="登録中…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善履歴と効果測定を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="registerStatus ok";st.textContent=r.effectSynced?"✓ 改善を登録し、改善の推移へ反映しました。7日目・14日目・21日目・28日目の効果測定へ進みます。":"改善履歴は登録しましたが、改善の推移への反映を確認できませんでした。設定・メンテナンスからシート修復を実行してください。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=e&&e.message?e.message:String(e)}).sbmRegisterStarterImprovementComplete(meta.articleId,meta.url,"Starter改善ナビに基づく記事改善を公開",JSON.stringify(finalAdvice||[]))}function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
     'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}document.addEventListener("DOMContentLoaded",loadDetail);</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
 }
 
 /** Homeを記事DBと設定だけから更新する現行版。 */
@@ -7008,7 +7214,7 @@ function sbmOpenImprovementFeedbackDialog() {
     '<button class="primary" onclick="analyze()">内容を解析</button><button class="secondary" onclick="google.script.host.close()">キャンセル</button>'+
     '<div id="error" class="error"></div><div id="preview" class="preview"></div><button id="register" class="success" style="display:none" onclick="registerData()">この内容で登録</button><div id="registerStatus" class="registerStatus"></div>'+
     '<script>var normalized=null;function analyze(){document.getElementById("error").textContent="";document.getElementById("preview").style.display="none";document.getElementById("register").style.display="none";google.script.run.withSuccessHandler(function(r){if(!r.ok){document.getElementById("error").textContent=r.message;return;}normalized=r.data;document.getElementById("preview").textContent=r.preview;document.getElementById("preview").style.display="block";document.getElementById("register").style.display="inline-block";}).withFailureHandler(function(e){document.getElementById("error").textContent=e.message||String(e);}).sbmAnalyzeImprovementFeedback(document.getElementById("json").value);}function registerData(){if(!normalized)return;var b=document.getElementById("register"),st=document.getElementById("registerStatus");document.getElementById("error").textContent="";b.disabled=true;b.textContent="登録中...";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善結果を登録しています。記事管理・改善履歴・Personal Knowledgeを更新しています…";google.script.run.withSuccessHandler(function(r){if(!r.ok){document.getElementById("error").textContent=r.message;b.disabled=false;b.textContent="この内容で登録";st.className="registerStatus";st.textContent="";return;}b.style.display="none";st.className="registerStatus ok";st.textContent=r.message||"登録が完了しました。";}).withFailureHandler(function(e){document.getElementById("error").textContent=e.message||String(e);b.disabled=false;b.textContent="この内容で登録";st.className="registerStatus";st.textContent="";}).sbmRegisterImprovementFeedback(normalized);}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(650)), '改善結果を登録');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(650)), '改善結果を登録');
 }
 
 function sbmAnalyzeImprovementFeedback(raw) {
@@ -7317,6 +7523,7 @@ function sbmApplyProductVisibleTabs_() {
   });
   var home = ss.getSheetByName(SBM_SHEETS.HOME);
   if (home) ss.setActiveSheet(home);
+  try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
 }
 
 /**
@@ -7356,7 +7563,7 @@ function sbmShowVersionInfo() {
     + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Doctorの「約30日後」などの指定は再診時期の目安として扱います。</div>'
     + '<div class="note">SIMS Managerは、個別のAI診断結果だけでなく、その後の実施・観察・再判定までを一元管理します。</div>'
         + '</body></html>';
-  SpreadsheetApp.getUi().showModalDialog(
+  sbmShowThemedModalDialog_(
     sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(580).setHeight(520)),
     'SIMS Managerについて'
   );
@@ -8294,7 +8501,7 @@ function sbmOpenSelectedArticleHistory(){
   }).join('');
   var head=sbmHistoryDialogArticleHeaderHtml_(ctx.articleTitle,ctx.articleId,ctx.articleUrl,'','').replace('__TITLE__','記事の改善履歴');
   var html='<!doctype html><html><head><base target="_top">'+sbmHistoryDialogCss_()+'</head><body>'+head+'<div class="sbm-section"><div class="sbm-section-title">改善履歴 '+items.length+'件</div>'+cards+'</div>'+sbmHistoryDialogCloseHtml_()+'</body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(700),'記事の改善履歴');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(700),'記事の改善履歴');
 }
 
 // 表示形式の補強（V1）
@@ -8553,7 +8760,7 @@ function sbmPolishImprovementHistoryView_(){
     sh.setRowHeight(1,34);
 
     var widths={
-      '選択':48,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,
+      '選択':56,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,
       '1週':74,'2週':74,'3週':74,'4週':74,'最終判定':112
     };
     Object.keys(widths).forEach(function(h){
@@ -8672,7 +8879,7 @@ function sbmOpenSelectedHistoryArticleAll(){
   }).join('');
   var head=sbmHistoryDialogArticleHeaderHtml_(o['記事タイトル'],id,url,'','').replace('__TITLE__','記事の全改善履歴');
   var html='<!doctype html><html><head><base target="_top">'+sbmHistoryDialogCss_()+'</head><body>'+head+'<div class="sbm-section"><div class="sbm-section-title">改善履歴 '+rows.length+'件</div>'+cards+'</div>'+sbmHistoryDialogCloseHtml_()+'</body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(720),'記事の全改善履歴');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(800).setHeight(720),'記事の全改善履歴');
 }
 
 
@@ -8715,7 +8922,18 @@ function sbmNormalImprovementWorkflowComplete_(articleId,url){
     sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});
   }catch(ignoreNormalWorkflowComplete){}
 }
-function sbmFindLatestNormalImprovementWorkflow_(){
+function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
+  if(wfIndex&&wfIndex.meta){
+    var latest=null;
+    Object.keys(wfIndex.meta).forEach(function(id){
+      if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
+      var m=wfIndex.meta[id]||{};
+      if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
+      var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
+      if(!latest||ts>latest.ts)latest={id:id,meta:m,ts:ts};
+    });
+    return latest;
+  }
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
   if(!sh||sh.getLastRow()<2)return null;
   var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(),ids={};
@@ -9230,7 +9448,7 @@ function sbmOpenNeedsReviewArticles(focusArticleId){
     'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;padding:18px;color:#202124;line-height:1.55}h2{margin:0 0 6px;color:#174ea6}.sub{color:#5f6368;font-size:13px;margin-bottom:12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.title{font-weight:700;font-size:15px}.meta{font-size:13px;color:#5f6368;margin-top:7px}.warn{background:#fef7e0;border-left:4px solid #f9ab00;padding:9px 11px;margin:10px 0;font-size:13px}.checks label,.gscbox label{display:block;border:1px solid #dadce0;border-radius:7px;padding:8px 10px;margin:6px 0;background:#fff}.gscbox{margin-top:12px;padding-top:4px}.gscbox h3{font-size:14px;margin:6px 0}.reasonbox{display:none;margin:8px 0 0 22px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:6px;padding:9px 13px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.indexbtn{background:#fef7e0;color:#8a4b00}.danger{background:#fce8e6;color:#b31412}.nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.status{margin-top:10px;font-size:13px;font-weight:700;white-space:pre-wrap}.ok{color:#188038}.err{color:#b31412}.dispositions{display:none;border-top:1px solid #dadce0;margin-top:12px;padding-top:10px}</style></head><body>'+ 
     '<h2>要確認記事の処理</h2><div class="sub">最終データ取得から14日以上GSCページデータを取得できない記事を、1件ずつ確認します。</div><div id="root"></div>'+ 
     '<script>var items='+itemsJson+',idx=0;function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"})[c]||c})}function render(){if(!items.length){document.getElementById("root").innerHTML="<div class=card>処理が必要な要確認記事はありません。</div>";return}if(idx>=items.length)idx=items.length-1;if(idx<0)idx=0;var x=items[idx],h="<div class=nav><b>"+(idx+1)+" / "+items.length+"件</b><span><button class=secondary onclick=move(-1)>前へ</button> <button class=secondary onclick=move(1)>次へ</button></span></div>";h+="<div class=card><div class=title>"+esc(x.articleId+"　"+x.title)+"</div><div class=meta>記事ランク："+esc(x.rank||"ー")+"　／　作業状態："+esc(x.work||"ー")+"<br>最終データ取得日："+esc(x.lastData||"ー")+"　／　未取得：<b>"+esc(x.missingDays)+"日</b><br><a href="+esc(x.url)+" target=_blank>記事を開く</a></div></div>";h+="<div class=warn>14日以上取得できないこと自体は、削除やnoindexを意味しません。記事の状態とSearch ConsoleのURL検査結果を確認してください。</div>";h+="<div class=checks><label><input type=checkbox class=baseck> 記事は現在も公開されている</label><label><input type=checkbox class=baseck> noindexではない</label><label><input type=checkbox class=baseck> 削除・非公開にしていない</label><label><input type=checkbox class=baseck> URL変更・リダイレクトをしていない</label><label><input type=checkbox class=baseck> 他の記事へ統合していない</label></div>";h+="<div class=gscbox><h3>Search ConsoleでURLを検査してください</h3><label><input type=radio name=indexState value=registered onchange=indexChanged()> Googleに登録されています</label><label><input type=radio name=indexState value=unregistered onchange=indexChanged()> Googleに登録されていません</label><div id=reasonbox class=reasonbox><b>表示されている理由を選択してください。</b><select id=indexReason><option value=>選択してください</option><option value=crawl_not_indexed>クロール済み - インデックス未登録</option><option value=discovered_not_indexed>検出 - インデックス未登録</option><option value=noindex_excluded>noindexによって除外</option><option value=duplicate_canonical>重複・別URLが正規URL</option><option value=not_found>404・ソフト404</option><option value=other>その他</option></select></div></div>";h+="<div class=actions><button id=improveBtn class=primary style=display:none onclick=improve()>問題なし・改善対象へ</button><button id=indexIssueBtn class=indexbtn style=display:none onclick=indexIssue()>インデックス問題として登録</button><button class=danger onclick=showDisposition()>意図的な変更あり</button></div><div id=disp class=dispositions><b>意図的に変更した状態を選択してください。</b><div class=actions><button class=danger onclick=disposition(0)>noindex</button><button class=danger onclick=disposition(1)>非公開・削除</button><button class=danger onclick=disposition(2)>URL変更・リダイレクト</button><button class=danger onclick=disposition(3)>他記事へ統合</button></div></div><div id=status class=status></div>";document.getElementById("root").innerHTML=h}function move(n){idx=Math.max(0,Math.min(items.length-1,idx+n));render()}function indexChanged(){var v=document.querySelector("input[name=indexState]:checked"),reg=v&&v.value==="registered",unreg=v&&v.value==="unregistered";document.getElementById("reasonbox").style.display=unreg?"block":"none";document.getElementById("improveBtn").style.display=reg?"inline-block":"none";document.getElementById("indexIssueBtn").style.display=unreg?"inline-block":"none"}function showDisposition(){document.getElementById("disp").style.display="block"}function disposition(n){var actions=["noindex","unpublished","urlchange","merged"];if(n<0||n>=actions.length)return;apply(actions[n])}function baseChecked(){var all=true;document.querySelectorAll(".baseck").forEach(function(c){if(!c.checked)all=false});return all}function improve(){var st=document.getElementById("status"),v=document.querySelector("input[name=indexState]:checked");if(!baseChecked()){st.className="status err";st.textContent="上の5項目をすべて確認してください。";return}if(!v){st.className="status err";st.textContent="Search ConsoleのURL検査結果を選択してください。";return}if(v.value!=="registered"){st.className="status err";st.textContent="Googleに登録されていない場合は、未登録理由を選んで「インデックス問題として登録」を押してください。";return}apply("improve",true)}function indexIssue(){var st=document.getElementById("status"),v=document.querySelector("input[name=indexState]:checked"),reason=document.getElementById("indexReason");if(!baseChecked()){st.className="status err";st.textContent="上の5項目をすべて確認してください。";return}if(!v||v.value!=="unregistered"){st.className="status err";st.textContent="「Googleに登録されていません」を選択してください。";return}if(!reason||!reason.value){st.className="status err";st.textContent="Search Consoleに表示されている未登録理由を選択してください。";return}apply("index_issue",true,reason.value)}function apply(action,confirmed,indexReason){var x=items[idx],st=document.getElementById("status");st.className="status";st.textContent="登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";items.splice(idx,1);if(idx>=items.length)idx=Math.max(0,items.length-1);setTimeout(render,900)}).withFailureHandler(function(e){st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyNeedsReviewDisposition({articleId:x.articleId,articleUrl:x.url,action:action,confirmed:confirmed===true,indexReason:indexReason||""})}render();</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(760),'要確認記事の処理');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(760),'要確認記事の処理');
 }
 
 function sbmArticleManagementReasonCode_(article){
@@ -9263,7 +9481,7 @@ function sbmOpenSelectedArticleManagementDialog(){
   var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{font-size:18px;margin:0 0 8px;color:#174ea6}.meta{background:#f8f9fa;border-radius:8px;padding:10px 12px;line-height:1.55;margin:8px 0 14px}.lead{margin:8px 0}.choice,.confirm{display:block;border:1px solid #dadce0;border-radius:8px;padding:11px 12px;margin:8px 0}.confirm{background:#fff8e1}.notice{background:#fce8e6;color:#8a1c13;border-radius:8px;padding:12px;line-height:1.6}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}button{border:0;border-radius:6px;padding:9px 16px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.status{margin-top:10px;white-space:pre-wrap;font-size:13px}.err{color:#b31412}.ok{color:#188038}</style></head><body><h2>記事の管理状態を変更</h2><div class="meta">'+
     sbmDoctorEscapeHtml_((id?id+'　':'')+title)+'<br>'+sbmDoctorEscapeHtml_(url)+'<br>現在：'+sbmDoctorEscapeHtml_(String(rec['作業状態']||'')+' / '+String(rec['記事ステータス']||'')+' / '+String(rec['管理フラグ']||''))+'</div>'+options+
     '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button>'+(locked?'':'<button id="submit" class="primary" onclick="submitState()">登録</button>')+'</div><div id="status" class="status"></div><script>document.querySelectorAll(".one").forEach(function(x){x.addEventListener("change",function(){if(!this.checked)return;document.querySelectorAll(".one").forEach(function(y){if(y!==x)y.checked=false})})});function submitState(){var action="";["restore","noindex","unpublished","other"].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked)action=id});var st=document.getElementById("status");if(!action){st.className="status err";st.textContent="処置を1つ選択してください。";return}var confirmId=action==="restore"?"restoreConfirmed":"excludeConfirmed",c=document.getElementById(confirmId);if(!c||!c.checked){st.className="status err";st.textContent="ブログ側の状態確認にもチェックしてください。";return}var b=document.getElementById("submit");b.disabled=true;b.textContent="登録中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="登録";if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";setTimeout(function(){google.script.host.close()},900)}).withFailureHandler(function(e){b.disabled=false;b.textContent="登録";st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyArticleManagementState({articleId:'+JSON.stringify(id)+',articleUrl:'+JSON.stringify(url)+',action:action,confirmed:true})}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(520),'記事の管理状態');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(520),'記事の管理状態');
 }
 function sbmRemoveArticleFromOperationalViews_(articleId,url){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),norm=sbmNormalizeUrl_(url||'');
@@ -9445,6 +9663,7 @@ function sbmOpenEffectiveness(){
   }
   try{sbmRepairEffectTitleCells_(sh);}catch(ignoreEffectTitleRepair){}
   try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreViewStyle){}
+  try{sbmApplyEffectDisplayTheme_(sh);}catch(ignoreEffectTheme){}
   sh.showSheet();ss.setActiveSheet(sh);sh.activate();
 }
 
@@ -9456,7 +9675,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
   sh.getRange(1,1,1,lc).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   sh.setRowHeight(1,34);
   var hm=sbmHeaderMap_(sh);
-  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
   try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(e){}
   if(sh.getMaxColumns()>=14){try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(e){}}
@@ -9820,25 +10039,94 @@ function sbmDisplayValueJa_(v) {
   return sbmLooksLikeDateValue_(v) ? sbmJapaneseDateTimeText_(v) : String(v);
 }
 
+function sbmGlobalMonochromeDialogCss_(){
+  if(!sbmIsMonochromeTheme_())return '';
+  return '<style data-sbm-global-mono="1">'+
+    'body{background:#f5f5f5!important;color:#202124!important}'+
+    'h1,h2,h3,h4,.title{color:#303134!important}'+
+    '.card,.box,.item,.panel,.section,.article-detail-view{background:#fff!important;border-color:#dadce0!important;box-shadow:none!important}'+
+    '.progress,.summary,.next,.result,.meta-box,.info,.leadbox{background:#f1f3f4!important;border-color:#dadce0!important;color:#303134!important}'+
+    '.article-detail-view h3,.sims{color:#303134!important}'+
+    '.article-detail-view .summary{background:#f1f3f4!important;border-left-color:#5f6368!important}'+
+    '.sub,.meta,.note,.small,.help,.desc,.label{color:#5f6368!important}'+
+    'table th{background:#e8eaed!important;color:#202124!important;border-color:#dadce0!important}'+
+    'table td{background:#fff!important;border-color:#e5e7eb!important}'+
+    'input,select,textarea{background:#fff!important;color:#202124!important;border-color:#bdc1c6!important}'+
+    '.mini{background:#f1f3f4!important;color:#3c4043!important}'+
+    '.done{background:#f1f3f4!important;border-color:#dadce0!important}'+
+    '.work,.reason,.source-loading,.registerStatus.busy,.query-details summary{background:#f1f3f4!important;color:#3c4043!important;border-color:#dadce0!important}'+
+    '.hint,.note:not(.warn):not(.warning),.source-ok{background:#f8f9fa!important;border-color:#dadce0!important}'+
+    '.link-candidate a,.query-details summary a{color:#3c4043!important}'+
+    '.good,.ok,.success{color:#0b8043!important}'+
+    '.warn,.warning{color:#8a4b00!important}'+
+    '.err,.error,.errline,.danger{color:#b31412!important}'+
+    '</style>';
+}
+function sbmApplyThemeToHtmlOutput_(output){
+  var htmlOutput=output;
+  if(typeof output==='string')htmlOutput=HtmlService.createHtmlOutput(output);
+  if(!htmlOutput||typeof htmlOutput.getContent!=='function')return output;
+  if(!sbmIsMonochromeTheme_())return htmlOutput;
+  var content=htmlOutput.getContent();
+  if(content.indexOf('data-sbm-global-mono')<0){
+    var css=sbmGlobalMonochromeDialogCss_();
+    if(/<\/head>/i.test(content))content=content.replace(/<\/head>/i,css+'</head>');
+    else content=css+content;
+  }
+  var rebuilt=HtmlService.createHtmlOutput(content);
+  try{rebuilt.setWidth(htmlOutput.getWidth());}catch(ignoreWidth){}
+  try{rebuilt.setHeight(htmlOutput.getHeight());}catch(ignoreHeight){}
+  return rebuilt;
+}
+function sbmShowThemedModalDialog_(output,title){
+  SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(output),title);
+}
+
+function sbmCommonDialogCss_(){
+  var mono=sbmIsMonochromeTheme_();
+  var neutral=mono
+    ? 'body{background:#f5f5f5;color:#202124}h1,h2,h3{color:#303134}.card,.box,.item,.panel,.section{background:#fff;border-color:#dadce0}.meta,.note,.sub,.help,.small{color:#5f6368}table th{background:#e8eaed;color:#202124}'
+    : '';
+  return '<style data-sbm-common-dialog-style="1">'+
+    'html,body{box-sizing:border-box}*,*:before,*:after{box-sizing:inherit}'+
+    'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:22px;line-height:1.65}'+
+    'h1,h2{margin-top:0}h2{font-size:22px}h3{font-size:17px}'+
+    '.card,.box,.item,.panel,.section{border-radius:10px}'+
+    'button,.btn,.sbm-btn{min-height:38px;border-radius:7px;padding:9px 16px;font-weight:700;cursor:pointer}'+
+    'input,select,textarea{border:1px solid #bdc1c6;border-radius:7px;padding:9px 10px;font:inherit;background:#fff;color:#202124}'+
+    'textarea{line-height:1.55}table{border-collapse:collapse}table th,table td{line-height:1.45}'+
+    '.actions,.sbm-actions{gap:10px}'+neutral+
+    '</style>';
+}
+
 function sbmEnsureCloseButton_(output) {
   var htmlOutput = output;
   if (typeof output === 'string') htmlOutput = HtmlService.createHtmlOutput(output);
   if (!htmlOutput || typeof htmlOutput.getContent !== 'function') return output;
 
   var content = htmlOutput.getContent();
-  if (content.indexOf('data-sbm-common-close') !== -1) return htmlOutput;
 
-  var footer = '<div data-sbm-common-close="1" style="display:flex;justify-content:flex-end;gap:10px;margin:22px 0 4px;padding-top:14px;border-top:1px solid #e5e7eb">'
-    + '<button type="button" onclick="google.script.host.close()" style="border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer">閉じる</button>'
-    + '</div>';
-
-  if (/<\/body>/i.test(content)) {
-    content = content.replace(/<\/body>/i, footer + '</body>');
-  } else if (/<\/div>\s*$/i.test(content)) {
-    content = content.replace(/<\/div>\s*$/i, footer + '</div>');
-  } else {
-    content += footer;
+  // v6.2.96: all dialogs using this guard receive the same spacing, form and button dimensions.
+  if (content.indexOf('data-sbm-common-dialog-style') === -1) {
+    var commonCss = sbmCommonDialogCss_();
+    if (/<\/head>/i.test(content)) content = content.replace(/<\/head>/i, commonCss + '</head>');
+    else content = commonCss + content;
   }
+
+  if (content.indexOf('data-sbm-common-close') === -1) {
+    var footer = '<div data-sbm-common-close="1" style="display:flex;justify-content:flex-end;gap:10px;margin:22px 0 4px;padding-top:14px;border-top:1px solid #e5e7eb">'
+      + '<button type="button" onclick="google.script.host.close()" style="min-height:38px;border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer">閉じる</button>'
+      + '</div>';
+
+    if (/<\/body>/i.test(content)) {
+      content = content.replace(/<\/body>/i, footer + '</body>');
+    } else if (/<\/div>\s*$/i.test(content)) {
+      content = content.replace(/<\/div>\s*$/i, footer + '</div>');
+    } else {
+      content += footer;
+    }
+  }
+
   return HtmlService.createHtmlOutput(content)
     .setWidth(typeof htmlOutput.getWidth === 'function' ? htmlOutput.getWidth() : 600)
     .setHeight(typeof htmlOutput.getHeight === 'function' ? htmlOutput.getHeight() : 500);
@@ -9864,6 +10152,8 @@ function sbmHistoryDialogCss_() {
     + '.sbm-empty{background:#f8f9fa;border:1px dashed #bdc1c6;border-radius:8px;padding:14px;color:#5f6368}'
     + '.sbm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
     + '.sbm-btn{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + 'button,.sbm-btn{min-height:38px;border-radius:7px;padding:9px 16px}input,select,textarea{border-radius:7px;padding:9px 10px;font:inherit}'
+    + (sbmIsMonochromeTheme_()?'.sbm-meta,.sbm-box{background:#f1f3f4}.sbm-section,.sbm-card,.sbm-metric{background:#fff}.sbm-section-title{color:#303134}.sbm-table th{background:#e8eaed;color:#202124}':'')
     + '@media(max-width:620px){.sbm-metrics{grid-template-columns:1fr}.sbm-card-head{display:block}.sbm-badge{margin-top:6px}}'
     + '</style>';
 }
@@ -9997,7 +10287,7 @@ function sbmOpenEffectFromHistoryId(historyId) {
     return;
   }
   var html = HtmlService.createHtmlOutput(sbmEffectDetailHtmlV2_(found)).setWidth(820).setHeight(700);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(html), '改善の推移の詳細');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(html), '改善の推移の詳細');
 }
 
 function sbmHistoryEffectButtonHtml_(historyId) {
@@ -10074,7 +10364,7 @@ function sbmShowSelectedEffectDetail() {
   var row = (typeof sbmGetCheckedRow_ === 'function') ? sbmGetCheckedRow_(sh) : sh.getActiveRange().getRow();
   if (!row || row <= 1) return;
   var o = sbmRowRecord_(sh, row);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(sbmEffectDetailHtmlV2_(o)).setWidth(820).setHeight(700)),
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(sbmEffectDetailHtmlV2_(o)).setWidth(820).setHeight(700)),
     '改善の推移の詳細'
   );
 }
@@ -10101,7 +10391,7 @@ function sbmShowArticleDbDetailForRow_(sh, row) {
   obj['CTR表示'] = display('CTR');
   obj['掲載順位表示'] = display('掲載順位');
   var html = HtmlService.createHtmlOutput(sbmArticleDbDetailHtml_(obj)).setWidth(780).setHeight(720);
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(html), '選択記事の詳細');
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(html), '選択記事の詳細');
 }
 
 
@@ -10343,7 +10633,7 @@ function sbmOpenSelectedHistoryDetail() {
   // 詳細表示はシート装飾を変更しません。選択チェックだけ戻して一覧の見た目を固定します。
   try { var hm=sbmHeaderMap_(sh); if(hm['選択']) sh.getRange(row,hm['選択']).setValue(false); } catch(eSelection) {}
   var html = HtmlService.createHtmlOutput(sbmHistoryDetailHtmlV2_(o)).setWidth(860).setHeight(760);
-  SpreadsheetApp.getUi().showModalDialog(html,'改善履歴の詳細');
+  sbmShowThemedModalDialog_(html,'改善履歴の詳細');
 }
 
 
@@ -10400,7 +10690,7 @@ function sbmStyleArticleDbSheet_(sh) {
   sh.setRowHeight(1, 34);
 
   var widths = {
-    '選択':48,'記事ランク':110,'作業状態':115,'記事URL':285,'メインクエリ':210,'H1タイトル':430,
+    '選択':56,'記事ランク':110,'作業状態':115,'記事URL':285,'メインクエリ':210,'H1タイトル':430,
     'クリック数':90,'表示回数':95,'CTR':72,'掲載順位':88,'ArticleID':105,'データ更新日':105,'記事タイトル':430
   };
   Object.keys(widths).forEach(function(h){
@@ -10441,6 +10731,7 @@ function sbmStyleArticleDbSheet_(sh) {
     sbmApplyArticleDbRowColors_(sh);
   }
   sbmApplySelectionUi_(sh);
+  try{sbmApplyArticleDbDisplayTheme_(sh);}catch(ignoreArticleThemeStyle){}
 }
 
 /**
@@ -10617,7 +10908,7 @@ function sbmRebuildImprovementHistoryList_() {
   }
 
   var widths = {
-    '選択': 52,
+    '選択': 56,
     '改善日': 105,
     '記事タイトル': 360,
     '改善概要': 420,
@@ -11264,6 +11555,7 @@ function sbmRefreshHome_(options) {
 
   sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
+  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
 }
 
 function sbmRefreshHomeRankSummaryOnly_(snapshot) {
@@ -11301,6 +11593,7 @@ function sbmRefreshHomeDailyStatusOnly_() {
   sh.getRange('B4:J4').setValue(statusText);
   sh.getRange('A4:J4').setBackground(runtimeState.running ? '#dbeafe' : (runtimeState.completedToday ? '#e6f4ea' : (runtimeState.continuationRequired ? '#fef7e0' : (runtimeState.label === 'エラー' ? '#fce8e6' : '#fff2cc'))));
   sh.getRange('B4:J4').setFontColor(runtimeState.running ? '#174ea6' : (runtimeState.completedToday ? '#0b8043' : '#b3261e')).setFontWeight(runtimeState.completedToday ? 'normal' : 'bold');
+  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeDailyTheme){}
   return true;
 }
 
@@ -11555,7 +11848,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   }
   sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
   sh.setRowHeight(1,34);
-  var widths={'選択':48,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
+  var widths={'選択':56,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
 
   // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
@@ -11635,6 +11928,7 @@ function sbmOpenImprovementHistory() {
     try{sbmLog_('OpenImprovementHistoryView','Warning',String(eView));}catch(ignoreLog){}
   }
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
+  try{sbmApplyHistoryDisplayTheme_(sh);}catch(ignoreHistoryTheme){}
   try{sh.showSheet();}catch(ignoreShow){}
   ss.setActiveSheet(sh);
 }
@@ -11706,7 +12000,7 @@ function sbmDoctorCreateRequestFromArticleIdentity(articleId,url){
 function sbmOpenArticleEffectFromDetail(articleId,url){
   var effect=sbmDoctorFindEffectByUrl_(url)||{};
   if(!Object.keys(effect).length)return sbmAlert_('改善効果','この記事の改善効果データはまだありません。');
-  SpreadsheetApp.getUi().showModalDialog(
+  sbmShowThemedModalDialog_(
     sbmEnsureCloseButton_(HtmlService.createHtmlOutput(sbmEffectDetailHtmlV2_(effect)).setWidth(820).setHeight(700)),
     '改善の推移の詳細'
   );
@@ -11729,8 +12023,8 @@ function sbmOpenIndexIssueFromArticleDetail(articleId,url){
     '<h2>インデックス問題の処置</h2><div class="meta"><b>'+e(title)+'</b><br>ArticleID：'+e(a['ArticleID']||articleId)+'<br>管理状態：'+e(a['管理フラグ']||'')+'<br>Search Console：'+e(reason||'未登録理由を記録済み')+'</div>'+
     '<div class="box">'+(pending.required?'前回のaDoctor診断でカニバリ精密診断が必要と判定されています。単体診断をやり直さず、類似記事を含む追加診断へ進みます。':'Googleに登録されていない原因を、記事品質・検索意図・重複・カニバリ・内部リンクなどからaDoctorで精密診断します。')+'</div>'+
     '<div class="actions"><button id="doctorBtn" class="doctor" onclick="openDoctor()">'+(pending.required?'カニバリ精密診断へ進む':'aDoctorで精密診断する')+'</button><button class="close" onclick="google.script.host.close()">閉じる</button></div><div id="msg"></div>'+
-    '<script>var aid='+safeId+',u='+safeUrl+',follow='+(pending.required?'true':'false')+';function openDoctor(){var b=document.getElementById("doctorBtn"),m=document.getElementById("msg");b.disabled=true;m.textContent=follow?"カニバリ精密診断を準備しています…":"aDoctor診断依頼を準備しています…";var r=google.script.run.withFailureHandler(function(e){b.disabled=false;m.textContent=(e&&e.message)?e.message:String(e)}).withSuccessHandler(function(){google.script.host.close()});if(follow)r.sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(aid,u);else r.sbmDoctorCreateRequestFromArticleIdentity(aid,u);}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(700).setHeight(470),'インデックス問題の処置');
+    '<script>var aid='+safeId+',u='+safeUrl+',follow='+(pending.required?'true':'false')+';function openDoctor(){var b=document.getElementById("doctorBtn"),m=document.getElementById("msg");b.disabled=true;m.textContent=follow?"カニバリ精密診断を準備しています…":"aDoctor診断依頼を準備しています…";var r=google.script.run.withFailureHandler(function(e){b.disabled=false;m.textContent=(e&&e.message)?e.message:String(e)}).withSuccessHandler(function(x){if(follow){if(!x||x.ok===false){b.disabled=false;m.textContent=(x&&(x.message||x.error))?(x.message||x.error):"追加診断を開けませんでした。";return}m.textContent="カニバリ精密診断画面を開きました。";return}google.script.host.close()});if(follow)r.sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(aid,u);else r.sbmDoctorCreateRequestFromArticleIdentity(aid,u);}</script></body></html>';
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(700).setHeight(470),'インデックス問題の処置');
 }
 
 function sbmRunArticleDetailAction(action,articleId,url){
@@ -11815,12 +12109,18 @@ function sbmArticleDbDetailHtml_(o) {
     + '<script>'
     + 'var articleUrl=' + safeJsUrl + ',articleId=' + safeJsId + ',actionType=' + safeAction + ';'
     + 'function runAction(){'
-    + 'var b=document.getElementById("actionBtn");'
-    + 'if(b)b.disabled=true;'
-    + 'document.getElementById("msg").textContent="処理画面を開いています…";'
+    + 'var b=document.getElementById("actionBtn"),m=document.getElementById("msg");'
+    + 'if(b){b.disabled=true;b.textContent=actionType==="ADDITIONAL_DIAGNOSIS"?"準備中…":"処理中…";}'
+    + 'm.textContent=actionType==="ADDITIONAL_DIAGNOSIS"?"カニバリ精密診断を準備しています…":"処理画面を開いています…";'
     + 'google.script.run'
-    + '.withFailureHandler(function(err){if(b)b.disabled=false;document.getElementById("msg").textContent=(err&&err.message)?err.message:String(err);})'
-    + '.withSuccessHandler(function(){google.script.host.close();})'
+    + '.withFailureHandler(function(err){if(b){b.disabled=false;b.textContent='+JSON.stringify(actionSpec.label)+';}m.textContent=(err&&err.message)?err.message:String(err);})'
+    + '.withSuccessHandler(function(r){'
+    + 'if(actionType==="ADDITIONAL_DIAGNOSIS"){'
+    + 'if(!r||r.ok===false){if(b){b.disabled=false;b.textContent='+JSON.stringify(actionSpec.label)+';}m.textContent=(r&&(r.message||r.error))?(r.message||r.error):"追加診断を開けませんでした。";return;}'
+    + 'm.textContent="カニバリ精密診断画面を開きました。";return;'
+    + '}'
+    + 'google.script.host.close();'
+    + '})'
     + '.sbmRunArticleDetailAction(actionType,articleId,articleUrl);'
     + '}'
     + '</script></body></html>';
@@ -11913,7 +12213,7 @@ function sbmStyleEffectSheetV2_() {
 
   var hm = sbmHeaderMap_(sh);
   var widths = {
-    '選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
+    '選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
     '改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110
   };
   Object.keys(widths).forEach(function(h) {
@@ -12447,7 +12747,7 @@ function sbmShowRelease1SetupStep_(step) {
     + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){openExternal("'+sbmSearchConsoleApiUrl_()+'");});'
     + '</script></body></html>';
 
-  SpreadsheetApp.getUi().showModalDialog(
+  sbmShowThemedModalDialog_(
     HtmlService.createHtmlOutput(html).setWidth(620).setHeight(step === 1 ? 620 : 520),
     '初回セットアップ'
   );
@@ -12575,7 +12875,7 @@ function sbmOpenBlogInfoChange() {
     + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value});}'
     + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');
 }
 
 function sbmSaveBlogInfoChange(payload) {
@@ -12617,7 +12917,7 @@ function sbmShowRepairCompletionNavigator_() {
     + 'function home(){google.script.host.close();google.script.run.sbmOpenHome();}'
     + 'document.getElementById("repairSetupBtn").addEventListener("click",setup);document.getElementById("repairHomeBtn").addEventListener("click",home);document.getElementById("repairCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(540).setHeight(390),'シートの作成・修復');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(540).setHeight(390),'シートの作成・修復');
 }
 
 
@@ -12732,6 +13032,247 @@ function sbmSyncHomeVersionOnly_(){
   }
 }
 
+
+/* ========================================================================== *
+ * v6.2.92 Display Theme
+ * STANDARD keeps the current product colors.
+ * MONOCHROME uses the Home top bar as the common heading language.
+ * ========================================================================== */
+function sbmDisplayTheme_(){
+  var v=String(sbmGetSetting_('DisplayTheme','STANDARD')||'STANDARD').toUpperCase();
+  return v==='MONOCHROME'?'MONOCHROME':'STANDARD';
+}
+function sbmIsMonochromeTheme_(){return sbmDisplayTheme_()==='MONOCHROME';}
+function sbmDisplayThemeLabel_(){return sbmIsMonochromeTheme_()?'モノクロ':'標準';}
+function sbmThemeTopBarBg_(){return '#3c4043';}
+function sbmThemeTopBarFg_(){return '#ffffff';}
+
+function sbmApplyHomeDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  var top='#303134',section='#5f6368',sub='#e8eaed',soft='#f8f9fa',soft2='#f1f3f4';
+  var white='#ffffff',text='#202124',muted='#5f6368',border='#dadce0';
+
+  // 1. Product identity is the only full-strength bar.
+  sh.getRange('A1:J1').setBackground(top).setFontColor(white);
+  sh.getRange('J1').setFontColor('#e8eaed');
+
+  // 2. Site summary: labels are medium gray, values are white.
+  sh.getRangeList(['A2','E2','A3','C3','A4'])
+    .setBackground(section).setFontColor(white).setFontWeight('bold');
+  sh.getRangeList(['B2:D2','F2:J2','B3','D3:J3','B4:J4']).setBackground(white);
+  sh.getRangeList(['B2:D2','F2:J2','B3','D3:J3']).setFontColor(text);
+  // Keep the daily-process semantic text color generated by the normal Home renderer.
+  sh.getRange('B4:J4').setFontWeight('bold');
+
+  // 3. Primary section headings: clearly visible, but one step softer than the product bar.
+  sh.getRangeList(['A5:D5','E5:H5','I5:J5','A13:J13','A16:J16','A22:J22'])
+    .setBackground(section).setFontColor(white).setFontWeight('bold');
+
+  // 4. Secondary headings: light gray with dark text.
+  sh.getRangeList(['A17:C17','D17:G17','H17:J17'])
+    .setBackground(sub).setFontColor(text).setFontWeight('bold');
+
+  // 5. Data surfaces: subtle grayscale hierarchy rather than flat white.
+  sh.getRange('A6:D12').setBackground(white);
+  sh.getRange('E6:H11').setBackground(soft);
+  sh.getRange('I6:J11').setBackground(soft2);
+  sh.getRange('A14:J15').setBackground(white);
+  sh.getRange('A18:C20').setBackground(white);
+  sh.getRange('D18:G20').setBackground(soft);
+  sh.getRange('H18:J21').setBackground(white);
+  sh.getRange('A23:J30').setBackground(soft);
+
+  // Borders are intentionally quiet.
+  sh.getRange('A6:D12').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('E6:H11').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('I6:J11').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A14:J15').setBorder(true,true,true,true,false,false,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A18:C20').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('D18:G20').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('H18:J21').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+  sh.getRange('A23:J30').setBorder(true,true,true,true,false,false,border,SpreadsheetApp.BorderStyle.SOLID);
+
+  // Article ranks are icon + text centric.
+  sh.getRange('A6:D12').setFontColor(text);
+  sh.getRange('A6:B12').setFontWeight('bold');
+  sh.getRange('C6:D12').setFontWeight('bold');
+
+  // Keep improvement data readable and restrained.
+  sh.getRange('E6:F11').setFontColor(text).setFontWeight('bold');
+  sh.getRange('G6:H11').setFontColor(text).setFontWeight('bold');
+  sh.getRange('I6:J11').setFontColor(text).setFontWeight('bold');
+
+  // Judgment area: preserve semantic colors but make every value readable on pale backgrounds.
+  // In particular, "大きく改善" used white text in STANDARD; MONOCHROME converts it to dark green.
+  var styleCells=[
+    ['A18:C18','大きく改善'],['A19:C19','改善'],['A20:C20','改善傾向'],
+    ['D18:G18','変化小'],['D19:G19','要確認'],['D20:G20','見直し候補'],
+    ['H18:J18','測定待ち'],['H19:J19','経過観察'],['H20:J20','追加経過観察'],['H21:J21','データ不足']
+  ];
+  styleCells.forEach(function(x){
+    var st=sbmMonochromeSemanticTextStyle_(x[1]);
+    sh.getRange(x[0]).setFontColor(st.fg).setFontWeight(st.weight).setFontSize(st.size);
+  });
+  sh.getRangeList(['C18:C20','G18:G20','J18:J21']).setFontWeight('bold').setFontSize(12);
+
+  sh.getRange('A14:J15').setFontColor(text);
+  sh.getRange('A23:J30').setFontColor(text);
+}
+
+function sbmMonochromeSemanticTextStyle_(label){
+  var v=String(label||'').trim();
+  var st={fg:'#202124',weight:'normal',size:11};
+  if(v==='大きく改善'||v==='改善完了')return {fg:'#0b8043',weight:'bold',size:12};
+  if(v==='改善')return {fg:'#0d652d',weight:'bold',size:11};
+  if(v==='改善傾向')return {fg:'#274e13',weight:'bold',size:11};
+  if(v==='変化小'||v==='経過観察')return {fg:'#7a4f01',weight:'bold',size:11};
+  if(v==='要確認')return {fg:'#7f6000',weight:'bold',size:11};
+  if(v==='見直し候補'||v==='再改善必要'||v==='悪化'||v==='処置待ち'||v==='再診待ち'||v==='要再診'||v==='要処置'||v==='測定期限超過')return {fg:'#b31412',weight:'bold',size:11};
+  if(v==='元に戻す検討')return {fg:'#b31412',weight:'bold',size:12};
+  if(v==='追加経過観察'||v==='追加経過観察中'||v==='経過観察中'||v==='測定中'||v==='再判定待ち')return {fg:'#174ea6',weight:'bold',size:11};
+  if(v==='データ不足')return {fg:'#351c75',weight:'bold',size:11};
+  if(v==='測定待ち'||v==='判定待ち'||v==='未測定'||v==='未判定')return {fg:'#5f6368',weight:'normal',size:11};
+  return st;
+}
+function sbmEnsureMonochromeReadableText_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  var lr=sh.getLastRow(),lc=sh.getLastColumn();
+  if(lr<2||lc<1)return;
+  // Monochrome data surfaces are white/pale gray. Any white/light text inherited
+  // from STANDARD would become invisible, so convert only near-white font colors.
+  var rg=sh.getRange(2,1,lr-1,lc),colors=rg.getFontColors(),changed=false;
+  for(var r=0;r<colors.length;r++){
+    for(var c=0;c<colors[r].length;c++){
+      var x=String(colors[r][c]||'').toLowerCase();
+      if(x==='#ffffff'||x==='#fff'||x==='white'||x==='#f8f9fa'||x==='#f1f3f4'||x==='#e8eaed'){
+        colors[r][c]='#202124';
+        changed=true;
+      }
+    }
+  }
+  if(changed)rg.setFontColors(colors);
+}
+function sbmApplyMonochromeSemanticColumn_(sh,col,n){
+  if(!sh||!col||!n)return;
+  var rg=sh.getRange(2,col,n,1),vals=rg.getDisplayValues(),fgs=[],weights=[],sizes=[];
+  vals.forEach(function(row){
+    var st=sbmMonochromeSemanticTextStyle_(row[0]);
+    fgs.push([st.fg]);weights.push([st.weight]);sizes.push([st.size]);
+  });
+  rg.setFontColors(fgs).setFontWeights(weights).setFontSizes(sizes);
+}
+function sbmApplyMonochromeTableTheme_(sh,opts){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  opts=opts||{};
+  var lr=sh.getLastRow(),lc=sh.getLastColumn();
+  if(lc<1)return;
+  sh.getRange(1,1,1,lc)
+    .setBackground('#5f6368')
+    .setFontColor('#ffffff')
+    .setFontWeight('bold');
+  if(lr>1){
+    sh.getRange(2,1,lr-1,lc).setBackground(opts.dataBg||'#ffffff');
+    if(opts.band!==false){
+      for(var r=3;r<=lr;r+=2)sh.getRange(r,1,1,lc).setBackground('#fafafa');
+    }
+    sbmEnsureMonochromeReadableText_(sh);
+  }
+}
+function sbmApplyArticleDbDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreArticleSelectWidth){}
+  var lr=Math.max(sh.getLastRow(),1),hm=sbmHeaderMap_(sh);
+  if(lr>1){
+    if(hm['記事ランク'])sh.getRange(2,hm['記事ランク'],lr-1,1).setFontWeight('normal');
+    if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],lr-1,1).setFontColor('#5f6368').setFontWeight('bold');
+  }
+}
+function sbmApplyTodayDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setRowHeight(1,34);sh.setColumnWidth(1,56);}catch(ignoreTodayDimension){}
+}
+function sbmApplyEffectDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreEffectSelectWidth){}
+  var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
+  if(n&&hm['判定'])sbmApplyMonochromeSemanticColumn_(sh,hm['判定'],n);
+}
+function sbmApplyHistoryDisplayTheme_(sh){
+  if(!sh||!sbmIsMonochromeTheme_())return;
+  sbmApplyMonochromeTableTheme_(sh,{dataBg:'#ffffff',band:true});
+  try{sh.setColumnWidth(1,56);}catch(ignoreHistorySelectWidth){}
+  var hm=sbmHeaderMap_(sh),n=Math.max(0,sh.getLastRow()-1);
+  if(n){
+    ['1週','2週','3週','4週','最終判定'].forEach(function(h){
+      if(hm[h])sbmApplyMonochromeSemanticColumn_(sh,hm[h],n);
+    });
+    // Route has a blue text treatment in STANDARD and remains readable on neutral surfaces.
+    if(hm['改善経路'])sh.getRange(2,hm['改善経路'],n,1).setBackground('#ffffff');
+  }
+}
+
+function sbmApplyVisibleSheetDisplayThemes_(){
+  if(!sbmIsMonochromeTheme_())return;
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var home=ss.getSheetByName(SBM_SHEETS.HOME);if(home)sbmApplyHomeDisplayTheme_(home);
+  var today=ss.getSheetByName(SBM_SHEETS.TODAY);if(today)sbmApplyTodayDisplayTheme_(today);
+  var effect=ss.getSheetByName(SBM_SHEETS.EFFECT);if(effect)sbmApplyEffectDisplayTheme_(effect);
+  var article=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(article)sbmApplyArticleDbDisplayTheme_(article);
+  var history=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);if(history)sbmApplyHistoryDisplayTheme_(history);
+}
+
+function sbmMonochromeDialogOverrides_(){
+  if(!sbmIsMonochromeTheme_())return '';
+  return 'body{background:#f5f5f5!important;color:#202124!important}'+
+    '.item,.card,.box{background:#fff!important;border-color:#dadce0!important;box-shadow:none!important}'+
+    '.work,.title,h2,h3{color:#303134!important}'+
+    '.sub,.meta,.note,.small{color:#5f6368!important}'+
+    '.next,.summary{background:#f1f3f4!important;border-color:#dadce0!important;color:#202124!important}'+
+    'details{background:#fafafa!important;border-color:#e0e0e0!important}';
+}
+
+function sbmRestoreStandardDisplayTheme_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh;
+  // Home can be safely rebuilt from the saved snapshot.
+  sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(sh){sbmBuildHomeSheet_();sbmRefreshHome_({light:true});}
+  // Article/Effect/History have dedicated display-only style functions.
+  sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(sh)try{sbmStyleArticleDbSheet_(sh);}catch(ignoreArticleStandard){}
+  sh=ss.getSheetByName(SBM_SHEETS.EFFECT);if(sh)try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreEffectStandard){}
+  sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(sh){
+    try{sbmInvalidateImprovementHistoryStyle_();}catch(ignoreHistoryInvalid){}
+    try{sbmEnsureImprovementHistoryViewLight_();}catch(ignoreHistoryStandard){}
+  }
+  // Today standard design uses a green header and already-white body.
+  sh=ss.getSheetByName(SBM_SHEETS.TODAY);
+  if(sh&&sh.getLastColumn()>0){
+    sh.getRange(1,1,1,sh.getLastColumn()).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold');
+    if(sh.getLastRow()>1)sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).setBackground('#ffffff');
+  }
+}
+function sbmApplyDisplayThemePrototype_(){
+  if(sbmIsMonochromeTheme_())sbmApplyVisibleSheetDisplayThemes_();
+  else sbmRestoreStandardDisplayTheme_();
+  SpreadsheetApp.flush();
+}
+function sbmChangeDisplayTheme(){
+  var ui=SpreadsheetApp.getUi(),current=sbmDisplayThemeLabel_();
+  var r=ui.alert(
+    '表示テーマを変更',
+    '現在：'+current+'\n\n「はい」＝モノクロ\n「いいえ」＝標準\n\n表示だけを切り替えます。記事データ・GSC・診断・Workflowには影響しません。',
+    ui.ButtonSet.YES_NO_CANCEL
+  );
+  if(r===ui.Button.CANCEL||r===ui.Button.CLOSE)return;
+  var theme=(r===ui.Button.YES)?'MONOCHROME':'STANDARD';
+  sbmSetSetting_('DisplayTheme',theme,'SIMS Manager表示テーマ');
+  sbmApplyDisplayThemePrototype_();
+  ui.alert('表示テーマ','表示テーマを「'+(theme==='MONOCHROME'?'モノクロ':'標準')+'」へ変更しました。\n\nHome・今日の改善・改善の推移・記事管理・改善履歴へ反映します。',ui.ButtonSet.OK);
+}
+
 function onOpen() {
   // Product v6.1.1: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
@@ -12787,6 +13328,8 @@ function onOpen() {
     .addItem('初期設定','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
     .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
+    .addItem('表示テーマを変更','sbmChangeDisplayTheme')
+    .addItem('未発芽判定を再確認','sbmRecheckUngerminatedRanks')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets');
 
@@ -12925,9 +13468,9 @@ function sbmDoctorRunHealthCheck() {
     }
 
     if(!run||!run.healthCheckId||run.statusCode==='COMPLETED'){
-      var period=sbmDoctorHealthPeriod_(), articleCount=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB).length, ui=SpreadsheetApp.getUi();
-      var answer=ui.alert('サイト健康診断を開始します','過去180日の検索データ取得から期間比較、記事ごとの健康状態分析、精密診断候補の選定まで、8つのステップを順番に自動で進めます。\n\n対象期間：'+period.full.startDate+' ～ '+period.full.endDate+'\n登録記事数：'+articleCount+'件\n\n処理中は画面を切り替えず、完了後に健康診断書を表示します。',ui.ButtonSet.OK_CANCEL);
-      if(answer!==ui.Button.OK)return;
+      // v6.3.0: 健康診断メニュー自体を開始意思とみなし、重複する確認ダイアログは表示しない。
+      // 前提条件エラーだけは従来どおり明示し、正常時は直ちにRunnerへ進む。
+      var period=sbmDoctorHealthPeriod_(), articleCount=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB).length;
       var id='HC-'+Utilities.formatDate(new Date(),SBM_DEFAULTS.TIMEZONE,'yyyyMMdd-HHmmss');
       run={healthCheckId:id,statusCode:'PREPARING',phase:'準備中',startDate:period.full.startDate,endDate:period.full.endDate,targetCount:articleCount,processedCount:0,nextStep:'180日集計',lastSuccessAt:'',retryCount:0,lastError:'',createdAt:sbmNowText_(),updatedAt:sbmNowText_()};
       // 新規IDなので同一IDのSnapshot削除は不要。開始ダイアログを最優先する。
@@ -12956,7 +13499,7 @@ function sbmDoctorShowHealthCheckRunnerDialog_(){
     '<div id="box" class="box"><div id="step" class="step">STEP 1 / 8　開始準備</div><div id="detail">処理を開始しています。</div><div id="meta" class="meta">最終更新：--</div></div>'+ 
     '<div id="note" class="small">処理中はこのダイアログを閉じないでください。別ブログの日次処理など、重い処理の同時実行も避けてください。</div><button id="retry" class="btn" style="display:none">続きから再開</button><button id="close" class="btn secondary" style="display:none">閉じる</button>'+ 
     '<script>var retryCount=0,terminal=false,waiting=false,watch=null;function el(i){return document.getElementById(i)}function paint(r){var p=Math.max(0,Math.min(100,Number(r.progress||0)));el("fill").style.width=p+"%";el("pct").textContent="進捗 "+p+"%";el("step").textContent=(r.stepLabel||r.stage||"処理中");el("detail").textContent=r.message||"";el("meta").textContent="最終更新："+(r.lastSuccessAt||"処理開始直後");}function setWaiting(v){waiting=v;if(v){clearTimeout(watch);watch=setTimeout(function(){if(waiting&&!terminal){el("meta").textContent="サーバーからの応答を待っています。処理は継続中です。";}},90000);}}function next(){if(terminal)return;setWaiting(true);google.script.run.withSuccessHandler(function(r){setWaiting(false);paint(r||{});if(r&&r.done){terminal=true;el("spinner").style.display="inline-block";el("box").className="box done";el("step").textContent="健康診断が完了しました";el("detail").textContent="健康診断書を表示しています。画面が切り替わるまでそのままお待ちください。";el("note").textContent="健康診断書の表示処理中です。";setTimeout(function(){google.script.run.withSuccessHandler(function(){el("spinner").style.display="none";google.script.host.close();}).withFailureHandler(function(e){el("spinner").style.display="none";el("box").className="box err";el("detail").textContent=(e&&e.message)?e.message:String(e||"健康診断書を表示できませんでした");el("close").style.display="inline-block";}).sbmDoctorOpenHealthReport();},150);return;}retryCount=0;setTimeout(next,350);}).withFailureHandler(function(e){setWaiting(false);var msg=(e&&e.message)?e.message:String(e||"処理が停止しました");el("spinner").style.display="none";el("box").className="box err";el("step").textContent="処理を一時停止しました";el("detail").textContent=msg;el("note").textContent="保存済みの工程から再開できます。";if(retryCount<1 && /時間|timeout|maximum execution|exceeded|停止/i.test(msg)){retryCount++;setTimeout(function(){el("spinner").style.display="inline-block";next();},1500);return;}el("retry").style.display="inline-block";el("close").style.display="inline-block";}).sbmDoctorRunHealthStageFromDialog();}el("retry").onclick=function(){el("retry").style.display="none";el("close").style.display="none";el("spinner").style.display="inline-block";el("box").className="box";retryCount=0;next();};el("close").onclick=function(){google.script.host.close();};next();</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(660).setHeight(470),'サイト健康診断');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(660).setHeight(470),'サイト健康診断');
 }
 
 function sbmDoctorRecoverHealthRunForStage_(run){
@@ -13344,12 +13887,14 @@ function sbmDoctorScreenMetrics_(m, article) {
   var reasons=[], code='HEALTHY', label='現在の状態はおおむね良好です', priority='低', detail=false;
   var quality = m.full.i >= 100 ? '十分' : (m.full.i >= 20 ? '限定的' : '不足');
   var currentRank=String(article['記事ランク']||'').trim();
-  var knownUngerminated=currentRank==='未発芽';
+  // v6.2.99: 保存済み未発芽ラベルが古くても、180日実績が十分ならラベルだけを根拠にしない。
+  var strongPageEvidence=(m.full.c>=10 || m.full.i>=200);
+  var knownUngerminated=currentRank==='未発芽' && !strongPageEvidence;
   // 公開直後の記事を誤判定しにくくするため、直近28日より前にも表示実績があることを条件にする。
   var hasOlderExposure=(m.first.i>0 || m.previous.i>0);
-  var accessUngerminated=hasOlderExposure && m.second.c<=SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS && m.recent.c<=SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS;
+  var accessUngerminated=!strongPageEvidence && hasOlderExposure && m.second.c<=SBM_DOCTOR_UNGERMINATED_90D_MAX_CLICKS && m.recent.c<=SBM_DOCTOR_UNGERMINATED_28D_MAX_CLICKS;
   if(knownUngerminated){
-    return {code:'UNGERMINATED',label:'未発芽として精密診断が必要です',needsDetail:true,priorityJa:'高',reasons:['記事ランクが未発芽です。検索需要・検索意図・インデックス・カニバリ等を精密診断します'],quality:quality};
+    return {code:'UNGERMINATED',label:'未発芽として精密診断が必要です',needsDetail:true,priorityJa:'高',reasons:['保存済みランクが未発芽で、180日実績も通常評価基準に届いていません。検索需要・検索意図・インデックス・カニバリ等を精密診断します'],quality:quality};
   }
   if(accessUngerminated){
     return {code:'UNGERMINATED',label:'検索流入がほぼ発芽していません',needsDetail:true,priorityJa:'高',reasons:['後半90日のクリックが'+m.second.c+'回、直近28日のクリックが0回です','直近28日より前には検索表示実績があるため、公開直後ではなく既存記事の未発芽候補として扱います'],quality:quality};
@@ -14092,7 +14637,7 @@ function sbmFinishEffectOperationView_(sh,row){
     sh.getRange(1,1,1,Math.min(lc,13)).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
     sh.setRowHeight(1,34);
   }catch(ignoreHeader){}
-  var widths={'選択':52,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
   try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(ignoreShow){}
   if(sh.getMaxColumns()>=14)try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(ignoreHide){}
@@ -14684,8 +15229,10 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
   var treatmentPosture = sbmDoctorEscapeHtml_(payload.request && payload.request.treatment_posture || '');
   var articleUrlRaw = String(payload.article && payload.article.url || '').trim();
   var articleUrl = sbmDoctorEscapeHtml_(articleUrlRaw);
-  var encodedJson = Utilities.base64EncodeWebSafe(jsonText, Utilities.Charset.UTF_8);
-  var encodedSavedResponse = savedResponseText ? Utilities.base64EncodeWebSafe(savedResponseText, Utilities.Charset.UTF_8) : '';
+  // v6.2.83: 長い診断RequestはBase64化してclient側で復号せず、textareaへ直接HTML-escapeして埋め込む。
+  // これによりカニバリ精密診断の巨大JSONでも表示・コピー内容が空になるのを防ぐ。
+  var requestHtml = sbmDoctorEscapeHtml_(String(jsonText||''));
+  var savedResponseHtml = sbmDoctorEscapeHtml_(savedResponseText);
   var html = '<!doctype html><html><head><base target="_top"><meta charset="UTF-8">' +
     '<style>body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}' +
     'h2{font-size:19px;margin:0 0 8px}.meta{font-size:13px;line-height:1.6;margin-bottom:12px}.step{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}' +
@@ -14699,10 +15246,10 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
     '<div class="meta"><b>記事：</b>' + title + '<br><b>ArticleID：</b>' + articleId + '<br><b>記事ランク：</b>' + articleRankLabel + (treatmentPosture==='CAUSE_DIAGNOSIS'?'<br><b>診断方針：</b>未発芽原因を精密診断':'') + '<br><b>RequestID：</b>' + requestId + '</div>' +
     '<div class="progress"><span id="p1" class="pill active">1 aDoctorへ依頼</span><span id="p2" class="pill">2 aDoctor回答を登録</span><span id="p3" class="pill">3 確認・再診</span><span id="p4" class="pill">4 処置担当へ依頼</span><span id="p5" class="pill">5 処置結果を登録</span></div>' +
     '<section class="step"><h3>① '+(resumeMode?'aDoctorへの依頼（完了済み）':'aDoctorへ精密診断を依頼する')+'</h3><div class="hint">'+(resumeMode?'この案件はすでにaDoctor依頼まで完了しています。通常は再送せず、②から続けてください。必要な場合だけ保存済み依頼JSONを再利用できます。':'下のJSONをすべてコピーし、aDoctorへ貼り付けてください。')+'</div>' +
-    '<textarea id="doctorRequest" readonly></textarea><div id="copyStatus" class="status ok"></div><div class="actions"><button class="primary" onclick="copyArea(\'doctorRequest\',\'copyStatus\',\'aDoctor依頼JSONをコピーしました。aDoctorへ貼り付けてください。\')">aDoctor依頼JSONをコピー</button></div></section>' +
+    '<textarea id="doctorRequest" readonly>' + requestHtml + '</textarea><div id="copyStatus" class="status ok"></div><div class="actions"><button class="primary" onclick="sbmSafeCopyDoctorRequest()">aDoctor依頼JSONをコピー</button></div></section>' +
     '<section class="step"><h3>② aDoctorの診断結果を受け取る</h3><div class="hint">aDoctorの回答を最初から最後まで、そのまま貼り付けてください。SIMSが回答内の診断結果JSONを自動抽出します。JSON部分だけを貼り付けても登録できます。</div>' +
-    '<textarea id="doctorResult" placeholder="ここへaDoctorの回答全文をそのまま貼り付けます"></textarea><div id="registerStatus" class="status">'+(resumeMode?(savedResponseText?'保存済みのaDoctor回答があります。内容を確認し、そのまま登録を再開できます。':'aDoctor依頼済みです。取得済みの回答をここへ貼り付けて登録してください。'):'')+'</div>' +
-    '<div class="actions"><button id="registerButton" class="primary" onclick="registerResult()">診断結果を登録して次へ進む</button></div></section>' +
+    '<textarea id="doctorResult" placeholder="ここへaDoctorの回答全文をそのまま貼り付けます">' + savedResponseHtml + '</textarea><div id="registerStatus" class="status">'+(resumeMode?(savedResponseText?'保存済みのaDoctor回答があります。内容を確認し、そのまま登録を再開できます。':'aDoctor依頼済みです。取得済みの回答をここへ貼り付けて登録してください。'):'')+'</div>' +
+    '<div class="actions"><button id="registerButton" class="primary" onclick="sbmSafeRegisterDoctorResult()">診断結果を登録して次へ進む</button></div></section>' +
     '<section id="nextSection" class="step hidden"><div id="nextTitle" class="next-title"></div><div id="nextMessage" class="hint"></div><textarea id="nextRequest" readonly></textarea><div id="nextStatus" class="status ok"></div>' +
     '<div class="actions"><button class="primary" id="copyNextButton" onclick="copyArea(\'nextRequest\',\'nextStatus\',\'紹介状をコピーしました。次の担当へそのまま貼り付けてください。\')">紹介状をコピー</button></div>' +
     (articleUrlRaw ? '<div id="articleOpenSection" class="actions hidden" style="justify-content:flex-start;margin-top:8px"><a class="link-button" href="' + articleUrl + '" target="_blank" rel="noopener noreferrer">この記事を開く</a></div>' : '') + '</section>' +
@@ -14727,16 +15274,20 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
     '<div id="mergeUserArticleLinks" class="actions" style="justify-content:flex-start"></div><div id="mergeUserStatus" class="status"></div>' +
     '<div class="actions"><button id="mergeUserCompleteButton" class="primary" onclick="completeMergeUserActions()">記事統合の完了を登録</button></div></section>' +
     '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div>' +
-    '<script>const encoded=' + JSON.stringify(encodedJson) + ';const encodedSavedResponse=' + JSON.stringify(encodedSavedResponse) + ';const resumeMode=' + (resumeMode?'true':'false') + ';' +
-    'function decodeBase64Url(v){if(!v)return "";v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";const b=atob(v);const a=Uint8Array.from(b,c=>c.charCodeAt(0));return new TextDecoder("utf-8").decode(a)}' +
-    'const requestText=decodeBase64Url(encoded);document.getElementById("doctorRequest").value=requestText;const savedResponse=decodeBase64Url(encodedSavedResponse);if(savedResponse)document.getElementById("doctorResult").value=savedResponse;let activeRequestText=requestText;function progress(step){for(let i=1;i<=5;i++){const p=document.getElementById("p"+i);if(!p)continue;p.className="pill "+(i<step?"done":i===step?"active":"")}}progress(resumeMode?2:1);function showArticleOpen(show){const x=document.getElementById("articleOpenSection");if(x)x.classList.toggle("hidden",!show)}function scrollNextAction(sectionId,buttonId){window.setTimeout(function(){const b=buttonId?document.getElementById(buttonId):null;const sec=sectionId?document.getElementById(sectionId):null;const target=b||sec;if(target)target.scrollIntoView({behavior:"smooth",block:b?"end":"start"})},60)}' +
+    '<script>' +
+    'function sbmSafeCopyDoctorRequest(){var t=document.getElementById("doctorRequest"),s=document.getElementById("copyStatus");if(!t)return;var ok=false;try{t.focus();t.select();t.setSelectionRange(0,t.value.length);ok=document.execCommand("copy")}catch(e){}if(ok){s.className="status ok";s.textContent="aDoctor依頼JSONをコピーしました。aDoctorへ貼り付けてください。";return}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(function(){s.className="status ok";s.textContent="aDoctor依頼JSONをコピーしました。aDoctorへ貼り付けてください。"}).catch(function(){s.className="status error";s.textContent="自動コピーできませんでした。テキスト欄を全選択して手動コピーしてください。"})}else{s.className="status error";s.textContent="自動コピーできませんでした。テキスト欄を全選択して手動コピーしてください。"}}' +
+    'function sbmSafeShowDoctorNext(r){var ns=document.getElementById("nextSection"),nt=document.getElementById("nextTitle"),nm=document.getElementById("nextMessage"),nr=document.getElementById("nextRequest"),w=document.getElementById("writerSection"),g=document.getElementById("mergeSection"),fu=document.getElementById("followUpSection"),fur=document.getElementById("followUpResultSection");if(ns)ns.classList.remove("hidden");if(nt)nt.textContent=r.nextTitle||"次の処置";if(nm)nm.textContent=r.nextMessage||"";if(nr){nr.value=r.nextRequest||r.followUpRequest||"";nr.classList.toggle("hidden",!nr.value)}if(w)w.classList.toggle("hidden",r.route!=="WRITER");if(g)g.classList.toggle("hidden",r.route!=="MERGE");if(fu)fu.classList.toggle("hidden",r.route!=="ADDITIONAL_DIAGNOSIS");if(fur)fur.classList.toggle("hidden",r.route!=="ADDITIONAL_DIAGNOSIS");var cb=document.getElementById("copyNextButton");if(cb)cb.classList.toggle("hidden",!(r.nextRequest||r.followUpRequest));if(r.route==="ADDITIONAL_DIAGNOSIS"){var f=document.getElementById("followUpRequest");if(f)f.value=r.followUpRequest||r.nextRequest||"";}var target=r.route==="WRITER"?w:r.route==="MERGE"?g:ns;if(target&&target.scrollIntoView)window.setTimeout(function(){target.scrollIntoView({behavior:"smooth",block:"start"})},80)}' +
+    'function sbmSafeRegisterDoctorResult(){var result=document.getElementById("doctorResult"),req=document.getElementById("doctorRequest"),st=document.getElementById("registerStatus"),b=document.getElementById("registerButton");var raw=result?result.value.trim():"";if(!raw){if(st){st.className="status error";st.textContent="aDoctorの回答全文、または診断結果JSONを貼り付けてください。"}return}if(b){b.disabled=true;b.textContent="処理中…"}if(st){st.className="status";st.textContent="aDoctor診断結果を登録しています…"}google.script.run.withSuccessHandler(function(r){if(b){b.disabled=false;b.textContent="診断結果を登録して次へ進む"}if(!r||!r.ok){if(st){st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。"}return}if(st){st.className="status ok";st.textContent=r.message||"診断結果を登録しました。"}sbmSafeShowDoctorNext(r)}).withFailureHandler(function(e){if(b){b.disabled=false;b.textContent="診断結果を登録して次へ進む"}if(st){st.className="status error";st.textContent=e&&e.message?e.message:String(e)}}).sbmDoctorRegisterResultWithCheckpoint(req?req.value:"",raw)}' +
+    '</script>' +
+    '<script>const resumeMode=' + (resumeMode?'true':'false') + ';' +
+    'const requestText=document.getElementById("doctorRequest").value;const savedResponse=document.getElementById("doctorResult").value;let activeRequestText=requestText;function progress(step){for(let i=1;i<=5;i++){const p=document.getElementById("p"+i);if(!p)continue;p.className="pill "+(i<step?"done":i===step?"active":"")}}progress(resumeMode?2:1);function showArticleOpen(show){const x=document.getElementById("articleOpenSection");if(x)x.classList.toggle("hidden",!show)}function scrollNextAction(sectionId,buttonId){window.setTimeout(function(){const b=buttonId?document.getElementById(buttonId):null;const sec=sectionId?document.getElementById(sectionId):null;const target=b||sec;if(target)target.scrollIntoView({behavior:"smooth",block:b?"end":"start"})},60)}' +
     'async function copyArea(id,statusId,message){const t=document.getElementById(id);let ok=false;try{await navigator.clipboard.writeText(t.value);ok=true}catch(e){t.focus();t.select();ok=document.execCommand("copy")}const st=document.getElementById(statusId);st.className="status "+(ok?"ok":"error");st.textContent=ok?message:"コピーできませんでした。テキスト欄を選択して手動でコピーしてください。"}' +
     'function registerResult(){const result=document.getElementById("doctorResult").value.trim();const st=document.getElementById("registerStatus");if(!result){st.className="status error";st.textContent="aDoctorの回答全文、または診断結果JSONを貼り付けてください。";return}const b=document.getElementById("registerButton");const originalText=b.textContent;b.disabled=true;b.classList.add("busy");b.textContent="処理中…";st.className="status";st.textContent="aDoctor診断結果を登録しています。しばらくお待ちください…";' +
     'google.script.run.withSuccessHandler(function(r){b.disabled=false;b.classList.remove("busy");b.textContent=originalText;if(!r||!r.ok){st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}st.className="status ok";st.textContent=r.message||"診断結果を登録しました。";progress(4);document.getElementById("writerSection").classList.add("hidden");document.getElementById("mergeSection").classList.add("hidden");document.getElementById("confirmationSection").classList.add("hidden");document.getElementById("followUpSection").classList.add("hidden");const sec=document.getElementById("nextSection");sec.classList.remove("hidden");document.getElementById("nextTitle").textContent=r.nextTitle||"次の処置";document.getElementById("nextMessage").textContent=r.nextMessage||"";const ta=document.getElementById("nextRequest");ta.value=r.nextRequest||"";const cb=document.getElementById("copyNextButton");if(r.nextRequest){ta.classList.remove("hidden");cb.classList.remove("hidden")}else{ta.classList.add("hidden");cb.classList.add("hidden")}showArticleOpen(r.route==="WRITER"||r.route==="MERGE");if(r.route==="WRITER"){document.getElementById("writerSection").classList.remove("hidden")}if(r.route==="MERGE"){document.getElementById("mergeSection").classList.remove("hidden")}if(r.route==="USER_CONFIRMATION"&&r.confirmation){progress(3);showConfirmation(r.confirmation)}if(r.route==="WRITER"){progress(4);scrollNextAction("writerSection","writerRegisterButton")}else if(r.route==="MERGE"){progress(4);scrollNextAction("mergeSection","mergeRegisterButton")}else if(r.route==="ADDITIONAL_DIAGNOSIS"){document.getElementById("followUpRequest").value=r.followUpRequest||r.nextRequest||"";activeRequestText=r.followUpRequest||r.nextRequest||activeRequestText;document.getElementById("followUpSection").classList.remove("hidden");document.getElementById("followUpResultSection").classList.remove("hidden");progress(3);scrollNextAction("followUpResultSection","followUpResultButton")}else if(r.route!=="USER_CONFIRMATION"){scrollNextAction("nextSection","copyNextButton")}}).withFailureHandler(function(e){b.disabled=false;b.classList.remove("busy");b.textContent=originalText;st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterResultWithCheckpoint(activeRequestText,result)}' +
     'let activeConfirmationCaseId="";function showConfirmation(c){activeConfirmationCaseId=c.case_id||"";const sec=document.getElementById("confirmationSection");sec.classList.remove("hidden");document.getElementById("confirmationInstruction").textContent=c.instruction||"aDoctorが指定した確認を行い、結果を選択してください。";const box=document.getElementById("confirmationChoices");box.innerHTML="";(c.choices||[]).forEach(function(x,i){const label=document.createElement("label");label.className="choice";const radio=document.createElement("input");radio.type="radio";radio.name="confirmationChoice";radio.value=x.code;radio.checked=i===0;label.appendChild(radio);label.appendChild(document.createTextNode(" "+x.label));box.appendChild(label)});scrollNextAction("confirmationSection","confirmationRegisterButton")}' +
     'function registerConfirmation(){const picked=document.querySelector("input[name=confirmationChoice]:checked");const raw=document.getElementById("confirmationRaw").value.trim();const st=document.getElementById("confirmationStatus");if(!picked){st.className="status error";st.textContent="確認結果を1つ選んでください。";return}const b=document.getElementById("confirmationRegisterButton");b.disabled=true;st.className="status";st.textContent="確認結果を保存し、Doctor再診依頼を作成しています…";google.script.run.withSuccessHandler(function(r){b.disabled=false;if(!r||!r.ok){st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}st.className="status ok";st.textContent=r.message||"確認結果を登録しました。";document.getElementById("followUpRequest").value=r.followUpRequest||"";activeRequestText=r.followUpRequest||activeRequestText;progress(3);const sec=document.getElementById("followUpSection");sec.classList.remove("hidden");document.getElementById("followUpResultSection").classList.remove("hidden");scrollNextAction("followUpResultSection","followUpResultButton")}).withFailureHandler(function(e){b.disabled=false;st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterUserConfirmationAndBuildFollowUp(activeConfirmationCaseId,picked.value,raw)}' +
     'function registerFollowUpResult(){const result=document.getElementById("followUpResult").value.trim();const st=document.getElementById("followUpResultStatus");if(!result){st.className="status error";st.textContent="Doctorの再診回答全文、または診断結果JSONを貼り付けてください。";return}const b=document.getElementById("followUpResultButton");b.disabled=true;st.className="status";st.textContent="再診結果を確認し、次の工程を判定しています…";google.script.run.withSuccessHandler(function(r){b.disabled=false;if(!r||!r.ok){st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}st.className="status ok";st.textContent=r.message||"再診結果を登録しました。";document.getElementById("writerSection").classList.add("hidden");document.getElementById("mergeSection").classList.add("hidden");document.getElementById("confirmationSection").classList.add("hidden");const sec=document.getElementById("nextSection");sec.classList.remove("hidden");document.getElementById("nextTitle").textContent=r.nextTitle||"次の処置";document.getElementById("nextMessage").textContent=r.nextMessage||"";const ta=document.getElementById("nextRequest");ta.value=r.nextRequest||"";const cb=document.getElementById("copyNextButton");if(r.nextRequest){ta.classList.remove("hidden");cb.classList.remove("hidden")}else{ta.classList.add("hidden");cb.classList.add("hidden")}showArticleOpen(r.route==="WRITER"||r.route==="MERGE");if(r.route==="WRITER"){document.getElementById("writerSection").classList.remove("hidden");progress(4);scrollNextAction("writerSection","writerRegisterButton")}else if(r.route==="MERGE"){document.getElementById("mergeSection").classList.remove("hidden");progress(4);scrollNextAction("mergeSection","mergeRegisterButton")}else if(r.route==="USER_CONFIRMATION"&&r.confirmation){showConfirmation(r.confirmation);progress(3)}else{progress(4);scrollNextAction("nextSection","copyNextButton")}}).withFailureHandler(function(e){b.disabled=false;st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterResultWithCheckpoint(activeRequestText,result)}' +
-    'function registerWriterResult(){const result=document.getElementById("writerResult").value.trim();const st=document.getElementById("writerStatus");if(!result){st.className="status error";st.textContent="aWriterの回答全文、または処置結果JSONを貼り付けてください。";return}const b=document.getElementById("writerRegisterButton");b.disabled=true;b.textContent="登録中...";st.className="status";st.textContent="aWriterの改善結果を登録しています。記事管理・履歴・モニター状態を更新しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aWriterの改善結果を登録";st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}b.style.display="none";st.className="status ok";st.textContent=r.message||"aWriterの改善結果を登録しました。";progress(5)}).withFailureHandler(function(e){b.disabled=false;b.textContent="aWriterの改善結果を登録";st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterWriterTreatmentResultFromDialog(result)}' +
+    'function registerWriterResult(){const result=document.getElementById("writerResult").value.trim();const st=document.getElementById("writerStatus");if(!result){st.className="status error";st.textContent="aWriterの回答全文、または処置結果JSONを貼り付けてください。";return}const b=document.getElementById("writerRegisterButton");b.disabled=true;b.textContent="登録中...";st.className="status";st.textContent="aWriterの改善結果を登録しています。記事管理・履歴・モニター状態を更新しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aWriterの改善結果を登録";st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}b.style.display="none";st.className="status ok";st.textContent=r.message||"aWriterの改善結果を登録しました。";if(r.followUpRequired){const wrap=document.createElement("div");wrap.style.marginTop="12px";const go=document.createElement("button");go.className="primary";go.textContent="カニバリ精密診断へ進む";go.onclick=function(){go.disabled=true;go.textContent="準備中…";google.script.run.withFailureHandler(function(e){go.disabled=false;go.textContent="カニバリ精密診断へ進む";st.textContent+="\\n"+((e&&e.message)?e.message:String(e))}).withSuccessHandler(function(x){if(!x||!x.ok){go.disabled=false;go.textContent="カニバリ精密診断へ進む";st.textContent+=(x&&x.message?"\\n"+x.message:"\\n追加診断を開けませんでした。");return}st.textContent+="\\nカニバリ精密診断画面を開きました。"}).sbmDoctorOpenWriterFollowUpDiagnosis(r.caseId)};const hold=document.createElement("button");hold.className="secondary";hold.style.marginLeft="8px";hold.textContent="今回は保留";hold.onclick=function(){wrap.remove();st.textContent+="\\n追加診断候補は保存しました。記事詳細または「途中再開・やり直し」から後で再開できます。"};wrap.appendChild(go);wrap.appendChild(hold);st.appendChild(wrap)}progress(5)}).withFailureHandler(function(e){b.disabled=false;b.textContent="aWriterの改善結果を登録";st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterWriterTreatmentResultFromDialog(result)}' +
     'let mergeCompletionCaseId="";function showMergeUserActions(r){const sec=document.getElementById("mergeUserActionSection");if(!sec)return;mergeCompletionCaseId=String(r.caseId||"");const ctx=r.completionContext||{},p=ctx.primary||{},abs=Array.isArray(ctx.absorbed)?ctx.absorbed:[];document.getElementById("mergeUserActionTarget").textContent="次の操作：統合先 "+String(p.articleId||"")+(abs.length?" ／ 吸収 "+abs.map(x=>String(x.articleId||"")).filter(Boolean).join("・"):"" );const links=document.getElementById("mergeUserArticleLinks");links.innerHTML="";function addLink(label,url){if(!url)return;const a=document.createElement("a");a.className="link-button";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent=label;links.appendChild(a)}addLink("統合先記事を開く",String(p.articleUrl||""));abs.forEach(function(x,i){addLink("吸収記事"+(abs.length>1?" "+(i+1):"")+"を開く",String(x.articleUrl||""))});sec.classList.remove("hidden");scrollNextAction("mergeUserActionSection","mergeUserCompleteButton")}function completeMergeUserActions(){const st=document.getElementById("mergeUserStatus"),b=document.getElementById("mergeUserCompleteButton");const checks={articlePublished:document.getElementById("mergeUserPublished").checked,redirectDone:document.getElementById("mergeUserRedirect").checked,redirectUnavailable:document.getElementById("mergeUserRedirectUnavailable").checked};if(!checks.articlePublished||(!checks.redirectDone&&!checks.redirectUnavailable)){st.className="status error";st.textContent="統合原稿の公開と、301設定または「301設定不可・検索対象外化」のどちらかを確認してください。";return}b.disabled=true;b.textContent="登録中...";st.className="status";st.textContent="改善履歴とモニター状態を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="記事統合の完了を登録";st.className="status error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="status ok";st.textContent=r.message||"モニター中へ移しました。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="記事統合の完了を登録";st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorCompleteSiteDiagnosisMergeTreatment(mergeCompletionCaseId,checks)}' +
     'function registerMergeResult(){const result=document.getElementById("mergeResult").value.trim();const st=document.getElementById("mergeStatus");if(!result){st.className="status error";st.textContent="aMergeの回答全文、または処置結果JSONを貼り付けてください。";return}const b=document.getElementById("mergeRegisterButton");b.disabled=true;b.textContent="登録中...";st.className="status";st.textContent="aMergeの統合結果をSIMSへ登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aMergeの統合結果を登録";st.className="status error";st.textContent=r&&r.message?r.message:"処理に失敗しました。";return}b.style.display="none";st.className="status ok";st.textContent=r.message||"aMergeの統合結果を登録しました。";progress(5);if(r.mergedArticleReady){showMergeUserActions(r)}else{scrollNextAction("mergeSection","mergeRegisterButton")}}).withFailureHandler(function(e){b.disabled=false;b.textContent="aMergeの統合結果を登録";st.className="status error";st.textContent=e&&e.message?e.message:String(e)}).sbmDoctorRegisterMergeTreatmentResultFromDialog(result)}' +
     '</script></body></html>';
@@ -14745,7 +15296,7 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
 
 function sbmDoctorShowCopyDialog_(payload, jsonText) {
   var html=sbmDoctorBuildCopyDialogHtml_(payload,jsonText);
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(720), 'aDoctor 精密診断');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(720), 'aDoctor 精密診断');
 }
 
 
@@ -15272,6 +15823,39 @@ function sbmDoctorComparisonWindow_(improvement,performance){
  * Product 5.10.0 RC8: Doctor健康診断書レイアウト
  * 利用者にはブログ全体の状態、Doctor所見、精密診断の目的を日本語で表示します。
  */
+function sbmDoctorApplyHealthReportTheme_(report,healthScore){
+  if(!report||!sbmIsMonochromeTheme_())return;
+  var top='#303134',section='#5f6368',label='#e8eaed',white='#ffffff',soft='#f8f9fa',border='#dadce0';
+  report.getRange('A1:B1').setBackground(top).setFontColor(white);
+  report.getRange('A2:B2').setBackground(section).setFontColor(white);
+  report.getRange('A4:A13').setBackground(label).setFontColor('#202124').setFontWeight('bold');
+  report.getRange('B4:B13').setBackground(white).setFontColor('#202124');
+  // Health score keeps meaning through text color, not a saturated cell fill.
+  var fg=Number(healthScore)>=85?'#0b8043':(Number(healthScore)>=70?'#274e13':(Number(healthScore)>=55?'#8a4b00':'#b31412'));
+  report.getRange('B7').setBackground(soft).setFontColor(fg).setFontWeight('bold');
+  report.getRange('A13:B13').setBackground(soft);
+  report.getRange('A4:B13').setBorder(true,true,true,true,true,true,border,SpreadsheetApp.BorderStyle.SOLID);
+}
+function sbmDoctorApplyCandidateTheme_(cand){
+  if(!cand||!sbmIsMonochromeTheme_())return;
+  var top='#303134',section='#5f6368',white='#ffffff',soft='#f8f9fa';
+  var lastCol=Math.max(1,cand.getLastColumn());
+  cand.getRange(1,1,1,lastCol).setBackground(top).setFontColor(white).setFontWeight('bold');
+  cand.getRange(2,1,1,lastCol).setBackground(soft).setFontColor('#202124');
+  cand.getRange(6,1,1,lastCol).setBackground(section).setFontColor(white).setFontWeight('bold');
+  var n=Math.max(0,cand.getLastRow()-6);
+  if(n>0){
+    cand.getRange(7,1,n,Math.max(1,cand.getLastColumn())).setBackground(white);
+    // Severity remains meaningful by text color only.
+    var vals=cand.getRange(7,2,n,1).getDisplayValues(),colors=[];
+    vals.forEach(function(r){
+      var t=String(r[0]||'');
+      colors.push([t.indexOf('緊急')>=0?'#b31412':(t.indexOf('重症')>=0?'#8a4b00':(t.indexOf('中等症')>=0?'#7a4f01':'#174ea6'))]);
+    });
+    cand.getRange(7,2,n,1).setBackground(white).setFontColors(colors).setFontWeight('bold');
+  }
+}
+
 function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var snap = sbmGetOrCreateSheet_(SBM_SHEETS.DOCTOR_HEALTH_SNAPSHOT);
@@ -15346,6 +15930,7 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   report.setColumnWidth(1,170); report.setColumnWidth(2,760);
   report.setRowHeights(1,2,30); report.setRowHeights(4,6,28); report.setRowHeight(10,64); report.setRowHeight(11,72); report.setRowHeight(12,42); report.setRowHeight(13,44);
   report.getRange('A1:B13').setFontFamily('Arial').setVerticalAlignment('middle');
+  try{sbmDoctorApplyHealthReportTheme_(report,healthScore);}catch(ignoreHealthTheme){}
 
   // RC8 Final QA: 健康診断完了時は健康診断書だけを表示します。
   // 精密診断候補はメニュー「診断 → 精密診断候補を見る」を開いた時点で最新スナップショットから再生成します。
@@ -15651,6 +16236,7 @@ function sbmDoctorOpenHealthReport(){
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Doctor_健康診断書');
   if(!sh) return sbmAlert_('サイト健康診断書','まだ健康診断書は作成されていません。先にサイト健康診断を実行してください。');
   sbmDoctorPolishHealthReportView_(sh);
+  try{var m=String(sh.getRange('B7').getDisplayValue()||'').match(/(\d+)/);sbmDoctorApplyHealthReportTheme_(sh,m?Number(m[1]):0);}catch(ignoreHealthOpenTheme){}
   sh.showSheet(); SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sh); sh.activate();
 }
 
@@ -15804,6 +16390,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
     // autoResizeRowsはSpreadsheet側負荷が大きいため固定高さで安定化。
     cand.setRowHeights(7,out.length,46);
   }
+  try{sbmDoctorApplyCandidateTheme_(cand);}catch(ignoreCandidateTheme){}
   return cand;
 }
 function sbmShowAsyncProgressDialog_(opt){
@@ -15817,7 +16404,7 @@ function sbmShowAsyncProgressDialog_(opt){
   var stepHtml=steps.map(function(x,i){return '<div id="s'+i+'" style="padding:6px 0;color:#5f6368">'+(realSteps?'STEP '+(i+1)+' / '+steps.length+'　':'・')+sbmDoctorEscapeHtml_(x)+'</div>';}).join('');
   var workerJson=JSON.stringify(workers), realJson=realSteps?'true':'false';
   var html='<!DOCTYPE html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}.row{display:flex;align-items:center;gap:14px}.spin{width:26px;height:26px;border:4px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}h2{margin:0 0 8px;color:#174ea6}.sub{line-height:1.65;margin-bottom:14px}.active{font-weight:700;color:#174ea6!important}.done{color:#188038!important}</style></head><body><div class="row"><div class="spin"></div><div><h2>'+sbmDoctorEscapeHtml_(title)+'</h2><div class="sub">'+sbmDoctorEscapeHtml_(desc)+'</div></div></div>'+stepHtml+'<div id="msg" style="margin-top:12px;color:#5f6368">処理を開始しています…</div><script>var ws='+workerJson+',real='+realJson+',idx=0;function paint(){for(var i=0;i<'+steps.length+';i++){var e=document.getElementById("s"+i);if(!real)e.className="";else e.className=i<idx?"done":(i===idx?"active":"");}document.getElementById("msg").textContent=real?("現在 STEP "+(idx+1)+" / "+ws.length+" を処理しています。画面はそのままでお待ちください。"):"処理中です。画面はそのままでお待ちください。";}function fail(e){document.querySelector(".spin").style.display="none";document.getElementById("msg").style.color="#b31412";document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);}function run(){paint();var runner=google.script.run.withFailureHandler(fail).withSuccessHandler(function(){idx++;if(idx<ws.length){run();}else{for(var i=0;i<'+steps.length+';i++)document.getElementById("s"+i).className="done";document.getElementById("msg").textContent="完了しました。";setTimeout(function(){google.script.host.close();},300);}});runner.sbmRunProgressWorker(ws[idx]);}run();</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(Math.min(440,240+steps.length*34))),title);
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(600).setHeight(Math.min(440,240+steps.length*34))),title);
 }
 
 function sbmRunProgressWorker(workerName){
@@ -16034,6 +16621,31 @@ function sbmDoctorWorkflowReadPayload_(caseId,kind){
 function sbmDoctorWorkflowReadMeta_(caseId){
   var raw=sbmDoctorWorkflowReadPayload_(caseId,'META');if(!raw)return {};
   try{return JSON.parse(raw);}catch(ignoreWorkflowMeta){return {};}
+}
+// v6.2.87: 再開一覧用。WorkflowStateをCaseごとに再読込せず、1回のgetValuesで索引化する。
+function sbmDoctorWorkflowResumeIndex_(){
+  var out={payload:{},meta:{}};
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
+  if(!sh||sh.getLastRow()<2)return out;
+  var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(),parts={};
+  vals.forEach(function(r){
+    var cid=String(r[hm['CaseID']-1]||'').trim(),kind=String(r[hm['種別']-1]||'').trim();
+    if(!cid||!kind)return;
+    var key=cid+'\u0001'+kind;
+    if(!parts[key])parts[key]=[];
+    parts[key].push({n:Number(r[hm['チャンク番号']-1]||0),v:String(r[hm['Payload']-1]||'')});
+  });
+  Object.keys(parts).forEach(function(key){
+    var a=parts[key].sort(function(x,y){return x.n-y.n;}),text=a.map(function(x){return x.v;}).join('');
+    var p=key.split('\u0001'),cid=p[0],kind=p[1];
+    if(!out.payload[cid])out.payload[cid]={};
+    out.payload[cid][kind]=text;
+    if(kind==='META'){try{out.meta[cid]=JSON.parse(text)||{};}catch(ignoreMetaIndex){out.meta[cid]={};}}
+  });
+  return out;
+}
+function sbmDoctorWorkflowIndexedPayload_(index,caseId,kind){
+  return String(index&&index.payload&&index.payload[caseId]&&index.payload[caseId][kind]||'');
 }
 function sbmDoctorWorkflowWriteMeta_(caseId,patch){
   var meta=sbmDoctorWorkflowReadMeta_(caseId)||{};Object.keys(patch||{}).forEach(function(k){meta[k]=patch[k];});
@@ -16418,6 +17030,21 @@ function sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,ensureRequ
     var c=rows[i]||{},cid=String(c['CaseID']||'').trim();if(!cid)continue;
     var aid=String(c['記事ID']||c['ArticleID']||'').trim(),cu=sbmNormalizeUrl_(c['記事URL']||'');
     if(!((articleId&&aid===articleId)||(norm&&cu===norm)))continue;
+    var writerRaw=String(c['Writer結果JSON']||'').trim(),writerResult={};try{writerResult=writerRaw?JSON.parse(writerRaw):{};}catch(ignoreWriterPending){}
+    var writerSpec=sbmDoctorWriterFollowUpReferralSpec_(writerResult);
+    if(writerSpec.required){
+      var writerFollow=sbmDoctorWorkflowReadPayload_(cid,'FOLLOW_UP_REQUEST');
+      if(!writerFollow&&ensureRequest){
+        try{
+          var writerRec=sbmDoctorFindCaseRow_(cid);
+          if(writerRec){
+            var rebuiltWriterFollow=sbmDoctorPrepareWriterFollowUpDiagnosis_(writerResult,writerRec)||{};
+            writerFollow=String(rebuiltWriterFollow.request||'');
+          }
+        }catch(eWriterRepair){try{sbmLog_('DoctorWriterFollowUpArticleRepair','Warning',String(eWriterRepair));}catch(ignoreWriterRepairLog){}}
+      }
+      return {required:true,type:writerSpec.type,label:writerSpec.label,caseId:cid,request:writerFollow,stage:'FOLLOW_UP_REQUEST_READY',source:'WRITER_RESULT'};
+    }
     var raw=String(c['Doctor結果JSON']||'').trim();if(!raw)continue;
     var doctor={};try{doctor=JSON.parse(raw);}catch(ignoreResult){continue;}
     var spec=sbmDoctorAdditionalDiagnosisSpec_(doctor);if(!spec.required)continue;
@@ -16445,12 +17072,18 @@ function sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,ensureRequ
 function sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url){
   try{
     var p=sbmDoctorPendingAdditionalDiagnosisForArticle_(articleId,url,true);
-    if(!p.required)return sbmAlert_('追加診断','この記事には追加診断待ちのaDoctor結果がありません。');
-    if(!p.request)return sbmAlert_('追加診断','保存済みの診断結果は確認できましたが、追加診断依頼を復元できませんでした。設定・メンテナンスの「途中再開・やり直し」からCaseを確認してください。');
+    if(!p.required){
+      var m1='この記事には追加診断待ちのaDoctor結果がありません。';
+      sbmAlert_('追加診断',m1);return {ok:false,message:m1};
+    }
+    if(!p.request){
+      var m2='保存済み結果は確認できましたが、追加診断依頼を再生成できませんでした。記事DBの対象記事情報とWriter結果を確認してください。';
+      sbmAlert_('追加診断',m2);return {ok:false,message:m2,caseId:p.caseId};
+    }
     var req=JSON.parse(p.request);
     sbmDoctorShowCopyDialog_(req,p.request);
     return {ok:true,caseId:p.caseId};
-  }catch(e){sbmAlert_('追加診断を開けません',String(e&&e.message?e.message:e));return {ok:false,error:String(e)};}
+  }catch(e){var msg=String(e&&e.message?e.message:e);sbmAlert_('追加診断を開けません',msg);return {ok:false,message:msg,error:msg};}
 }
 
 function sbmDoctorAdditionalDiagnosisUrls_(source,doctor){
@@ -17084,12 +17717,21 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
       try{
         var fallbackText=sbmDoctorExtractResultJsonText_(doctorResultText,'');
         var fallbackDoctor=JSON.parse(fallbackText);
+        var fallbackCase=String(fallbackDoctor.case_id||fallbackDoctor.case&&fallbackDoctor.case.case_id||'').trim();
+        if(fallbackCase&&expectedCaseId&&fallbackCase!==expectedCaseId){
+          throw new Error('CASE_MISMATCH|'+expectedCaseId+'|'+fallbackCase);
+        }
         var adopted=sbmDoctorAdoptPriorResultForRequest_(source,fallbackDoctor);
         if(!adopted)throw e2;
         doctor=adopted;
         resultText=JSON.stringify(adopted);
         adoptedFromPrior=true;
       }catch(eCompat){
+        var compatMsg=String(eCompat&&eCompat.message?eCompat.message:eCompat);
+        if(compatMsg.indexOf('CASE_MISMATCH|')===0){
+          var parts=compatMsg.split('|');
+          throw new Error('この回答は別の診断案件のものです。\n\n現在開いている案件：'+(parts[1]||'不明')+'\n貼り付けた回答の案件：'+(parts[2]||'不明')+'\n\n「未完了の作業を再開」から、回答に対応する作業を選んでください。');
+        }
         if(sbmDoctorLooksLikeRequestPayload_(doctorResultText)){
           throw new Error('aDoctorの依頼JSONが貼り付けられています。aDoctorが返した診断結果の回答全文（SIMS_DOCTOR_*_RESULT を含む回答）を貼り付けてください。');
         }
@@ -17377,7 +18019,7 @@ function sbmDoctorBuildSiteDiagnosisSourceRequest_(id,article){
 function sbmDoctorShowSiteDiagnosisWriterDialog_(req,id){
   var text=JSON.stringify(req,null,2),encoded=Utilities.base64EncodeWebSafe(text,Utilities.Charset.UTF_8);
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124;background:#f8f9fa}h2{font-size:18px;margin:0 0 8px}.meta{font-size:12px;line-height:1.6;color:#5f6368;margin-bottom:12px}textarea{box-sizing:border-box;width:100%;height:330px;padding:10px;font:12px/1.45 monospace;white-space:pre;border:1px solid #bdc1c6;border-radius:7px;background:#fff}.actions{text-align:right;margin-top:10px}button{padding:9px 16px;border:0;border-radius:6px;background:#1a73e8;color:#fff;font-weight:700;cursor:pointer}.ok{color:#137333;font-size:12px;margin-top:8px}</style></head><body><h2>Site Doctor → aWriter 紹介状</h2><div class="meta">CaseID：'+sbmDoctorEscapeHtml_(id.caseId)+'<br>Site Diagnosis CaseID：'+sbmDoctorEscapeHtml_(id.siteDiagnosisCaseId)+'<br>SIMSへのaDoctor診断結果登録と追跡ID保存は完了しています。下の紹介状をaWriterへ渡してください。</div><textarea id="t" readonly></textarea><div class="actions"><button onclick="copyText()">aWriter紹介状をコピー</button></div><div id="s" class="ok"></div><script>const raw="'+encoded+'";function dec(x){x=x.replace(/-/g,"+").replace(/_/g,"/");while(x.length%4)x+="=";return decodeURIComponent(escape(atob(x)))}document.getElementById("t").value=dec(raw);function copyText(){const t=document.getElementById("t");t.select();t.setSelectionRange(0,999999);navigator.clipboard.writeText(t.value).then(()=>document.getElementById("s").textContent="コピーしました。aWriterへ貼り付けてください。").catch(()=>{document.execCommand("copy");document.getElementById("s").textContent="コピーしました。aWriterへ貼り付けてください。"})}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(560),'Site Doctor 診断結果を受け取りました');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(560),'Site Doctor 診断結果を受け取りました');
 }
 
 /**
@@ -17544,9 +18186,15 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
 
 function sbmDoctorShowSingleCaseResumeDialog_(info){
   var encoded=Utilities.base64EncodeWebSafe(JSON.stringify(info),Utilities.Charset.UTF_8);
+  function escResume_(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  var initialMeta='記事：'+escResume_(info.articleTitle||'')+' ／ ArticleID：'+escResume_(info.articleId||'')+
+    (info.workSummary?'<br>作業：'+escResume_(info.workSummary):'')+
+    ' ／ 状態：'+escResume_(info.state||'')+
+    '<br><span style="color:#80868b">管理情報 CaseID：'+escResume_(info.caseId||'')+'</span>';
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 10px;font-size:20px}.meta,.note{font-size:13px;line-height:1.7}.card{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}textarea{box-sizing:border-box;width:100%;min-height:170px;padding:10px;font:12px/1.45 monospace;white-space:pre;resize:vertical;border:1px solid #bdc1c6;border-radius:7px}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}button,.link-button{display:inline-block;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:8px 16px;background:#fff;font-weight:600;cursor:pointer;color:#202124;text-decoration:none}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.status{font-size:13px;white-space:pre-wrap;margin-top:8px}.ok{color:#137333}.err{color:#b3261e}.hidden{display:none}</style></head><body>'+
-    '<div id="meta" class="meta"></div>'+
+    '<div id="meta" class="meta">'+initialMeta+'</div>'+
+    '<div id="resumeLoading" class="card"><b>再開データを準備しています…</b><div class="note">保存済みの依頼文と現在の工程を画面へ復元しています。GSC取得や記事再取得は行っていません。</div></div>'+
     '<div id="articleCard" class="card hidden"><b>対象記事</b><div class="note">紹介状を確認・コピーした後、実際の記事を開いて処置内容を確認できます。</div><div class="actions" style="justify-content:flex-start"><a id="articleOpen" class="link-button" target="_blank" rel="noopener noreferrer">この記事を開く</a></div></div>'+
     '<div id="requestCard" class="card hidden"><b id="requestTitle">aDoctorへ依頼</b><div id="requestNote" class="note">保存済みCaseIDを使って続きから再開します。</div><textarea id="request" readonly></textarea><div id="requestCopyStatus" class="status"></div><div class="actions"><button class="primary" onclick="copyReq()">依頼文をコピー</button></div></div>'+
     '<div id="resultCard" class="card hidden"><b id="resultTitle">回答を登録</b><div id="resultNote" class="note"></div><textarea id="result" placeholder="回答全文またはJSONを貼り付けてください"></textarea><div id="resultStatus" class="status"></div><div class="actions"><button id="resultBtn" class="primary" onclick="submitResult()">回答を登録して次へ進む</button></div></div>'+
@@ -17556,18 +18204,18 @@ function sbmDoctorShowSingleCaseResumeDialog_(info){
     '<div id="mergeCard" class="card hidden"><b>aMergeの統合結果をSIMSへ返す</b><div class="note">aMergeで記事統合の設計が完了したら、aMergeの回答全文を貼り付けてください。</div><textarea id="mergeResult" placeholder="ここへaMergeの回答全文をそのまま貼り付けます"></textarea><div id="mergeStatus" class="status"></div><div class="actions"><button id="mergeBtn" class="primary" onclick="submitMerge()">aMergeの統合結果を登録</button></div></div>'+
     '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div>'+
     '<script>const enc='+JSON.stringify(encoded)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";const b=atob(v),a=Uint8Array.from(b,c=>c.charCodeAt(0));return new TextDecoder("utf-8").decode(a)}const info=JSON.parse(dec(enc));let activeMode=info.mode||"DOCTOR";'+
-    'function show(id){document.getElementById(id).classList.remove("hidden")}function hide(id){document.getElementById(id).classList.add("hidden")}function status(id,msg,cls){const e=document.getElementById(id);e.className="status "+(cls||"");e.textContent=msg||""}async function cp(id,statusId){const t=document.getElementById(id);try{await navigator.clipboard.writeText(t.value)}catch(e){t.focus();t.select();document.execCommand("copy")}status(statusId,"コピーしました ✓","ok")}function copyReq(){cp("request","requestCopyStatus")}function copyNext(){cp("nextReq","nextCopyStatus")}function showArticle(){if(info.articleUrl){document.getElementById("articleOpen").href=info.articleUrl;show("articleCard")}}'+
-    'document.getElementById("meta").textContent="記事："+(info.articleTitle||"")+" ／ ArticleID："+(info.articleId||"")+" ／ CaseID："+info.caseId+" ／ 状態："+info.state;showArticle();'+
+    'var rl=document.getElementById("resumeLoading");if(rl)rl.style.display="none";function show(id){document.getElementById(id).classList.remove("hidden")}function hide(id){document.getElementById(id).classList.add("hidden")}function status(id,msg,cls){const e=document.getElementById(id);e.className="status "+(cls||"");e.textContent=msg||""}async function cp(id,statusId){const t=document.getElementById(id);try{await navigator.clipboard.writeText(t.value)}catch(e){t.focus();t.select();document.execCommand("copy")}status(statusId,"コピーしました ✓","ok")}function copyReq(){cp("request","requestCopyStatus")}function copyNext(){cp("nextReq","nextCopyStatus")}function showArticle(){if(info.articleUrl){document.getElementById("articleOpen").href=info.articleUrl;show("articleCard")}}'+
+    'document.getElementById("meta").textContent="記事："+(info.articleTitle||"")+" ／ ArticleID："+(info.articleId||"")+(info.workSummary?"\\n作業："+info.workSummary:"")+" ／ 状態："+info.state+"\\n管理情報 CaseID："+info.caseId;showArticle();'+
     'function setupTreatment(mode,req){activeMode=mode;show("requestCard");document.getElementById("request").value=req||"";document.getElementById("requestTitle").textContent=mode==="WRITER"?"aWriterへの紹介状":mode==="MERGE"?"aMergeへの紹介状":"aDoctorへ依頼";document.getElementById("requestNote").textContent=mode==="DOCTOR"?"保存済みCaseIDを使って続きから再開します。":"紹介状をコピーして担当Projectへ貼り付けてください。";if(mode==="DOCTOR"){show("resultCard");document.getElementById("resultTitle").textContent="aDoctor診断結果を登録";document.getElementById("resultNote").textContent="aDoctorの回答全文をそのまま貼り付けてください。"}else if(mode==="WRITER"){show("writerCard")}else if(mode==="MERGE"){show("mergeCard")}}'+
     'if(info.mode==="DOCTOR"){setupTreatment("DOCTOR",info.request)}else if(info.mode==="WRITER"){setupTreatment("WRITER",info.request)}else if(info.mode==="MERGE"){setupTreatment("MERGE",info.request)}else if(info.mode==="CONFIRM"){show("confirmCard");const c=info.confirmation||{};document.getElementById("confirmInstruction").textContent=c.instruction||"aDoctorが指定した確認を実施してください。";const box=document.getElementById("choices");(c.choices||[]).forEach(function(x,i){const l=document.createElement("label");l.className="choice";const r=document.createElement("input");r.type="radio";r.name="c";r.value=x.code;r.checked=i===0;l.appendChild(r);l.appendChild(document.createTextNode(" "+x.label));box.appendChild(l)})}else{show("nextCard");document.getElementById("nextMsg").textContent="この案件は現在の状態では入力待ちではありません。改善の推移・履歴、または記事一覧で状態を確認してください。";document.getElementById("nextReq").style.display="none";document.getElementById("copyNextBtn").style.display="none"}'+
-    'function submitResult(){const raw=document.getElementById("result").value.trim(),b=document.getElementById("resultBtn");if(!raw){status("resultStatus","回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="処理中…";status("resultStatus","登録しています…","");google.script.run.withSuccessHandler(doneDoctor).withFailureHandler(failDoctor).sbmDoctorRegisterResultAndBuildNext(info.request,raw)}'+
+    'function submitResult(){const raw=document.getElementById("result").value.trim(),b=document.getElementById("resultBtn");if(!raw){status("resultStatus","回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="処理中…";status("resultStatus","登録しています…","");google.script.run.withSuccessHandler(doneDoctor).withFailureHandler(failDoctor).sbmDoctorRegisterResultWithCheckpoint(info.request,raw)}'+
     'function doneDoctor(r){const b=document.getElementById("resultBtn");b.disabled=false;b.textContent="回答を登録して次へ進む";if(!r||!r.ok){status("resultStatus",r&&r.message?r.message:"登録できませんでした。","err");return}status("resultStatus",r.message||"登録しました。","ok");show("nextCard");document.getElementById("nextTitle").textContent=r.nextTitle||"次の処置";document.getElementById("nextMsg").textContent=r.nextMessage||"次の処置へ進んでください。";const ta=document.getElementById("nextReq"),cb=document.getElementById("copyNextBtn");ta.value=r.nextRequest||"";if(r.nextRequest){ta.style.display="";cb.style.display=""}else{ta.style.display="none";cb.style.display="none"}showArticle();if(r.route==="WRITER"){activeMode="WRITER";show("writerCard")}else if(r.route==="MERGE"){activeMode="MERGE";show("mergeCard")}setTimeout(function(){const x=r.route==="WRITER"?document.getElementById("writerCard"):r.route==="MERGE"?document.getElementById("mergeCard"):document.getElementById("nextCard");if(x)x.scrollIntoView({behavior:"smooth",block:"start"})},80)}'+
     'function failDoctor(e){const b=document.getElementById("resultBtn");b.disabled=false;b.textContent="回答を登録して次へ進む";status("resultStatus",e&&e.message?e.message:String(e),"err")}'+
     'function submitWriter(){const raw=document.getElementById("writerResult").value.trim(),b=document.getElementById("writerBtn");if(!raw){status("writerStatus","aWriterの回答全文を貼り付けてください。","err");return}b.disabled=true;b.textContent="処理中…";status("writerStatus","aWriterの改善結果を登録しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aWriterの改善結果を登録";status("writerStatus",r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";status("writerStatus",r.message||"aWriterの改善結果を登録しました。","ok");showArticle()}).withFailureHandler(function(e){b.disabled=false;b.textContent="aWriterの改善結果を登録";status("writerStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorRegisterWriterTreatmentResultFromDialog(raw)}'+
     'function submitMerge(){const raw=document.getElementById("mergeResult").value.trim(),b=document.getElementById("mergeBtn");if(!raw){status("mergeStatus","aMergeの回答全文を貼り付けてください。","err");return}b.disabled=true;b.textContent="処理中…";status("mergeStatus","aMergeの統合結果を登録しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aMergeの統合結果を登録";status("mergeStatus",r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";status("mergeStatus",r.message||"aMergeの統合結果を登録しました。","ok");showArticle()}).withFailureHandler(function(e){b.disabled=false;b.textContent="aMergeの統合結果を登録";status("mergeStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorRegisterMergeTreatmentResultFromDialog(raw)}'+
     'function submitConfirm(){const p=document.querySelector("input[name=c]:checked"),raw=document.getElementById("confirmRaw").value.trim(),b=document.getElementById("confirmBtn");if(!p){status("confirmStatus","確認結果を選択してください。","err");return}b.disabled=true;b.textContent="処理中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="確認結果を登録して再診依頼を作る";if(!r||!r.ok){status("confirmStatus",r&&r.message?r.message:"登録できませんでした。","err");return}status("confirmStatus",r.message||"登録しました。","ok");show("nextCard");document.getElementById("nextTitle").textContent="aDoctorへ再診";document.getElementById("nextMsg").textContent="aDoctorへ再診を依頼してください。";document.getElementById("nextReq").value=r.followUpRequest||""}).withFailureHandler(function(e){b.disabled=false;b.textContent="確認結果を登録して再診依頼を作る";status("confirmStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorRegisterUserConfirmationAndBuildFollowUp(info.caseId,p.value,raw)}'+
     '</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760),'aDoctor 精密診断を途中から再開');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760),'aDoctor 精密診断を途中から再開');
 }
 
 
@@ -17669,7 +18317,7 @@ function sbmAuditAndRepairWorkflowIntegrity(){
   try{
     var report=sbmAuditWorkflowIntegrity_(),data=JSON.stringify(report).replace(/</g,'\\u003c');
     var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{margin:0 0 10px;font-size:18px}.box{background:#f8f9fa;border:1px solid #dadce0;border-radius:9px;padding:12px;margin:10px 0}.ok{color:#137333}.warn{color:#b06000}.err{color:#b3261e}.item{padding:8px 0;border-bottom:1px solid #eee;font-size:12px;line-height:1.55}.item:last-child{border:0}button{padding:9px 14px;border-radius:6px;border:0;font-weight:700;cursor:pointer;margin:4px}.primary{background:#1a73e8;color:#fff}.outline{background:#fff;color:#1a73e8;border:1px solid #1a73e8}.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.note{font-size:12px;color:#5f6368;line-height:1.6}.hidden{display:none}</style></head><body><h2>データ整合性を点検・修復</h2><div id="summary" class="box"></div><div id="issues" class="box"></div><div id="note" class="note"></div><div class="actions"><button class="primary" onclick="refreshAudit()">再点検</button><button id="dupBtn" class="outline hidden" onclick="repairDup()">Creator重複を安全整理</button><button id="mergeBtn" class="outline hidden" onclick="repairMerge()">Merge吸収記事を補正</button><button id="historyBtn" class="outline hidden" onclick="openHistory()">改善履歴を確認</button><button onclick="google.script.host.close()">閉じる</button></div><div id="status" class="note"></div><script>var R='+data+';function toggle(id,on){document.getElementById(id).classList.toggle("hidden",!on)}function render(){var s=R.summary||{},sum=document.getElementById("summary"),iss=document.getElementById("issues"),note=document.getElementById("note");var total=(s.doctor||0)+(s.creatorDuplicateGroups||0)+(s.creatorIncomplete||0)+(s.historyMissing||0)+(s.mergeAbsorbedRepair||0);sum.innerHTML="<b>点検結果</b><br>Doctor/Workflow要確認: "+(s.doctor||0)+"件<br>Creator Direct重複グループ: "+(s.creatorDuplicateGroups||0)+"件<br>Creator Direct不完全履歴: "+(s.creatorIncomplete||0)+"件<br>改善履歴参照欠落: "+(s.historyMissing||0)+"件<br>Merge吸収記事要補正: "+(s.mergeAbsorbedRepair||0)+"件";var a=R.issues||[];if(total===0){iss.innerHTML="<span class=ok>データ整合性に問題は見つかりませんでした。修復操作は必要ありません。</span>";note.textContent="再確認したい場合は「再点検」を実行してください。"}else{iss.innerHTML=a.length?"<b>要確認案件</b>"+a.slice(0,30).map(function(x){return "<div class=item><b>"+(x.caseId||"CaseID不明")+" / "+x.state+"</b><br>"+x.message+"<br><span class=warn>対応: "+x.repair+"</span></div>"}).join(""):"<span class=warn>安全に修復できる候補があります。下の必要な操作だけ実行してください。</span>";note.textContent="自動削除や推測補正は行いません。安全にバックアップできる処理だけ実行し、意味判断が必要な案件は再登録・再開へ案内します。"}toggle("dupBtn",(s.creatorDuplicateGroups||0)>0);toggle("mergeBtn",(s.mergeAbsorbedRepair||0)>0);toggle("historyBtn",(s.creatorIncomplete||0)>0||(s.historyMissing||0)>0)}function refreshAudit(){document.getElementById("status").textContent="再点検しています…";google.script.run.withSuccessHandler(function(r){R=r;render();document.getElementById("status").textContent="再点検しました。"}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditWorkflowIntegrityForDialog()}function repairDup(){document.getElementById("status").textContent="Creator重複履歴をバックアップして整理しています…";google.script.run.withSuccessHandler(function(r){document.getElementById("status").textContent=r.message;refreshAudit()}).withFailureHandler(function(e){document.getElementById("status").textContent=e.message||String(e)}).sbmAuditRepairCreatorDuplicates()}function repairMerge(){google.script.host.close();google.script.run.sbmRepairCompletedMergeAbsorbedArticles()}function openHistory(){google.script.host.close();google.script.run.sbmOpenImprovementHistory()}render();</script></body></html>';
-    SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(720).setHeight(650),'データ整合性を点検・修復');
+    sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(720).setHeight(650),'データ整合性を点検・修復');
   }catch(e){sbmAlert_('データ整合性を点検できません',String(e&&e.message?e.message:e));}
 }
 
@@ -17747,11 +18395,213 @@ function sbmDoctorResumePrecisionDiagnosis(){
   }
 }
 
+
+// v6.2.85: 未完了Caseを利用者が意味で選べる「再開・整理センター」。
+// CaseIDは補助情報とし、作業内容・現在地・次操作を主表示する。
+function sbmDoctorResumeStateLabel_(state){
+  var m={
+    'DOCTOR_DIAGNOSIS_PENDING':'aDoctorの回答待ち',
+    'FOLLOW_UP_REQUEST_READY':'追加のaDoctor診断待ち',
+    'USER_ACTION_REQUIRED':'利用者確認待ち',
+    'USER_DECISION_REQUIRED':'利用者判断待ち',
+    'WRITER_REQUEST_READY':'aWriterへの依頼待ち',
+    'WRITER_IN_PROGRESS':'aWriterの結果待ち',
+    'MERGE_REQUEST_READY':'aMergeへの依頼待ち',
+    'MERGE_IN_PROGRESS':'aMergeの結果待ち',
+    'MERGE_RESULT_RECEIVED':'aMerge結果の確認待ち',
+    'MERGE_WRITER_IN_PROGRESS':'Merge後のaWriter結果待ち',
+    'MERGE_USER_ACTION_REQUIRED':'統合記事の公開・301等の処置待ち',
+    'CREATOR_REQUEST_READY':'aCreatorへの依頼待ち',
+    'CREATOR_IN_PROGRESS':'新記事の公開登録待ち'
+  };
+  return m[String(state||'')]||String(state||'未完了');
+}
+function sbmDoctorResumeNextActionLabel_(state){
+  var m={
+    'DOCTOR_DIAGNOSIS_PENDING':'aDoctorの回答を登録して次の処置を決めます。',
+    'FOLLOW_UP_REQUEST_READY':'追加診断の回答を登録して、Merge・差別化・維持などを判断します。',
+    'USER_ACTION_REQUIRED':'aDoctorが指定した確認結果を登録します。',
+    'USER_DECISION_REQUIRED':'診断内容を確認し、利用者判断を登録します。',
+    'WRITER_REQUEST_READY':'aWriterへ紹介状を渡します。',
+    'WRITER_IN_PROGRESS':'aWriterの改善結果を登録します。',
+    'MERGE_REQUEST_READY':'aMergeへ統合Packageを渡します。',
+    'MERGE_IN_PROGRESS':'aMergeの統合結果を登録します。',
+    'MERGE_RESULT_RECEIVED':'aMerge結果を確認し、サイト側の処置へ進みます。',
+    'MERGE_WRITER_IN_PROGRESS':'Merge後のaWriter結果を登録します。',
+    'MERGE_USER_ACTION_REQUIRED':'統合原稿の公開と301等を確認して完了登録します。',
+    'CREATOR_REQUEST_READY':'aCreatorへ新記事作成依頼を渡します。',
+    'CREATOR_IN_PROGRESS':'公開した新記事URLを登録してモニターを開始します。'
+  };
+  return m[String(state||'')]||'保存済みの続きから再開します。';
+}
+function sbmDoctorResumeWorkSummary_(row,hm,wfIndex){
+  function v(k){return hm[k]?row[hm[k]-1]:'';}
+  var state=String(v('状態コード')||'').trim(),caseId=String(v('CaseID')||'').trim();
+  var writer={},doctor={},follow={};
+  try{writer=JSON.parse(String(v('Writer結果JSON')||'{}'));}catch(ignoreW){}
+  try{doctor=JSON.parse(String(v('Doctor結果JSON')||'{}'));}catch(ignoreD){}
+  try{var fr=wfIndex?sbmDoctorWorkflowIndexedPayload_(wfIndex,caseId,'FOLLOW_UP_REQUEST'):sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST');follow=fr?JSON.parse(fr):{};}catch(ignoreF){}
+  var trigger=String(follow&&follow.request&&follow.request.trigger||'').toUpperCase();
+  var mode=String(follow&&follow.request&&follow.request.consultation_mode||'').toUpperCase();
+  if(trigger.indexOf('CANNIBAL')>=0||mode.indexOf('CANNIBAL')>=0)return '類似記事とのカニバリ疑いを精密診断';
+  var refs=Array.isArray(writer&&writer.follow_up_referrals)?writer.follow_up_referrals:[];
+  if(refs.some(function(x){return String(x&&x.referral_type||x&&x.type||'').toUpperCase()==='MERGE';}))return '類似記事とのカニバリ疑いを確認';
+  var rank=String(doctor&&doctor.diagnosis&&doctor.diagnosis.article_rank_current||'').toUpperCase();
+  var dsum=String(doctor&&doctor.diagnosis&&doctor.diagnosis.summary_ja||doctor&&doctor.diagnosis&&doctor.diagnosis.primary_hypothesis||'');
+  if(rank==='UNGERMINATED'||/未発芽/.test(dsum))return '未発芽記事の原因を精密診断';
+  if(state.indexOf('MERGE')>=0)return '記事統合（Merge）の処置';
+  if(state.indexOf('WRITER')>=0)return 'aDoctor診断に基づく記事改善';
+  if(state.indexOf('CREATOR')>=0)return 'aDoctor診断に基づく新記事作成';
+  if(state==='USER_ACTION_REQUIRED'||state==='USER_DECISION_REQUIRED')return 'aDoctor診断後の確認・判断';
+  if(state==='FOLLOW_UP_REQUEST_READY')return 'aDoctorの追加診断';
+  return 'aDoctorによる記事の精密診断';
+}
+function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex){
+  var items=[],byArticle={};
+  for(var i=0;i<vals.length;i++){
+    var row=vals[i],rowState=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+    var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
+    if(!caseId)continue;
+    var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
+    var url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';
+    var title=hm['記事タイトル']?String(row[hm['記事タイトル']-1]||'').trim():'';
+    var ud=hm['更新日時']?sbmParseDate_(row[hm['更新日時']-1]):null,ts=ud&&!isNaN(ud.getTime())?ud.getTime():0;
+    var state=rowState,virtualFollowUp=false,followReq='',writer={};
+
+    if(rowState==='MONITORING'){
+      try{writer=JSON.parse(String(hm['Writer結果JSON']?row[hm['Writer結果JSON']-1]||'{}':'{}'));}catch(ignoreWriterVirtual){}
+      var writerSpec=sbmDoctorWriterFollowUpReferralSpec_(writer);
+      if(writerSpec.required){
+        var meta=wfIndex&&wfIndex.meta?wfIndex.meta[caseId]||{}:sbmDoctorWorkflowReadMeta_(caseId)||{};
+        followReq=wfIndex?sbmDoctorWorkflowIndexedPayload_(wfIndex,caseId,'FOLLOW_UP_REQUEST'):String(sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST')||'');
+        if(followReq||String(meta.current_stage||'')==='FOLLOW_UP_REQUEST_READY'){
+          virtualFollowUp=true;
+          state='FOLLOW_UP_REQUEST_READY';
+        }
+      }
+    }
+    if(!virtualFollowUp&&!activeMap[state])continue;
+
+    var key=aid||sbmNormalizeUrl_(url)||caseId;
+    var summary=virtualFollowUp?'類似記事とのカニバリ疑いを精密診断':sbmDoctorResumeWorkSummary_(row,hm,wfIndex);
+    var x={
+      caseId:caseId,articleId:aid,articleUrl:url,articleTitle:title,state:state,rowState:rowState,
+      updatedTs:ts,updatedAt:hm['更新日時']?String(row[hm['更新日時']-1]||''):'',
+      workSummary:summary,
+      currentLabel:virtualFollowUp?'追加のaDoctor診断結果待ち':sbmDoctorResumeStateLabel_(state),
+      nextAction:virtualFollowUp?'カニバリ精密診断のaDoctor回答を登録し、Merge・差別化・維持などを判断します。':sbmDoctorResumeNextActionLabel_(state),
+      virtualFollowUp:virtualFollowUp,cleanupCandidate:false,cleanupReason:''
+    };
+    items.push(x);if(!byArticle[key])byArticle[key]=[];byArticle[key].push(x);
+  }
+  Object.keys(byArticle).forEach(function(key){
+    var a=byArticle[key].slice().sort(function(x,y){
+      if(Number(y.updatedTs||0)!==Number(x.updatedTs||0))return Number(y.updatedTs||0)-Number(x.updatedTs||0);
+      return (y.virtualFollowUp?1:0)-(x.virtualFollowUp?1:0);
+    });
+    if(a.length<2)return;
+    var newest=a[0];
+    for(var j=1;j<a.length;j++){
+      var old=a[j];
+      if(old.state==='DOCTOR_DIAGNOSIS_PENDING'||old.state==='FOLLOW_UP_REQUEST_READY'){
+        if(old.caseId===newest.caseId&&old.virtualFollowUp===newest.virtualFollowUp)continue;
+        old.cleanupCandidate=true;
+        old.cleanupReason='同じ記事で、より新しい未完了作業「'+newest.workSummary+'」が進行中です。この旧診断案件は再開不要の可能性があります。';
+      }
+    }
+  });
+  items.sort(function(a,b){
+    if(Number(b.updatedTs||0)!==Number(a.updatedTs||0))return Number(b.updatedTs||0)-Number(a.updatedTs||0);
+    return (b.virtualFollowUp?1:0)-(a.virtualFollowUp?1:0);
+  });
+  return items;
+}
+
+function sbmDoctorIsResumeCleanupCandidate_(caseId){
+  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+  if(last<2)return {ok:false};
+  var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+  var active={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
+  var wfIndex=sbmDoctorWorkflowResumeIndex_();var items=sbmDoctorResumeChooserItems_(vals,hm,active,wfIndex);
+  for(var i=0;i<items.length;i++)if(items[i].caseId===String(caseId||''))return {ok:true,item:items[i]};
+  return {ok:false};
+}
+function sbmDoctorArchiveResumeCase(caseId){
+  try{
+    var chk=sbmDoctorIsResumeCleanupCandidate_(caseId);
+    if(!chk.ok||!chk.item||!chk.item.cleanupCandidate)throw new Error('この案件は自動判定上の整理候補ではありません。安全のため終了処理を中止しました。');
+    var rec=sbmDoctorFindCaseRow_(String(caseId||''));if(!rec)throw new Error('対象Caseがありません。');
+    if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]='CANCELLED_BY_USER';
+    if(rec.hm['状態'])rec.values[rec.hm['状態']-1]='利用者が整理終了';
+    if(rec.hm['確認種別'])rec.values[rec.hm['確認種別']-1]='RESUME_CLEANUP';
+    if(rec.hm['確認結果'])rec.values[rec.hm['確認結果']-1]='新しい未完了案件が進行中のため旧案件を整理';
+    if(rec.hm['確認詳細'])rec.values[rec.hm['確認詳細']-1]=String(chk.item.cleanupReason||'');
+    if(rec.hm['確認日時'])rec.values[rec.hm['確認日時']-1]=sbmNowText_();
+    if(rec.hm['更新日時'])rec.values[rec.hm['更新日時']-1]=sbmNowText_();
+    rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
+    return {ok:true,message:'旧案件を整理しました。履歴は削除せず保存し、未完了一覧から除外しました。'};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
+  try{
+    caseId=String(caseId||'').trim();
+    var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('対象Caseが見つかりません。');
+
+    if(virtualFollowUp===true){
+      var follow=String(sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST')||'');
+      if(!follow){
+        var writer={};try{writer=JSON.parse(String(rec.hm['Writer結果JSON']?rec.values[rec.hm['Writer結果JSON']-1]||'{}':'{}'));}catch(ignoreWriterResume){}
+        var rebuilt=sbmDoctorPrepareWriterFollowUpDiagnosis_(writer,rec)||{};
+        follow=String(rebuilt.request||'');
+      }
+      if(!follow)throw new Error('追加診断依頼を復元できませんでした。');
+      var info={
+        caseId:caseId,state:'FOLLOW_UP_REQUEST_READY',
+        articleId:String(rec.hm['記事ID']?rec.values[rec.hm['記事ID']-1]||'':''),
+        articleUrl:String(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]||'':''),
+        articleTitle:String(rec.hm['記事タイトル']?rec.values[rec.hm['記事タイトル']-1]||'':''),
+        updatedAt:String(rec.hm['更新日時']?rec.values[rec.hm['更新日時']-1]||'':''),
+        mode:'DOCTOR',request:follow,doctorResult:'',workSummary:'類似記事とのカニバリ疑いを精密診断'
+      };
+      sbmDoctorShowSingleCaseResumeDialog_(info);
+      return {ok:true};
+    }
+
+    var state=rec.hm['状態コード']?String(rec.values[rec.hm['状態コード']-1]||'').trim():'';
+    var doctorOrConfirm={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1};
+    var treatment={'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
+    if(doctorOrConfirm[state]){sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));return {ok:true};}
+    if(treatment[state]){sbmDoctorRegisterSiteDiagnosisResult(true,caseId);return {ok:true};}
+    throw new Error('現在の状態は再開対象ではありません：'+state);
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+function sbmDoctorShowResumeCaseChooser_(items){
+  var enc=Utilities.base64EncodeWebSafe(JSON.stringify(items||[]),Utilities.Charset.UTF_8);
+  function escServer_(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  var fallbackHtml=(items||[]).map(function(x){
+    return '<div class="item"><div class="title">'+escServer_(x.articleTitle||x.articleId||'記事')+' <span class="small">'+escServer_(x.articleId||'')+'</span></div>'+
+      '<div class="work">'+escServer_(x.workSummary||'未完了作業')+'</div>'+
+      '<div class="meta"><b>現在地：</b>'+escServer_(x.currentLabel||'')+'<br><b>最終更新：</b>'+escServer_(x.updatedAt||'ー')+'</div>'+
+      '<div class="next"><b>次にすること：</b>'+escServer_(x.nextAction||'')+'</div>'+
+      '<div class="small">一覧の操作を準備しています…</div></div>';
+  }).join('');
+  var themeCss=sbmMonochromeDialogOverrides_();
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
+    'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 6px;font-size:20px}.sub{font-size:13px;color:#5f6368;line-height:1.6;margin-bottom:12px}.item{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.item.recommend{border-left:5px solid #f9ab00}.title{font-weight:700;font-size:14px}.work{font-size:15px;color:#174ea6;font-weight:700;margin:5px 0}.meta{font-size:12px;color:#5f6368;line-height:1.6}.next{background:#f1f5ff;border-radius:6px;padding:8px;margin-top:8px;font-size:13px}.cleanup{background:#fef7e0;border-radius:6px;padding:8px;margin-top:8px;font-size:12px;color:#7a4b00}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}button{border:1px solid #dadce0;border-radius:6px;padding:8px 14px;background:#fff;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.warn{background:#fff7e6;color:#7a4b00}.status{font-size:12px;white-space:pre-wrap;margin-top:8px}.err{color:#b3261e}.ok{color:#137333}.small{font-size:11px;color:#80868b}</style></head><body>'+
+    '<h2>未完了の作業を選ぶ</h2><div class="sub">続けたい作業を1件選んでください。Case番号ではなく、何をしていた案件かを中心に表示しています。整理候補は履歴を消さず、未完了一覧から外せます。</div><div id="root">'+fallbackHtml+'</div><div id="status" class="status"></div><script>'+
+    'var enc='+JSON.stringify(enc)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";var b=atob(v),s="";for(var i=0;i<b.length;i++)s+="%"+("00"+b.charCodeAt(i).toString(16)).slice(-2);return decodeURIComponent(s)}var items=JSON.parse(dec(enc));'+
+    'function e(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";return "&quot;"})}function render(){var h="";items.forEach(function(x,i){h+="<div class=\\"item "+(x.cleanupCandidate?"recommend":"")+"\\"><div class=title>"+e(x.articleTitle||x.articleId||"記事")+" <span class=small>"+e(x.articleId||"")+"</span></div><div class=work>"+e(x.workSummary)+"</div><div class=meta><b>現在地：</b>"+e(x.currentLabel)+"<br><b>最終更新：</b>"+e(x.updatedAt||"ー")+"</div><div class=next><b>次にすること：</b>"+e(x.nextAction)+"</div>"+(x.cleanupCandidate?"<div class=cleanup><b>整理候補</b><br>"+e(x.cleanupReason)+"</div>":"")+"<div class=actions><button class=primary onclick=\\"resume("+i+",this)\\">この作業を再開</button>"+(x.cleanupCandidate?"<button class=warn onclick=\\"cleanup("+i+",this)\\">この旧案件を整理</button>":"")+"</div><details class=small><summary>管理情報</summary>CaseID："+e(x.caseId)+"<br>状態："+e(x.state)+"</details></div>"});document.getElementById("root").innerHTML=h}'+
+    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflowCase(x.caseId,!!x.virtualFollowUp)}'+
+    'function cleanup(i,b){var x=items[i];if(!confirm("この旧案件を未完了一覧から整理しますか？\\n\\n"+x.workSummary+"\\n\\n履歴データは削除しません。"))return;var s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="整理しています…"}s.className="status";s.textContent="旧案件を整理しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=r&&r.message?r.message:"整理できませんでした。";return}s.className="status ok";s.textContent=r.message;items.splice(i,1);render()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmDoctorArchiveResumeCase(x.caseId)}render();</script></body></html>';
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'未完了の作業を再開');
+}
+
 // v6.1.43: 正常な途中状態をCase状態から判定する共通Workflow Dispatcher。
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   // v6.2.8: メニュー選択直後に空の待機画面を出す。重いWorkflow探索はgoogle.script.run側で続行する。
-  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">前回の続きと未完了Workflowを確認しています。<br>そのままお待ちください。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理の応答を確認できませんでした";document.querySelector(".msg").innerHTML="サーバー処理が完了していても画面更新に失敗している可能性があります。<br>いったん閉じて、もう一度「未完了の作業を再開」を実行してください。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore();</script></body></html>';
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">保存済みCaseとWorkflowStateを一括で読み込み、再開が必要な案件だけを抽出しています。<br>記事情報の再取得・GSC取得・診断処理は行いません。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="未完了案件の抽出に時間がかかっています";document.querySelector(".msg").innerHTML="通常は短時間で完了します。45秒を超えたため、いったん閉じて再実行してください。待ち続ける必要はありません。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore();</script></body></html>';
   SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(250),'未完了の作業を再開');
 }
 // v6.2.11: google.script.run から末尾_のprivate関数は呼べないため、公開bridgeを経由する。
@@ -17760,11 +18610,11 @@ function sbmResumeUnfinishedWorkflowCore(){
 }
 function sbmResumeUnfinishedWorkflowCore_(){
   try{
-    // v6.2.7: 過去の通常改善に保存済みのMERGE follow-upも、再開時に一度だけ正式Workflowへ昇格する。
-    try{sbmMaterializePendingFeedbackMergeReferrals_();}catch(ignoreFeedbackMergeMigration){}
-    var normal=sbmFindLatestNormalImprovementWorkflow_();
+    // v6.2.87: 「再開」は候補抽出と表示だけを行う。旧履歴の移行・自動整理などの書込処理はここでは実行しない。
+    // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
+    var wfIndex=sbmDoctorWorkflowResumeIndex_();
+    var normal=sbmFindLatestNormalImprovementWorkflow_(wfIndex);
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[];
-    var staleMergeCleanup=sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals);
     var doctorOrConfirm={
       'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,
       'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1
@@ -17775,10 +18625,13 @@ function sbmResumeUnfinishedWorkflowCore_(){
       'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,
       'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1
     };
-    var failed=[],doctorCandidate=null;
+    var failed=[],doctorCandidate=null,activeMap={};
+    Object.keys(doctorOrConfirm).forEach(function(k){activeMap[k]=1;});
+    Object.keys(treatment).forEach(function(k){activeMap[k]=1;});
+    var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex);
     for(var i=vals.length-1;i>=0;i--){
       var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
-      if(!state||state==='MONITORING'||state.indexOf('SUPERSEDED_')===0)continue;
+      if(!state||state==='MONITORING'||state.indexOf('SUPERSEDED_')===0||state==='CANCELLED_BY_USER')continue;
       if(state==='TREATMENT_FAILED'){
         failed.push(hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'');
         continue;
@@ -17788,7 +18641,9 @@ function sbmResumeUnfinishedWorkflowCore_(){
       var dcCaseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
       if(!doctorCandidate||ts>doctorCandidate.ts)doctorCandidate={row:row,state:state,ts:ts,caseId:dcCaseId};
     }
-    // v6.2.2: Doctor Case系と通常改善系のうち、最後に触ったWorkflowを再開する。
+    // v6.2.85: Doctor/Writer/Merge等の未完了Caseが複数なら、最新1件へ自動直行せず既存の複数案件運用を選択画面から開始する。
+    if(resumeItems.length>1){sbmDoctorShowResumeCaseChooser_(resumeItems);return;}
+    // 1件だけなら従来どおり直接再開。通常改善との競合も従来の最終更新優先を維持。
     if(normal&&(!doctorCandidate||normal.ts>=doctorCandidate.ts))return sbmResumeNormalImprovementWorkflow_(normal);
     if(doctorCandidate){
       if(doctorOrConfirm[doctorCandidate.state]){
@@ -17948,7 +18803,7 @@ function sbmDoctorRegisterSiteDiagnosisResult(resumeOnly,preferredCaseId){
     '<div id="mergeCompleteStep" class="step hidden"><div class="stepTitle">④ aMerge処置を完了する</div><div id="mergeCompleteTarget" style="font-size:13px;line-height:1.65;color:#174ea6;background:#f1f5ff;border-radius:6px;padding:9px 11px;margin:0 0 9px;font-weight:700"></div><div class="actions" style="justify-content:flex-start;margin:0 0 9px"><button id="openMergePrimaryArticle" class="outline hidden" type="button">統合先記事を開く</button><button id="openMergeAbsorbedArticle" class="outline hidden" type="button">吸収記事を開く</button></div><div class="note">下に表示されたMerge対象を確認し、ブログ側で2項目を済ませてから登録してください。登録後、最終Stepであれば統合先記事を「モニター中」へ移し、今回の実際の改善経路を保持したまま7日目・14日目・21日目・28日目の効果測定へ登録します。途中Stepでは次のaMerge Packageへ進み、最終Stepまでモニタリングへは移しません。</div><label style="display:block;margin:10px 0"><input type="checkbox" id="mergePublished"> <span id="mergePublishedLabel">統合先記事へaMerge完成原稿を反映し、公開しました</span></label><label style="display:block;margin:10px 0"><input type="checkbox" class="mergeRedirectChoice" id="mergeRedirect"> <span id="mergeRedirectLabel">吸収記事 → 統合先記事の301リダイレクトを設定しました</span></label><label style="display:block;margin:10px 0"><input type="checkbox" class="mergeRedirectChoice" id="mergeRedirectUnavailable"> このサイトでは301を設定できないため、吸収記事をnoindex・非公開等で検索対象外にしました</label><div class="actions"><button id="retryMergeArtifact" class="outline hidden" onclick="retryMergeArtifact()">Drive保存を再試行</button><button id="openMergeArtifact" class="outline hidden" onclick="openMergeArtifact()">aMerge完成原稿を開く</button><button id="mergeCompleteSubmit" class="primary" onclick="completeMerge()">記事統合の完了を登録</button></div><div id="mergeCompleteStatus" class="status"></div></div>'+
     '<div class="footer"><button class="secondary" onclick="google.script.host.close()">閉じる</button></div>'+
     '<script>var preferredResumeCaseId='+JSON.stringify(preferredCaseId)+';var articleUrl="",treatmentActions=[],treatmentIndex=0,mergeCompletionCaseId="",mergeCompletionContext=null,mergeArtifactUrl="",mergePrimaryArticleUrl="",mergeAbsorbedArticleUrl="",mergePrimaryStep2Url="",mergeAbsorbedStep2Url="",lastMergeResultRaw="",manualResumeBusy=false;function status(id,text,cls){var s=document.getElementById(id);s.className="status "+(cls||"");s.textContent=text||""}function setArticleUrl(u){articleUrl=String(u||"");document.getElementById("openArticle").disabled=!articleUrl}function setMergeCompletionContext(ctx){mergeCompletionContext=ctx||null;var box=document.getElementById("mergeCompleteTarget"),p=ctx&&ctx.primary||{},abs=ctx&&Array.isArray(ctx.absorbed)?ctx.absorbed:[],pid=String(p.articleId||""),pt=String(p.articleTitle||""),aids=abs.map(function(x){return String(x.articleId||"")}).filter(Boolean),alabels=abs.map(function(x){var id=String(x.articleId||""),t=String(x.articleTitle||"");return id+(t?"「"+t+"」":"")}).filter(Boolean);box.textContent=ctx?("統合先："+pid+(pt?"「"+pt+"」":"")+(alabels.length?"　｜　吸収："+alabels.join(" / "):"")+(ctx.direction?"　｜　方向："+ctx.direction:"")):"Merge対象情報を読み込めませんでした。CaseID："+mergeCompletionCaseId;document.getElementById("mergePublishedLabel").textContent=(pid?pid+"へ":"統合先記事へ")+"aMerge完成原稿を反映し、公開しました";document.getElementById("mergeRedirectLabel").textContent=(aids.length?aids.join("・"):"吸収記事")+" → "+(pid||"統合先記事")+" の301リダイレクトを設定しました";mergeArtifactUrl=String(ctx&&ctx.artifact&&(ctx.artifact.articleFileUrl||ctx.artifact.resultFileUrl)||"");document.getElementById("openMergeArtifact").className=mergeArtifactUrl?"outline":"outline hidden";mergePrimaryArticleUrl=String(p.articleUrl||"");mergeAbsorbedArticleUrl=String(abs.length&&abs[0]&&abs[0].articleUrl||"");var pb=document.getElementById("openMergePrimaryArticle"),ab=document.getElementById("openMergeAbsorbedArticle");if(pb){pb.className=mergePrimaryArticleUrl?"outline":"outline hidden";pb.textContent=pid?"統合先記事 "+pid+" を開く":"統合先記事を開く"}if(ab){ab.className=mergeAbsorbedArticleUrl?"outline":"outline hidden";ab.textContent=aids.length?"吸収記事 "+aids.join("・")+" を開く":"吸収記事を開く"}}function openMergeArtifact(){if(mergeArtifactUrl)window.open(mergeArtifactUrl,"_blank")}function openMergePrimaryArticle(){if(mergePrimaryArticleUrl)window.open(mergePrimaryArticleUrl,"_blank")}function openMergeAbsorbedArticle(){if(mergeAbsorbedArticleUrl)window.open(mergeAbsorbedArticleUrl,"_blank")}function mergeRoleInfoFromAction_(a){var out={primaryId:"",primaryUrl:"",primaryTitle:"",absorbedId:"",absorbedUrl:"",absorbedTitle:""};var ri=a&&a.mergeRoleInfo||null;if(ri){var rp=ri.primary||{},ra=Array.isArray(ri.absorbed)?ri.absorbed:[];out.primaryId=String(rp.articleId||rp.article_id||"");out.primaryUrl=String(rp.articleUrl||rp.article_url||rp.url||"");out.primaryTitle=String(rp.articleTitle||rp.article_title||rp.title||"");if(ra.length){out.absorbedId=String(ra[0].articleId||ra[0].article_id||"");out.absorbedUrl=String(ra[0].articleUrl||ra[0].article_url||ra[0].url||"");out.absorbedTitle=String(ra[0].articleTitle||ra[0].article_title||ra[0].title||"")}if(out.primaryId||out.primaryUrl||out.absorbedId||out.absorbedUrl)return out}try{var o=typeof a.request==="string"?JSON.parse(a.request):a.request||{},p=o.payload||o,mp=p.merge_plan||{},mt=mp.target_article||{},ms=mp.source_article||{};out.primaryId=String(mt.article_id||mp.target_article_id||mp.primary_article_id||"");out.primaryUrl=String(mt.article_url||mt.url||mp.target_article_url||mp.primary_article_url||"");out.primaryTitle=String(mt.article_title||mt.title||mp.target_article_title||mp.primary_article_title||"");out.absorbedId=String(ms.article_id||mp.source_article_id||"");out.absorbedUrl=String(ms.article_url||ms.url||mp.source_article_url||"");out.absorbedTitle=String(ms.article_title||ms.title||mp.source_article_title||"");if((out.primaryId||out.primaryUrl)&&(out.absorbedId||out.absorbedUrl))return out;var pc=p.primary_article_candidate||{},targets=Array.isArray(p.target_articles)?p.target_articles:[],md=p.merge_decision||{};out.primaryId=String(pc.article_id||md.primary_article_id||"");out.primaryUrl=String(pc.url||pc.article_url||md.primary_article_url||"");out.primaryTitle=String(pc.title||"");if(!out.primaryId&&!out.primaryUrl){var pr=targets.filter(function(x){return String(x&&x.role||"").toUpperCase().indexOf("PRIMARY")>=0})[0];if(pr){out.primaryId=String(pr.article_id||"");out.primaryUrl=String(pr.url||pr.article_url||"");out.primaryTitle=String(pr.title||"")}}var src=targets.filter(function(x){var id=String(x&&x.article_id||""),u=String(x&&(x.url||x.article_url)||"");return(id||u)&&id!==out.primaryId&&u!==out.primaryUrl})[0];if(src){out.absorbedId=String(src.article_id||"");out.absorbedUrl=String(src.url||src.article_url||"");out.absorbedTitle=String(src.title||"")}else{var aids=md.absorbed_article_ids||[],aurls=md.absorbed_article_urls||[];if(!Array.isArray(aids)&&md.absorbed_article_id)aids=[md.absorbed_article_id];if(!Array.isArray(aurls)&&md.absorbed_article_url)aurls=[md.absorbed_article_url];out.absorbedId=String((Array.isArray(aids)&&aids[0])||md.absorbed_article_id||"");out.absorbedUrl=String((Array.isArray(aurls)&&aurls[0])||md.absorbed_article_url||"")}}catch(ignoreMergeRole){}return out}function renderMergeStep2Navigation_(a){var nav=document.getElementById("mergeArticleNavStep2"),pb=document.getElementById("openMergePrimaryStep2"),ab=document.getElementById("openMergeAbsorbedStep2");if(!nav||!pb||!ab)return;var isMerge=String(a&&a.route||"").toUpperCase()==="MERGE";if(!isMerge){nav.className="actions hidden";mergePrimaryStep2Url="";mergeAbsorbedStep2Url="";return}var r=mergeRoleInfoFromAction_(a||{});mergePrimaryStep2Url=r.primaryUrl||"";mergeAbsorbedStep2Url=r.absorbedUrl||"";pb.textContent=r.primaryId?"統合先記事 "+r.primaryId+" を開く":"統合先記事を開く";ab.textContent=r.absorbedId?"吸収記事 "+r.absorbedId+" を開く":"吸収記事を開く";pb.className="outline";ab.className="outline";pb.disabled=!mergePrimaryStep2Url;ab.disabled=!mergeAbsorbedStep2Url;pb.title=mergePrimaryStep2Url?(r.primaryTitle||"統合後に残す記事"):"統合先URLを復元できませんでした";ab.title=mergeAbsorbedStep2Url?(r.absorbedTitle||"統合で吸収される記事"):"吸収記事URLを復元できませんでした";nav.className="actions";var generic=document.getElementById("openArticle");if(generic)generic.className="outline hidden"}function openMergePrimaryStep2(){if(mergePrimaryStep2Url)window.open(mergePrimaryStep2Url,"_blank")}function openMergeAbsorbedStep2(){if(mergeAbsorbedStep2Url)window.open(mergeAbsorbedStep2Url,"_blank")}function showTreatment(i){if(!treatmentActions.length)return;var oldTreatmentIndex=treatmentIndex;treatmentIndex=Math.max(0,Math.min(i,treatmentActions.length-1));if(treatmentIndex!==oldTreatmentIndex){var wj=document.getElementById("writerJson");if(wj)wj.value="";status("writerStatus","","");}var a=treatmentActions[treatmentIndex]||{},isMerge=a.route==="MERGE",isCreator=a.route==="CREATOR";var genericOpen=document.getElementById("openArticle");if(genericOpen)genericOpen.className=(isMerge||isCreator)?"outline hidden":"outline";var creatorPublished=document.getElementById("creatorPublishedButton");if(creatorPublished)creatorPublished.className=isCreator?"outline":"outline hidden";document.getElementById("writerRequest").value=a.request||"";document.getElementById("treatmentRequestTitle").textContent="② "+(isMerge?"aMerge":(isCreator?"aCreator":"aWriter"))+"へ依頼（未完了 "+(treatmentIndex+1)+" / "+treatmentActions.length+"）";var displayTitle=String(a.articleTitle||"").trim();document.getElementById("treatmentArticleTitle").textContent=isCreator?("新記事キーワード："+(displayTitle||String(a.keyword||a.caseId||""))):(displayTitle?"対象記事："+displayTitle:"対象案件："+String(a.caseId||""));var baseNote=isMerge?"SIMSが対象記事本文・GSC Evidence・Doctor判断を含むaMerge Packageを作成しました。SIMS Mergeへそのまま渡してください。":(isCreator?"SIMSがDoctor確定の検索意図・既存記事との役割分担・カニバリ回避条件・内部リンク候補を統合したaCreator紹介状を作成しました。aCreatorへそのまま渡してください。":"SIMSがaWriter紹介状を作成しました。記事を確認してからaWriterへ渡してください。");document.getElementById("treatmentRequestNote").textContent=(a.acceptanceResend?"【実記事再試験】既に登録済みのDoctor/Merge案件から元のaMerge Packageを再送します。新しいDoctor診断ではありません。 ":(a.resume&&a.resumeLabel?"【前回の続き】"+a.resumeLabel+"。 ":""))+(a.needsRebuild?(isMerge?"保存上限を超えたため、aMerge Packageは短縮して保存されています。「Package全文を復元」を押すと、SIMSが本文・Evidence・Doctor結果から完全版をこの画面に復元します。 ":"保存上限を超えたため、紹介状は短縮して保存されています。「紹介状の全文を復元」を押すと、SIMSが本文・Evidence・Doctor結果から完全版をこの画面に復元します。 "):baseNote);document.getElementById("copyTreatmentButton").textContent=a.needsRebuild?(isMerge?"Package全文を復元":"紹介状の全文を復元"):(isMerge?"aMerge Packageをコピー":(isCreator?"aCreator紹介状をコピー":"aWriter紹介状をコピー"));document.getElementById("writerRequestStep").className="step";document.getElementById("writerResultStep").className=(isMerge||isCreator)?"step hidden":"step";document.getElementById("mergeResultStep").className=isMerge?"step":"step hidden";document.getElementById("prevTreatment").className=treatmentActions.length>1?"secondary":"secondary hidden";document.getElementById("nextTreatment").className=treatmentActions.length>1?"secondary":"secondary hidden";document.getElementById("prevTreatment").disabled=treatmentIndex===0;document.getElementById("nextTreatment").disabled=treatmentIndex===treatmentActions.length-1;renderMergeStep2Navigation_(a);setArticleUrl(a.articleUrl||"")}function moveTreatment(d){showTreatment(treatmentIndex+d)}function applyResumeResult_(r){if(!r||!r.ok){status("resumeStatus",r&&r.message?r.message:"再開状態を確認できませんでした。","err");return}treatmentActions=Array.isArray(r.actions)?r.actions:[];var hasPendingMerge=!!r.pendingMergeCaseId;if(hasPendingMerge){mergeCompletionCaseId=String(r.pendingMergeCaseId);setMergeCompletionContext(r.pendingMergeContext||null);document.getElementById("mergeCompleteStep").className="step";document.getElementById("writerRequestStep").className="step hidden";document.getElementById("writerResultStep").className="step hidden";document.getElementById("mergeResultStep").className="step hidden";status("resumeStatus","Mergeの利用者処置が未完了です。まず⑤「サイト側でaMerge処置を完了する」から再開します。ほかの未完了作業は、この処置完了後にもう一度「未完了の作業を再開」から開けます。","ok");setTimeout(function(){var el=document.getElementById("mergeCompleteStep");if(el&&el.scrollIntoView)el.scrollIntoView({behavior:"smooth",block:"start"})},120);return}status("resumeStatus",r.message||"前回の続きから再開しました。","ok");if(treatmentActions.length){showTreatment(0);document.getElementById("doctorSubmit").disabled=false;document.getElementById("doctorJson").placeholder="別のSite Diagnosis結果も続けて登録できます。前回の処置は②以降から再開できます"}}function autoResumeExisting(){status("resumeStatus","未完了の処置があるか確認しています…","");google.script.run.withSuccessHandler(function(r){applyResumeResult_(r)}).withFailureHandler(function(e){status("resumeStatus","前回状態の自動確認に失敗しました。ダイアログを閉じて、もう一度「Site Diagnosisの処置を進める」を開いてください。 "+(e&&e.message?e.message:String(e)),"err")}).sbmDoctorResumeSiteDiagnosisTreatments(preferredResumeCaseId)}function submitDoctor(){var raw=document.getElementById("doctorJson").value.trim();if(!raw){status("doctorStatus","JSONを貼り付けてください。","err");return}var b=document.getElementById("doctorSubmit");b.disabled=true;b.textContent="登録中…";treatmentActions=[];var allActions=[],sum={WRITER:0,MERGE:0,CREATOR:0,MONITOR:0,OTHER:0},translated=0,lastDone=0,totalExpected=0;function localCount(text){try{var o=JSON.parse(text),f=String(o&&o.format||"");if(f==="SIMS_DOCTOR_SITE_WIDE_PRECISION_RESULT_V1"&&Array.isArray(o.clusters)){return o.clusters.reduce(function(n,c){var cr=c&&c.cluster_result||c&&c.result||{},sg=Array.isArray(cr.sub_groups)?cr.sub_groups:[];return n+(sg.length||1)},0)}if(f==="SIMS_DOCTOR_CASE_RESULT_V2")return 1}catch(e){}var m=text.match(/"format"\s*:\s*"SIMS_DOCTOR_CASE_RESULT_V2"/g);return m&&m.length?m.length:0}function ensureOverlay(){var ov=document.getElementById("doctorProgressOverlay");if(ov)return ov;ov=document.createElement("div");ov.id="doctorProgressOverlay";ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:99999;display:flex;align-items:center;justify-content:center";var box=document.createElement("div");box.id="doctorProgressBox";box.style.cssText="width:440px;max-width:calc(100vw - 40px);background:#fff;border-radius:16px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.25)";box.innerHTML="<div style=\'font-size:20px;font-weight:700;color:#174ea6;margin-bottom:10px\'>aDoctor診断結果を登録しています</div><div id=\'doctorProgressCount\' style=\'font-size:28px;font-weight:700;margin:8px 0\'>0 / 0件</div><div id=\'doctorProgressText\' style=\'font-size:13px;line-height:1.7;color:#5f6368\'>登録対象を確認しています。</div><div style=\'height:10px;background:#e8eaed;border-radius:999px;margin-top:16px;overflow:hidden\'><div id=\'doctorProgressBar\' style=\'height:100%;width:0%;background:#1a73e8;transition:width .2s ease\'></div></div>";ov.appendChild(box);document.body.appendChild(ov);return ov}function updateOverlay(done,total,text){ensureOverlay();totalExpected=Number(total||totalExpected||0);lastDone=Number(done||0);var c=document.getElementById("doctorProgressCount"),t=document.getElementById("doctorProgressText"),bar=document.getElementById("doctorProgressBar");if(c)c.textContent=lastDone+" / "+totalExpected+"件";if(t)t.textContent=text||"登録しています…";if(bar)bar.style.width=(totalExpected?Math.min(100,Math.round(lastDone/totalExpected*100)):0)+"%"}function overlayError(msg){ensureOverlay();var t=document.getElementById("doctorProgressText");if(t)t.textContent=String(msg||"登録に失敗しました。")+" / "+lastDone+"件まで処理済みです。";var box=document.getElementById("doctorProgressBox");if(box&&!document.getElementById("doctorProgressClose")){var x=document.createElement("button");x.id="doctorProgressClose";x.textContent="閉じる";x.style.cssText="margin-top:16px;float:right;padding:8px 16px;border:1px solid #dadce0;border-radius:8px;background:#fff";x.onclick=function(){var ov=document.getElementById("doctorProgressOverlay");if(ov)ov.remove()};box.appendChild(x)}}function removeOverlay(){var ov=document.getElementById("doctorProgressOverlay");if(ov)ov.remove()}function mergeChunk(r){if(Array.isArray(r.actions))allActions=allActions.concat(r.actions);var c=r.counts||{};["WRITER","MERGE","CREATOR","MONITOR","OTHER"].forEach(function(k){sum[k]+=Number(c[k]||0)});translated+=Number(r.translated||0)}function finish(r){updateOverlay(Number(r.total||r.processedTotal||lastDone),Number(r.total||totalExpected),"すべての登録が完了しました。");setTimeout(function(){removeOverlay();b.disabled=false;b.textContent="診断結果を登録";treatmentActions=allActions.length?allActions:(Array.isArray(r.actions)?r.actions:[]);var total=Number(r.total||r.processedTotal||1);var msg="aDoctor診断結果の登録が完了しました。 / 登録："+total+"件 / aWriter紹介状："+sum.WRITER+"件 / aMerge Package："+sum.MERGE+"件 / aCreator紹介状："+sum.CREATOR+"件 / 経過観察："+sum.MONITOR+"件";if(translated)msg+=" / REF→正式ArticleID URL照合："+translated+"件";status("doctorStatus",msg,"ok");if(treatmentActions.length)showTreatment(0)},350)}function fail(e){b.disabled=false;b.textContent="診断結果を登録";var msg=e&&e.message?e.message:String(e);status("doctorStatus",msg,"err");overlayError(msg)}function runChunk(offset){updateOverlay(offset,totalExpected,offset?("次の案件を登録しています… "+offset+"/"+totalExpected+"件完了"):"aDoctor回答を解析しました。登録を開始します…");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="診断結果を登録";var msg=r&&r.message?r.message:"登録できませんでした。";status("doctorStatus",msg,"err");overlayError(msg);return}if(r.individualBatch||r.siteWideBatch){mergeChunk(r);var done=Number(r.processedTotal||r.nextIndex||0),total=Number(r.total||totalExpected||0),label=String(r.currentTheme||r.currentCaseId||"");updateOverlay(done,total,(label?label+"：":"")+(done<total?("登録完了。残り"+(total-done)+"件を続けます。"):"全件の登録が完了しました。"));status("doctorStatus","診断結果を登録しています… "+done+"/"+total+"件完了"+(done<total?" / 残り"+(total-done)+"件":""),done<total?"":"ok");if(r.batchPartial){setTimeout(function(){runChunk(Number(r.nextIndex||done))},160);return}finish(r);return}removeOverlay();b.disabled=false;b.textContent="診断結果を登録";status("doctorStatus",r.message||"登録しました。","ok");treatmentActions=Array.isArray(r.actions)?r.actions:[];if(treatmentActions.length)showTreatment(0)}).withFailureHandler(fail).sbmDoctorSubmitSiteDiagnosisResultChunk(raw,offset)}totalExpected=localCount(raw);ensureOverlay();updateOverlay(0,totalExpected||1,totalExpected?("登録対象 "+totalExpected+"件を確認しました。"):"aDoctor回答を解析しています…");runChunk(0)}function closeSkipTreatmentDialog(){var x=document.getElementById("skipTreatmentOverlay");if(x)x.remove()}function skipCurrentTreatment(){var a=treatmentActions[treatmentIndex]||{};if(!a.caseId){status("doctorStatus","CaseIDを確認できないため終了処理できません。","err");return}closeSkipTreatmentDialog();var route=String(a.route||"").toUpperCase(),kind=route==="MERGE"?"記事統合":(route==="CREATOR"?"新記事作成":"記事改善"),verb=route==="MERGE"?"今回の記事統合":(route==="CREATOR"?"今回の新記事作成":"今回の記事改善"),role=route==="MERGE"?"aMergeによる今回の記事統合":(route==="CREATOR"?"aCreatorによる今回の新記事作成":"aWriterによる今回の修正・改善"),continueLabel=route==="MERGE"?"記事統合を続ける":(route==="CREATOR"?"新記事作成を続ける":"改善を続ける"),stopLabel=route==="MERGE"?"記事統合を取りやめる":(route==="CREATOR"?"新記事作成を取りやめる":"改善を取りやめる");var ov=document.createElement("div");ov.id="skipTreatmentOverlay";ov.className="skipOverlay";var card=document.createElement("div");card.className="skipCard";var h=document.createElement("h3");h.textContent=verb+"を取りやめますか？";card.appendChild(h);var target=document.createElement("div");target.style.cssText="font-size:13px;font-weight:700;color:#174ea6;background:#f1f5ff;border-radius:6px;padding:8px 10px;margin:0 0 9px";var aid=String(a.articleId||"").trim(),ttl=String(a.articleTitle||"").trim();target.textContent=(aid?aid+"　":"")+(ttl?ttl:(route==="CREATOR"?"新記事作成案件":"対象記事"));card.appendChild(target);var hint=document.createElement("div");hint.className="skipHint";hint.textContent="この操作を実行すると、"+verb+"を取りやめます。"+role+"は行いません。今回の"+kind+"作業を終了し、終了後は「未完了の作業を再開」には表示されなくなります。主な理由を1つ選んでください。";card.appendChild(hint);var reasons=["現況確認で問題なし","Doctor診断の前提と現況が不一致","リダイレクト済み／旧URL","すでに別の改善で解決済み","その他"];reasons.forEach(function(v,i){var label=document.createElement("label");label.className="skipOption";var r=document.createElement("input");r.type="radio";r.name="skipReason";r.value=v;if(i===0)r.checked=true;label.appendChild(r);label.appendChild(document.createTextNode(" "+v));card.appendChild(label)});var memo=document.createElement("textarea");memo.id="skipTreatmentMemo";memo.className="skipMemo";memo.placeholder="確認メモ（任意）。その他を選んだ場合は理由を入力してください。";card.appendChild(memo);var act=document.createElement("div");act.className="actions";var cancel=document.createElement("button");cancel.className="secondary";cancel.textContent=continueLabel;cancel.onclick=closeSkipTreatmentDialog;var ok=document.createElement("button");ok.className="primary";ok.textContent=stopLabel;ok.onclick=confirmSkipTreatment;act.appendChild(cancel);act.appendChild(ok);card.appendChild(act);ov.appendChild(card);document.body.appendChild(ov)}function confirmSkipTreatment(){var a=treatmentActions[treatmentIndex]||{},route=String(a.route||"").toUpperCase(),checked=document.querySelector("input[name=skipReason]:checked"),reason=checked?String(checked.value||""):"",detail=String((document.getElementById("skipTreatmentMemo")||{}).value||"").trim(),buttonLabel=route==="MERGE"?"今回の記事統合を取りやめる":(route==="CREATOR"?"今回の新記事作成を取りやめる":"今回の改善を取りやめる");if(reason==="その他"&&!detail){status("doctorStatus","「その他」を選んだ場合は確認メモに理由を入力してください。","err");return}if(!reason){status("doctorStatus","取りやめる理由を選択してください。","err");return}closeSkipTreatmentDialog();var b=document.getElementById("skipTreatmentButton");b.disabled=true;b.textContent="終了処理中…";status("doctorStatus","今回の作業を終了として記録しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent=buttonLabel;if(!r||!r.ok){status("doctorStatus",r&&r.message?r.message:"終了処理できませんでした。","err");return}status("doctorStatus",r.message||"今回の作業を取りやめました。","ok");var old=treatmentIndex;treatmentActions=treatmentActions.filter(function(x){return String(x.caseId||"")!==String(a.caseId||"")});document.getElementById("writerJson").value="";document.getElementById("mergeJson").value="";if(treatmentActions.length){showTreatment(Math.min(old,treatmentActions.length-1))}else{document.getElementById("writerRequestStep").className="step hidden";document.getElementById("writerResultStep").className="step hidden";document.getElementById("mergeResultStep").className="step hidden";status("resumeStatus","未完了の作業はありません。","ok")}}).withFailureHandler(function(e){b.disabled=false;b.textContent=buttonLabel;status("doctorStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorSkipSiteDiagnosisTreatment(a.caseId,reason,detail)}function closeCreatorPublishDialog(){var ov=document.getElementById("creatorPublishOverlay");if(ov)ov.remove()}function openCreatorPublishDialog(){var a=treatmentActions[treatmentIndex]||{};if(String(a.route||"").toUpperCase()!=="CREATOR"){status("doctorStatus","aCreator案件を選択してください。","err");return}closeCreatorPublishDialog();var ov=document.createElement("div");ov.id="creatorPublishOverlay";ov.className="skipOverlay";var card=document.createElement("div");card.className="skipCard";var h=document.createElement("h3");h.textContent="新記事の公開を登録";card.appendChild(h);var hint=document.createElement("div");hint.className="skipHint";hint.textContent="aCreatorで作成した新記事を公開した後、その公開URLを登録します。登録すると記事管理へ新記事として追加し、モニター中へ移します。";card.appendChild(hint);var kw=document.createElement("div");kw.style.cssText="font-weight:700;color:#174ea6;background:#f1f5ff;border-radius:6px;padding:8px 10px;margin:10px 0";kw.textContent="新記事キーワード："+String(a.keyword||a.articleTitle||"");card.appendChild(kw);var u=document.createElement("input");u.id="creatorPublishedUrl";u.type="url";u.placeholder="公開した新記事URL（必須） https://...";u.style.cssText="box-sizing:border-box;width:100%;padding:10px;border:1px solid #bdc1c6;border-radius:7px;margin:7px 0";card.appendChild(u);var t=document.createElement("input");t.id="creatorPublishedTitle";t.type="text";t.placeholder="記事タイトル（任意・空欄でも登録可）";t.style.cssText="box-sizing:border-box;width:100%;padding:10px;border:1px solid #bdc1c6;border-radius:7px;margin:7px 0";card.appendChild(t);var act=document.createElement("div");act.className="actions";var cancel=document.createElement("button");cancel.className="secondary";cancel.textContent="キャンセル";cancel.onclick=closeCreatorPublishDialog;var ok=document.createElement("button");ok.className="primary";ok.textContent="公開を登録してモニター開始";ok.onclick=confirmCreatorPublish;act.appendChild(cancel);act.appendChild(ok);card.appendChild(act);ov.appendChild(card);document.body.appendChild(ov)}function confirmCreatorPublish(){var a=treatmentActions[treatmentIndex]||{},u=String((document.getElementById("creatorPublishedUrl")||{}).value||"").trim(),t=String((document.getElementById("creatorPublishedTitle")||{}).value||"").trim();if(!u){status("doctorStatus","公開した新記事URLを入力してください。","err");return}closeCreatorPublishDialog();var b=document.getElementById("creatorPublishedButton");b.disabled=true;b.textContent="登録中…";status("doctorStatus","新記事を記事管理へ登録し、モニターを開始しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="新記事の公開を登録";status("doctorStatus",r&&r.message?r.message:"新記事を登録できませんでした。","err");return}b.style.display="none";status("doctorStatus",r.message||"新記事をモニター中へ登録しました。","ok");var old=treatmentIndex;treatmentActions=treatmentActions.filter(function(x){return String(x.caseId||"")!==String(a.caseId||"")});if(treatmentActions.length){showTreatment(Math.min(old,treatmentActions.length-1))}else{document.getElementById("writerRequestStep").className="step hidden";document.getElementById("writerResultStep").className="step hidden";document.getElementById("mergeResultStep").className="step hidden";status("resumeStatus","未完了の作業はありません。","ok")}}).withFailureHandler(function(e){b.disabled=false;b.textContent="新記事の公開を登録";status("doctorStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorCompleteSiteDiagnosisCreatorTreatment(a.caseId,u,t)}function copyWriterRequest(){var a=treatmentActions[treatmentIndex]||{},t=document.getElementById("writerRequest"),isMerge=String(a.route||"").toUpperCase()==="MERGE";if(a.needsRebuild){var b=document.getElementById("copyTreatmentButton"),restoreLabel=isMerge?"Package全文を復元":"紹介状の全文を復元";b.disabled=true;b.textContent="復元中…";status("doctorStatus",isMerge?"本文・Evidence・Doctor結果からPackage全文を復元しています…":"本文・Evidence・Doctor結果から紹介状全文を復元しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;if(!r||!r.ok){b.textContent=restoreLabel;status("doctorStatus",r&&r.message?r.message:(isMerge?"Package全文を復元できませんでした。":"紹介状全文を復元できませんでした。"),"err");return}a.request=r.request||"";a.articleUrl=r.articleUrl||a.articleUrl||"";a.articleTitle=r.articleTitle||a.articleTitle||"";a.needsRebuild=false;treatmentActions[treatmentIndex]=a;showTreatment(treatmentIndex);status("doctorStatus",isMerge?"Package全文を復元しました。内容を確認してからコピーしてください。":"紹介状の全文を復元しました。内容を確認してから「aWriter紹介状をコピー」を押してください。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent=restoreLabel;status("doctorStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorRebuildSiteDiagnosisReferral(a.caseId,a.route);return}t.select();t.setSelectionRange(0,999999);var done=function(){var cb=document.getElementById("copyTreatmentButton"),label=isMerge?"aMerge Packageをコピー":(String(a.route||"").toUpperCase()==="CREATOR"?"aCreator紹介状をコピー":"aWriter紹介状をコピー");status("doctorStatus","コピーしました ✓　次の担当へ渡してください。","ok");if(cb){cb.textContent="コピーしました ✓";setTimeout(function(){if(cb&&!a.needsRebuild)cb.textContent=label},1400)}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(done).catch(function(){document.execCommand("copy");done()})}else{document.execCommand("copy");done()}}function openArticleUrl(){if(!articleUrl)return;window.open(articleUrl,"_blank","noopener,noreferrer")}function submitWriter(){var raw=document.getElementById("writerJson").value.trim();if(!raw){status("writerStatus","aWriterの回答またはJSONを貼り付けてください。","err");return}var b=document.getElementById("writerSubmit");b.disabled=true;b.textContent="登録中…";status("writerStatus","登録しています。改善履歴・記事管理・改善の推移を同期しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aWriterの改善結果を登録";status("writerStatus",r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";status("writerStatus",r.message||"登録しました。","ok");var wj=document.getElementById("writerJson");if(wj){wj.value="";wj.disabled=true}if(r.articleUrl)setArticleUrl(r.articleUrl)}).withFailureHandler(function(e){b.disabled=false;b.textContent="aWriterの改善結果を登録";status("writerStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorSubmitSiteDiagnosisWriterResult(raw)}function submitMerge(){var raw=document.getElementById("mergeJson").value.trim();if(!raw){status("mergeStatus","aMergeの処置結果回答またはJSONを貼り付けてください。","err");return}lastMergeResultRaw=raw;var b=document.getElementById("mergeSubmit");b.disabled=true;b.textContent="登録中…";status("mergeStatus","登録しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="aMergeの統合結果を登録";status("mergeStatus",r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";var mj=document.getElementById("mergeJson");if(mj)mj.disabled=true;status("mergeStatus",r.message||"登録しました。","ok");if(r.mergedArticleReady){treatmentActions=treatmentActions.filter(function(a){return String(a.caseId||"")!==String(r.caseId||"")});status("doctorStatus","aMergeの統合後完成原稿をSIMSへ登録しました。aWriterへの再紹介は不要です。本文反映と301等の利用者処置へ進んでください。","ok");document.getElementById("writerRequestStep").className="step hidden";document.getElementById("writerResultStep").className="step hidden";document.getElementById("mergeResultStep").className="step";mergeCompletionCaseId=String(r.caseId||"");var mctx=r.mergeCompletionContext||{};if(r.artifact)mctx.artifact=r.artifact;setMergeCompletionContext(mctx);document.getElementById("mergeCompleteStep").className="step";document.getElementById("retryMergeArtifact").className="outline hidden";if(r.artifactOptionalUnavailable){status("mergeStatus",(r.message||"登録しました。")+"\\n\\n補足：Driveへの成果物コピーは作成できませんでしたが、aMerge処置の登録・完了には影響ありません。","ok")}}else if(r.writerReady&&r.writerRequest){treatmentActions.push({route:"WRITER",request:r.writerRequest,caseId:r.caseId||"",articleUrl:r.articleUrl||"",articleTitle:r.articleTitle||""});showTreatment(treatmentActions.length-1)}}).withFailureHandler(function(e){b.disabled=false;b.textContent="aMergeの統合結果を登録";status("mergeStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorSubmitMergeResult(raw)}function retryMergeArtifact(){if(!lastMergeResultRaw){status("mergeCompleteStatus","再試行するaMerge結果がこの画面に残っていません。③へ同じaMerge結果を貼り付けて再登録してください。","err");return}var b=document.getElementById("retryMergeArtifact");b.disabled=true;b.textContent="Drive保存中…";status("mergeCompleteStatus","DriveへMerge成果物を保存しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="Drive保存を再試行";if(!r||!r.ok){status("mergeCompleteStatus",r&&r.message?r.message:"Drive保存を再試行できませんでした。","err");return}if(r.artifactRetryRequired){status("mergeCompleteStatus","Drive保存にまだ失敗しています。GoogleのDrive権限が許可されているか確認してください。\\n詳細："+String(r.artifactError||""),"err");return}document.getElementById("retryMergeArtifact").className="outline hidden";var mctx=r.mergeCompletionContext||{};if(r.artifact)mctx.artifact=r.artifact;setMergeCompletionContext(mctx);status("mergeCompleteStatus","DriveへのArtifact保存が完了しました。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent="Drive保存を再試行";status("mergeCompleteStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorSubmitMergeResult(lastMergeResultRaw)}function completeMerge(){var checks={articlePublished:document.getElementById("mergePublished").checked,redirectDone:document.getElementById("mergeRedirect").checked,redirectUnavailable:document.getElementById("mergeRedirectUnavailable").checked};if(!checks.articlePublished||(!checks.redirectDone&&!checks.redirectUnavailable)){status("mergeCompleteStatus","統合原稿の公開と、301設定または「301設定不可・検索対象外化」のどちらかを確認してください。","err");return}var b=document.getElementById("mergeCompleteSubmit");b.disabled=true;b.textContent="登録中…";var phase=0,msgs=["改善履歴を登録しています…","記事管理を「モニター中」へ同期しています…","7日目・14日目・21日目・28日目の効果測定を設定しています…","改善の推移とHomeを更新しています…"],timer=setInterval(function(){if(phase<msgs.length)status("mergeCompleteStatus",msgs[phase++],"")},1400);status("mergeCompleteStatus","記事統合の完了を確認しています…","");google.script.run.withSuccessHandler(function(r){clearInterval(timer);b.disabled=false;b.textContent="記事統合の完了を登録";if(!r||!r.ok){status("mergeCompleteStatus",r&&r.message?r.message:"登録できませんでした。","err");return}status("mergeCompleteStatus",r.message||"モニター中へ移しました。","ok");b.style.display="none"}).withFailureHandler(function(e){clearInterval(timer);b.disabled=false;b.textContent="記事統合の完了を登録";status("mergeCompleteStatus",e&&e.message?e.message:String(e),"err")}).sbmDoctorCompleteMergeTreatment(mergeCompletionCaseId,checks)}document.addEventListener("DOMContentLoaded",function(){var db=document.getElementById("doctorSubmit");if(db){db.addEventListener("pointerdown",function(){status("doctorStatus","aDoctor回答を確認しています。進捗画面が表示されます。","")});db.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();submitDoctor()});}var mp=document.getElementById("openMergePrimaryArticle"),ma=document.getElementById("openMergeAbsorbedArticle"),mp2=document.getElementById("openMergePrimaryStep2"),ma2=document.getElementById("openMergeAbsorbedStep2");if(mp)mp.addEventListener("click",openMergePrimaryArticle);if(ma)ma.addEventListener("click",openMergeAbsorbedArticle);if(mp2)mp2.addEventListener("click",openMergePrimaryStep2);if(ma2)ma2.addEventListener("click",openMergeAbsorbedStep2);document.querySelectorAll(".mergeRedirectChoice").forEach(function(x){x.addEventListener("change",function(){if(!this.checked)return;document.querySelectorAll(".mergeRedirectChoice").forEach(function(y){if(y!==x)y.checked=false})})});autoResumeExisting()});</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(840).setHeight(760),resumeOnly?'未完了の作業を再開':'aDoctor診断結果の処置を進める');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(840).setHeight(760),resumeOnly?'未完了の作業を再開':'aDoctor診断結果の処置を進める');
 }
 function sbmDoctorSiteWideRepresentativeArticle_(result,route){
   result=result||{};route=String(route||'').toUpperCase();
@@ -18040,7 +18895,7 @@ function sbmOpenCreatorPublicationRegisterDialog(){
     '<script>function st(t,c){var e=document.getElementById("status");e.textContent=t||"";e.className="status "+(c||"")}function submitCreator(){var raw=document.getElementById("raw").value||"",manualUrl=(document.getElementById("publishedUrl").value||"").trim(),b=document.getElementById("submit");if(!manualUrl){st("公開した記事のURLは必須です。記事を公開してURLを入力してから登録してください。","err");return}if(!/^https?:\\/\\//i.test(manualUrl)){st("公開URLは http:// または https:// から始まるURLを入力してください。","err");return}if(!raw.trim()){st("aCreatorの回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="登録中…";st("公開URLとaCreator回答を確認しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="新記事を登録";st(r&&r.message?r.message:"登録できませんでした。","err");return}b.style.display="none";document.getElementById("raw").disabled=true;document.getElementById("publishedUrl").disabled=true;st(r.message||"登録しました。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent="新記事を登録";st(e&&e.message?e.message:String(e),"err")}).sbmRegisterCreatorPublicationResponse(raw,manualUrl)}</script>'+
     '</body></html>'
   ).setWidth(740).setHeight(620);
-  SpreadsheetApp.getUi().showModalDialog(html,'aCreator新規記事登録');
+  sbmShowThemedModalDialog_(html,'aCreator新規記事登録');
 }
 function sbmCreatorJsonScore_(o){
   if(!o||typeof o!=='object')return -1;
@@ -19302,6 +20157,74 @@ function sbmDoctorSyncSingleEffectRowAfterWriter_(historyId,articleId,articleUrl
   return sbmSyncSingleEffectRowAfterHistory_(historyId,articleId,articleUrl);
 }
 
+
+/** v6.2.79: Writerのtop-level follow_up_referralsは「Merge決定」ではなく追加診断候補として扱う。 */
+function sbmDoctorWriterFollowUpReferralSpec_(o){
+  var refs=Array.isArray(o&&o.follow_up_referrals)?o.follow_up_referrals:[];
+  for(var i=0;i<refs.length;i++){
+    var r=refs[i]||{},type=String(r.referral_type||r.type||r.route||'').toUpperCase();
+    if(type!=='MERGE')continue;
+    var urls=Array.isArray(r.target_urls)?r.target_urls:(Array.isArray(r.target_articles)?r.target_articles.map(function(x){return typeof x==='string'?x:(x&&x.url||'');}):[]);
+    urls=urls.map(function(x){return String(x||'').trim();}).filter(Boolean);
+    if(urls.length<2)continue;
+    return {required:true,type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',label:'カニバリ精密診断',urls:urls,reason:String(r.reason||''),priority:String(r.priority||'LOW')};
+  }
+  return {required:false,type:'',label:'',urls:[],reason:'',priority:''};
+}
+function sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec){
+  var spec=sbmDoctorWriterFollowUpReferralSpec_(o);if(!spec.required)return {required:false};
+  var caseId=String(o.case_id||''),sourceRaw=sbmDoctorWorkflowReadPayload_(caseId,'REQUEST'),source=null;
+  try{source=sourceRaw?JSON.parse(sourceRaw):null;}catch(ignoreSource){}
+  // v6.2.82: v6.2.79以前の既存Caseやfinalize済みCaseではREQUEST payloadが残っていない場合がある。
+  // その場合はDoctor_Cases + 記事DBから元のArticle Doctor requestを再構築し、同一CaseIDを維持する。
+  if(!source){
+    try{
+      var articleId=rec&&rec.hm&&rec.hm['記事ID']?String(rec.values[rec.hm['記事ID']-1]||'').trim():String(o.article_id||'').trim();
+      var articleUrl=rec&&rec.hm&&rec.hm['記事URL']?String(rec.values[rec.hm['記事URL']-1]||'').trim():String(o.article_url||'').trim();
+      var siteId=rec&&rec.hm&&rec.hm['サイトID']?String(rec.values[rec.hm['サイトID']-1]||'').trim():String(o.site_id||'').trim();
+      var article=sbmDoctorFindArticleByIdOrUrl_(articleId,articleUrl);
+      if(article){
+        source=sbmDoctorBuildArticleDoctorImportSourceRequest_({caseId:caseId,articleId:articleId,articleUrl:articleUrl,siteId:siteId,siteDiagnosisCaseId:'',siteDiagnosisBatchId:''},article);
+        source.request=source.request||{};
+        source.request.trigger='WRITER_FOLLOW_UP_REBUILD';
+        source.request.requested_by='SBM';
+        try{sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',JSON.stringify(source,null,2));}catch(ignoreRebuiltSourceSave){}
+      }
+    }catch(eRebuildSource){try{sbmLog_('DoctorWriterFollowUpSourceRebuild','Warning',String(eRebuildSource));}catch(ignoreRebuildLog){}}
+  }
+  if(!source)return {required:true,ready:false,label:spec.label,reason:spec.reason,error:'元の診断依頼を記事DBから再構築できませんでした。'};
+  var targetNorm=sbmNormalizeUrl_(o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''));
+  var competing=spec.urls.filter(function(u){return sbmNormalizeUrl_(u)!==targetNorm;});
+  var syntheticDoctor={
+    diagnosis:{primary_hypothesis:'aWriter処置後に類似記事とのカニバリ疑いが残った。',primary_hypothesis_confidence:null},
+    cannibalization_assessment:{competing_internal_urls:competing}
+  };
+  var req=sbmDoctorBuildAdditionalDiagnosisRequest_(source,syntheticDoctor,{});
+  req.request.chief_complaint='aWriterの軽微改善は完了しましたが、類似記事との検索クエリ重複が残っています。対象記事と候補記事の本文・GSC Evidenceを比較し、役割分担・差別化・Mergeの必要性を精密診断してください。';
+  req.diagnosis_scope.treatment_policy.instruction='aWriterのfollow_up_referralsでカニバリ疑いが報告されました。これはMerge決定ではありません。対象記事と候補記事の本文・GSC Evidenceを比較し、(1)現状維持、(2)役割分担を明確化、(3)部分的な差別化、(4)Merge、のどれが妥当か根拠付きで判断してください。';
+  req.follow_up_context={type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',same_case:true,source:'WRITER_FOLLOW_UP_REFERRAL',previous_request_id:String(source&&source.request&&source.request.request_id||''),reason:spec.reason||'Writer処置後にカニバリ疑いが残ったため追加診断する。'};
+  var text=JSON.stringify(req,null,2);
+  sbmDoctorWorkflowWritePayload_(caseId,'FOLLOW_UP_REQUEST',text);
+  sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',current_stage:'FOLLOW_UP_REQUEST_READY',registration_status:'WAITING',follow_up_source:'WRITER_RESULT'});
+  return {required:true,ready:true,label:spec.label,reason:spec.reason,request:text,caseId:caseId};
+}
+function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
+  try{
+    caseId=String(caseId||'').trim();
+    var text=sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST');
+    if(!text){
+      var rec=sbmDoctorFindCaseRow_(caseId);
+      if(!rec)return {ok:false,message:'対応するCaseIDがありません：'+caseId};
+      var writer={};try{writer=JSON.parse(String(rec.hm['Writer結果JSON']?rec.values[rec.hm['Writer結果JSON']-1]||'{}':'{}'));}catch(ignoreWriterOpen){}
+      var rebuilt=sbmDoctorPrepareWriterFollowUpDiagnosis_(writer,rec)||{};
+      text=String(rebuilt.request||'');
+    }
+    if(!text)return {ok:false,message:'追加診断依頼を再生成できませんでした。'};
+    sbmDoctorShowCopyDialog_(JSON.parse(text),text);
+    return {ok:true,caseId:caseId};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
 function sbmDoctorStoreWriterTreatmentResult_(o){
   var format=String(o&&o.format||'');
   if(format.indexOf('SIMS_DOCTOR_')===0)throw new Error('これはaDoctorの診断JSONです。aWriter結果登録には使いません。精密診断ダイアログでaDoctor診断結果を登録し、そこで自動生成されたaWriter紹介状をaWriterへ渡してください。');
@@ -19357,7 +20280,11 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
     // Homeは次回表示時に最新状態から再構築する。ここでは同期再集計しない。
     try{sbmInvalidateHomeSnapshot_();}catch(eFinalHome){sbmLog_('DoctorWriterHomeInvalidate','Warning',String(eFinalHome));}
   }
-  return {caseId:String(o.case_id||''),status:String(rec.values[rec.hm['状態']-1]||''),personalKnowledge:pkWriterResult};
+  var writerFollowUp={required:false};
+  if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
+    try{writerFollowUp=sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec);}catch(eWriterFollow){sbmLog_('DoctorWriterFollowUpPrepare','Warning',String(eWriterFollow));writerFollowUp={required:true,ready:false,label:'カニバリ精密診断',reason:String(eWriterFollow)};}
+  }
+  return {caseId:String(o.case_id||''),status:String(rec.values[rec.hm['状態']-1]||''),personalKnowledge:pkWriterResult,followUp:writerFollowUp};
 }
 function sbmDoctorRegisterWriterTreatmentResultFromDialog(raw){
   try{
@@ -19367,7 +20294,8 @@ function sbmDoctorRegisterWriterTreatmentResultFromDialog(raw){
     catch(eExtract){throw new Error('aWriter結果を抽出できませんでした。回答内に SIMS_WRITER_TREATMENT_RESULT_V1 が含まれることを確認してください。');}
     try{o=JSON.parse(text);}catch(e){throw new Error('aWriter結果JSONを読み取れませんでした。回答全文、または結果JSONをそのまま貼り付けてください。');}
     var saved=sbmDoctorStoreWriterTreatmentResult_(o);
-    return {ok:true,message:'aWriterの改善結果を登録しました。\nCaseID：'+saved.caseId+'\n状態：'+saved.status+(saved.personalKnowledge&&saved.personalKnowledge.deferred?'\nPersonal Knowledge候補：'+saved.personalKnowledge.total+'件（登録処理を優先し、同期書込は省略）':(saved.personalKnowledge&&saved.personalKnowledge.total?'\nPersonal Knowledge：候補'+saved.personalKnowledge.total+'件 / 保存'+saved.personalKnowledge.written+'件':''))};
+    var follow=saved.followUp||{required:false};
+    return {ok:true,message:'aWriterの改善結果を登録しました。\nCaseID：'+saved.caseId+'\n状態：'+saved.status+(follow.required?'\n追加確認：カニバリ精密診断候補があります。Mergeはまだ決定していません。':'')+(saved.personalKnowledge&&saved.personalKnowledge.deferred?'\nPersonal Knowledge候補：'+saved.personalKnowledge.total+'件（登録処理を優先し、同期書込は省略）':(saved.personalKnowledge&&saved.personalKnowledge.total?'\nPersonal Knowledge：候補'+saved.personalKnowledge.total+'件 / 保存'+saved.personalKnowledge.written+'件':'')),caseId:saved.caseId,followUpRequired:!!follow.required,followUpReady:!!follow.ready,followUpLabel:follow.label||'',followUpReason:follow.reason||''};
   }catch(e2){return {ok:false,message:String(e2&&e2.message?e2.message:e2)};}
 }
 function sbmDoctorRegisterWriterTreatmentResult(){
@@ -19811,7 +20739,7 @@ function sbmOpenSerpEntryCheckDialog(){
     'function judge(){const raw=e("ans").value.trim(),kw=e("kw").value.trim(),b=e("judgeBtn");if(!raw){setStatus("judgeStatus","AI回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="判定中…";setStatus("judgeStatus","上位30件の確認状況と到達見込み順位を検証しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="SERP結果を判定";if(!r||!r.ok){setStatus("judgeStatus",r&&r.message?r.message:"判定できませんでした。","err");return}if(!r.complete){setStatus("judgeStatus",r.message||"上位30件の確認が不足しています。","err");return}REVIEW=r.review;setStatus("judgeStatus","SERP上位30件の確認を受理しました。","ok");show("resultCard");const g=r.grade;e("grade").className="grade";e("grade").style.background=g.bg;e("grade").style.color=g.fg;e("grade").textContent=g.label+" — "+g.rankBand;e("detail").textContent="推定到達順位："+r.estimatedReachableRank+"位\\n確信度："+r.confidencePercent+"%\\nSERP強度："+(r.serpStrength||"-")+"\\n個人ブログ件数："+r.personalBlogCount+"\\n最上位の個人ブログ："+(r.bestPersonalBlogRank==null?"-":r.bestPersonalBlogRank+"位")+"\\n検索意図："+(r.searchIntent||"-")+"\\n\\n理由：\\n"+(r.rationale||[]).map(function(x){return "・"+x}).join("\\n")+"\\n\\n推奨切り口：\\n"+(r.recommendedAngle||"-");if(r.creatorEligible)show("creatorArea");else hide("creatorArea")}).withFailureHandler(function(x){b.disabled=false;b.textContent="SERP結果を判定";setStatus("judgeStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpRegisterReview(kw,raw)}'+
     'function makeCreator(){if(!REVIEW)return;const b=e("creatorBtn");b.disabled=true;b.textContent="作成中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="aCreator紹介状を作成";if(!r||!r.ok){alert(r&&r.message?r.message:"紹介状を作成できませんでした。");return}e("creator").value=r.referral||"";show("creator");show("creatorActions");b.style.display="none"}).withFailureHandler(function(x){b.disabled=false;b.textContent="aCreator紹介状を作成";alert(x&&x.message?x.message:String(x))}).sbmSerpCreateCreatorReferral(e("kw").value.trim(),JSON.stringify(REVIEW))}'+
     '</script></body></html>').setWidth(860).setHeight(820);
-  SpreadsheetApp.getUi().showModalDialog(html,'SERP参入余地チェック');
+  sbmShowThemedModalDialog_(html,'SERP参入余地チェック');
 }
 
 
@@ -19915,7 +20843,7 @@ function sbmGetNewArticleOpportunityDialogData_(){var a=sbmNewArticleOpportunity
 function sbmOpenNewArticleOpportunityDialog_(){
   var data=sbmGetNewArticleOpportunityDialogData_(), payload=JSON.stringify(data).replace(/</g,'\\u003c');
   var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:20px;color:#202124}h2{margin:0 0 8px}.note{background:#f1f8e9;padding:10px;border-radius:6px;margin-bottom:12px}.analysis{background:#f8f9fa;border:1px solid #dadce0;padding:12px;border-radius:7px;margin:12px 0}.analysis b{font-size:15px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin-top:8px;font-size:13px}.hint{background:#e8f0fe;padding:12px;border-radius:7px;margin-top:14px}.hint h3{margin:0 0 8px;font-size:16px}.chips{margin:6px 0}.chip{display:inline-block;background:#fff;border:1px solid #c7d2fe;border-radius:14px;padding:4px 9px;margin:2px 4px 2px 0;font-size:12px}.row{display:flex;gap:8px;align-items:center;margin:8px 0}select,input,textarea{width:100%;box-sizing:border-box}textarea{min-height:145px;padding:8px}.actions{display:flex;gap:8px;justify-content:flex-end;margin:8px 0 16px}button{padding:9px 14px;border:0;border-radius:5px;cursor:pointer}.p{background:#1a73e8;color:white}.s{background:#f1f3f4}.status{font-weight:700;min-height:22px}.meta{font-size:13px;color:#5f6368;margin:8px 0}.bos{min-height:190px}</style></head><body><h2>本日の既存記事の改善候補はありません</h2><div class="note">GSCで観測したクエリから、新記事として独立させる価値がありそうな候補を確認しました。</div><div id="analysis" class="analysis"></div><div id="empty"></div><div id="flow" style="display:none"><div class="row"><select id="cand" onchange="show()"></select></div><div id="meta" class="meta"></div><label>① 新記事適格性の精査依頼文</label><textarea id="req" readonly></textarea><div class="actions"><button class="s" onclick="copyReq()">精査依頼文をコピー</button></div><label>② 精査結果を貼り付け</label><textarea id="review" placeholder="Claude等の精査結果JSONを貼り付け"></textarea><div class="actions"><button class="p" onclick="judge()">精査結果を判定</button></div><div id="status" class="status"></div><div id="creator" style="display:none"><label>③ aCreator紹介状</label><textarea id="ref" readonly></textarea><div class="actions"><button class="s" onclick="copyRef()">aCreator紹介状をコピー</button></div><label>④ aCreator回答全文</label><textarea id="answer" placeholder="aCreator回答全文を貼り付け"></textarea><label>公開した記事URL（回答にURLがあれば空欄可）</label><input id="url" placeholder="https://..."><div class="actions"><button id="opportunityRegisterBtn" class="p" onclick="reg()">新記事をSIMSへ登録</button></div></div><div id="regStatus" class="status"></div></div><div id="bos" class="hint"><h3>Blue Ocean Screenerで次のテーマを探す</h3><div>GSC・既存記事・サイトジャンルを分析し、ラッコキーワード等へ1候補ずつ入力する探索起点を10件選びました。GSCだけで抽出できない場合もサイトジャンルから補完します。</div><div class="chips"><b>サイトの主要テーマ：</b><span id="genres"></span></div><div style="margin-top:10px"><b>ラッコキーワード等へ入れるビッグキーワード候補</b></div><div id="bosSeeds" class="meta"></div><div class="note" style="margin-top:10px">使い方：気になる候補をラッコキーワード等へ1つずつ入力 → 関連キーワードをCSV保存 → SIMS Blue Ocean Screenerへ読み込んでください。10件すべてを使う必要はありません。</div></div><div class="actions"><button class="s" onclick="google.script.host.close()">閉じる</button></div><script>var D='+payload+',C=null;function e(id){return document.getElementById(id)}function esc(s){return String(s||"").replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}function chips(id,a){e(id).innerHTML=(a||[]).map(function(x){return "<span class=\\"chip\\">"+esc(x)+"</span>"}).join("")||"候補なし"}function renderStats(){var s=D.stats||{};e("analysis").innerHTML="<b>新記事候補の探索結果</b><div class=\\"grid\\"><div>GSC観測クエリ：<b>"+Number(s.observedQueries||0)+"件</b></div><div>GSC生データ行："+Number(s.rawRows||0)+"件</div><div>既存メインクエリとして除外："+Number(s.existingMainExcluded||0)+"件</div><div>重複除外後の独立クエリ："+Number(s.uniqueAfterMainExclusion||0)+"件</div><div>最低条件を満たした候補："+Number(s.eligibleQueries||0)+"件</div><div>今回の確認候補：<b>"+Number(s.selectedCandidates||0)+"件</b></div></div>";chips("genres",(D.hints||{}).genres);var bd=((D.bosGuide||{}).details||[]);e("bosSeeds").innerHTML=bd.length?bd.map(function(x,i){return "<div><b>"+(i+1)+". "+esc(x.keyword)+"</b> （根拠："+esc((x.sources||[]).join("・")||"サイト実績")+"）</div>"}).join(""):"探索候補を生成できませんでした。"}function show(){var i=Number(e("cand").value||0);C=D.candidates[i];e("req").value=D.requests[i]||"";e("meta").textContent=C?("表示 "+C.impressions+" / クリック "+C.clicks+" / 平均順位 "+Number(C.position||0).toFixed(1)+" / 既存表示URL "+C.sourceUrlCount+"件"):"";e("review").value="";e("creator").style.display="none";e("status").textContent=""}function cp(id){var x=e(id);x.select();document.execCommand("copy")}function copyReq(){cp("req")}function copyRef(){cp("ref")}function judge(){e("status").textContent="判定中…";google.script.run.withSuccessHandler(function(r){e("status").textContent=r.message||"";if(r.decision==="GREEN"){e("ref").value=r.referral||"";e("creator").style.display="block"}else e("creator").style.display="none"}).withFailureHandler(function(x){e("status").textContent=x.message||String(x)}).sbmRegisterNewArticleOpportunityReview_(JSON.stringify(C),e("review").value)}function reg(){var b=e("opportunityRegisterBtn");if(b){b.disabled=true;b.textContent="登録中…"}e("regStatus").textContent="登録中…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent="新記事をSIMSへ登録"}e("regStatus").textContent=r&&r.message?r.message:"登録できませんでした。";return}if(b)b.style.display="none";e("answer").disabled=true;e("url").disabled=true;e("regStatus").textContent=r.message||"登録しました"}).withFailureHandler(function(x){if(b){b.disabled=false;b.textContent="新記事をSIMSへ登録"}e("regStatus").textContent=x.message||String(x)}).sbmRegisterCreatorPublicationResponse(e("answer").value,e("url").value)}renderStats();if(!D.candidates.length){e("flow").style.display="none";e("empty").innerHTML="<p><b>GSC内では新記事候補も見つかりませんでした。</b><br>既存記事の改善とGSC内の新記事化候補はありません。必要なら下のビッグキーワード候補をラッコキーワード等で展開し、Blue Ocean Screenerへ進めます。</p>"}else{e("flow").style.display="block";D.candidates.forEach(function(c,i){var o=document.createElement("option");o.value=i;o.textContent=c.query;e("cand").appendChild(o)});show()}</script></body></html>').setWidth(820).setHeight(820);
-  SpreadsheetApp.getUi().showModalDialog(html,'新記事候補を確認');
+  sbmShowThemedModalDialog_(html,'新記事候補を確認');
 }
 
 
