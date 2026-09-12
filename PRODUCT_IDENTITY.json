@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.4.4",
+  "current_version": "6.4.5",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.4.4: Workflow完了後、変更された記事管理・改善の推移・改善履歴だけに既存レイアウトと現在テーマを軽量適用。Creator/Writer/Merge/モニター終了に共通後処理を接続。",
-  "version": "6.4.4",
+  "notes": "v6.4.5: aDoctor精密診断へ全記事ランク共通の記事品質評価＋介入レベル判定を追加。品質不足と低需要・データ不足等を分離し、上位ランクほど既存評価を保護。",
+  "version": "6.4.5",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.4.4-ST"
+  "starter_display_version": "v6.4.5-ST"
 }

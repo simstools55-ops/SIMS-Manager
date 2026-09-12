@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.4
+ * SIMS Manager Product v6.4.5
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.4';
+const SBM_VERSION = '6.4.5';
+// v6.4.5: aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
 // v6.4.4: Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。
 // v6.4.3: 新記事作成ダイアログの①→②遷移を修正。radioのchangeハンドラ依存をやめ、クリック時に明示関数を呼ぶ方式へ変更。初期化後にも選択状態を再判定し、②の表示・項目描画・スクロールを確実化。
 // v6.4.2: 新記事作成ダイアログの初期UIを修正。ダイアログタイトルと本文H2の二重表示を解消し、新規開始時は記事タイプを未選択で明示。AdSense/アフィリエイトを選んだ瞬間に②の項目選択を確実に表示し、自動スクロールする。
@@ -15286,45 +15287,12 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
     },
     diagnosis_scope:{
       requested_examinations:hasImprovement?
-        ['LONG_TERM_PERFORMANCE','POST_IMPROVEMENT_REVIEW','QUERY_ANALYSIS','SERP_COMPARISON','CANNIBALIZATION_CHECK']:
-        ['LONG_TERM_PERFORMANCE','QUERY_ANALYSIS','SERP_COMPARISON','CANNIBALIZATION_CHECK'],
+        ['LONG_TERM_PERFORMANCE','POST_IMPROVEMENT_REVIEW','QUERY_ANALYSIS','SERP_COMPARISON','CANNIBALIZATION_CHECK','CONTENT_QUALITY_REVIEW','INTERVENTION_RISK_REVIEW']:
+        ['LONG_TERM_PERFORMANCE','QUERY_ANALYSIS','SERP_COMPARISON','CANNIBALIZATION_CHECK','CONTENT_QUALITY_REVIEW','INTERVENTION_RISK_REVIEW'],
       optional_examinations:['INTERNAL_LINK_REVIEW','CONTENT_FRESHNESS_REVIEW','INDEX_STATUS_REVIEW'],
       excluded_examinations:[],
       allow_doctor_to_expand_scope:true,
-      treatment_policy:isUngerminated?{
-        mode:'CAUSE_DIAGNOSIS',
-        partial_fix_default:false,
-        objective:'長期間ほとんど検索成果を得られていない未発芽記事について、まず未発芽の原因を特定し、その原因に合う最小かつ有効な処置を決定する。',
-        required_review:[
-          'TARGET_QUERY_AND_SEARCH_DEMAND',
-          'SEARCH_INTENT',
-          'INDEX_STATUS',
-          'SERP_GAP_AND_COMPETITORS',
-          'TITLE_AND_H1',
-          'FULL_CONTENT_STRUCTURE',
-          'CONTENT_DEPTH_AND_USEFULNESS',
-          'CANNIBALIZATION',
-          'INTERNAL_LINK_ROLE',
-          'MONETIZATION_FIT'
-        ],
-        allowed_treatments:[
-          'FULL_REWRITE',
-          'PARTIAL_IMPROVEMENT',
-          'MERGE',
-          'INDEX_ACTION',
-          'EXCLUDE_OR_NOINDEX',
-          'OBSERVE'
-        ],
-        handoff_mapping:{
-          FULL_REWRITE:'WRITER',
-          PARTIAL_IMPROVEMENT:'WRITER',
-          MERGE:'MERGE',
-          INDEX_ACTION:'USER_CONFIRMATION',
-          EXCLUDE_OR_NOINDEX:'USER_CONFIRMATION',
-          OBSERVE:'MONITOR'
-        },
-        instruction:'記事ランクは未発芽です。全面リライトを初期前提にせず、検索需要、検索意図、インデックス状態、カニバリ、SERPとのギャップ、現行記事の内容とサイト内役割を診断してください。そのうえで、全面リライト、部分改善、Merge、インデックス対応、管理対象外/noindex、観察の中から最も適切な処置を根拠付きで選び、次に実行すべき内容を具体化してください。複数処置が必要な場合は優先順位を示してください。本文改善はWRITER、統合はMERGE、インデックス対応または管理対象外/noindexはUSER_CONFIRMATION、観察はMONITORへ引き継げるよう、workflow_handoff.next_actionも処置に合わせて返してください。'
-      }:null,
+      treatment_policy:sbmDoctorQualityInterventionPolicy_(articleRankCode),
       maximum_data_period_days:365
     },
     attachments:{
@@ -15379,9 +15347,11 @@ function sbmDoctorValidateSingleCaseRequest_(p) {
   if (!p || !p.article || !p.article.article_id) errors.push('article.article_idがありません。');
   if (!p || !p.article || !p.article.url) errors.push('article.urlがありません。');
   if (!p || !p.request || !p.request.request_id) errors.push('request.request_idがありません。');
-  if (p && p.article && p.article.article_rank==='UNGERMINATED') {
-    if (!p.request || p.request.treatment_posture!=='CAUSE_DIAGNOSIS') errors.push('未発芽記事の原因診断方針がありません。');
-    if (!p.diagnosis_scope || !p.diagnosis_scope.treatment_policy || p.diagnosis_scope.treatment_policy.mode!=='CAUSE_DIAGNOSIS') errors.push('未発芽記事の原因診断treatment_policyがありません。');
+  if (p && p.article) {
+    var qp=p.diagnosis_scope && p.diagnosis_scope.treatment_policy;
+    if (!qp || qp.quality_assessment_required!==true) errors.push('記事品質評価方針がありません。');
+    if (!qp || !qp.intervention_level && !(qp.required_output && qp.required_output.intervention_level)) errors.push('介入レベル判定方針がありません。');
+    if (p.article.article_rank==='UNGERMINATED' && (!p.request || p.request.treatment_posture!=='CAUSE_DIAGNOSIS')) errors.push('未発芽記事の原因診断方針がありません。');
   }
   if (!p || !p.evidence_package || !Array.isArray(p.evidence_package.evidence_index)) errors.push('evidence_package.evidence_indexがありません。');
   return {valid:errors.length===0,errors:errors};
@@ -15529,11 +15499,49 @@ function sbmDoctorRankCode_(value) {
   var s=String(value||'');
   if (s.indexOf('未発芽')>=0) return 'UNGERMINATED';
   if (s.indexOf('エース')>=0) return 'ACE';
-  if (s.indexOf('安定')>=0) return 'STABLE';
   if (s.indexOf('成長')>=0) return 'GROWTH';
+  if (s.indexOf('安定')>=0) return 'STABLE';
   if (s.indexOf('育成')>=0) return 'NURTURE';
+  if (s.indexOf('発芽')>=0) return 'SPROUT';
   if (s.indexOf('低迷')>=0) return 'LOW';
   return 'UNMEASURED';
+}
+
+// v6.4.5: 記事ランクと記事品質を別軸で扱い、aDoctorに「どこまで触ってよいか」まで判断させる。
+function sbmDoctorQualityInterventionPolicy_(rankCode) {
+  var rank=String(rankCode||'UNMEASURED').toUpperCase();
+  var common={
+    mode:rank==='UNGERMINATED'?'CAUSE_DIAGNOSIS':'QUALITY_AND_INTERVENTION_DIAGNOSIS',
+    quality_assessment_required:true,
+    separate_quality_from_performance:true,
+    quality_dimensions:[
+      'SEARCH_INTENT_ALIGNMENT','QUERY_ANSWER_COVERAGE','HEADING_STRUCTURE','CONTENT_DEPTH_AND_USEFULNESS',
+      'FRESHNESS','ORIGINAL_EXPERIENCE_OR_EVIDENCE','SERP_GAP','DUPLICATION_AND_CANNIBALIZATION'
+    ],
+    cause_categories:['LOW_SEARCH_DEMAND','INSUFFICIENT_DATA','STRONG_COMPETITION','SEARCH_INTENT_MISMATCH','CONTENT_QUALITY_GAP','INDEX_OR_DISCOVERY_ISSUE','CANNIBALIZATION','NO_MAJOR_QUALITY_PROBLEM'],
+    required_output:{
+      content_quality:'GOOD|IMPROVEMENT_ROOM|INSUFFICIENT|UNKNOWN',
+      primary_cause:'上記cause_categoriesから最も妥当な原因',
+      intervention_level:'NONE|MINOR|PARTIAL|MAJOR|MERGE_OR_RETIRE',
+      intervention_reason:'既存評価を壊すリスクも含む根拠'
+    },
+    instruction:'記事ランクと記事品質を混同しないでください。検索成果が弱いことだけを理由に低品質と判定せず、低需要・データ不足・競合過強・検索意図ズレ・品質不足・インデックス・カニバリ等を分離してください。品質上の弱点があっても、既存の検索評価が良好なら必要最小限の介入を優先してください。'
+  };
+  var byRank={
+    UNGERMINATED:{protection_level:'LOW',default_intervention:'DIAGNOSE_FIRST',major_rewrite_gate:'検索意図または記事品質の重大な不足が確認でき、低需要・データ不足だけでは説明できない場合',allowed_treatments:['FULL_REWRITE','PARTIAL_IMPROVEMENT','MERGE','INDEX_ACTION','EXCLUDE_OR_NOINDEX','OBSERVE'],objective:'未発芽の原因を先に特定し、原因に合う最小かつ有効な処置を選ぶ。全面リライトを初期前提にしない。'},
+    SPROUT:{protection_level:'MEDIUM',default_intervention:'OBSERVE_OR_MINOR',major_rewrite_gate:'発芽中の主要クエリを維持でき、明確な検索意図ズレまたは重大な品質不足が確認できる場合のみ',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT','FULL_REWRITE','MERGE'],objective:'出始めた検索シグナルを保護し、急いで大幅変更せず不足部分だけを補強する。'},
+    NURTURE:{protection_level:'MEDIUM',default_intervention:'TARGETED_IMPROVEMENT',major_rewrite_gate:'通常評価データに基づき、部分改善では解消できない構造的な品質不足が確認できる場合のみ',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT','FULL_REWRITE','MERGE'],objective:'検索成果が弱い原因を特定し、安定以上へ進めるための改善を行う。'},
+    STABLE:{protection_level:'HIGH',default_intervention:'MINOR_OR_PARTIAL',major_rewrite_gate:'安定している主要クエリ・流入を保護でき、重大な検索意図ズレ・鮮度劣化・構造問題が明確な場合のみ',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT','FULL_REWRITE'],objective:'既存評価を維持しながら、成長へ引き上げられる改善余地だけを狙う。'},
+    GROWTH:{protection_level:'VERY_HIGH',default_intervention:'OBSERVE_OR_MINOR',major_rewrite_gate:'成長要因を特定・保護したうえで、重大な欠陥があり、変更利益が評価毀損リスクを明確に上回る場合のみ',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT'],objective:'エース目前の成長シグナルを最優先で保護し、足りない部分だけを補強する。'},
+    ACE:{protection_level:'MAXIMUM',default_intervention:'PROTECT',major_rewrite_gate:'明確な流入低下・重大な情報陳腐化・致命的な検索意図変化等があり、現状維持の損失が大きい場合のみ。通常は大幅変更を禁止',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT'],objective:'エース記事を保護する。品質上の弱点を発見しただけでは変更せず、明確な異常または高確度の改善根拠がある場合だけ介入する。'},
+    LOW:{protection_level:'MEDIUM',default_intervention:'DIAGNOSE_FIRST',major_rewrite_gate:'低迷原因が品質不足にあると確認でき、部分改善では不十分な場合',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT','PARTIAL_IMPROVEMENT','FULL_REWRITE','MERGE'],objective:'低迷原因を品質・需要・競合・意図の各要因に分解して処置する。'},
+    UNMEASURED:{protection_level:'HIGH',default_intervention:'OBSERVE',major_rewrite_gate:'評価データ不足を解消しても重大な品質不足が確認できる場合',allowed_treatments:['OBSERVE','MINOR_IMPROVEMENT'],objective:'データ不足時は低品質と決めつけず、観察と証拠収集を優先する。'}
+  };
+  var specific=byRank[rank]||byRank.UNMEASURED;
+  Object.keys(specific).forEach(function(k){common[k]=specific[k];});
+  common.article_rank=rank;
+  common.handoff_mapping={FULL_REWRITE:'WRITER',PARTIAL_IMPROVEMENT:'WRITER',MINOR_IMPROVEMENT:'WRITER',MERGE:'MERGE',INDEX_ACTION:'USER_CONFIRMATION',EXCLUDE_OR_NOINDEX:'USER_CONFIRMATION',OBSERVE:'MONITOR'};
+  return common;
 }
 function sbmDoctorWorkflowCode_(value) {
   var s=String(value||'').trim();
