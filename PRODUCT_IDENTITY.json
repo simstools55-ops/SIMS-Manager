@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.3.7",
+  "current_version": "6.3.8",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.3.7: aCreator新記事のモニター中状態と改善の推移を即時同期。既存の欠落ACTIVE履歴もFull/Starter共通で軽量修復し、旧「—」新記事をGSC未観測時は「🆕 新規」へ補正。",
-  "version": "6.3.7",
+  "notes": "v6.3.8: aDoctor CLOSE_MONITORINGを正式終端として処理し、1クリックでモニター終了・完了登録。",
+  "version": "6.3.8",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.3.7-ST"
+  "starter_display_version": "v6.3.8-ST"
 }

@@ -1,10 +1,10 @@
-# SIMS Manager v6.3.7 Repository Baseline
+# SIMS Manager v6.3.8 Repository Baseline
 
 ## v6.2.81の位置付け
 
 v6.2.80の機能を維持したまま、Repository内の版管理情報を再監査・同期した整合修正版です。
 
-- Full v6.3.7 / Starter v6.3.7-ST
+- Full v6.3.8 / Starter v6.3.8-ST
 - Repository root `Code.gs` がFull Editionの機能正本
 - Fullは `SBM_EDITION = 'FULL'`
 - Starter派生コードは `SBM_EDITION = 'STARTER'`

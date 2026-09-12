@@ -1,7 +1,8 @@
-fix: sync Creator publications into improvement status (v6.3.7)
+fix: complete CLOSE_MONITORING Doctor workflow (v6.3.8)
 
-- upsert the Creator article into improvement status immediately after publication registration
-- repair missing ACTIVE/REVIEW_REQUIRED effect rows in both Full and Starter
-- keep repair lightweight and limited to missing rows
-- migrate legacy Creator articles from dash rank to NEW when GSC has no observations
+- recognize CLOSE_MONITORING as an explicit workflow terminal
+- summarize close reason, blocked work and optional treatment in step 3
+- add one-click monitoring completion
+- synchronize history, article state, effect row and Doctor case on completion
+- preserve audit history and Doctor diagnosis records
 - sync Full and Starter editions

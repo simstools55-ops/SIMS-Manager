@@ -1,4 +1,4 @@
-# SIMS Manager v6.3.7
+# SIMS Manager v6.3.8
 
 ## v6.2.80 変更点
 
@@ -71,7 +71,7 @@ Homeの余白を詰め、「今週のアドバイス」を今日のメッセー�
 - 左列は大きく改善／改善／改善傾向、中央列は変化小／要確認／見直し候補、右列は判定待ち／経過観察／再判定待ち／データ不足です。
 - アドバイス欄をモニター表の直下に配置し、表示領域を広く確保します。
 - v6.2.51のランク判定閾値、日次GSC取得、サイト健康診断、aDoctor連携は変更しません。
-- Full v6.3.7 / Starter v6.3.7-ST
+- Full v6.3.8 / Starter v6.3.8-ST
 
 Repository root `Code.gs` がFull Editionの機能正本です。Starterは同一コードから `SBM_EDITION = 'STARTER'` のみを派生させています。
 
