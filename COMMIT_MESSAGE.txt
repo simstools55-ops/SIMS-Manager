@@ -1,8 +1,8 @@
-fix: complete CLOSE_MONITORING Doctor workflow (v6.3.8)
+fix: resume pending CLOSE_MONITORING cases (v6.3.9)
 
-- recognize CLOSE_MONITORING as an explicit workflow terminal
-- summarize close reason, blocked work and optional treatment in step 3
-- add one-click monitoring completion
-- synchronize history, article state, effect row and Doctor case on completion
-- preserve audit history and Doctor diagnosis records
+- include DOCTOR_NORMAL_CLOSE in unfinished-work discovery
+- label pending close cases clearly in the resume chooser
+- restore the saved Doctor close decision without issuing a new diagnosis
+- reopen directly at monitoring completion
+- reuse the v6.3.8 safe completion transaction
 - sync Full and Starter editions

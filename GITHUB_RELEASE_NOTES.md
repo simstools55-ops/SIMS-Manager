@@ -1,3 +1,10 @@
+## v6.3.9 — CLOSE_MONITORINGの未完了再開対応
+
+- `DOCTOR_NORMAL_CLOSE` を「未完了の作業を再開」の対象へ追加。
+- 複数案件一覧では「aDoctor診断後のモニター終了・完了登録」と表示。
+- 1件再開時は保存済みDoctor結果を使い、再診を発行せず③の終了画面へ直接復帰。
+- 「モニターを終了して完了登録」からv6.3.8の安全な完了同期処理を実行。
+
 ## v6.3.8 — CLOSE_MONITORING終端処理
 
 - aDoctor V2の `CLOSE_MONITORING` を正式なWorkflow終端として認識。
