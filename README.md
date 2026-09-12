@@ -1,20 +1,20 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.4.6
+> **Current product:** SIMS Manager v6.4.7
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.4.6`
+- Product Version: `6.4.7`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.4.6
+> Current release: SIMS Manager Product v6.4.7
 
-## v6.4.6 — 記事詳細のSIMSトリアージ
+## v6.4.7 — 記事詳細のSIMSトリアージ
 
 - 未発芽・発芽の記事は、記事詳細から改善ナビへ直接送らずaDoctor精密診断を優先します。
 - 改善開始済み・モニター中・要確認・インデックス要確認等の既存Workflowは優先順位を維持します。
@@ -86,13 +86,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.4.6
+# SIMS Manager v6.4.7
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.4.6`
+`6.4.7`
 
 ## Creatorで作った新記事の登録
 

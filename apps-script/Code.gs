@@ -1,11 +1,11 @@
 /**
- * SIMS Manager Product v6.4.6
+ * SIMS Manager Product v6.4.7
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.6';
-// v6.4.6: 記事管理の詳細画面にSIMSトリアージを追加。未発芽・発芽は未着手/今日の改善の段階では改善ナビへ直接送らずaDoctor精密診断を優先し、改善開始済みは既存Workflowを継続。要改善・インデックス要確認・要確認・モニター中など既存状態を優先し、任意記事を無制限にaDoctorへ送る独立導線は追加しない。
+const SBM_VERSION = '6.4.7';
+// v6.4.7: 記事詳細トリアージを6ランクへ拡張。未発芽・発芽はaDoctor優先、育成は改善ナビ、安定・成長・エースは保護観察を基本とし、要改善等の異常時は既存のaDoctor優先分岐を維持。
 // v6.4.5: aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
 // v6.4.4: Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。
 // v6.4.3: 新記事作成ダイアログの①→②遷移を修正。radioのchangeハンドラ依存をやめ、クリック時に明示関数を呼ぶ方式へ変更。初期化後にも選択状態を再判定し、②の表示・項目描画・スクロールを確実化。
@@ -12085,6 +12085,8 @@ function sbmArticleDetailActionSpec_(o){
   if(work.indexOf('改善中')>=0||work.indexOf('処置中')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
   var doctor=sbmArticleDetailDoctorEligibility_(o);
   if(doctor.eligible)return {type:'DOCTOR',label:'aDoctorで精密診断する',color:'#174ea6',reason:doctor.reason};
+  var rankCode=sbmDoctorRankCode_(o['記事ランク']||'');
+  if(rankCode==='NURTURE')return {type:'NAVI',label:'改善ナビで改善する',color:'#0b8043',reason:'育成段階は、既存の検索評価を保ちながら改善ナビで必要最小限の改善を進めます。'};
   if(work.indexOf('今日の改善')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
   return {type:'NONE',label:'',color:''};
 }
@@ -12099,6 +12101,11 @@ function sbmArticleDetailStateAdvice_(o){
   if(flag==='要改善')return '公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。';
   var doctor=sbmArticleDetailDoctorEligibility_(o);
   if(doctor.eligible)return doctor.reason;
+  var rankCode=sbmDoctorRankCode_(rank);
+  if(rankCode==='NURTURE')return '育成段階です。既存の検索評価を保ちながら、改善ナビで必要最小限の改善を進めます。';
+  if(rankCode==='STABLE')return '安定段階です。通常は現在の評価を保護して観察します。明確な異常や要改善判定が出た場合はaDoctorを優先します。';
+  if(rankCode==='GROWTH')return '成長段階です。伸びている検索評価を強く保護するため、通常は変更せず観察します。異常検知時のみaDoctorで原因を確認します。';
+  if(rankCode==='ACE')return 'エース記事です。現在の検索評価を最大限保護するため、通常は変更しません。明確な悪化・鮮度問題などを検知した場合だけaDoctorで診断します。';
   return sbmArticleDbWorkAdvice_(rank,work);
 }
 
