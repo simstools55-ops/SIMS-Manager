@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.5
+ * SIMS Manager Product v6.3.6
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.5';
+const SBM_VERSION = '6.3.6';
+// v6.3.6: 設定・メンテナンスを利用頻度/役割順へ再編し、利用者向け「未発芽判定を再確認」を削除。aCreator新規公開記事の初期ランクを「🆕 新規」とし、Search Console未観測中は保持、初観測後に通常ランクへ自動移行する。
 // v6.3.5: SERP参入余地チェックのJSON受信部をV2正式対応。V1も後方互換で受け付け、生成側V2と受信側V1の不整合を解消。依頼formatと受信formatの整合性テストを追加。
 // v6.3.4: 今日の改善0件時の新記事候補/BOS自動探索を廃止し、健康診断→精密診断へ案内。新記事キーワード参入確認はClaude標準、SERP上位10件＋判定困難時のみ11〜20位追加調査へ変更。GREEN/YELLOW/PINK/REDへ統一し、aCreator進行はGREENのみ。
 // v6.3.3: モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
@@ -5921,6 +5922,11 @@ function sbmExpectedArticleRank_(r,clickVals,impVals){
   r=r||{};
   var clicks=sbmNumber_(r['クリック数']||0);
   var imps=sbmNumber_(r['表示回数']||0);
+  var currentRank=String(r['記事ランク']||'').trim();
+  var articleStatus=String(r['記事ステータス']||'').trim();
+  // v6.3.6: aCreator公開直後はGSC未観測を「未発芽」と混同しない。
+  // 初回の表示/クリックが観測されるまでは「新規」を保持し、観測後は通常ルールへ移行する。
+  if((currentRank.indexOf('新規')>=0||articleStatus==='検索露出待ち')&&clicks<=0&&imps<=0)return '🆕 新規';
   // v6.2.99 canonical rank rule:
   // page performance decides germination. Query availability never decides rank.
   var hasEnoughRankData=(imps>=200||clicks>=10);
@@ -13336,22 +13342,24 @@ function onOpen() {
   }
 
   var maintenanceMenu = ui.createMenu('設定・メンテナンス')
-    .addItem('初期設定','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
-    .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu')
     .addItem('表示テーマを変更','sbmChangeDisplayTheme')
-    .addItem('未発芽判定を再確認','sbmRecheckUngerminatedRanks')
-    .addSeparator()
-    .addItem('シートの作成・修復','sbmInitializeSheets');
+    .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu');
 
   if (isFullEdition) {
     maintenanceMenu
       .addSeparator()
       .addItem('未完了の作業を再開','sbmResumeUnfinishedWorkflow')
+      .addSeparator()
       .addItem('データ整合性を点検・修復','sbmAuditAndRepairWorkflowIntegrity');
+  } else {
+    maintenanceMenu.addSeparator();
   }
 
   maintenanceMenu
+    .addItem('シートの作成・修復','sbmInitializeSheets')
+    .addSeparator()
+    .addItem('初期設定','sbmStartInitialSetup')
     .addSeparator()
     .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();
@@ -19072,6 +19080,7 @@ function sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId){
   if(article){
     articleId=String(article['ArticleID']||'').trim();if(!articleId){articleId=sbmNextArticleId_(sbmArticleDbRowsByUrl_());if(hm['ArticleID'])sh.getRange(article._rowNumber,hm['ArticleID']).setValue(articleId);}
     if(hm['作業状態'])sh.getRange(article._rowNumber,hm['作業状態']).setValue('👀 モニター中');
+    if(hm['記事ランク']&&(!String(article['記事ランク']||'').trim()||String(article['記事ランク']||'').trim()==='—'))sh.getRange(article._rowNumber,hm['記事ランク']).setValue('🆕 新規');
     if(effectiveTitle&&hm['記事タイトル'])sh.getRange(article._rowNumber,hm['記事タイトル']).setValue(effectiveTitle);
     if(effectiveTitle&&hm['H1タイトル'])sh.getRange(article._rowNumber,hm['H1タイトル']).setValue(effectiveTitle);
     if(effectiveKeyword&&hm['メインクエリ']&&!String(article['メインクエリ']||'').trim())sh.getRange(article._rowNumber,hm['メインクエリ']).setValue(effectiveKeyword);
@@ -19080,7 +19089,7 @@ function sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId){
     if(hm['備考']){var oldNote=String(article['備考']||'').trim(),note='aCreator単独作成の記事を公開直後にSIMSへ登録。Search Console反映前からモニターします。';sh.getRange(article._rowNumber,hm['備考']).setValue(oldNote?oldNote+' / '+note:note);}
   }else{
     articleId=sbmNextArticleId_(sbmArticleDbRowsByUrl_());var obj={};SBM_HEADERS.ARTICLE_DB.forEach(function(k){obj[k]='';});
-    obj['選択']=false;obj['記事ランク']='—';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=effectiveKeyword;obj['H1タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='aCreator単独作成の記事を公開直後にSIMSへ登録。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=effectiveTitle?'○':'×';obj['補完日時']=effectiveTitle?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
+    obj['選択']=false;obj['記事ランク']='🆕 新規';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=effectiveKeyword;obj['H1タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='aCreator単独作成の記事を公開直後にSIMSへ登録。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=effectiveTitle?'○':'×';obj['補完日時']=effectiveTitle?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
     sh.appendRow(SBM_HEADERS.ARTICLE_DB.map(function(k){return obj[k]!==undefined?obj[k]:'';}));
   }
   // v5.20.0: Creator登録時の全記事再装飾は行わない。対象行の保存だけで登録を確定する。
@@ -19145,13 +19154,14 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
   if(article){
     articleId=String(article['ArticleID']||'').trim();if(!articleId){articleId=sbmNextArticleId_(sbmArticleDbRowsByUrl_());if(hm['ArticleID'])sh.getRange(article._rowNumber,hm['ArticleID']).setValue(articleId);}
     if(hm['作業状態'])sh.getRange(article._rowNumber,hm['作業状態']).setValue('👀 モニター中');
+    if(hm['記事ランク']&&(!String(article['記事ランク']||'').trim()||String(article['記事ランク']||'').trim()==='—'))sh.getRange(article._rowNumber,hm['記事ランク']).setValue('🆕 新規');
     if(title&&hm['記事タイトル'])sh.getRange(article._rowNumber,hm['記事タイトル']).setValue(title);
     if(title&&hm['H1タイトル'])sh.getRange(article._rowNumber,hm['H1タイトル']).setValue(title);
     if(keyword&&hm['メインクエリ']&&!String(article['メインクエリ']||'').trim())sh.getRange(article._rowNumber,hm['メインクエリ']).setValue(keyword);
     if(hm['管理フラグ'])sh.getRange(article._rowNumber,hm['管理フラグ']).setValue('管理中');
   }else{
     articleId=sbmNextArticleId_(sbmArticleDbRowsByUrl_());var now=sbmNowText_(),obj={};SBM_HEADERS.ARTICLE_DB.forEach(function(k){obj[k]='';});
-    obj['選択']=false;obj['記事ランク']='—';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=keyword;obj['H1タイトル']=title||keyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=title||keyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='Site Doctor→aCreatorで新規公開。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=title?'○':'×';obj['補完日時']=title?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
+    obj['選択']=false;obj['記事ランク']='🆕 新規';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=keyword;obj['H1タイトル']=title||keyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=title||keyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='Site Doctor→aCreatorで新規公開。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=title?'○':'×';obj['補完日時']=title?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
     sh.appendRow(SBM_HEADERS.ARTICLE_DB.map(function(k){return obj[k]!==undefined?obj[k]:'';}));
   }
   // v5.20.0: Creator登録時の全記事再装飾は行わない。対象行の保存だけで登録を確定する。

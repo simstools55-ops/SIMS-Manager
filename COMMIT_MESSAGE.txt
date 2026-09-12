@@ -1,8 +1,8 @@
-fix: accept SERP review V2 responses (v6.3.5)
+fix: organize maintenance menu and initialize new article rank (v6.3.6)
 
-- accept SIMS_MANAGER_SERP_ENTRY_REVIEW_V2 in the SERP review extractor
-- keep V1 backward compatibility
-- align generated request format with accepted response formats
-- update validation messaging
-- add regression coverage for SERP format compatibility
+- reorder maintenance actions by usage and responsibility
+- remove the manual ungerminated recheck from the user menu
+- initialize aCreator publications with the NEW article rank
+- keep NEW while Search Console has no observations
+- transition to normal rank evaluation after first GSC observation
 - sync Full and Starter editions

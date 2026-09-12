@@ -7,7 +7,7 @@ checks={
  "no_query_force":"patch.updates['記事ランク']='未発芽'" not in code[code.find("function sbmArticleInfoUpdateOne_"):code.find("function sbmSupplementNewArticlesManual")],
  "restore_only":"if(currentRank==='未発芽')" in code and "expectedRank!=='未発芽'" in code,
  "manual_recheck":"function sbmRecheckUngerminatedRanks()" in code,
- "menu":"addItem('未発芽判定を再確認','sbmRecheckUngerminatedRanks')" in code,
+ "menu_removed":"addItem('未発芽判定を再確認','sbmRecheckUngerminatedRanks')" not in code,
  "health_evidence":"var strongPageEvidence=(m.full.c>=10 || m.full.i>=200);" in code,
  "health_gate":"var accessUngerminated=!strongPageEvidence" in code,
 }
