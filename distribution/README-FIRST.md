@@ -1,10 +1,12 @@
-# SIMS Manager v6.4.5 Repository Baseline
+# SIMS Manager v6.4.6 Repository Baseline
+
+v6.4.6 triage: 記事詳細で未発芽・発芽をaDoctor優先へ自動分岐し、任意診断を抑制します。
 
 ## v6.2.81の位置付け
 
 v6.2.80の機能を維持したまま、Repository内の版管理情報を再監査・同期した整合修正版です。
 
-- Full v6.4.5 / Starter v6.4.5-ST
+- Full v6.4.6 / Starter v6.4.6-ST
 - Repository root `Code.gs` がFull Editionの機能正本
 - Fullは `SBM_EDITION = 'FULL'`
 - Starter派生コードは `SBM_EDITION = 'STARTER'`

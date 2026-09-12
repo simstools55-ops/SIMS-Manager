@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.5
+ * SIMS Manager Product v6.4.6
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.5';
+const SBM_VERSION = '6.4.6';
+// v6.4.6: 記事管理の詳細画面にSIMSトリアージを追加。未発芽・発芽は未着手/今日の改善の段階では改善ナビへ直接送らずaDoctor精密診断を優先し、改善開始済みは既存Workflowを継続。要改善・インデックス要確認・要確認・モニター中など既存状態を優先し、任意記事を無制限にaDoctorへ送る独立導線は追加しない。
 // v6.4.5: aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
 // v6.4.4: Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。
 // v6.4.3: 新記事作成ダイアログの①→②遷移を修正。radioのchangeハンドラ依存をやめ、クリック時に明示関数を呼ぶ方式へ変更。初期化後にも選択状態を再判定し、②の表示・項目描画・スクロールを確実化。
@@ -12057,20 +12058,34 @@ function sbmOpenImprovementHistory() {
  * URLをonclick属性へ直接埋め込まず、script内の定数として渡すことで
  * 「形式が正しくないHTMLコンテンツ」エラーを防止します。
  */
+function sbmArticleDetailDoctorEligibility_(o){
+  o=o||{};
+  var flag=String(o['管理フラグ']||'').trim();
+  var work=String(o['作業状態']||'').trim();
+  var rankCode=sbmDoctorRankCode_(o['記事ランク']||'');
+  var activeImprovement=work.indexOf('改善中')>=0||work.indexOf('処置中')>=0;
+  var monitoring=work.indexOf('モニター')>=0;
+  if(flag==='要改善')return {eligible:true,reason:'管理状態が「要改善」のため、改善内容を決める前にaDoctorで原因診断します。'};
+  if(!activeImprovement&&!monitoring&&(rankCode==='UNGERMINATED'||rankCode==='SPROUT')){
+    return {eligible:true,reason:(rankCode==='UNGERMINATED'?'未発芽':'発芽')+'段階は、改善ナビへ直接進まず、検索需要・検索意図・品質・カニバリ等をaDoctorで確認してから処置を決めます。'};
+  }
+  return {eligible:false,reason:''};
+}
+
 function sbmArticleDetailActionSpec_(o){
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
   var work=String(o['作業状態']||'').trim();
-  var rank=String(o['記事ランク']||'').trim();
   var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(o['ArticleID']||'',o['記事URL']||'',false);
   if(pending.required)return {type:'ADDITIONAL_DIAGNOSIS',label:'カニバリ精密診断へ進む',color:'#174ea6'};
   if(flag==='管理対象外')return {type:'NONE',label:'',color:''};
   if(flag==='インデックス要確認')return {type:'INDEX_REVIEW',label:'インデックス問題を処置する',color:'#b06000'};
   if(flag==='要確認')return {type:'NEEDS_REVIEW',label:'要確認記事を処理する',color:'#b06000'};
-  if(flag==='要改善')return {type:'DOCTOR',label:'aDoctorで精密診断する',color:'#174ea6'};
   if(work.indexOf('モニター')>=0)return {type:'EFFECT',label:'改善効果・経過を見る',color:'#174ea6'};
-  if(work.indexOf('今日の改善')>=0||work.indexOf('改善中')>=0||work.indexOf('処置中')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
-  if(rank==='未発芽')return {type:'DOCTOR',label:'未発芽をaDoctorで精密診断する',color:'#174ea6'};
+  if(work.indexOf('改善中')>=0||work.indexOf('処置中')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
+  var doctor=sbmArticleDetailDoctorEligibility_(o);
+  if(doctor.eligible)return {type:'DOCTOR',label:'aDoctorで精密診断する',color:'#174ea6',reason:doctor.reason};
+  if(work.indexOf('今日の改善')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
   return {type:'NONE',label:'',color:''};
 }
 
@@ -12082,7 +12097,8 @@ function sbmArticleDetailStateAdvice_(o){
   if(flag==='インデックス要確認')return 'Search Consoleでインデックス問題が確認されています。通常の改善作業より先に、インデックス問題の処置を進めてください。';
   if(flag==='要確認')return '長期間GSCページデータを取得できていません。記事の公開状態とSearch ConsoleのURL検査結果を確認してください。';
   if(flag==='要改善')return '公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。';
-  if(rank==='未発芽' && work.indexOf('モニター')<0 && work.indexOf('改善中')<0 && work.indexOf('今日の改善')<0 && work.indexOf('処置中')<0)return '検索成果がほとんど出ていない未発芽記事です。記事詳細からaDoctor精密診断へ進み、検索需要・検索意図・インデックス・カニバリを確認してください。診断では全面リライト、部分改善、統合、インデックス対応、管理対象外、観察を含めて処置を判断します。';
+  var doctor=sbmArticleDetailDoctorEligibility_(o);
+  if(doctor.eligible)return doctor.reason;
   return sbmArticleDbWorkAdvice_(rank,work);
 }
 
@@ -12103,6 +12119,17 @@ function sbmFindArticleDbRowByIdentity_(articleId,url){
 function sbmDoctorCreateRequestFromArticleIdentity(articleId,url){
   var hit=sbmFindArticleDbRowByIdentity_(articleId,url);
   if(!hit)return sbmAlert_('aDoctor','記事管理から対象記事を確認できません。');
+  return sbmDoctorCreateAndSaveRequest_('ARTICLE_LIST',hit.sheet,hit.row);
+}
+
+function sbmDoctorCreateRequestFromArticleDetailTriage(articleId,url){
+  var hit=sbmFindArticleDbRowByIdentity_(articleId,url);
+  if(!hit)return sbmAlert_('aDoctor','記事管理から対象記事を確認できません。');
+  var article=sbmRowRecord_(hit.sheet,hit.row)||{};
+  var eligibility=sbmArticleDetailDoctorEligibility_(article);
+  if(!eligibility.eligible){
+    return sbmAlert_('aDoctor','この記事は現在、記事詳細からaDoctorへ送る対象ではありません。SIMSが記事ランク・作業状態・管理状態を確認し、必要な記事だけ精密診断へ案内します。');
+  }
   return sbmDoctorCreateAndSaveRequest_('ARTICLE_LIST',hit.sheet,hit.row);
 }
 
@@ -12141,7 +12168,7 @@ function sbmRunArticleDetailAction(action,articleId,url){
   if(action==='ADDITIONAL_DIAGNOSIS')return sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url);
   if(action==='INDEX_REVIEW')return sbmOpenIndexIssueFromArticleDetail(articleId,url);
   if(action==='NEEDS_REVIEW')return sbmOpenNeedsReviewArticles(articleId);
-  if(action==='DOCTOR')return sbmDoctorCreateRequestFromArticleIdentity(articleId,url);
+  if(action==='DOCTOR')return sbmDoctorCreateRequestFromArticleDetailTriage(articleId,url);
   if(action==='EFFECT')return sbmOpenArticleEffectFromDetail(articleId,url);
   if(action==='NAVI')return sbmOpenImprovementNaviFromArticleDetail(url);
   return null;

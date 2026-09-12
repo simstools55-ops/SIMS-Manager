@@ -1,8 +1,7 @@
-feat: add rank-aware content quality intervention diagnosis (v6.4.5)
+feat: add article-detail diagnosis triage (v6.4.6)
 
-- add content quality and intervention-level assessment to aDoctor requests
-- separate content quality gaps from low demand, sparse data and competition
-- protect stable, growth and ace articles with progressively stronger edit gates
-- keep ungerminated articles diagnosis-first instead of rewrite-first
-- add explicit sprout rank mapping and preserve nurture as a distinct stage
+- route ungerminated and sprout articles to aDoctor before Improvement Navi
+- keep already-started improvement and monitoring workflows intact
+- preserve existing review, index and follow-up diagnosis precedence
+- prevent unrestricted article-detail aDoctor launches with server-side triage guard
 - sync Full and Starter editions
