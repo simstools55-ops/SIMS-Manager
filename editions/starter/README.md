@@ -1,6 +1,6 @@
 # SIMS Manager Starter Edition
 
-- Version: `6.3.3-ST`
+- Version: `6.3.4-ST`
 - Paste `Code.gs` in this folder into the Starter user's Apps Script project.
 - This file is derived from the repository root Full canonical `Code.gs`.
 - Starter and Full share canonical version `6.2.80` and the same Spreadsheet schema; Starter displays `v6.2.80-ST` to make the edition immediately identifiable.

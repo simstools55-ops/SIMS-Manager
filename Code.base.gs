@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.3
+ * SIMS Manager Product v6.3.4
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.3';
+const SBM_VERSION = '6.3.4';
+// v6.3.4: 今日の改善0件時の新記事候補/BOS自動探索を廃止し、健康診断→精密診断へ案内。新記事キーワード参入確認はClaude標準、SERP上位10件＋判定困難時のみ11〜20位追加調査へ変更。GREEN/YELLOW/PINK/REDへ統一し、aCreator進行はGREENのみ。
 // v6.3.3: モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
 // v6.3.2: GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
 // v6.3.1: モノクロテーマを利用者向け動的UIへ横断適用。全showModalDialogを共通テーマラッパー経由に統一し、記事情報更新・日次処理・改善ナビ・履歴・設定・Doctor/Creator/SERP等の主要ダイアログへ反映。サイト健康診断書・aDoctor精密診断候補シートもモノクロ対応。記事情報更新の「クエリ未取得31件＝未発芽31件」誤表示を修正し、通常ランク維持/未発芽維持/復元/更新保留を正しく分類。
@@ -6094,8 +6095,17 @@ function sbmOpenTodayImprovement() {
   if (!current.length) {
     // Product 5.21.34: 候補0件なら旧表示を残さず、今日の改善シートを空状態へ正規化する。
     try { sbmWriteTodayRecommendations_([],0); } catch(eClearToday) { sbmLog_('TodayZeroClear','Warning',String(eClearToday)); }
-    try { sbmOpenNewArticleOpportunityDialog_(); } catch(eNewOpp) { sbmLog_('NewArticleOpportunityDialog','Warning',String(eNewOpp)); }
+    try { sbmShowTodayZeroAdviceDialog_(); } catch(eZeroAdvice) { sbmLog_('TodayZeroAdviceDialog','Warning',String(eZeroAdvice)); }
   }
+}
+
+/**
+ * Product v6.3.4: 今日の改善候補0件時は新記事探索を自動実行せず、
+ * 健康診断→精密診断へ案内する。
+ */
+function sbmShowTodayZeroAdviceDialog_(){
+  var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}h2{margin:0 0 12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:14px;line-height:1.75}.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}.status{min-height:18px;margin-top:10px;font-size:12px;color:#5f6368}</style></head><body><h2>今日の改善はありません</h2><div class="card"><b>今日行うべき日次改善の記事はありません。</b><br>次は「健康診断 → 精密診断」で、発芽・育成段階の記事、長期流入低下など、日次候補とは別の観点から改善対象を確認してください。<br><br>新記事キーワードの調査は自動では行いません。必要なときに「新記事関連 → 新記事キーワードの参入余地を確認」から開始できます。</div><div id="st" class="status"></div><div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button class="primary" onclick="health()">健康診断へ進む</button></div><script>function health(){var b=document.querySelector(".primary"),s=document.getElementById("st");b.disabled=true;b.textContent="開始しています…";s.textContent="健康診断を開始しています。";google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(e){b.disabled=false;b.textContent="健康診断へ進む";s.textContent=(e&&e.message)?e.message:String(e)}).sbmRunSiteHealthCheck()}</script></body></html>').setWidth(620).setHeight(360);
+  sbmShowThemedModalDialog_(html,'今日の改善');
 }
 
 /** RC8 Final: 今日の改善の高速差分更新。 */
@@ -20587,59 +20597,39 @@ function sbmSerpBuildAiRequest_(keyword,cannibal){
   var siteUrl=String(sbmGetSetting_('BlogUrl','')||sbmGetSetting_('SiteUrl','')||'').trim();
   var safe=String(keyword||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"');
   return [
-    'SIMS Manager 1件SERP参入余地チェック',
-    '',
-    '【目的】',
-    '次のキーワードについて、現在の検索結果上位30件をWeb検索で実測し、個人ブログの新規記事がどの順位帯まで到達できそうか評価してください。',
-    'SIMS Manager側では既存クエリとのカニバリ事前判定を完了しており、重大な重複候補は検出されていません。',
-    '',
-    '【対象サイト】',
-    'SiteID：'+(siteId||'-'),
-    'SiteName：'+(siteName||'-'),
-    'SiteURL：'+(siteUrl||'-'),
-    '対象キーワード：'+keyword,
-    '',
-    '【必須調査】',
-    '1. 対象キーワードで現在のSERP上位30件を実際に確認してください。',
-    '2. 1位〜30位を rank / title / url / site_type / weakness_or_strength で記録してください。',
+    'SIMS Manager 1件SERP参入余地チェック','','【目的】',
+    '次のキーワードについて、まず現在の検索結果上位10件をWeb検索で実測し、個人ブログの新規記事に参入余地があるか評価してください。',
+    'SIMS Manager側では既存クエリとのカニバリ事前判定を完了しており、重大な重複候補は検出されていません。','',
+    '【対象サイト】','SiteID：'+(siteId||'-'),'SiteName：'+(siteName||'-'),'SiteURL：'+(siteUrl||'-'),'対象キーワード：'+keyword,'',
+    '【第1段階：必須調査】',
+    '1. 対象キーワードで現在のSERP上位10件を実際に確認してください。',
+    '2. 1位〜10位を rank / title / url / site_type / weakness_or_strength で記録してください。',
     '3. site_type は OFFICIAL / CORPORATE / MAJOR_MEDIA / EC / Q&A_FORUM / PERSONAL_BLOG / OTHER のいずれかを基本にしてください。',
-    '4. 個人ブログが存在する順位、古い・薄い・検索意図がずれたページ、独立した切り口の余地を確認してください。',
-    '5. YMYL・ブランド指名・公式優位など、個人ブログが構造的に不利なSERPなら明記してください。',
-    '6. 上位30件を確認できない場合は推測で埋めず、review_status を INSUFFICIENT にしてください。',
-    '',
+    '4. 個人ブログの参入実績、SERPの強さ、検索意図、古い・薄い・意図ずれページ、コンテンツギャップを評価してください。',
+    '5. YMYL・ブランド指名・公式優位など、個人ブログが構造的に不利なSERPなら明記してください。','',
+    '【第2段階：必要な場合だけ追加調査】',
+    '上位10件だけでは参入可否を判断しにくい場合のみ、11位〜20位を追加確認してください。',
+    '追加調査が不要なら checked_count は 10、必要なら 20 としてください。',
+    '確認できない順位を推測で埋めないでください。','',
     '【重要】',
-    '最終色判定はSIMS Managerが行います。あなたは estimated_reachable_rank を整数で返してください。',
-    '到達が30位以内でも難しい場合は 31 以上の値を返してください。',
-    '検索結果を見ずに一般論だけで順位を推定しないでください。',
-    '',
-    '【JSON出力】',
-    '説明の後、最後に次の形式のJSONを1個だけコードブロックで返してください。',
-    '{',
-    '  "format": "SIMS_MANAGER_SERP_ENTRY_REVIEW_V1",',
-    '  "keyword": "'+safe+'",',
-    '  "review_status": "COMPLETE|INSUFFICIENT",',
-    '  "checked_count": 30,',
-    '  "serp_top30": [',
-    '    {"rank":1,"title":"...","url":"https://...","site_type":"OFFICIAL","weakness_or_strength":"..."}',
-    '  ],',
-    '  "personal_blog_count": 0,',
-    '  "best_personal_blog_rank": null,',
-    '  "serp_strength": "LOW|MEDIUM|HIGH|VERY_HIGH",',
-    '  "estimated_reachable_rank": 12,',
-    '  "confidence_percent": 80,',
-    '  "search_intent": "...",',
-    '  "rationale": ["..."],',
-    '  "risks": ["..."],',
-    '  "recommended_angle": "...",',
-    '  "evidence_note": "30件をどのように確認したか簡潔に記述"',
-    '}'
-  ].join('\n');
+    '最終色判定はSIMS Managerが行います。あなたは entry_assessment を GREEN / YELLOW / PINK / RED のいずれかで返してください。',
+    'GREEN＝参入余地が明確、YELLOW＝参入可能性はあるが人間判断が必要、PINK＝参入優先度が低く原則見送り、RED＝参入困難です。',
+    'estimated_reachable_rank は参考値として整数で返してください。検索結果を見ずに一般論だけで推定しないでください。','',
+    '【JSON出力】','説明の後、最後に次の形式のJSONを1個だけコードブロックで返してください。','{',
+    '  "format": "SIMS_MANAGER_SERP_ENTRY_REVIEW_V2",','  "keyword": "'+safe+'",','  "review_status": "COMPLETE|INSUFFICIENT",',
+    '  "checked_count": 10,','  "additional_review_needed": false,','  "serp_results": [',
+    '    {"rank":1,"title":"...","url":"https://...","site_type":"OFFICIAL","weakness_or_strength":"..."}','  ],',
+    '  "personal_blog_count": 0,','  "best_personal_blog_rank": null,','  "serp_strength": "LOW|MEDIUM|HIGH|VERY_HIGH",',
+    '  "entry_assessment": "GREEN|YELLOW|PINK|RED",','  "estimated_reachable_rank": 12,','  "confidence_percent": 80,',
+    '  "search_intent": "...",','  "content_gap": ["..."],','  "rationale": ["..."],','  "risks": ["..."],',
+    '  "recommended_angle": "...",','  "evidence_note": "上位10件、または必要時20件をどのように確認したか簡潔に記述"','}'
+  ].join('\\n');
 }
 function sbmSerpPrepareCheck(keyword){
   try{
     var cannibal=sbmSerpCheckCannibalRisk_(keyword);
     if(cannibal.blocked)return {ok:true,blocked:true,cannibal:cannibal,message:'既存クエリとのカニバリの可能性があるため、SERP精査へ進みません。'};
-    return {ok:true,blocked:false,cannibal:cannibal,request:sbmSerpBuildAiRequest_(keyword,cannibal),message:'カニバリ疑いは見つかりませんでした。AIへ上位30件SERP精査を依頼できます。'};
+    return {ok:true,blocked:false,cannibal:cannibal,request:sbmSerpBuildAiRequest_(keyword,cannibal),message:'カニバリ疑いは見つかりませんでした。ClaudeへSERP上位10件の精査を依頼できます。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmSerpExtractReviewJson_(raw){
@@ -20659,33 +20649,39 @@ function sbmSerpExtractReviewJson_(raw){
       var objText=sbmDoctorBalancedJsonFrom_(t,i),y=accept(objText);if(y)return y;
     }catch(ignore2){}
   }
-  throw new Error('SIMS_MANAGER_SERP_ENTRY_REVIEW_V1 のJSONを読み取れませんでした。AIの回答全文をそのまま貼り付けてください。');
+  throw new Error('SIMS_MANAGER_SERP_ENTRY_REVIEW_V1 のJSONを読み取れませんでした。Claudeの回答全文をそのまま貼り付けてください。');
 }
 function sbmSerpGradeFromRank_(rank){
   var r=Number(rank);
-  if(!isFinite(r)||r<=0)return {code:'RED',label:'RED',rankBand:'30位以内も困難',bg:'#c62828',fg:'#ffffff'};
-  if(r<=10)return {code:'GREEN',label:'GREEN',rankBand:'10位以内を狙える',bg:'#0b8043',fg:'#ffffff'};
-  if(r<=20)return {code:'YELLOW',label:'YELLOW',rankBand:'20位以内を狙える',bg:'#f9ab00',fg:'#202124'};
-  if(r<=30)return {code:'PALE_PINK',label:'PALE PINK',rankBand:'30位以内を狙える',bg:'#f4cccc',fg:'#202124'};
-  return {code:'RED',label:'RED',rankBand:'30位以内も困難',bg:'#c62828',fg:'#ffffff'};
+  if(!isFinite(r)||r<=0)return {code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'};
+  if(r<=10)return {code:'GREEN',label:'GREEN',rankBand:'参入余地が明確',bg:'#0b8043',fg:'#ffffff'};
+  if(r<=20)return {code:'YELLOW',label:'YELLOW',rankBand:'要判断',bg:'#f9ab00',fg:'#202124'};
+  if(r<=30)return {code:'PINK',label:'PINK',rankBand:'優先度低・原則見送り',bg:'#f4cccc',fg:'#202124'};
+  return {code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'};
+}
+function sbmSerpGradeFromReview_(o){
+  var a=String(o&&o.entry_assessment||'').toUpperCase().replace(/\s+/g,'_');
+  if(a==='PALE_PINK'||a==='PALEPINK')a='PINK';
+  var map={
+    GREEN:{code:'GREEN',label:'GREEN',rankBand:'参入余地が明確',bg:'#0b8043',fg:'#ffffff'},
+    YELLOW:{code:'YELLOW',label:'YELLOW',rankBand:'要判断',bg:'#f9ab00',fg:'#202124'},
+    PINK:{code:'PINK',label:'PINK',rankBand:'優先度低・原則見送り',bg:'#f4cccc',fg:'#202124'},
+    RED:{code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'}
+  };
+  return map[a]||sbmSerpGradeFromRank_(o&&o.estimated_reachable_rank);
 }
 function sbmSerpRegisterReview(keyword,raw){
   try{
     var kw=String(keyword||'').trim(),o=sbmSerpExtractReviewJson_(raw);
-    if(sbmSerpNormalizeKeyword_(o.keyword)!==sbmSerpNormalizeKeyword_(kw))throw new Error('AI回答の keyword が入力キーワードと一致しません。別キーワードの回答を貼り付けていないか確認してください。');
+    if(sbmSerpNormalizeKeyword_(o.keyword)!==sbmSerpNormalizeKeyword_(kw))throw new Error('Claude回答の keyword が入力キーワードと一致しません。別キーワードの回答を貼り付けていないか確認してください。');
     var status=String(o.review_status||'').toUpperCase(),checked=Number(o.checked_count||0);
-    if(status!=='COMPLETE'||checked<30||!Array.isArray(o.serp_top30)||o.serp_top30.length<30){
-      return {ok:true,complete:false,message:'上位30件の確認が完了していません。AIに再調査を依頼してください。',checkedCount:checked};
-    }
-    var rank=Number(o.estimated_reachable_rank||0),grade=sbmSerpGradeFromRank_(rank);
-    return {
-      ok:true,complete:true,keyword:kw,grade:grade,estimatedReachableRank:rank,
-      confidencePercent:Number(o.confidence_percent||0),serpStrength:String(o.serp_strength||''),
-      personalBlogCount:Number(o.personal_blog_count||0),bestPersonalBlogRank:o.best_personal_blog_rank,
-      searchIntent:String(o.search_intent||''),rationale:Array.isArray(o.rationale)?o.rationale:[],
-      risks:Array.isArray(o.risks)?o.risks:[],recommendedAngle:String(o.recommended_angle||''),
-      creatorEligible:grade.code!=='RED',review:o
-    };
+    var rows=Array.isArray(o.serp_results)?o.serp_results:(Array.isArray(o.serp_top30)?o.serp_top30:[]);
+    if(status!=='COMPLETE'||checked<10||rows.length<10)return {ok:true,complete:false,message:'SERP上位10件の確認が完了していません。Claudeに再調査を依頼してください。',checkedCount:checked};
+    if(o.additional_review_needed===true&&(checked<20||rows.length<20))return {ok:true,complete:false,message:'上位10件では判定困難とされています。Claudeに11〜20位の追加調査を依頼してください。',checkedCount:checked};
+    var rank=Number(o.estimated_reachable_rank||0),grade=sbmSerpGradeFromReview_(o);
+    var creatorEligible=grade.code==='GREEN';
+    var guidance=grade.code==='GREEN'?'aCreatorへ進めます。':(grade.code==='YELLOW'?'参入可能性はありますが、人間判断が必要です。aCreatorへは自動で進めません。':(grade.code==='PINK'?'参入優先度が低いため、原則見送ります。':'参入困難のため見送ります。'));
+    return {ok:true,complete:true,keyword:kw,grade:grade,estimatedReachableRank:rank,confidencePercent:Number(o.confidence_percent||0),serpStrength:String(o.serp_strength||''),personalBlogCount:Number(o.personal_blog_count||0),bestPersonalBlogRank:o.best_personal_blog_rank,searchIntent:String(o.search_intent||''),rationale:Array.isArray(o.rationale)?o.rationale:[],risks:Array.isArray(o.risks)?o.risks:[],recommendedAngle:String(o.recommended_angle||''),creatorEligible:creatorEligible,guidance:guidance,review:o};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmSerpBuildCreatorReferral_(keyword,review,grade){
@@ -20727,16 +20723,16 @@ function sbmSerpCreateCreatorReferral(keyword,reviewJson){
 function sbmOpenSerpEntryCheckDialog(){
   var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:20px;color:#202124;background:#f8f9fa}h2{margin:0 0 8px}.lead{font-size:13px;line-height:1.7;color:#5f6368}.card{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}.field{width:100%;box-sizing:border-box;padding:9px;border:1px solid #bdc1c6;border-radius:6px}textarea{width:100%;box-sizing:border-box;min-height:180px;padding:9px;border:1px solid #bdc1c6;border-radius:6px;font:12px/1.5 monospace;resize:vertical}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}button{border:1px solid #dadce0;border-radius:18px;padding:8px 15px;background:#fff;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.status{font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:8px}.err{color:#b3261e}.ok{color:#137333}.hidden{display:none}.match{border-top:1px solid #eee;padding:8px 0;font-size:13px;line-height:1.55}.grade{padding:14px;border-radius:8px;font-weight:800;font-size:18px;margin:10px 0}.small{font-size:12px;color:#5f6368}</style></head><body>'+
-    '<h2>SERP参入余地チェック</h2><div class="lead">1件のキーワードを確認します。最初にSIMS Managerが保有するSearch Consoleクエリと記事情報でカニバリを確認し、疑いがあればそこで終了します。問題がなければClaude・Gemini等へ上位30件のSERP精査を依頼します。</div>'+
+    '<h2>SERP参入余地チェック</h2><div class="lead">1件のキーワードを確認します。最初にSIMS Managerが保有するSearch Consoleクエリと記事情報でカニバリを確認し、疑いがあればそこで終了します。問題がなければClaudeへSERP上位10件の精査を依頼します。判定が難しい場合だけ11〜20位を追加確認します。</div>'+
     '<div class="card"><b>① キーワードを入力</b><input id="kw" class="field" placeholder="例：コーヒーメーカー 手入れ 簡単"><div class="actions"><button id="prepBtn" class="primary" onclick="prepare()">カニバリ確認して次へ</button></div><div id="prepStatus" class="status"></div><div id="matches"></div></div>'+
-    '<div id="aiCard" class="card hidden"><b>② AIへSERP上位30件の精査を依頼</b><div class="small">Claude・Geminiなど、Web検索できるAIへ以下をそのまま貼り付けてください。</div><textarea id="req" readonly></textarea><div class="actions"><button id="reqCopyBtn" onclick="copyText(\'req\',\'reqCopyBtn\',\'reqCopyStatus\',\'AIへの依頼文をコピーしました。Claude / Geminiへ貼り付けてください。\',false)">依頼文をコピー</button></div><div id="reqCopyStatus" class="status"></div>'+
-    '<b>③ AI回答全文を貼り付け</b><textarea id="ans" placeholder="AIの回答全文をそのまま貼り付けてください"></textarea><div class="actions"><button id="judgeBtn" class="primary" onclick="judge()">SERP結果を判定</button></div><div id="judgeStatus" class="status"></div></div>'+
+    '<div id="aiCard" class="card hidden"><b>② ClaudeへSERP上位10件の精査を依頼</b><div class="small">Web検索できるClaudeへ以下をそのまま貼り付けてください。</div><textarea id="req" readonly></textarea><div class="actions"><button id="reqCopyBtn" onclick="copyText(\'req\',\'reqCopyBtn\',\'reqCopyStatus\',\'Claudeへの依頼文をコピーしました。Claudeへ貼り付けてください。\',false)">依頼文をコピー</button></div><div id="reqCopyStatus" class="status"></div>'+
+    '<b>③ Claude回答全文を貼り付け</b><textarea id="ans" placeholder="Claudeの回答全文をそのまま貼り付けてください"></textarea><div class="actions"><button id="judgeBtn" class="primary" onclick="judge()">SERP結果を判定</button></div><div id="judgeStatus" class="status"></div></div>'+
     '<div id="resultCard" class="card hidden"><b>④ SIMS Manager判定</b><div id="grade"></div><div id="detail" class="status"></div><div id="creatorArea" class="hidden"><div class="actions"><button id="creatorBtn" class="primary" onclick="makeCreator()">aCreator紹介状を作成</button></div><textarea id="creator" class="hidden" readonly></textarea><div id="creatorActions" class="actions hidden"><button id="creatorCopyBtn" onclick="copyText(\'creator\',\'creatorCopyBtn\',\'creatorCopyStatus\',\'aCreator紹介状をコピーしました。aCreatorへ貼り付けて新記事を作成・公開してください。\',true)">aCreator紹介状をコピー</button></div><div id="creatorCopyStatus" class="status"></div><div id="creatorRegisterArea" class="hidden"><div class="small" style="margin-top:10px">aCreatorで新記事の作成・公開が完了したら、公開URLとaCreator回答をSIMS Managerへ登録します。</div><div class="actions"><button class="primary" onclick="openCreatorRegister()">新記事登録へ進む</button></div></div></div></div>'+
     '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div>'+
     '<script>let REVIEW=null;function e(id){return document.getElementById(id)}function show(id){e(id).classList.remove("hidden")}function hide(id){e(id).classList.add("hidden")}function setStatus(id,msg,cls){e(id).className="status "+(cls||"");e(id).textContent=msg||""}function copyFallback(x){try{x.focus();x.select();return document.execCommand("copy")}catch(z){return false}}function copyText(id,btnId,statusId,successMsg,showRegister){const x=e(id),b=e(btnId);if(!x)return;const original=b?b.textContent:"";if(b){b.disabled=true;b.textContent="コピー中…"}function ok(){if(b){b.textContent="✓ コピーしました";b.disabled=false;setTimeout(function(){b.textContent=original},2200)}setStatus(statusId,"✓ "+successMsg,"ok");if(showRegister)show("creatorRegisterArea")}function ng(){if(b){b.textContent=original;b.disabled=false}setStatus(statusId,"コピーできませんでした。テキスト欄を選択して手動でコピーしてください。","err")}try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x.value).then(ok).catch(function(){copyFallback(x)?ok():ng()})}else{copyFallback(x)?ok():ng()}}catch(z){copyFallback(x)?ok():ng()}}function openCreatorRegister(){google.script.host.close();google.script.run.sbmOpenCreatorPublicationRegisterDialog()}'+
     'function prepare(){const kw=e("kw").value.trim(),b=e("prepBtn");if(!kw){setStatus("prepStatus","キーワードを入力してください。","err");return}b.disabled=true;b.textContent="確認中…";setStatus("prepStatus","Manager内のクエリ・記事情報と照合しています…","");e("matches").innerHTML="";hide("aiCard");hide("resultCard");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="カニバリ確認して次へ";if(!r||!r.ok){setStatus("prepStatus",r&&r.message?r.message:"確認できませんでした。","err");return}if(r.blocked){setStatus("prepStatus","カニバリの可能性があるため処理を終了します。SERP精査は実行しません。","err");const a=(r.cannibal&&r.cannibal.matches)||[];e("matches").innerHTML="<b>想定される既存クエリ・記事</b>"+a.map(function(x){return "<div class=\\"match\\"><b>"+esc(x.query)+"</b> ["+esc(x.risk)+"]<br>"+esc(x.articleTitle||"記事タイトル未取得")+"<br>"+esc(x.url||"")+"<br>理由："+esc(x.reason||"")+" / 表示 "+Number(x.impressions||0)+" / クリック "+Number(x.clicks||0)+" / 平均順位 "+(Number(x.position||0)?Number(x.position).toFixed(1):"-")+"</div>"}).join("");return}setStatus("prepStatus",r.message||"カニバリ疑いはありません。","ok");e("req").value=r.request||"";show("aiCard")}).withFailureHandler(function(x){b.disabled=false;b.textContent="カニバリ確認して次へ";setStatus("prepStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpPrepareCheck(kw)}'+
     'function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;"}[c]})}'+
-    'function judge(){const raw=e("ans").value.trim(),kw=e("kw").value.trim(),b=e("judgeBtn");if(!raw){setStatus("judgeStatus","AI回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="判定中…";setStatus("judgeStatus","上位30件の確認状況と到達見込み順位を検証しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="SERP結果を判定";if(!r||!r.ok){setStatus("judgeStatus",r&&r.message?r.message:"判定できませんでした。","err");return}if(!r.complete){setStatus("judgeStatus",r.message||"上位30件の確認が不足しています。","err");return}REVIEW=r.review;setStatus("judgeStatus","SERP上位30件の確認を受理しました。","ok");show("resultCard");const g=r.grade;e("grade").className="grade";e("grade").style.background=g.bg;e("grade").style.color=g.fg;e("grade").textContent=g.label+" — "+g.rankBand;e("detail").textContent="推定到達順位："+r.estimatedReachableRank+"位\\n確信度："+r.confidencePercent+"%\\nSERP強度："+(r.serpStrength||"-")+"\\n個人ブログ件数："+r.personalBlogCount+"\\n最上位の個人ブログ："+(r.bestPersonalBlogRank==null?"-":r.bestPersonalBlogRank+"位")+"\\n検索意図："+(r.searchIntent||"-")+"\\n\\n理由：\\n"+(r.rationale||[]).map(function(x){return "・"+x}).join("\\n")+"\\n\\n推奨切り口：\\n"+(r.recommendedAngle||"-");if(r.creatorEligible)show("creatorArea");else hide("creatorArea")}).withFailureHandler(function(x){b.disabled=false;b.textContent="SERP結果を判定";setStatus("judgeStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpRegisterReview(kw,raw)}'+
+    'function judge(){const raw=e("ans").value.trim(),kw=e("kw").value.trim(),b=e("judgeBtn");if(!raw){setStatus("judgeStatus","AI回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="判定中…";setStatus("judgeStatus","上位30件の確認状況と到達見込み順位を検証しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="SERP結果を判定";if(!r||!r.ok){setStatus("judgeStatus",r&&r.message?r.message:"判定できませんでした。","err");return}if(!r.complete){setStatus("judgeStatus",r.message||"上位30件の確認が不足しています。","err");return}REVIEW=r.review;setStatus("judgeStatus","SERP上位30件の確認を受理しました。","ok");show("resultCard");const g=r.grade;e("grade").className="grade";e("grade").style.background=g.bg;e("grade").style.color=g.fg;e("grade").textContent=g.label+" — "+g.rankBand;e("detail").textContent="推定到達順位："+r.estimatedReachableRank+"位\\n確信度："+r.confidencePercent+"%\\nSERP強度："+(r.serpStrength||"-")+"\\n個人ブログ件数："+r.personalBlogCount+"\\n最上位の個人ブログ："+(r.bestPersonalBlogRank==null?"-":r.bestPersonalBlogRank+"位")+"\\n検索意図："+(r.searchIntent||"-")+"\\n\\n理由：\\n"+(r.rationale||[]).map(function(x){return "・"+x}).join("\\n")+"\\n\\n推奨切り口：\\n"+(r.recommendedAngle||"-")+"\\n\\n判定後の扱い：\\n"+(r.guidance||"-");if(r.creatorEligible)show("creatorArea");else hide("creatorArea")}).withFailureHandler(function(x){b.disabled=false;b.textContent="SERP結果を判定";setStatus("judgeStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpRegisterReview(kw,raw)}'+
     'function makeCreator(){if(!REVIEW)return;const b=e("creatorBtn");b.disabled=true;b.textContent="作成中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="aCreator紹介状を作成";if(!r||!r.ok){alert(r&&r.message?r.message:"紹介状を作成できませんでした。");return}e("creator").value=r.referral||"";show("creator");show("creatorActions");b.style.display="none"}).withFailureHandler(function(x){b.disabled=false;b.textContent="aCreator紹介状を作成";alert(x&&x.message?x.message:String(x))}).sbmSerpCreateCreatorReferral(e("kw").value.trim(),JSON.stringify(REVIEW))}'+
     '</script></body></html>').setWidth(860).setHeight(820);
   sbmShowThemedModalDialog_(html,'SERP参入余地チェック');

@@ -1,7 +1,8 @@
-style: finalize monochrome UI hierarchy (v6.3.3)
+feat: streamline zero-work advice and SERP entry review (v6.3.4)
 
-- extend the aDoctor candidate top bar across all used columns
-- neutralize decorative information colors in user-facing dialogs
-- keep blue for normal actions and semantic green, amber and red states
-- preserve GSC URL resolution and workflow logic
+- replace zero-candidate new-article discovery with health-check guidance
+- standardize SERP review on Claude
+- review top 10 results first and extend to 11-20 only when needed
+- unify entry grades as GREEN, YELLOW, PINK and RED
+- allow aCreator progression only for GREEN
 - sync Full and Starter editions

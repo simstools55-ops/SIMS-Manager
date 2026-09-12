@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.3.3",
+  "current_version": "6.3.4",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.3.3: モノクロテーマ最終統一。精密診断候補シートと利用者向けダイアログの非意味色をグレースケール化。意味色と処理ロジックは維持。",
-  "version": "6.3.3",
+  "notes": "v6.3.4: 今日の改善0件時は健康診断→精密診断へ案内。新記事キーワード参入確認はClaudeによるSERP上位10件＋必要時11〜20位の二段階調査へ変更。GREENのみaCreator進行。",
+  "version": "6.3.4",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.3.3-ST"
+  "starter_display_version": "v6.3.4-ST"
 }
