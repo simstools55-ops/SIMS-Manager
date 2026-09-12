@@ -1,8 +1,7 @@
-fix: organize maintenance menu and initialize new article rank (v6.3.6)
+fix: sync Creator publications into improvement status (v6.3.7)
 
-- reorder maintenance actions by usage and responsibility
-- remove the manual ungerminated recheck from the user menu
-- initialize aCreator publications with the NEW article rank
-- keep NEW while Search Console has no observations
-- transition to normal rank evaluation after first GSC observation
+- upsert the Creator article into improvement status immediately after publication registration
+- repair missing ACTIVE/REVIEW_REQUIRED effect rows in both Full and Starter
+- keep repair lightweight and limited to missing rows
+- migrate legacy Creator articles from dash rank to NEW when GSC has no observations
 - sync Full and Starter editions

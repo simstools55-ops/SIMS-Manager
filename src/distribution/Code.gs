@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.6
+ * SIMS Manager Product v6.3.7
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.6';
+const SBM_VERSION = '6.3.7';
+// v6.3.7: aCreator新記事が記事管理ではモニター中なのに「改善の推移」へ出ない問題を修正。ACTIVE/REVIEW_REQUIRED履歴に対応する推移行をFull/Starter共通で軽量自己修復し、Creator公開登録直後も対象1件だけ推移へ同期。旧Creator新記事のランク「—」もGSC未観測なら「🆕 新規」へ補正。
 // v6.3.6: 設定・メンテナンスを利用頻度/役割順へ再編し、利用者向け「未発芽判定を再確認」を削除。aCreator新規公開記事の初期ランクを「🆕 新規」とし、Search Console未観測中は保持、初観測後に通常ランクへ自動移行する。
 // v6.3.5: SERP参入余地チェックのJSON受信部をV2正式対応。V1も後方互換で受け付け、生成側V2と受信側V1の不整合を解消。依頼formatと受信formatの整合性テストを追加。
 // v6.3.4: 今日の改善0件時の新記事候補/BOS自動探索を廃止し、健康診断→精密診断へ案内。新記事キーワード参入確認はClaude標準、SERP上位10件＋判定困難時のみ11〜20位追加調査へ変更。GREEN/YELLOW/PINK/REDへ統一し、aCreator進行はGREENのみ。
@@ -6921,7 +6922,7 @@ function sbmBuildConcreteImprovementAdvice_(meta,source){
   }
   return out.slice(0,3);
 }
-function sbmUpsertStarterEffectRow_(historyId,articleId,articleUrl){
+function sbmUpsertEffectRowForHistory_(historyId,articleId,articleUrl){
   historyId=String(historyId||'').trim();articleId=String(articleId||'').trim();articleUrl=String(articleUrl||'').trim();
   if(!historyId)return {ok:false,message:'改善履歴IDがありません。'};
   sbmEnsureHistoryAndEffectSchemasFast_();
@@ -6945,22 +6946,43 @@ function sbmUpsertStarterEffectRow_(historyId,articleId,articleUrl){
   var verify=histCol?sh.getRange(target,histCol).getDisplayValue():'';
   return {ok:String(verify||'').trim()===historyId,row:target,historyId:historyId,message:String(verify||'').trim()===historyId?'':'改善の推移への書き込み確認に失敗しました。'};
 }
-function sbmRepairMissingStarterEffectRows_(){
-  if(String(SBM_EDITION||'').toUpperCase()!=='STARTER')return {checked:0,repaired:0};
+function sbmRepairMissingActiveEffectRows_(){
   sbmEnsureHistoryAndEffectSchemasFast_();
-  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],effects=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],effectIds={},seen={},checked=0,repaired=0;
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],effects=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],effectIds={},seen={},checked=0,repaired=0,rankRepaired=0;
   effects.forEach(function(e){var id=String(e['改善履歴ID']||'').trim();if(id)effectIds[id]=true;});
   for(var i=histories.length-1;i>=0;i--){
     var h=histories[i]||{},life=sbmMonitoringLifecycleFromHistory_(h);if(life!=='ACTIVE'&&life!=='REVIEW_REQUIRED')continue;
     var historyId=String(h['改善履歴ID']||'').trim();if(!historyId)continue;
-    var identity=String(h['ArticleID']||'').trim()||sbmNormalizeUrl_(h['記事URL']||'')||sbmMonitoringTitleKey_(h['記事タイトル']||'');
+    var aid=String(h['ArticleID']||'').trim(),url=String(h['記事URL']||'').trim();
+    var identity=aid||sbmNormalizeUrl_(url)||sbmMonitoringTitleKey_(h['記事タイトル']||'');
     if(identity&&seen[identity])continue;if(identity)seen[identity]=true;
-    checked++;if(effectIds[historyId])continue;
-    try{var r=sbmUpsertStarterEffectRow_(historyId,String(h['ArticleID']||''),String(h['記事URL']||''));if(r&&r.ok){effectIds[historyId]=true;repaired++;}}catch(e){try{sbmLog_('StarterEffectRepair','Warning',historyId+': '+String(e));}catch(ignoreLog){}}
-    if(checked>=20)break;
+    checked++;
+
+    // v6.3.7: v6.3.6以前にCreator Directで「—」登録された新記事も安全に補正。
+    try{
+      var route=String(h['改善経路']||'').trim();
+      if(route==='Creator Direct'||route.indexOf('Creator')>=0){
+        var a=sbmFindArticleDbByIdentity_(aid,url);
+        if(a){
+          var rank=String(a['記事ランク']||'').trim(),clicks=sbmNumber_(a['クリック数']||0),imps=sbmNumber_(a['表示回数']||0);
+          if((!rank||rank==='—')&&clicks<=0&&imps<=0){
+            var ash=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB),ah=ash?sbmHeaderMap_(ash):{};
+            if(ash&&ah['記事ランク']&&a._rowNumber){ash.getRange(a._rowNumber,ah['記事ランク']).setValue('🆕 新規');rankRepaired++;}
+          }
+        }
+      }
+    }catch(eRank){try{sbmLog_('ActiveEffectRankRepair','Warning',historyId+': '+String(eRank));}catch(ignoreRankLog){}}
+
+    if(effectIds[historyId]){if(checked>=30)break;continue;}
+    try{
+      var r=sbmUpsertEffectRowForHistory_(historyId,aid,url);
+      if(r&&r.ok){effectIds[historyId]=true;repaired++;}
+    }catch(e){try{sbmLog_('ActiveEffectRepair','Warning',historyId+': '+String(e));}catch(ignoreLog){}}
+    if(checked>=30)break;
   }
-  return {checked:checked,repaired:repaired};
+  return {checked:checked,repaired:repaired,rankRepaired:rankRepaired};
 }
+function sbmRepairMissingStarterEffectRows_(){return sbmRepairMissingActiveEffectRows_();}
 
 function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary,adviceJson){
   if(String(SBM_EDITION||'').toUpperCase()!=='STARTER')return {ok:false,message:'この登録はStarter用です。'};
@@ -6970,7 +6992,7 @@ function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary,advi
   var data={format:'SIMS_FEEDBACK_V2',article_id:String(row['ArticleID']||articleId||''),article_url:String(row['記事URL']||articleUrl||''),completed_at:sbmNowText_(),ai_name:'SIMS Manager Starter',changes:{body:true},new_values:{article_title:sbmCleanDataListText_(row['記事タイトル']||row['H1タイトル']||'',row['記事URL']||articleUrl),seo_title:sbmCleanDataListText_(row['SEOタイトル']||'',row['記事URL']||articleUrl),description:String(row['メタディスクリプション']||''),main_query:String(row['メインクエリ']||'')},improvement_type:'minor',improvement_method:'Starter改善ナビ',confidence:'medium',expected_effect:{},next_action:'monitor',kept_sections:[],summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),warnings:[],estimated_minutes:20,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:String(summary||'Starter改善ナビに基づく記事改善を公開'),writer_version:'',raw_json:'',starter_advice:starterAdvice};
   var r=sbmRegisterImprovementFeedback(data,{deferPersonalKnowledge:true,deferDerivedRefresh:true});
   if(r&&r.ok&&r.historyId){
-    try{var er=sbmUpsertStarterEffectRow_(r.historyId,data.article_id,data.article_url);r.effectSynced=!!(er&&er.ok);r.effectRow=er&&er.row||0;if(!r.effectSynced)r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映確認に失敗しました。';}catch(eEffect){r.effectSynced=false;r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映でエラーが発生しました。';try{sbmLog_('StarterEffectSync','Error',String(eEffect));}catch(ignoreLog){}}
+    try{var er=sbmUpsertEffectRowForHistory_(r.historyId,data.article_id,data.article_url);r.effectSynced=!!(er&&er.ok);r.effectRow=er&&er.row||0;if(!r.effectSynced)r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映確認に失敗しました。';}catch(eEffect){r.effectSynced=false;r.message=(r.message||'')+'\n※ 改善履歴は登録されましたが、改善の推移への反映でエラーが発生しました。';try{sbmLog_('StarterEffectSync','Error',String(eEffect));}catch(ignoreLog){}}
     try{sbmInvalidateHomeSnapshot_();}catch(ignoreHome){}
   }
   return r;
@@ -12979,9 +13001,9 @@ function sbmRepairStaleCreatorDirectEffectLabels_(){
 function sbmOpenImprovementStatus() {
   // v6.2.19: 旧キャッシュに残るCreator Directの誤った『追加経過観察』表示だけを軽量補正する。
   try{sbmRepairStaleCreatorDirectEffectLabels_();}catch(eCreatorLabel){try{sbmLog_('CreatorDirectEffectLabelRepair','Warning',String(eCreatorLabel));}catch(ignoreCreatorLabelLog){}}
-  // Starterでは登録済みACTIVE履歴に対応する「改善の推移」が欠けている場合だけ軽量修復します。
-  // 数値再計算やDoctor全体整合は行いません。
-  if(String(SBM_EDITION||'').toUpperCase()==='STARTER'){try{sbmRepairMissingStarterEffectRows_();}catch(eRepair){try{sbmLog_('StarterEffectOpenRepair','Warning',String(eRepair));}catch(ignoreLog){}}}
+  // v6.3.7: Full/Starter共通。ACTIVE/REVIEW_REQUIRED履歴があるのに推移行だけ欠ける場合、
+  // 対象履歴だけ軽量補完する。全件効果再計算・Doctor全体整合は行わない。
+  try{sbmRepairMissingActiveEffectRows_();}catch(eRepair){try{sbmLog_('ActiveEffectOpenRepair','Warning',String(eRepair));}catch(ignoreLog){}}
   return sbmOpenEffectiveness();
 }
 
@@ -19102,7 +19124,12 @@ function sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId){
   var directId='CREATOR-DIRECT-'+Utilities.formatDate(new Date(),SBM_DEFAULTS.TIMEZONE,'yyyyMMdd-HHmmss')+'-'+Utilities.getUuid().substring(0,6).toUpperCase();
   var publication={format:'SIMS_CREATOR_PUBLICATION_V1',source_mode:'CREATOR_DIRECT',case_id:'',creator_direct_id:directId,site_id:siteId||String(sbmGetSetting_('SiteID','')||''),article_id:articleId,article_url:url,article_title:effectiveTitle||effectiveKeyword,main_keyword:effectiveKeyword,published_at:now,creator_response:o};
   var data={format:'SIMS_FEEDBACK_V2',article_id:articleId,article_url:url,completed_at:now,ai_name:'aCreator',changes:{body:true},new_values:{article_title:effectiveTitle||effectiveKeyword,seo_title:'',description:'',main_query:effectiveKeyword},improvement_type:'new_article',improvement_method:'Creator Direct',confidence:'',expected_effect:{},next_action:'monitor',kept_sections:[],summary:'aCreator単独作成の新記事を公開・SIMS登録',warnings:[],estimated_minutes:0,recommended_review_days:28,public_ok_changes:{body:true},user_decision_changes:[],change_summary:'aCreator新記事公開',writer_version:'',raw_json:JSON.stringify(publication)};
-  try{sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});sbmAppendLegacyImprovementLog_(data,row,before);}catch(eHist){sbmLog_('CreatorDirectHistory','Warning',String(eHist));}
+  var creatorHistoryId='';
+  try{
+    creatorHistoryId=sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
+    sbmAppendLegacyImprovementLog_(data,row,before);
+    if(creatorHistoryId)try{sbmUpsertEffectRowForHistory_(creatorHistoryId,articleId,url);}catch(eEffect){sbmLog_('CreatorDirectEffectSync','Warning',String(eEffect));}
+  }catch(eHist){sbmLog_('CreatorDirectHistory','Warning',String(eHist));}
   // v5.21.39: Creator公開登録は対象記事・改善履歴の保存で確定し、改善の推移の全件再生成は遅延する。
   // ここで全件モニター同期／改善の推移再生成／Home再生成を行うと、
   // 登録1件のために全シート再計算が走り数分停止するため実行しない。
@@ -19170,7 +19197,10 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
     var rowObj=sbmFindArticleDbByIdentity_(articleId,url)||{},row=SBM_HEADERS.ARTICLE_DB.map(function(k){return rowObj[k]!==undefined?rowObj[k]:'';}),before={clicks:0,impressions:0,ctr:0,position:0,title:title||keyword};
     var publication={format:'SIMS_CREATOR_PUBLICATION_V1',case_id:caseId,article_id:articleId,article_url:url,article_title:title||keyword,main_keyword:keyword,published_at:sbmNowText_(),monitor_days:monitorDays,creator_plan:plan};
     var data={format:'SIMS_FEEDBACK_V2',article_id:articleId,article_url:url,completed_at:sbmNowText_(),ai_name:'aCreator',changes:{body:true},new_values:{article_title:title||keyword,seo_title:'',description:'',main_query:keyword},improvement_type:'new_article',improvement_method:'Site Doctor→Creator',confidence:String(doctor&&doctor.diagnosis&&doctor.diagnosis.confidence||''),expected_effect:{},next_action:'monitor',kept_sections:[],summary:'aCreatorで新記事を作成・公開',warnings:[],estimated_minutes:0,recommended_review_days:monitorDays,public_ok_changes:{body:true},user_decision_changes:[],change_summary:'新記事公開',writer_version:'',raw_json:JSON.stringify(publication)};
-    sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});sbmAppendLegacyImprovementLog_(data,row,before);histId=sbmDoctorLatestHistoryIdForArticle_(articleId,url);
+    histId=sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
+    sbmAppendLegacyImprovementLog_(data,row,before);
+    if(!histId)histId=sbmDoctorLatestHistoryIdForArticle_(articleId,url);
+    if(histId)try{sbmUpsertEffectRowForHistory_(histId,articleId,url);}catch(eEffect){sbmLog_('DoctorCreatorEffectSync','Warning',String(eEffect));}
   }
   var review=new Date();review.setDate(review.getDate()+monitorDays);var reviewText=Utilities.formatDate(review,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');
   if(rec.hm['記事ID'])rec.values[rec.hm['記事ID']-1]=articleId;if(rec.hm['記事URL'])rec.values[rec.hm['記事URL']-1]=url;if(rec.hm['記事タイトル'])rec.values[rec.hm['記事タイトル']-1]=title||keyword;if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]='MONITORING';if(rec.hm['状態'])rec.values[rec.hm['状態']-1]='モニター中';if(rec.hm['再診予定日'])rec.values[rec.hm['再診予定日']-1]=reviewText;if(rec.hm['改善履歴ID'])rec.values[rec.hm['改善履歴ID']-1]=histId;if(rec.hm['更新日時'])rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);

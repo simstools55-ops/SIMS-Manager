@@ -1,6 +1,6 @@
 {
   "product": "SIMS Manager",
-  "version": "6.3.6",
+  "version": "6.3.7",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -59,23 +59,23 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 59030,
-      "sha256": "d9330a0fc214663a8de1a205cb698f6510a1a4150cf49be46ceaf427016ae68f"
+      "size": 59581,
+      "sha256": "b39d90825ab12fc56d62d498ce4ca4d3e34b704e81f204354efdc9ac98dadda8"
     },
     {
       "path": "COMMIT_MESSAGE.txt",
-      "size": 404,
-      "sha256": "7491c1bc5c352de397341653df85e6a2dd582970d3c7793751209f25d9dda394"
+      "size": 410,
+      "sha256": "f72376965166cfc947f867e28e955191d037ec69c68679af709110c6a22eb084"
     },
     {
       "path": "Code.base.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "EDITION_POLICY.md",
@@ -533,9 +533,14 @@
       "sha256": "1234a407419399656b64a3fc41f0c02eac1f4889705b3e964cbed83d4e576430"
     },
     {
+      "path": "GITHUB-RELEASE-NOTES-v6.3.7.md",
+      "size": 573,
+      "sha256": "a505bf0783e7f7fb409fc94e579cdfddf76b5d2f6b1673a0c88b3e1dc9bf1291"
+    },
+    {
       "path": "GITHUB_RELEASE_NOTES.md",
-      "size": 22358,
-      "sha256": "67811f2523dff34c6c0f9ccd38a704803a3702b93608bfa6b8539c490078e2c5"
+      "size": 22909,
+      "sha256": "aa23ec2ebcd58ad6dc11bff3757402b94e2d2f8eda72ffe810fb3290bb8ee5e3"
     },
     {
       "path": "HOW_TO_PUBLISH.md",
@@ -564,8 +569,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "size": 530,
-      "sha256": "c1c169a756959beb50750517c28bdd6f4a8c0d3a7d37665a3a0570d4efebd359"
+      "size": 527,
+      "sha256": "f1eeab574e94ed8953640f764d54125e48021d126e736124193f4d5169cc2f98"
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -805,7 +810,7 @@
     {
       "path": "README-FIRST.md",
       "size": 6229,
-      "sha256": "d67203c8c3d38dd67166f789dbf8b5d892d688d576e50efee91f3d0dd902f774"
+      "sha256": "ed16bc4da5e6a8f043c0c32c6c2832c979442c673d23fba2d18dde3127f46457"
     },
     {
       "path": "README-RC8.17.txt",
@@ -925,7 +930,7 @@
     {
       "path": "README.md",
       "size": 10601,
-      "sha256": "fc730dda64ffd692c3eb89406ee713680fd00db61c6c70e7f6e1cea069d21b80"
+      "sha256": "362edc34271b079166ed737b0b9a45bec6a1c3ba1ac4e16f9f255e7525315057"
     },
     {
       "path": "README.txt",
@@ -2510,7 +2515,7 @@
     {
       "path": "VERSION",
       "size": 6,
-      "sha256": "522737ea0a5fe2dbeb514a171d4c63e7ab88256c0f6833436e8db93b030b89b7"
+      "sha256": "35347d3383c984ee68e453acb4dca1ac36a05d7ddec6bcd21e75e16c8d3852c8"
     },
     {
       "path": "VERSION-AUDIT-v5.10.1.md",
@@ -2549,8 +2554,8 @@
     },
     {
       "path": "apps-script/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "apps-script/appsscript.json",
@@ -2559,8 +2564,8 @@
     },
     {
       "path": "apps-script/full/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "apps-script/full/appsscript.json",
@@ -2569,8 +2574,8 @@
     },
     {
       "path": "apps-script/starter/Code.gs",
-      "size": 1562755,
-      "sha256": "e28f966e6c34859a93a4fedc290443658dd3ae5a7b2d74626f600ab5d4fcf012"
+      "size": 1564512,
+      "sha256": "b97c302ec493aa9a637017a983598e5fb1febf188e756bb212a894bafbdf466e"
     },
     {
       "path": "apps-script/starter/appsscript.json",
@@ -2889,13 +2894,13 @@
     },
     {
       "path": "distribution/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "distribution/README-FIRST.md",
       "size": 780,
-      "sha256": "185963d39c440fb3358f7c9a073f2475a9e58bb351be78a1a63f5d9575ae0544"
+      "sha256": "3e409ed3805f868ce52323d36bb1863617e341e942979ec631b1d0ceeefd207b"
     },
     {
       "path": "distribution/appsscript.json",
@@ -3354,8 +3359,8 @@
     },
     {
       "path": "editions/full/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "editions/full/README.md",
@@ -3369,13 +3374,13 @@
     },
     {
       "path": "editions/starter/Code.gs",
-      "size": 1562755,
-      "sha256": "e28f966e6c34859a93a4fedc290443658dd3ae5a7b2d74626f600ab5d4fcf012"
+      "size": 1564512,
+      "sha256": "b97c302ec493aa9a637017a983598e5fb1febf188e756bb212a894bafbdf466e"
     },
     {
       "path": "editions/starter/README.md",
       "size": 877,
-      "sha256": "edd1f7b3f49fd06a8b73e385a7637f9ac09752e2981647d0b38890f2a6f12614"
+      "sha256": "4b69f57d8e1c9434696d9e045aa1329513759de7a2c752f73b473c7a96f9d1fc"
     },
     {
       "path": "editions/starter/appsscript.json",
@@ -5709,13 +5714,13 @@
     },
     {
       "path": "src/apps-script/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "src/distribution/Code.gs",
-      "size": 1562752,
-      "sha256": "7999e272ffbf4bdea55b66190d35e64241b361acad5d4e4f8a533938f905f9d8"
+      "size": 1564509,
+      "sha256": "2df045a47a78a5ab32ca149ff3dd3c7969b0cea132960f5892aaddcd5f5560fe"
     },
     {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",
@@ -5906,6 +5911,11 @@
       "path": "tests/check_v636_maintenance_new_rank.py",
       "size": 905,
       "sha256": "2e5ec1a2b827129c9a680ce159e86ab2d3905648adbd5adad45464c18fe92857"
+    },
+    {
+      "path": "tests/check_v637_creator_effect_sync.py",
+      "size": 787,
+      "sha256": "85116825c02e9e60cdf15aecda7547bfe32edc325ae0b618d6aab6b9afd64edc"
     },
     {
       "path": "tests/check_version_consistency.py",
