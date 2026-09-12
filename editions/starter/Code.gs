@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.9
+ * SIMS Manager Product v6.4.0
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.9';
+const SBM_VERSION = '6.4.0';
+// v6.4.0: CLOSE_MONITORING完了時のHome全再構築を廃止。記事DBと改善の推移だけを軽量再集計して、作業状態・モニター判定内訳の対象セルだけ差分更新する。モノクロテーマでは標準色を一度描画してから上書きする二重描画も抑止。
 // v6.3.9: 「未完了の作業を再開」でDOCTOR_NORMAL_CLOSE（CLOSE_MONITORING完了待ち）を正式に抽出・表示・再開。保存済みDoctor結果から③の終了内容を復元し、再診を発行せず「モニターを終了して完了登録」へ直接戻れるようにした。
 // v6.3.8: aDoctor V2の workflow_handoff.next_action=CLOSE_MONITORING を正式なWorkflow終端として認識。③に終了理由・不要処置・任意処置を表示し、1クリックで完了同期する。
 // v6.3.7: aCreator新記事が記事管理ではモニター中なのに「改善の推移」へ出ない問題を修正。ACTIVE/REVIEW_REQUIRED履歴に対応する推移行をFull/Starter共通で軽量自己修復し、Creator公開登録直後も対象1件だけ推移へ同期。旧Creator新記事のランク「—」もGSC未観測なら「🆕 新規」へ補正。
@@ -11594,7 +11595,12 @@ function sbmRefreshHome_(options) {
 
   sh.getRange('A23').setValue(sbmHomeWeeklyAdvice_(weekly,adviceWork,candidateCount,missingCount));
 
-  sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
+  var monoHome=sbmIsMonochromeTheme_();
+  if(monoHome){
+    sh.getRange('A4:J4').setBackground('#ffffff');
+  }else{
+    sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
+  }
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
   try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
 }
@@ -11621,6 +11627,63 @@ function sbmRefreshHomeRankSummaryOnly_(snapshot) {
   sh.getRange('C12').setValue(Number(counts['未取得'] || 0) + '件 ' + arrow(Number(counts['未取得'] || 0),'PrevUnacquiredRankCount'));
   return true;
 }
+
+/**
+ * v6.4.0: 記事1件の作業状態やモニター終了など、Home全再構築が不要な更新用。
+ * 記事DBと改善の推移だけを読み、改善履歴・GSC・Doctor全体整合には触れない。
+ * 背景色やテーマも再描画せず、数値セルだけ更新する。
+ */
+function sbmRefreshHomeMonitoringDelta_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(!sh)return false;
+
+  var articleRows=[],effectRows=[];
+  try{articleRows=sbmHomeReadRowsOnce_(SBM_SHEETS.ARTICLE_DB)||[];}catch(eArticle){}
+  try{effectRows=sbmHomeReadRowsOnce_(SBM_SHEETS.EFFECT)||[];}catch(eEffect){}
+
+  var articleStats=sbmHomeArticleStatsFromRows_(articleRows);
+  var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
+  var snap=sbmGetHomeSnapshot_()||{
+    version:1,
+    productVersion:String(SBM_DISPLAY_VERSION||SBM_VERSION||''),
+    generatedAt:Date.now(),
+    counts:articleStats.counts||{},
+    historyStats:{targets:0,improved:0,assessed:0,reworked:0,rate:0},
+    weekly:{improved:0,completed:0}
+  };
+  snap.productVersion=String(SBM_DISPLAY_VERSION||SBM_VERSION||'');
+  snap.generatedAt=Date.now();
+  snap.total=articleStats.total;
+  snap.counts=articleStats.counts;
+  snap.work=articleStats.work;
+  snap.missingCount=articleStats.missingCount;
+  snap.clicks=articleStats.clicks;
+  snap.impressions=articleStats.impressions;
+  snap.currentTreatment=currentTreatment;
+  try{PropertiesService.getDocumentProperties().setProperty('SBM_HOME_SNAPSHOT_V1',JSON.stringify(snap));}catch(ignoreSnapshot){}
+
+  var work=articleStats.work||{},mc=currentTreatment.counts||{};
+  sh.getRange('B3').setValue(Number(articleStats.total||0)+'件');
+  sh.getRange('G6').setValue(Number(work.unstarted||0)+'件');
+  sh.getRange('G7').setValue(Number(work.today||0)+'件');
+  sh.getRange('G8').setValue(Number(work.progress||0)+'件');
+  sh.getRange('G9').setValue(Number(work.monitor||0)+'件');
+  sh.getRange('G10').setValue(Number(work.done||0)+'件');
+  sh.getRange('G11').setValue(Number(work.excluded||0)+'件');
+  sh.getRange('A16').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
+  sh.getRange('C18').setValue(Number(mc['大きく改善']||0)+'件');
+  sh.getRange('C19').setValue(Number(mc['改善']||0)+'件');
+  sh.getRange('C20').setValue(Number(mc['改善傾向']||0)+'件');
+  sh.getRange('G18').setValue(Number(mc['変化小']||0)+'件');
+  sh.getRange('G19').setValue(Number(mc['要確認']||0)+'件');
+  sh.getRange('G20').setValue(Number(mc['見直し候補']||0)+'件');
+  sh.getRange('J18').setValue(Number(mc['測定待ち']||0)+'件');
+  sh.getRange('J19').setValue(Number(mc['経過観察']||0)+'件');
+  sh.getRange('J20').setValue(Number(mc['追加経過観察']||0)+'件');
+  sh.getRange('J21').setValue(Number(mc['データ不足']||0)+'件');
+  return true;
+}
+
 
 function sbmRefreshHomeDailyStatusOnly_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -17841,7 +17904,7 @@ function sbmDoctorCompleteCloseMonitoring(caseId,articleId,articleUrl,historyId)
     if(articleId)sbmMarkArticleMeasurementComplete_(articleId);else if(articleUrl)try{sbmSetArticleWorkStateByIdentity_('',articleUrl,'✔️ 完了');}catch(ignoreArticle){}
     try{var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT),hm=sh?sbmHeaderMap_(sh):{},last=sh?sh.getLastRow():0;if(sh&&last>=2){var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getDisplayValues();for(var i=vals.length-1;i>=0;i--){var aid=hm['ArticleID']?String(vals[i][hm['ArticleID']-1]||'').trim():'',hid=hm['改善履歴ID']?String(vals[i][hm['改善履歴ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(vals[i][hm['記事URL']-1]||''):'';if((historyId&&hid===historyId)||(articleId&&aid===articleId)||(!articleId&&articleUrl&&url===sbmNormalizeUrl_(articleUrl)))sh.deleteRow(i+2);}}}catch(eEffect){try{sbmLog_('CloseMonitoringEffect','Warning',String(eEffect));}catch(ignoreEffectLog){}}
     if(caseId){try{var csh=sbmDoctorEnsureCaseSheet_(),ch=sbmHeaderMap_(csh),rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];for(var j=rows.length-1;j>=0;j--){if(String(rows[j]['CaseID']||'').trim()===caseId){var rr=rows[j]._rowNumber;if(ch['状態コード'])csh.getRange(rr,ch['状態コード']).setValue('COMPLETED');if(ch['状態'])csh.getRange(rr,ch['状態']).setValue('モニター終了・完了');if(ch['更新日時'])csh.getRange(rr,ch['更新日時']).setValue(sbmNowText_());break;}}}catch(eCase){try{sbmLog_('CloseMonitoringCase','Warning',String(eCase));}catch(ignoreCaseLog){}}try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'COMPLETED',registration_status:'DONE',registered_at:sbmNowText_(),last_error:''});}catch(ignoreMeta){}}
-    try{sbmRefreshHome_();}catch(ignoreHome){}
+    try{sbmRefreshHomeMonitoringDelta_();}catch(ignoreHomeDelta){}
     return {ok:true,message:'モニターを終了し、完了として登録しました。改善履歴とaDoctor診断記録は保持しています。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }

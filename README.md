@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.3.9
+> **Current product:** SIMS Manager v6.4.0
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.3.9`
+- Product Version: `6.4.0`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.3.9
+> Current release: SIMS Manager Product v6.4.0
 
 
 ## v6.2.81 — Repository版管理の整合修正
@@ -80,13 +80,13 @@
 
 Search Consoleのページデータを記事DBへ渡す配列にH1タイトル用の空欄を追加し、数値4項目の列ずれを修正しました。異常値を検出した場合はDB更新を停止します。
 
-# SIMS Manager v6.3.9
+# SIMS Manager v6.4.0
 
 Google Search Consoleのデータを使い、改善する記事の選定、改善結果の記録、7日目・14日目・21日目・28日目（1週間ごと）の改善推移確認をGoogleスプレッドシートで管理する製品です。
 
 ## 正式バージョン
 
-`6.3.9`
+`6.4.0`
 
 ## Creatorで作った新記事の登録
 

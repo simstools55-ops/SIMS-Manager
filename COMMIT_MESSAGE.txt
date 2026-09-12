@@ -1,8 +1,8 @@
-fix: resume pending CLOSE_MONITORING cases (v6.3.9)
+perf: use delta Home refresh for monitoring completion (v6.4.0)
 
-- include DOCTOR_NORMAL_CLOSE in unfinished-work discovery
-- label pending close cases clearly in the resume chooser
-- restore the saved Doctor close decision without issuing a new diagnosis
-- reopen directly at monitoring completion
-- reuse the v6.3.8 safe completion transaction
+- remove full Home rebuild from CLOSE_MONITORING completion
+- refresh only article-work and monitoring summary cells
+- read only Article DB and Improvement Status for the delta
+- preserve the active display theme during completion
+- avoid prepainting standard Home status colors in monochrome mode
 - sync Full and Starter editions
