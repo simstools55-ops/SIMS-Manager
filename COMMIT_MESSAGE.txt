@@ -1,8 +1,10 @@
-style: complete monochrome coverage for user-facing UI (v6.3.1)
+fix: resolve GSC URL variants without slowing normal updates (v6.3.2)
 
-- route all user-facing modal dialogs through the shared theme wrapper
-- apply monochrome hierarchy to Site Health report and aDoctor candidate sheet
-- preserve semantic action, success, warning and danger colors
-- fix article-info no-query reporting to distinguish normal-rank hold, true ungerminated, restored and held cases
-- keep STANDARD theme and processing logic unchanged
+- separate internal canonical URLs from GSC query URLs
+- use staged batch exact lookups for canonical, trailing-slash, protocol and www variants
+- retry only unresolved articles at each stage
+- reserve contains fallback for single-article lookups
+- cache successful GSC page URLs for future requests
+- share the resolver across setup, article-info update and Improvement Navi
+- preserve rank, content and workflow logic
 - sync Full and Starter editions

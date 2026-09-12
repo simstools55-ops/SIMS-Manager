@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.3.1",
+  "current_version": "6.3.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.3.1: 利用者向け全モーダルを共通テーマ経由に統一し、健康診断書/精密診断候補もモノクロ対応。記事情報更新のクエリ未取得内訳表示を修正。",
-  "version": "6.3.1",
+  "notes": "v6.3.2: GSC URL解決層を共通化。高速一括exact→未取得のみ末尾スラッシュ差→http/https・www差→単記事containsの段階フォールバックと成功URLキャッシュを導入。",
+  "version": "6.3.2",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.3.1-ST"
+  "starter_display_version": "v6.3.2-ST"
 }

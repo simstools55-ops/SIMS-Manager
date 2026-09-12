@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.1
+ * SIMS Manager Product v6.3.2
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.1';
+const SBM_VERSION = '6.3.2';
+// v6.3.2: GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
 // v6.3.1: モノクロテーマを利用者向け動的UIへ横断適用。全showModalDialogを共通テーマラッパー経由に統一し、記事情報更新・日次処理・改善ナビ・履歴・設定・Doctor/Creator/SERP等の主要ダイアログへ反映。サイト健康診断書・aDoctor精密診断候補シートもモノクロ対応。記事情報更新の「クエリ未取得31件＝未発芽31件」誤表示を修正し、通常ランク維持/未発芽維持/復元/更新保留を正しく分類。
 // v6.3.0: サイト健康診断の開始前OK/キャンセル確認ダイアログを廃止。メニュー選択後は前提条件を確認して直ちに進捗Runnerを表示し、診断を開始する。未発芽再判定v6.2.99の安全ゲートは維持。
 // v6.2.99: 未発芽誤判定を修正。クエリ未取得だけで未発芽へ変更する処理を廃止し、クリック/表示回数の実績を正本とする。既存の誤判定記事を通常ランク基準で安全に復元する「未発芽判定を再確認」を追加。健康診断も保存済み未発芽ラベルより180日実績を優先。
@@ -3520,85 +3521,34 @@ function sbmUniqueCount_(arr) {
  * 取得結果はSearchConsole_Dataへ保存し、依頼文と内部リンク候補の両方に利用します。
  */
 function sbmFetchTopQueriesForUrlNow_(url, limit) {
-  var originalUrl = String(url || '').trim().split('#')[0].split('?')[0];
-  var normalizedUrl = sbmNormalizeUrl_(originalUrl);
-  limit = Math.max(1, Math.min(QUERY_ROW_LIMIT, Number(limit || QUERY_ROW_LIMIT)));
-  if (!normalizedUrl) return {ok:false, queries:[], message:'記事URLが正しくありません。'};
-  var property = sbmGetSetting_('SearchConsoleProperty','');
-  if (!property) return {ok:false, queries:[], message:'Search Consoleプロパティが設定されていません。'};
-  try {
-    var range = sbmSearchConsoleDateRange_();
-    var variants = [];
-    function addVariant(v){ v=String(v||'').trim(); if(v && variants.indexOf(v)<0) variants.push(v); }
-    addVariant(originalUrl);
-    addVariant(normalizedUrl);
-    addVariant(normalizedUrl.replace(/\/$/,''));
-    addVariant(normalizedUrl + (normalizedUrl.slice(-1)==='/'?'':'/'));
-
-    var apiRows = [];
-    var matchedUrl = '';
-    for (var vi=0; vi<variants.length && !apiRows.length; vi++) {
-      var data = sbmSearchConsoleApiRequest_(property, {
-        startDate: range.startDate,
-        endDate: range.endDate,
-        dimensions: ['query'],
-        // 改善依頼文へ最大200件を渡すため、少し余裕を持って取得します。
-        rowLimit: Math.max(QUERY_ROW_LIMIT, 250),
-        dimensionFilterGroups: [{filters:[{dimension:'page', operator:'equals', expression:variants[vi]}]}]
-      });
-      apiRows = data.rows || [];
-      if (apiRows.length) matchedUrl = variants[vi];
-    }
-
-    // Canonical URLや末尾スラッシュ差でequalsが0件の場合は、query×pageを取得して正規化照合します。
-    if (!apiRows.length) {
-      var pathMatch = normalizedUrl.match(/^https?:\/\/[^/]+(\/.*)$/i);
-      var pathExpr = pathMatch ? pathMatch[1].replace(/\/$/,'') : '';
-      if (pathExpr) {
-        var fallback = sbmSearchConsoleApiRequest_(property, {
-          startDate: range.startDate,
-          endDate: range.endDate,
-          dimensions: ['query','page'],
-          // フォールバックは候補確認用に限定し、大量取得によるタイムアウトを防ぎます。
-          rowLimit: 1000,
-          dimensionFilterGroups: [{filters:[{dimension:'page', operator:'contains', expression:pathExpr}]}]
-        });
-        apiRows = (fallback.rows || []).filter(function(r){
-          return r.keys && r.keys.length > 1 && sbmNormalizeUrl_(r.keys[1]) === normalizedUrl;
-        }).map(function(r){
-          return {keys:[r.keys[0]], clicks:r.clicks, impressions:r.impressions, ctr:r.ctr, position:r.position};
-        });
-        if (apiRows.length) matchedUrl = normalizedUrl;
-      }
-    }
-
-    var capturedAt = sbmNowText_();
-    var queries = apiRows.map(function(r){
+  var originalUrl=String(url||'').trim().split('#')[0].split('?')[0];
+  var normalizedUrl=sbmNormalizeUrl_(originalUrl);
+  limit=Math.max(1,Math.min(QUERY_ROW_LIMIT,Number(limit||QUERY_ROW_LIMIT)));
+  if(!normalizedUrl)return {ok:false,queries:[],message:'記事URLが正しくありません。'};
+  var property=sbmGetSetting_('SearchConsoleProperty','');
+  if(!property)return {ok:false,queries:[],message:'Search Consoleプロパティが設定されていません。'};
+  try{
+    var range=sbmSearchConsoleDateRange_();
+    var resolved=sbmGscFetchQueryRowsResolved_(originalUrl||normalizedUrl,range,Math.max(QUERY_ROW_LIMIT,250),true);
+    var apiRows=resolved.rows||[],capturedAt=sbmNowText_();
+    var queries=apiRows.map(function(r){
       return {
-        query: r.keys && r.keys[0] ? String(r.keys[0]) : '',
-        clicks: sbmNumber_(r.clicks || 0),
-        imps: sbmNumber_(r.impressions || 0),
-        ctr: sbmNormalizeCtrNumber_(r.ctr || 0),
-        position: sbmNumber_(r.position || 0)
+        query:r.keys&&r.keys[0]?String(r.keys[0]):'',
+        clicks:sbmNumber_(r.clicks||0),
+        imps:sbmNumber_(r.impressions||0),
+        ctr:sbmNormalizeCtrNumber_(r.ctr||0),
+        position:sbmNumber_(r.position||0)
       };
-    }).filter(function(r){ return r.query; });
-    queries.sort(function(a,b){
-      return (b.imps-a.imps) || (b.clicks-a.clicks) || (a.position-b.position);
-    });
-    // 改善ナビでは取得結果をそのまま利用します。
-    // SearchConsole_Data全体の読み直し・全件書き換えは行わず、タイムアウトと画面遷移を防ぎます。
+    }).filter(function(r){return r.query;});
+    queries.sort(function(a,b){return (b.imps-a.imps)||(b.clicks-a.clicks)||(a.position-b.position);});
     return {
-      ok:true,
-      queries:queries.slice(0, limit),
-      total:queries.length,
-      fetchedAt:capturedAt,
-      startDate:range.startDate,
-      endDate:range.endDate,
-      matchedUrl:matchedUrl,
-      message:queries.length ? ('最新クエリを'+queries.length+'件取得しました。') : '対象URLに一致するクエリは取得できませんでした。'
+      ok:true,queries:queries.slice(0,limit),total:queries.length,fetchedAt:capturedAt,
+      startDate:range.startDate,endDate:range.endDate,matchedUrl:String(resolved.matchedUrl||''),
+      matchStage:String(resolved.stage||''),
+      message:queries.length?('最新クエリを'+queries.length+'件取得しました。'):'対象URLに一致するクエリは取得できませんでした。'
     };
-  } catch(e) {
-    return {ok:false, queries:[], message:'最新クエリの取得に失敗しました。'+String(e && e.message || e)};
+  }catch(e){
+    return {ok:false,queries:[],message:'最新クエリの取得に失敗しました。'+String(e&&e.message||e)};
   }
 }
 
@@ -3638,41 +3588,27 @@ function sbmReplaceRawQueriesForUrl_(url, range, capturedAt, queries) {
  * エラーは握り潰さない。呼び出し側で明示的に処理する。
  */
 function sbmArticleInfoFetchMainQueryResult6Months_(url) {
-  url = sbmNormalizeUrl_(url || '');
-  if (!url) throw new Error('メインクエリ取得対象URLが空です。');
+  var originalUrl=String(url||'').trim();
+  var norm=sbmNormalizeUrl_(originalUrl);
+  if(!norm)throw new Error('メインクエリ取得対象URLが空です。');
 
-  var baseRange = sbmSearchConsoleDateRange_();
-  var endParts = String(baseRange.endDate || '').split('-');
-  if (endParts.length !== 3) throw new Error('Search Console対象期間の終了日を解釈できません。');
-  var endDateObj = new Date(Number(endParts[0]), Number(endParts[1]) - 1, Number(endParts[2]));
-  var startDateObj = new Date(endDateObj.getFullYear(), endDateObj.getMonth() - 6, endDateObj.getDate() + 1);
-  var startDate = sbmDateText_(startDateObj);
-  var endDate = String(baseRange.endDate || '');
-  var property = String(sbmGetSetting_('SearchConsoleProperty','') || '').trim();
-  if (!property) throw new Error('Search Consoleプロパティが設定されていません。');
+  var baseRange=sbmSearchConsoleDateRange_(),endParts=String(baseRange.endDate||'').split('-');
+  if(endParts.length!==3)throw new Error('Search Console対象期間の終了日を解釈できません。');
+  var endDateObj=new Date(Number(endParts[0]),Number(endParts[1])-1,Number(endParts[2]));
+  var startDateObj=new Date(endDateObj.getFullYear(),endDateObj.getMonth()-6,endDateObj.getDate()+1);
+  var range={startDate:sbmDateText_(startDateObj),endDate:String(baseRange.endDate||'')};
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
+  if(!property)throw new Error('Search Consoleプロパティが設定されていません。');
 
-  var data = sbmSearchConsoleApiRequest_(property, {
-    startDate: startDate,
-    endDate: endDate,
-    dimensions: ['query'],
-    rowLimit: 10,
-    dimensionFilterGroups: [{filters:[{dimension:'page', operator:'equals', expression:url}]}]
-  }) || {};
-  var rows = data.rows || [];
-  rows.sort(function(a,b){
-    var ac = sbmNumber_(a.clicks || 0), bc = sbmNumber_(b.clicks || 0);
-    var ai = sbmNumber_(a.impressions || 0), bi = sbmNumber_(b.impressions || 0);
-    if (ai !== bi) return bi - ai;
-    if (ac !== bc) return bc - ac;
-    var ap = sbmNumber_(a.position || 0), bp = sbmNumber_(b.position || 0);
-    if (ap && bp && ap !== bp) return ap - bp;
-    return 0;
-  });
-  var query = rows[0] && rows[0].keys && rows[0].keys[0] ? String(rows[0].keys[0]) : '';
-  return {query:query,rows:rows,startDate:startDate,endDate:endDate,property:property,url:url};
+  var resolved=sbmGscFetchQueryRowsResolved_(originalUrl||norm,range,10,true);
+  var rows=resolved.rows||[];
+  var query=rows[0]&&rows[0].keys&&rows[0].keys[0]?String(rows[0].keys[0]):'';
+  return {
+    query:query,rows:rows,startDate:range.startDate,endDate:range.endDate,property:property,
+    url:norm,matchedUrl:String(resolved.matchedUrl||''),matchStage:String(resolved.stage||'')
+  };
 }
 
-// 旧v6.2.35関数名は互換用に残す。内部では必ず共通関数を使用する。
 function sbmArticleInfoFetchMainQueryForUrl6Months_(url) {
   return sbmArticleInfoFetchMainQueryResult6Months_(url).query;
 }
@@ -4795,45 +4731,174 @@ function sbmRunSetupStep5DiagnosticOnly() {
 
 
 
+function sbmGscUrlCacheKey_(url){
+  var norm=sbmNormalizeUrl_(url||'');
+  if(!norm)return '';
+  var digest=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,norm,Utilities.Charset.UTF_8);
+  var hex=digest.map(function(b){var n=(b<0?b+256:b).toString(16);return n.length<2?'0'+n:n;}).join('');
+  return 'SBM_GSC_MATCH_'+hex.substring(0,40);
+}
+function sbmGscMatchedUrlGet_(url){
+  try{
+    var k=sbmGscUrlCacheKey_(url);if(!k)return '';
+    return String(PropertiesService.getDocumentProperties().getProperty(k)||'').trim();
+  }catch(e){return '';}
+}
+function sbmGscMatchedUrlPut_(url,matchedUrl){
+  try{
+    var k=sbmGscUrlCacheKey_(url),v=String(matchedUrl||'').trim();if(!k||!v)return;
+    PropertiesService.getDocumentProperties().setProperty(k,v);
+  }catch(e){}
+}
+function sbmGscUrlVariants_(url){
+  var raw=String(url||'').trim().split('#')[0].split('?')[0],norm=sbmNormalizeUrl_(raw),out=[];
+  function add(v){v=String(v||'').trim();if(v&&out.indexOf(v)<0)out.push(v);}
+  var cached=sbmGscMatchedUrlGet_(norm||raw);if(cached)add(cached);
+  add(raw);add(norm);
+  if(norm){
+    // Most common CMS/service difference: trailing slash.
+    add(norm==='/'?norm:(norm.slice(-1)==='/'?norm.replace(/\/+$/,''):norm+'/'));
+    var m=norm.match(/^(https?):\/\/([^/]+)(\/.*)?$/i);
+    if(m){
+      var scheme=String(m[1]||'https').toLowerCase(),host=String(m[2]||''),path=String(m[3]||'/');
+      // Protocol difference.
+      add((scheme==='https'?'http':'https')+'://'+host+path);
+      add((scheme==='https'?'http':'https')+'://'+host+(path==='/'?path:(path.slice(-1)==='/'?path.replace(/\/+$/,''):path+'/')));
+      // www difference. Domain properties may surface either representation.
+      var altHost=/^www\./i.test(host)?host.replace(/^www\./i,''):'www.'+host;
+      add(scheme+'://'+altHost+path);
+      add(scheme+'://'+altHost+(path==='/'?path:(path.slice(-1)==='/'?path.replace(/\/+$/,''):path+'/')));
+    }
+  }
+  return out;
+}
+function sbmGscSortQueryRows_(rows){
+  rows=(rows||[]).slice();
+  rows.sort(function(a,b){
+    var ai=sbmNumber_(a.impressions||0),bi=sbmNumber_(b.impressions||0);
+    if(ai!==bi)return bi-ai;
+    var ac=sbmNumber_(a.clicks||0),bc=sbmNumber_(b.clicks||0);
+    if(ac!==bc)return bc-ac;
+    var ap=sbmNumber_(a.position||0),bp=sbmNumber_(b.position||0);
+    return (ap||999)-(bp||999);
+  });
+  return rows;
+}
+function sbmGscFetchAllChunked_(requests,chunkSize){
+  requests=requests||[];chunkSize=Math.max(1,Math.min(100,Number(chunkSize||80)));
+  var out=[];
+  for(var i=0;i<requests.length;i+=chunkSize){
+    var chunk=requests.slice(i,i+chunkSize),res=[];
+    try{res=chunk.length?UrlFetchApp.fetchAll(chunk):[];}catch(e){res=[];}
+    for(var j=0;j<chunk.length;j++)out.push(res[j]||null);
+  }
+  return out;
+}
+function sbmGscExactRequest_(endpoint,token,range,pageUrl,rowLimit){
+  return {
+    url:endpoint,method:'post',contentType:'application/json',
+    payload:JSON.stringify({
+      startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
+      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:pageUrl}]}]
+    }),
+    headers:{Authorization:'Bearer '+token},muteHttpExceptions:true
+  };
+}
+function sbmGscParseQueryResponse_(res){
+  try{
+    if(!res||res.getResponseCode()<200||res.getResponseCode()>=300)return [];
+    return sbmGscSortQueryRows_((JSON.parse(res.getContentText()||'{}').rows||[]));
+  }catch(e){return [];}
+}
+function sbmGscFetchQueryRowsResolved_(url,range,rowLimit,allowContains){
+  var norm=sbmNormalizeUrl_(url||'');
+  if(!norm)return {rows:[],matchedUrl:'',stage:'INVALID'};
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
+  if(!property)return {rows:[],matchedUrl:'',stage:'NO_PROPERTY'};
+  var variants=sbmGscUrlVariants_(url),rows=[],matched='',stage='';
+  for(var i=0;i<variants.length&&!rows.length;i++){
+    var data=sbmSearchConsoleApiRequest_(property,{
+      startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
+      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:variants[i]}]}]
+    })||{};
+    rows=sbmGscSortQueryRows_(data.rows||[]);
+    if(rows.length){matched=variants[i];stage=(i===0?'EXACT_PRIMARY':'EXACT_VARIANT');}
+  }
+  if(!rows.length&&allowContains!==false){
+    var pathMatch=norm.match(/^https?:\/\/[^/]+(\/.*)$/i);
+    var pathExpr=pathMatch?String(pathMatch[1]||'').replace(/\/+$/,''):'';
+    if(pathExpr&&pathExpr!=='/'){
+      var fallback=sbmSearchConsoleApiRequest_(property,{
+        startDate:range.startDate,endDate:range.endDate,dimensions:['query','page'],rowLimit:1000,
+        dimensionFilterGroups:[{filters:[{dimension:'page',operator:'contains',expression:pathExpr}]}]
+      })||{};
+      rows=(fallback.rows||[]).filter(function(r){
+        return r.keys&&r.keys.length>1&&sbmNormalizeUrl_(r.keys[1])===norm;
+      }).map(function(r){
+        return {keys:[r.keys[0]],clicks:r.clicks,impressions:r.impressions,ctr:r.ctr,position:r.position};
+      });
+      rows=sbmGscSortQueryRows_(rows);
+      if(rows.length){matched=norm;stage='CONTAINS_NORMALIZED';}
+    }
+  }
+  if(rows.length&&matched)sbmGscMatchedUrlPut_(norm,matched);
+  return {rows:rows,matchedUrl:matched,stage:stage||'NOT_FOUND'};
+}
+
 function sbmFetchMainQueriesForUrlsBatch_(urls) {
-  urls=(urls||[]).map(function(u){return sbmNormalizeUrl_(u||'');});
-  var out=new Array(urls.length).fill('');
-  if(!urls.length)return out;
+  var originals=(urls||[]).map(function(u){return String(u||'').trim();});
+  var norms=originals.map(function(u){return sbmNormalizeUrl_(u||'');});
+  var out=new Array(norms.length).fill('');
+  if(!norms.length)return out;
 
   var range=sbmSearchConsoleDateRange_();
-  var property=sbmGetSetting_('SearchConsoleProperty','');
+  var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
   if(!property)return out;
-
-  // まず従来どおりexact一致をfetchAllで高速確認する。
   var endpoint='https://www.googleapis.com/webmasters/v3/sites/'+encodeURIComponent(property)+'/searchAnalytics/query';
-  var token=ScriptApp.getOAuthToken();
-  var requests=[],indexes=[];
-  urls.forEach(function(url,i){
-    if(!url)return;
-    var body={startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:10,
-      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:url}]}]};
-    requests.push({url:endpoint,method:'post',contentType:'application/json',payload:JSON.stringify(body),headers:{Authorization:'Bearer '+token},muteHttpExceptions:true});
-    indexes.push(i);
-  });
-  var responses=[];
-  try{responses=requests.length?UrlFetchApp.fetchAll(requests):[];}catch(batchError){responses=[];}
-  indexes.forEach(function(originalIndex,j){
-    try{
-      var res=responses[j];
-      if(!res||res.getResponseCode()<200||res.getResponseCode()>=300)return;
-      var data=JSON.parse(res.getContentText()||'{}'),rows=data.rows||[];
-      rows.sort(function(a,b){
-        var as=sbmNumber_(a.clicks||0)*1000+sbmNumber_(a.impressions||0);
-        var bs=sbmNumber_(b.clicks||0)*1000+sbmNumber_(b.impressions||0);
-        return bs-as;
-      });
-      out[originalIndex]=rows.length&&rows[0].keys&&rows[0].keys[0]?String(rows[0].keys[0]):'';
-    }catch(ignoreExact){}
-  });
+  var token=ScriptApp.getOAuthToken(),tried={};
 
-  // v6.2.27: exact一致で0件だったURLはここで深追いしない。
-  // URL variants / contains の個別照会は改善ナビ等の既存機能側に残し、
-  // 「記事情報を更新」では一括fetchAll 1回だけで終了する。
+  function runStage(candidates){
+    var req=[],meta=[];
+    candidates.forEach(function(x){
+      if(!x||!x.url||out[x.index])return;
+      var key=x.index+'\n'+x.url;if(tried[key])return;tried[key]=true;
+      req.push(sbmGscExactRequest_(endpoint,token,range,x.url,10));
+      meta.push(x);
+    });
+    var responses=sbmGscFetchAllChunked_(req,80);
+    responses.forEach(function(res,j){
+      var x=meta[j];if(!x||out[x.index])return;
+      var rows=sbmGscParseQueryResponse_(res);
+      if(rows.length&&rows[0].keys&&rows[0].keys[0]){
+        out[x.index]=String(rows[0].keys[0]);
+        sbmGscMatchedUrlPut_(norms[x.index],x.url);
+      }
+    });
+  }
+
+  // Stage 1: cached matched URL first; otherwise canonical internal URL.
+  runStage(norms.map(function(norm,i){
+    return {index:i,url:sbmGscMatchedUrlGet_(norm)||norm};
+  }));
+
+  // Stage 2: unresolved only, trailing-slash counterpart. This fixes the common WP/CMS mismatch cheaply.
+  runStage(norms.map(function(norm,i){
+    if(out[i]||!norm)return null;
+    return {index:i,url:(norm.slice(-1)==='/'?norm.replace(/\/+$/,''):norm+'/')};
+  }).filter(Boolean));
+
+  // Stage 3: unresolved only, remaining exact variants (http/https and www differences).
+  var variants=[];
+  norms.forEach(function(norm,i){
+    if(out[i]||!norm)return;
+    sbmGscUrlVariants_(originals[i]||norm).forEach(function(v){
+      variants.push({index:i,url:v});
+    });
+  });
+  runStage(variants);
+
+  // Batch path intentionally stops here. Heavy contains fallback is reserved for single-article
+  // requests (article-info worker / Improvement Navi), so a large site does not multiply latency.
   return out;
 }
 
