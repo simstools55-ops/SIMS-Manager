@@ -8,7 +8,7 @@ checks={
  'single_title':'<h2>新記事を作成</h2>' not in seg and "sbmShowThemedModalDialog_(html,'新記事を作成')" in seg,
  'explicit_uncheck':'if(!articleType){document.querySelectorAll("input[name=articleType]").forEach(function(r){r.checked=false})}' in seg,
  'reveal_step2':'show("stepSelect");renderChecks();' in seg,
- 'scroll_step2':'stepSelect").scrollIntoView' in seg,
+ 'scroll_step2':'scrollIntoView({behavior:"smooth",block:"start"})' in seg,
  'hint':'記事タイプを選ぶと、②「Creatorへ渡したい情報を選ぶ」が下に表示されます。' in seg,
 }
 bad=[k for k,v in checks.items() if not v]
