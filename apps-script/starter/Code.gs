@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.3.4
+ * SIMS Manager Product v6.3.5
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.3.4';
+const SBM_VERSION = '6.3.5';
+// v6.3.5: SERP参入余地チェックのJSON受信部をV2正式対応。V1も後方互換で受け付け、生成側V2と受信側V1の不整合を解消。依頼formatと受信formatの整合性テストを追加。
 // v6.3.4: 今日の改善0件時の新記事候補/BOS自動探索を廃止し、健康診断→精密診断へ案内。新記事キーワード参入確認はClaude標準、SERP上位10件＋判定困難時のみ11〜20位追加調査へ変更。GREEN/YELLOW/PINK/REDへ統一し、aCreator進行はGREENのみ。
 // v6.3.3: モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
 // v6.3.2: GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
@@ -20633,11 +20634,13 @@ function sbmSerpPrepareCheck(keyword){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmSerpExtractReviewJson_(raw){
-  var t=String(raw||'').trim();if(!t)throw new Error('AIのSERP精査回答を貼り付けてください。');
+  var t=String(raw||'').trim();if(!t)throw new Error('ClaudeのSERP精査回答を貼り付けてください。');
   function accept(c){
     try{
       var o=JSON.parse(String(c||'').trim());
-      return o&&String(o.format||'')==='SIMS_MANAGER_SERP_ENTRY_REVIEW_V1'?o:null;
+      if(!o)return null;
+      var f=String(o.format||'').trim();
+      return (f==='SIMS_MANAGER_SERP_ENTRY_REVIEW_V2'||f==='SIMS_MANAGER_SERP_ENTRY_REVIEW_V1')?o:null;
     }catch(ignore){return null;}
   }
   var whole=accept(t);if(whole)return whole;
@@ -20649,7 +20652,7 @@ function sbmSerpExtractReviewJson_(raw){
       var objText=sbmDoctorBalancedJsonFrom_(t,i),y=accept(objText);if(y)return y;
     }catch(ignore2){}
   }
-  throw new Error('SIMS_MANAGER_SERP_ENTRY_REVIEW_V1 のJSONを読み取れませんでした。Claudeの回答全文をそのまま貼り付けてください。');
+  throw new Error('SIMS_MANAGER_SERP_ENTRY_REVIEW_V2 / V1 のJSONを読み取れませんでした。Claudeの回答全文をそのまま貼り付けてください。');
 }
 function sbmSerpGradeFromRank_(rank){
   var r=Number(rank);

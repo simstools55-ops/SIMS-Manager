@@ -1,8 +1,8 @@
-feat: streamline zero-work advice and SERP entry review (v6.3.4)
+fix: accept SERP review V2 responses (v6.3.5)
 
-- replace zero-candidate new-article discovery with health-check guidance
-- standardize SERP review on Claude
-- review top 10 results first and extend to 11-20 only when needed
-- unify entry grades as GREEN, YELLOW, PINK and RED
-- allow aCreator progression only for GREEN
+- accept SIMS_MANAGER_SERP_ENTRY_REVIEW_V2 in the SERP review extractor
+- keep V1 backward compatibility
+- align generated request format with accepted response formats
+- update validation messaging
+- add regression coverage for SERP format compatibility
 - sync Full and Starter editions
