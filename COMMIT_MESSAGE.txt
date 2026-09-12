@@ -1,8 +1,8 @@
-fix: make new article type selection advance reliably (v6.4.3)
+style: finish changed user sheets after workflows (v6.4.4)
 
-- replace change-handler dependency with explicit radio onclick handlers
-- centralize article-type selection in chooseArticleType
-- reveal and render step 2 immediately after selection
-- scroll to step 2 from the same transition function
-- reuse the same path when resuming saved workflows
+- add a shared lightweight presentation finisher for user-facing sheets
+- restyle only Article Management, Improvement Status and Improvement History when changed
+- reapply the active display theme without data recomputation
+- connect the finisher to Creator, Writer, Merge and monitoring completion
+- avoid GSC calls, Doctor-wide reconciliation and full-sheet workflow rebuilds
 - sync Full and Starter editions

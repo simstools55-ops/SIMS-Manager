@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.3
+ * SIMS Manager Product v6.4.4
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.3';
+const SBM_VERSION = '6.4.4';
+// v6.4.4: Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。
 // v6.4.3: 新記事作成ダイアログの①→②遷移を修正。radioのchangeハンドラ依存をやめ、クリック時に明示関数を呼ぶ方式へ変更。初期化後にも選択状態を再判定し、②の表示・項目描画・スクロールを確実化。
 // v6.4.2: 新記事作成ダイアログの初期UIを修正。ダイアログタイトルと本文H2の二重表示を解消し、新規開始時は記事タイプを未選択で明示。AdSense/アフィリエイトを選んだ瞬間に②の項目選択を確実に表示し、自動スクロールする。
 // v6.4.1: 「新記事関連」に新しい「新記事を作成」Workflowを追加。AdSense/アフィリエイトを選び、Creatorへ渡したい任意項目だけをチェックして一覧入力できる。未入力はSIMS判断とし、実体験の捏造を禁止。入力途中・Creator回答待ち・公開登録待ちはWorkflow Caseへ保存し、「未完了の作業を再開」から同じ画面へ復帰できる。
@@ -13321,6 +13322,63 @@ function sbmApplyHistoryDisplayTheme_(sh){
   }
 }
 
+
+/**
+ * v6.4.4: Workflow完了後に、変更された利用者向けシートだけを表示仕上げする。
+ * データ再計算・GSC取得・Doctor整合は行わず、既存の閲覧用書式と現在テーマだけを適用する。
+ */
+function sbmFinishUserSheetPresentation_(targets){
+  targets=targets||{};
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+
+  if(targets.article){
+    try{
+      var article=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
+      if(article){
+        sbmEnsureArticleListFilter_(article);
+        sbmStyleArticleDbSheet_(article);
+        sbmApplyArticleDbDisplayTheme_(article);
+      }
+    }catch(eArticle){try{sbmLog_('FinishPresentationArticle','Warning',String(eArticle));}catch(ignoreArticleLog){}}
+  }
+
+  if(targets.effect){
+    try{
+      var effect=ss.getSheetByName(SBM_SHEETS.EFFECT);
+      if(effect){
+        sbmStyleEffectSheetViewOnly_(effect);
+        sbmApplyEffectDisplayTheme_(effect);
+      }
+    }catch(eEffect){try{sbmLog_('FinishPresentationEffect','Warning',String(eEffect));}catch(ignoreEffectLog){}}
+  }
+
+  if(targets.history){
+    try{
+      var history=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+      if(history){
+        sbmEnsureImprovementHistoryViewLight_();
+        sbmEnsureArticleListFilter_(history);
+        sbmApplyHistoryDisplayTheme_(history);
+      }
+    }catch(eHistory){try{sbmLog_('FinishPresentationHistory','Warning',String(eHistory));}catch(ignoreHistoryLog){}}
+  }
+
+  if(targets.today){
+    try{
+      var today=ss.getSheetByName(SBM_SHEETS.TODAY);
+      if(today)sbmApplyTodayDisplayTheme_(today);
+    }catch(eToday){try{sbmLog_('FinishPresentationToday','Warning',String(eToday));}catch(ignoreTodayLog){}}
+  }
+
+  if(targets.home){
+    try{
+      var home=ss.getSheetByName(SBM_SHEETS.HOME);
+      if(home)sbmApplyHomeDisplayTheme_(home);
+    }catch(eHome){try{sbmLog_('FinishPresentationHome','Warning',String(eHome));}catch(ignoreHomeLog){}}
+  }
+  return true;
+}
+
 function sbmApplyVisibleSheetDisplayThemes_(){
   if(!sbmIsMonochromeTheme_())return;
   var ss=SpreadsheetApp.getActiveSpreadsheet();
@@ -17910,6 +17968,7 @@ function sbmDoctorCompleteCloseMonitoring(caseId,articleId,articleUrl,historyId)
     try{var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT),hm=sh?sbmHeaderMap_(sh):{},last=sh?sh.getLastRow():0;if(sh&&last>=2){var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getDisplayValues();for(var i=vals.length-1;i>=0;i--){var aid=hm['ArticleID']?String(vals[i][hm['ArticleID']-1]||'').trim():'',hid=hm['改善履歴ID']?String(vals[i][hm['改善履歴ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(vals[i][hm['記事URL']-1]||''):'';if((historyId&&hid===historyId)||(articleId&&aid===articleId)||(!articleId&&articleUrl&&url===sbmNormalizeUrl_(articleUrl)))sh.deleteRow(i+2);}}}catch(eEffect){try{sbmLog_('CloseMonitoringEffect','Warning',String(eEffect));}catch(ignoreEffectLog){}}
     if(caseId){try{var csh=sbmDoctorEnsureCaseSheet_(),ch=sbmHeaderMap_(csh),rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];for(var j=rows.length-1;j>=0;j--){if(String(rows[j]['CaseID']||'').trim()===caseId){var rr=rows[j]._rowNumber;if(ch['状態コード'])csh.getRange(rr,ch['状態コード']).setValue('COMPLETED');if(ch['状態'])csh.getRange(rr,ch['状態']).setValue('モニター終了・完了');if(ch['更新日時'])csh.getRange(rr,ch['更新日時']).setValue(sbmNowText_());break;}}}catch(eCase){try{sbmLog_('CloseMonitoringCase','Warning',String(eCase));}catch(ignoreCaseLog){}}try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'COMPLETED',registration_status:'DONE',registered_at:sbmNowText_(),last_error:''});}catch(ignoreMeta){}}
     try{sbmRefreshHomeMonitoringDelta_();}catch(ignoreHomeDelta){}
+    try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true,home:true});}catch(ignoreClosePresentation){}
     return {ok:true,message:'モニターを終了し、完了として登録しました。改善履歴とaDoctor診断記録は保持しています。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
@@ -19582,6 +19641,7 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
   // sbmDoctorEnsureMonitoringSync_ は全件の改善経路同期・改善の推移再生成・Home更新まで
   // 実行するため、Creator登録トランザクション内では呼ばない。
   try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}
+  try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true});}catch(ignoreCreatorPresentation){}
   return {ok:true,caseId:caseId,articleId:articleId,articleUrl:url,monitorDays:monitorDays,reviewDate:reviewText,message:'aCreator新記事の公開を登録しました。\nArticleID：'+articleId+'\n記事管理：モニター中\n再診予定：'+monitorDays+'日後（'+reviewText+'）'};
 }
 function sbmDoctorCompleteSiteDiagnosisCreatorTreatment(caseId,articleUrl,articleTitle){try{return sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle);}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
@@ -20368,6 +20428,7 @@ function sbmDoctorCompleteMergeUserActions_(caseId,checks){
     var next=sbmDoctorCreateNextMultiMergeStep_(rec,multi),absorbedStepOk=absorbedResult.filter(function(x){return x&&x.ok;}).length;
     // Step途中でも、今回吸収した記事の旧Monitoring行は即時に「改善の推移」から除外する。
     sbmDoctorRefreshEffectCacheAfterMerge_();
+    try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true});}catch(ignoreMultiMergePresentation){}
     return {ok:true,caseId:caseId,articleId:articleId,status:'複数記事統合 '+multi.currentStep+'/'+multi.totalSteps+' 完了',multiMerge:true,currentStep:multi.currentStep,totalSteps:multi.totalSteps,nextStep:next&&next.step||0,nextCaseId:next&&next.caseId||'',nextRequest:next&&JSON.stringify(next.request,null,2)||'',absorbedArchived:absorbedStepOk,message:'複数記事統合のStep '+multi.currentStep+'/'+multi.totalSteps+' を完了として登録しました。\n'+(absorbedStepOk?'今回の吸収記事：'+absorbedStepOk+'件を処理済みにしました。\n':'')+'次は Step '+(multi.currentStep+1)+'/'+multi.totalSteps+' です。\n「未完了の作業を再開」から次のaMerge Packageを開けます。\n最終Stepが完了するまでモニタリングへは移しません。'};
   }
   var feedback={format:'SIMS_FEEDBACK_V2',contract_version:'4.2',article_id:articleId,article_url:articleUrl,completed_at:sbmNowText_(),ai_name:'SIMS Merge',improvement_method:multi?'連続aMerge':'aDoctor→aMerge',summary:(multi?'複数記事の連続統合を完了。':'aDoctor診断に基づく記事統合を実施。')+'統合先記事の公開と'+(redirectMode==='301'?'301リダイレクト設定':'301設定不可ブログでの吸収記事検索対象外化')+'を利用者が確認済み。',publication_result:{change_summary:['Merge統合原稿を公開',redirectMode==='301'?'301リダイレクト設定':'301設定不可・吸収記事を検索改善管理から除外'],public_ok_changes:[],user_decision_changes:[]},recommended_review_days:28,next_action:'remeasure',warnings:[]};
@@ -20377,6 +20438,7 @@ function sbmDoctorCompleteMergeUserActions_(caseId,checks){
   // 新しいMerge履歴ID・改善経路と、吸収記事の管理対象外化を「改善の推移」へ即時反映する。
   sbmDoctorRefreshEffectCacheAfterMerge_();
   try{sbmRefreshHome_({light:true});}catch(eSync){sbmLog_('MergeFinalMonitoringLightRefresh','Warning',String(eSync));}
+  try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true,home:true});}catch(ignoreMergePresentation){}
   var absorbedOk=absorbedResult.filter(function(x){return x&&x.ok;}).length;
   return {ok:true,caseId:caseId,articleId:articleId,status:'モニター中',multiMerge:!!multi,currentStep:multi?multi.currentStep:1,totalSteps:multi?multi.totalSteps:1,absorbedArchived:absorbedOk,message:(multi?'複数記事統合の最終Step '+multi.currentStep+'/'+multi.totalSteps+' が完了しました。\n':'aMerge処置を完了として登録しました。\n')+(title?'対象記事：'+title+'\n':'')+'ArticleID：'+articleId+'\n状態：モニター中\n改善経路：'+(multi?'連続aMerge':'aDoctor→aMerge')+'\n7日目・14日目・21日目・28日目の効果測定対象へ登録しました。'+(absorbedOk?'\n今回の吸収記事：'+absorbedOk+'件を「'+(redirectMode==='301'?'301統合済み':'統合済み（リダイレクト不可）')+'」として管理対象外へ移しました。':'')};
 }
@@ -20704,6 +20766,7 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
     catch(eFinalEffect){sbmLog_('DoctorWriterSingleEffectSync','Warning',String(eFinalEffect));}
     // Homeは次回表示時に最新状態から再構築する。ここでは同期再集計しない。
     try{sbmInvalidateHomeSnapshot_();}catch(eFinalHome){sbmLog_('DoctorWriterHomeInvalidate','Warning',String(eFinalHome));}
+    try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true});}catch(ignoreWriterPresentation){}
   }
   var writerFollowUp={required:false};
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
