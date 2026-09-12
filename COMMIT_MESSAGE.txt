@@ -1,8 +1,12 @@
-perf: use delta Home refresh for monitoring completion (v6.4.0)
+feat: add resumable new article creation workflow (v6.4.1)
 
-- remove full Home rebuild from CLOSE_MONITORING completion
-- refresh only article-work and monitoring summary cells
-- read only Article DB and Improvement Status for the delta
-- preserve the active display theme during completion
-- avoid prepainting standard Home status colors in monochrome mode
+- add New Article Creation under the new-article menu
+- support AdSense and affiliate article modes
+- let users choose only the optional fields they want to provide
+- include personal experience, close-person experience and review inputs
+- treat unchecked or blank fields as SIMS-decides
+- prevent Creator from inventing personal experience
+- save draft, Creator request and Creator response as workflow checkpoints
+- resume interrupted creation from unfinished work
+- register the published article and start monitoring through the existing Creator path
 - sync Full and Starter editions

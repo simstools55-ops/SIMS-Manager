@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.0
+ * SIMS Manager Product v6.4.1
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.0';
+const SBM_VERSION = '6.4.1';
+// v6.4.1: 「新記事関連」に新しい「新記事を作成」Workflowを追加。AdSense/アフィリエイトを選び、Creatorへ渡したい任意項目だけをチェックして一覧入力できる。未入力はSIMS判断とし、実体験の捏造を禁止。入力途中・Creator回答待ち・公開登録待ちはWorkflow Caseへ保存し、「未完了の作業を再開」から同じ画面へ復帰できる。
 // v6.4.0: CLOSE_MONITORING完了時のHome全再構築を廃止。記事DBと改善の推移だけを軽量再集計して、作業状態・モニター判定内訳の対象セルだけ差分更新する。モノクロテーマでは標準色を一度描画してから上書きする二重描画も抑止。
 // v6.3.9: 「未完了の作業を再開」でDOCTOR_NORMAL_CLOSE（CLOSE_MONITORING完了待ち）を正式に抽出・表示・再開。保存済みDoctor結果から③の終了内容を復元し、再診を発行せず「モニターを終了して完了登録」へ直接戻れるようにした。
 // v6.3.8: aDoctor V2の workflow_handoff.next_action=CLOSE_MONITORING を正式なWorkflow終端として認識。③に終了理由・不要処置・任意処置を表示し、1クリックで完了同期する。
@@ -13424,6 +13425,8 @@ function onOpen() {
   if (isFullEdition) {
     ui.createMenu('新記事関連')
       .addItem('新記事キーワードの参入余地を確認','sbmOpenSerpEntryCheckDialog')
+      .addItem('新記事を作成','sbmOpenNewArticleCreation')
+      .addSeparator()
       .addItem('aCreatorで作成した新記事を登録','sbmOpenCreatorPublicationRegisterDialog')
       .addToUi();
   }
@@ -18551,7 +18554,10 @@ function sbmDoctorResumeStateLabel_(state){
     'MERGE_USER_ACTION_REQUIRED':'統合記事の公開・301等の処置待ち',
     'CREATOR_REQUEST_READY':'aCreatorへの依頼待ち',
     'CREATOR_IN_PROGRESS':'新記事の公開登録待ち',
-    'DOCTOR_NORMAL_CLOSE':'aDoctor診断済み・モニター終了待ち'
+    'DOCTOR_NORMAL_CLOSE':'aDoctor診断済み・モニター終了待ち',
+    'NEW_ARTICLE_SETUP':'新記事の入力準備中',
+    'NEW_ARTICLE_CREATOR_IN_PROGRESS':'aCreatorの回答待ち',
+    'NEW_ARTICLE_PUBLICATION_PENDING':'新記事の公開登録待ち'
   };
   return m[String(state||'')]||String(state||'未完了');
 }
@@ -18570,7 +18576,10 @@ function sbmDoctorResumeNextActionLabel_(state){
     'MERGE_USER_ACTION_REQUIRED':'統合原稿の公開と301等を確認して完了登録します。',
     'CREATOR_REQUEST_READY':'aCreatorへ新記事作成依頼を渡します。',
     'CREATOR_IN_PROGRESS':'公開した新記事URLを登録してモニターを開始します。',
-    'DOCTOR_NORMAL_CLOSE':'aDoctorの終了判定を確認し、モニターを終了して完了登録します。'
+    'DOCTOR_NORMAL_CLOSE':'aDoctorの終了判定を確認し、モニターを終了して完了登録します。',
+    'NEW_ARTICLE_SETUP':'入力項目の選択・入力を続けて、aCreator依頼文を作成します。',
+    'NEW_ARTICLE_CREATOR_IN_PROGRESS':'保存済み依頼文からaCreator作成を続け、回答を登録します。',
+    'NEW_ARTICLE_PUBLICATION_PENDING':'保存済みaCreator回答を使い、公開URLを登録してモニターを開始します。'
   };
   return m[String(state||'')]||'保存済みの続きから再開します。';
 }
@@ -18595,6 +18604,7 @@ function sbmDoctorResumeWorkSummary_(row,hm,wfIndex){
   if(state==='USER_ACTION_REQUIRED'||state==='USER_DECISION_REQUIRED')return 'aDoctor診断後の確認・判断';
   if(state==='FOLLOW_UP_REQUEST_READY')return 'aDoctorの追加診断';
   if(state==='DOCTOR_NORMAL_CLOSE')return 'aDoctor診断後のモニター終了・完了登録';
+  if(state==='NEW_ARTICLE_SETUP'||state==='NEW_ARTICLE_CREATOR_IN_PROGRESS'||state==='NEW_ARTICLE_PUBLICATION_PENDING')return '新記事作成（aCreator）';
   return 'aDoctorによる記事の精密診断';
 }
 function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex){
@@ -18662,7 +18672,7 @@ function sbmDoctorIsResumeCleanupCandidate_(caseId){
   var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
   if(last<2)return {ok:false};
   var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
-  var active={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
+  var active={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1};
   var wfIndex=sbmDoctorWorkflowResumeIndex_();var items=sbmDoctorResumeChooserItems_(vals,hm,active,wfIndex);
   for(var i=0;i<items.length;i++)if(items[i].caseId===String(caseId||''))return {ok:true,item:items[i]};
   return {ok:false};
@@ -18711,6 +18721,8 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
     var state=rec.hm['状態コード']?String(rec.values[rec.hm['状態コード']-1]||'').trim():'';
     var doctorOrConfirm={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'DOCTOR_NORMAL_CLOSE':1};
     var treatment={'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
+    var newArticle={'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1};
+    if(newArticle[state]){sbmShowNewArticleCreationDialog_(caseId);return {ok:true};}
     if(doctorOrConfirm[state]){sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));return {ok:true};}
     if(treatment[state]){sbmDoctorRegisterSiteDiagnosisResult(true,caseId);return {ok:true};}
     throw new Error('現在の状態は再開対象ではありません：'+state);
@@ -18767,9 +18779,13 @@ function sbmResumeUnfinishedWorkflowCore_(){
       'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,
       'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1
     };
+    var newArticle={
+      'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1
+    };
     var failed=[],doctorCandidate=null,activeMap={};
     Object.keys(doctorOrConfirm).forEach(function(k){activeMap[k]=1;});
     Object.keys(treatment).forEach(function(k){activeMap[k]=1;});
+    Object.keys(newArticle).forEach(function(k){activeMap[k]=1;});
     var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex);
     for(var i=vals.length-1;i>=0;i--){
       var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
@@ -18778,7 +18794,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
         failed.push(hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'');
         continue;
       }
-      if(!doctorOrConfirm[state]&&!treatment[state])continue;
+      if(!doctorOrConfirm[state]&&!treatment[state]&&!newArticle[state])continue;
       var du=hm['更新日時']?sbmParseDate_(row[hm['更新日時']-1]):null,ts=du?du.getTime():0;
       var dcCaseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
       if(!doctorCandidate||ts>doctorCandidate.ts)doctorCandidate={row:row,state:state,ts:ts,caseId:dcCaseId};
@@ -18788,6 +18804,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
     // 1件だけなら従来どおり直接再開。通常改善との競合も従来の最終更新優先を維持。
     if(normal&&(!doctorCandidate||normal.ts>=doctorCandidate.ts))return sbmResumeNormalImprovementWorkflow_(normal);
     if(doctorCandidate){
+      if(newArticle[doctorCandidate.state]){sbmShowNewArticleCreationDialog_(doctorCandidate.caseId);return;}
       if(doctorOrConfirm[doctorCandidate.state]){
         sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(doctorCandidate.row,hm));
         return;
@@ -19022,6 +19039,260 @@ function sbmDoctorProcessSiteDiagnosisCreator_(o){
  * Product 5.12.2: aCreator回答全文＋必要時の手入力URLから公開済み新記事をSIMSへ登録します。Diagnosis/SIMS起点だけでなくaCreator単独作成にも対応します。
  * 利用者はaCreatorの回答（説明文＋JSON）をそのまま貼り付けるだけです。
  */
+
+/* ========================================================================== *
+ * v6.4.1: 新記事作成 Workflow
+ * ========================================================================== */
+
+function sbmNewArticleFieldDefinitions_(){
+  return [
+    {key:'main_keyword',label:'メインキーワード・作成したいテーマ',group:'common',kind:'text',placeholder:'例：Windows11 ○○ 設定。空欄ならSIMSに任せます。'},
+    {key:'target_reader',label:'想定読者',group:'common',kind:'textarea',placeholder:'どんな人に読んでほしいか。空欄ならSIMSに任せます。'},
+    {key:'include_topics',label:'記事に入れたい内容',group:'common',kind:'textarea',placeholder:'必ず触れてほしい内容、見出し候補など。'},
+    {key:'exclude_topics',label:'記事に入れたくない内容',group:'common',kind:'textarea',placeholder:'避けたい話題・表現・構成など。'},
+    {key:'own_experience',label:'自分の体験・使用感',group:'common',kind:'textarea',placeholder:'自分で使った・試した・困った・解決したなどの実体験。'},
+    {key:'close_person_experience',label:'家族・知人など身近な人の体験',group:'common',kind:'textarea',placeholder:'誰の体験か分かる範囲で記入。本人の体験と混同しないようCreatorへ渡します。'},
+    {key:'reviews_reputation',label:'口コミ・評判として伝えたい内容',group:'common',kind:'textarea',placeholder:'ネット上の口コミ、よく見る評価、紹介したい評判など。出典URLがあれば参考URLにも入力できます。'},
+    {key:'must_use_episode',label:'必ず入れたいエピソード',group:'common',kind:'textarea',placeholder:'記事の独自性として必ず残したい具体的な出来事。'},
+    {key:'reference_urls',label:'参考URL',group:'common',kind:'textarea',placeholder:'1行1URLでも、URL＋メモでも構いません。'},
+    {key:'notes',label:'その他の補足指示',group:'common',kind:'textarea',placeholder:'上記以外にCreatorへ伝えたいこと。'},
+    {key:'product_name',label:'紹介する商品・サービス名',group:'affiliate',kind:'text',placeholder:'商品名、サービス名。'},
+    {key:'official_url',label:'公式ページURL',group:'affiliate',kind:'url',placeholder:'https://...'},
+    {key:'affiliate_link',label:'アフィリエイトリンク',group:'affiliate',kind:'url',placeholder:'https://...'},
+    {key:'product_url',label:'紹介商品・販売ページURL',group:'affiliate',kind:'url',placeholder:'Amazon・楽天・販売ページ等。'},
+    {key:'comparison_targets',label:'比較したい商品・サービス',group:'affiliate',kind:'textarea',placeholder:'比較対象と、分かればURLも記入。'},
+    {key:'price_campaign',label:'価格・キャンペーン情報',group:'affiliate',kind:'textarea',placeholder:'価格や期間限定情報。未入力ならCreator側で確認を求めるか、断定を避けます。'},
+    {key:'selling_points',label:'訴求したいポイント',group:'affiliate',kind:'textarea',placeholder:'購入メリット、強調したい特徴、CTAの方向性など。'},
+    {key:'avoid_claims',label:'避けたい訴求・表現',group:'affiliate',kind:'textarea',placeholder:'誇張表現、保証できない表現、避けたい比較など。'}
+  ];
+}
+
+function sbmNewArticleDraftTitle_(articleType,values){
+  values=values||{};
+  var core=String(values.main_keyword||values.product_name||'').trim();
+  var type=String(articleType||'').toUpperCase()==='AFFILIATE'?'アフィリエイト':'AdSense';
+  return core?('新記事作成｜'+core):('新記事作成｜'+type+'｜SIMSに任せる');
+}
+
+function sbmNewArticleCreateCase_(articleType,selectedFields,values){
+  articleType=String(articleType||'').toUpperCase();
+  if(['ADSENSE','AFFILIATE'].indexOf(articleType)<0)throw new Error('記事タイプをAdSenseまたはアフィリエイトから選択してください。');
+  selectedFields=Array.isArray(selectedFields)?selectedFields.map(String):[];
+  values=values&&typeof values==='object'?values:{};
+  var draftId='NEW'+Utilities.formatDate(new Date(),SBM_DEFAULTS.TIMEZONE,'HHmmss');
+  var caseId=sbmDoctorGenerateCaseId_(draftId);
+  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),h=SBM_HEADERS.DOCTOR_CASES,row=new Array(h.length).fill('');
+  function put(k,v){if(hm[k])row[hm[k]-1]=v===undefined||v===null?'':v;}
+  var title=sbmNewArticleDraftTitle_(articleType,values),now=sbmNowText_(),siteId=String(sbmGetSetting_('SiteID','')||'');
+  var synthetic={format:'SIMS_MANAGER_NEW_ARTICLE_WORKFLOW_V1',case_id:caseId,site_id:siteId,creator_plan:{candidate_keyword:String(values.main_keyword||''),monitor_days:28},article_type:articleType};
+  put('CaseID',caseId);put('サイトID',siteId);put('記事ID',draftId);put('記事URL','');put('記事タイトル',title);
+  put('状態コード','NEW_ARTICLE_SETUP');put('状態','新記事の入力内容を準備中');put('紹介先','SIMS_ARTICLE_CREATOR');
+  put('Doctor結果JSON',JSON.stringify(synthetic));put('作成日時',now);put('更新日時',now);
+  sh.getRange(sh.getLastRow()+1,1,1,row.length).setValues([row]);
+  var draft={format:'SIMS_MANAGER_NEW_ARTICLE_DRAFT_V1',case_id:caseId,article_type:articleType,selected_fields:selectedFields,values:values,updated_at:now};
+  sbmDoctorWorkflowWritePayload_(caseId,'NEW_ARTICLE_DRAFT',JSON.stringify(draft));
+  sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'NEW_ARTICLE_CREATION',current_stage:'NEW_ARTICLE_SETUP',registration_status:'WAITING'});
+  return caseId;
+}
+
+function sbmNewArticleUpdateCase_(caseId,articleType,selectedFields,values,state,label){
+  caseId=String(caseId||'').trim();
+  var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('新記事作成Caseが見つかりません。');
+  articleType=String(articleType||'').toUpperCase();
+  if(['ADSENSE','AFFILIATE'].indexOf(articleType)<0)throw new Error('記事タイプを選択してください。');
+  selectedFields=Array.isArray(selectedFields)?selectedFields.map(String):[];
+  values=values&&typeof values==='object'?values:{};
+  var draft={format:'SIMS_MANAGER_NEW_ARTICLE_DRAFT_V1',case_id:caseId,article_type:articleType,selected_fields:selectedFields,values:values,updated_at:sbmNowText_()};
+  sbmDoctorWorkflowWritePayload_(caseId,'NEW_ARTICLE_DRAFT',JSON.stringify(draft));
+  var title=sbmNewArticleDraftTitle_(articleType,values);
+  if(rec.hm['記事タイトル'])rec.values[rec.hm['記事タイトル']-1]=title;
+  if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]=state||'NEW_ARTICLE_SETUP';
+  if(rec.hm['状態'])rec.values[rec.hm['状態']-1]=label||'新記事の入力内容を準備中';
+  if(rec.hm['更新日時'])rec.values[rec.hm['更新日時']-1]=sbmNowText_();
+  // Synthetic Creator plan is kept in Doctor結果JSON so the existing publication registrar can reuse it.
+  var synthetic={};try{synthetic=JSON.parse(String(rec.hm['Doctor結果JSON']?rec.values[rec.hm['Doctor結果JSON']-1]||'{}':'{}'));}catch(ignoreSynthetic){}
+  synthetic.format='SIMS_MANAGER_NEW_ARTICLE_WORKFLOW_V1';synthetic.case_id=caseId;synthetic.site_id=String(sbmGetSetting_('SiteID','')||'');
+  synthetic.article_type=articleType;synthetic.creator_plan=synthetic.creator_plan||{};
+  synthetic.creator_plan.candidate_keyword=String(values.main_keyword||values.product_name||'');
+  synthetic.creator_plan.monitor_days=Number(synthetic.creator_plan.monitor_days||28)||28;
+  if(rec.hm['Doctor結果JSON'])rec.values[rec.hm['Doctor結果JSON']-1]=JSON.stringify(synthetic);
+  rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
+  sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'NEW_ARTICLE_CREATION',current_stage:state||'NEW_ARTICLE_SETUP',registration_status:'WAITING'});
+  return draft;
+}
+
+function sbmNewArticleBuildCreatorRequest_(caseId,draft){
+  draft=draft||{};
+  var values=draft.values||{},selected=Array.isArray(draft.selected_fields)?draft.selected_fields:[],defs=sbmNewArticleFieldDefinitions_(),byKey={};
+  defs.forEach(function(x){byKey[x.key]=x;});
+  var userInputs={},simsDecide=[];
+  selected.forEach(function(k){
+    var v=String(values[k]||'').trim();
+    if(v)userInputs[k]={label:byKey[k]?byKey[k].label:k,value:v};
+    else simsDecide.push(k);
+  });
+  defs.forEach(function(x){if(selected.indexOf(x.key)<0)simsDecide.push(x.key);});
+  var articleType=String(draft.article_type||'ADSENSE').toUpperCase(),siteId=String(sbmGetSetting_('SiteID','')||''),siteName=String(sbmGetSetting_('SiteName','')||sbmGetSetting_('BlogName','')||''),siteUrl=String(sbmGetSetting_('BlogUrl','')||'');
+  return {
+    format:'SIMS_ARTICLE_CREATOR_DIRECT_REQUEST_V1',
+    contract_version:'1.0',
+    source_system:'SIMS_MANAGER',
+    target_system:'SIMS_ARTICLE_CREATOR',
+    generated_at:sbmDoctorIso_(new Date()),
+    case_id:caseId,
+    site:{site_id:siteId,site_name:siteName,site_url:siteUrl},
+    article_type:articleType,
+    monetization:articleType==='AFFILIATE'?'AFFILIATE':'ADSENSE',
+    user_selected_fields:selected,
+    user_inputs:userInputs,
+    sims_decide_fields:Array.from(new Set(simsDecide)),
+    creator_policy:{
+      unspecified_fields:'SIMS_DECIDES',
+      preserve_user_facts:true,
+      do_not_invent_personal_experience:true,
+      experience_rule:'利用者が own_experience / close_person_experience / must_use_episode で提供していない内容を、利用者本人または家族・知人の実体験として捏造しない。',
+      review_rule:'reviews_reputation は利用者自身の体験と混同しない。必要に応じて第三者の口コミ・評判として明確に区別する。',
+      factuality:'価格、キャンペーン、仕様、公式情報は確認できない場合に断定しない。',
+      affiliate_rule:articleType==='AFFILIATE'?'アフィリエイトリンクや商品URLが提供されている場合は記事目的に沿って活用し、未提供なら無理に補完せず最適なCTA位置と必要情報を提案する。':'アフィリエイト訴求を主目的にしない。',
+      seo_rule:'検索意図とサイト方針に沿い、既存記事との不必要な重複・カニバリを避ける。',
+      output_language:'ja-JP'
+    },
+    task:[
+      'この依頼内容を基に、新記事を完成形として作成してください。',
+      '利用者が入力した内容は優先して反映し、未入力項目はSIMS標準方針と検索意図から最適に判断してください。',
+      '入力がないからといって利用者本人の体験談を創作しないでください。',
+      '公開前に利用者が確認・修正できるよう、記事本文と必要な補足を提示してください。',
+      '回答の最後に SIMS_ARTICLE_CREATOR_RESULT_V1 のJSONを1個だけ付けてください。'
+    ],
+    return_contract:{
+      format:'SIMS_ARTICLE_CREATOR_RESULT_V1',
+      required_fields:['format','case_id','site_id','article_title','main_keyword','publication_ready','summary'],
+      example:{
+        format:'SIMS_ARTICLE_CREATOR_RESULT_V1',
+        case_id:caseId,
+        site_id:siteId,
+        article_title:'...',
+        main_keyword:String(values.main_keyword||''),
+        publication_ready:true,
+        summary:'作成内容の要約'
+      }
+    },
+    workflow:{current_owner:'SIMS_ARTICLE_CREATOR',return_to:'SIMS_MANAGER',next_after_creator:'SAVE_RESPONSE_AND_REGISTER_AFTER_PUBLICATION'}
+  };
+}
+
+function sbmNewArticleSaveDraft(caseId,articleType,selectedFields,values){
+  try{
+    caseId=String(caseId||'').trim();
+    if(!caseId)caseId=sbmNewArticleCreateCase_(articleType,selectedFields,values);
+    else sbmNewArticleUpdateCase_(caseId,articleType,selectedFields,values,'NEW_ARTICLE_SETUP','新記事の入力内容を準備中');
+    return {ok:true,caseId:caseId,message:'入力内容を保存しました。未完了の作業を再開から続けられます。'};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+function sbmNewArticleGenerateCreatorRequest(caseId,articleType,selectedFields,values){
+  try{
+    caseId=String(caseId||'').trim();
+    if(!caseId)caseId=sbmNewArticleCreateCase_(articleType,selectedFields,values);
+    var draft=sbmNewArticleUpdateCase_(caseId,articleType,selectedFields,values,'NEW_ARTICLE_CREATOR_IN_PROGRESS','aCreatorの回答待ち');
+    var req=sbmNewArticleBuildCreatorRequest_(caseId,draft),text=JSON.stringify(req,null,2);
+    sbmDoctorWorkflowWritePayload_(caseId,'NEW_ARTICLE_CREATOR_REQUEST',text);
+    sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'NEW_ARTICLE_CREATION',current_stage:'NEW_ARTICLE_CREATOR_IN_PROGRESS',registration_status:'WAITING'});
+    return {ok:true,caseId:caseId,request:text,message:'aCreatorへの依頼文を作成しました。'};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+function sbmNewArticleSaveCreatorResponse(caseId,raw){
+  try{
+    caseId=String(caseId||'').trim();raw=String(raw||'').trim();
+    if(!caseId)throw new Error('CaseIDがありません。');
+    if(!raw)throw new Error('aCreatorの回答全文を貼り付けてください。');
+    var o=sbmCreatorExtractJsonObject_(raw),resultCase=String(sbmCreatorPreferredValue_(o,['case_id','caseId'],['case_id','caseid'])||'').trim();
+    if(resultCase&&resultCase!==caseId)throw new Error('aCreator回答のCaseIDが一致しません。\\n現在：'+caseId+'\\n回答：'+resultCase);
+    sbmDoctorWorkflowWritePayload_(caseId,'NEW_ARTICLE_CREATOR_RESPONSE',raw);
+    var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('新記事作成Caseが見つかりません。');
+    if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]='NEW_ARTICLE_PUBLICATION_PENDING';
+    if(rec.hm['状態'])rec.values[rec.hm['状態']-1]='aCreator回答保存済み・公開登録待ち';
+    if(rec.hm['更新日時'])rec.values[rec.hm['更新日時']-1]=sbmNowText_();
+    rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
+    sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'NEW_ARTICLE_CREATION',current_stage:'NEW_ARTICLE_PUBLICATION_PENDING',registration_status:'WAITING'});
+    return {ok:true,caseId:caseId,message:'aCreator回答を保存しました。記事を公開したらURLを入力して登録してください。'};
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+function sbmNewArticleRegisterPublished(caseId,publishedUrl){
+  try{
+    caseId=String(caseId||'').trim();publishedUrl=String(publishedUrl||'').trim();
+    if(!caseId)throw new Error('CaseIDがありません。');
+    if(!publishedUrl||!/^https?:\/\//i.test(publishedUrl))throw new Error('公開した記事URLを入力してください。');
+    var raw=String(sbmDoctorWorkflowReadPayload_(caseId,'NEW_ARTICLE_CREATOR_RESPONSE')||'');
+    if(!raw)throw new Error('保存済みのaCreator回答がありません。先にaCreator回答を保存してください。');
+    var o=sbmCreatorExtractJsonObject_(raw);
+    if(!sbmCreatorPreferredValue_(o,['case_id','caseId'],['case_id','caseid']))o.case_id=caseId;
+    if(!sbmCreatorPreferredValue_(o,['site_id','site.site_id'],['site_id']))o.site_id=String(sbmGetSetting_('SiteID','')||'');
+    // Existing Creator publication path validates site/url and creates ArticleID/history/monitoring.
+    var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('新記事作成Caseが見つかりません。');
+    if(rec.hm['状態コード'])rec.values[rec.hm['状態コード']-1]='CREATOR_IN_PROGRESS';
+    if(rec.hm['状態'])rec.values[rec.hm['状態']-1]='新記事の公開登録中';
+    rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
+    var r=sbmRegisterCreatorPublicationResponse(JSON.stringify(o),publishedUrl);
+    if(!r||!r.ok)throw new Error(r&&r.message?r.message:'新記事を登録できませんでした。');
+    try{sbmRefreshHomeMonitoringDelta_();}catch(ignoreHomeDelta){}
+    sbmDoctorWorkflowWriteMeta_(caseId,{workflow_type:'NEW_ARTICLE_CREATION',current_stage:'MONITORING',registration_status:'DONE',registered_at:sbmNowText_()});
+    r.message=(r.message||'新記事を登録しました。')+'\\n新記事作成Workflow：完了';
+    return r;
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+function sbmNewArticleLoadWorkflow_(caseId){
+  caseId=String(caseId||'').trim();
+  var draft={},req='',resp='',state='NEW_ARTICLE_SETUP';
+  if(caseId){
+    var rec=sbmDoctorFindCaseRow_(caseId);if(rec&&rec.hm['状態コード'])state=String(rec.values[rec.hm['状態コード']-1]||state);
+    try{draft=JSON.parse(String(sbmDoctorWorkflowReadPayload_(caseId,'NEW_ARTICLE_DRAFT')||'{}'));}catch(ignoreDraft){}
+    req=String(sbmDoctorWorkflowReadPayload_(caseId,'NEW_ARTICLE_CREATOR_REQUEST')||'');
+    resp=String(sbmDoctorWorkflowReadPayload_(caseId,'NEW_ARTICLE_CREATOR_RESPONSE')||'');
+  }
+  return {caseId:caseId,state:state,draft:draft,request:req,response:resp};
+}
+
+function sbmOpenNewArticleCreation(){return sbmShowNewArticleCreationDialog_('');}
+function sbmResumeNewArticleCreation(caseId){try{sbmShowNewArticleCreationDialog_(caseId);return {ok:true};}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
+
+function sbmShowNewArticleCreationDialog_(caseId){
+  var load=sbmNewArticleLoadWorkflow_(caseId),defs=sbmNewArticleFieldDefinitions_();
+  var encoded=Utilities.base64EncodeWebSafe(JSON.stringify({load:load,defs:defs}),Utilities.Charset.UTF_8);
+  var themeCss=sbmMonochromeDialogOverrides_();
+  var html=HtmlService.createHtmlOutput(
+    '<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
+    'html,body{height:100%;margin:0}body{font-family:Arial,"Noto Sans JP",sans-serif;color:#202124;background:#f8f9fa;display:flex;flex-direction:column}.content{padding:18px;overflow:auto;flex:1}h2{font-size:20px;margin:0 0 5px}.sub{font-size:13px;color:#5f6368;line-height:1.6;margin-bottom:14px}.step{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:10px 0}.hidden{display:none}.typeRow,.checkGrid{display:flex;gap:10px;flex-wrap:wrap}.typeCard,.checkCard{border:1px solid #dadce0;border-radius:8px;padding:9px 11px;background:#fff}.checkGrid{display:grid;grid-template-columns:1fr 1fr}.groupTitle{font-weight:700;margin:14px 0 7px}.field{margin:13px 0}.field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px}.hint{font-size:11px;color:#5f6368;line-height:1.5;margin-top:4px}.field input,.field textarea{width:100%;box-sizing:border-box;border:1px solid #bdc1c6;border-radius:6px;padding:9px;font-size:13px}.field textarea{min-height:90px;resize:vertical}.request,.response{width:100%;box-sizing:border-box;min-height:230px;border:1px solid #bdc1c6;border-radius:6px;padding:10px;font:12px/1.45 monospace;resize:vertical}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:6px;padding:9px 15px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}.status{font-size:12px;line-height:1.5;white-space:pre-wrap;margin-top:8px}.ok{color:#137333}.err{color:#b3261e}.badge{display:inline-block;background:#f1f3f4;border-radius:12px;padding:3px 8px;font-size:11px;margin-left:6px}'+themeCss+
+    '</style></head><body><div class="content"><h2>新記事を作成</h2><div class="sub">必要な情報だけ選んで入力できます。入力しない項目はSIMSに任せます。途中保存したCaseは「未完了の作業を再開」から続けられます。</div>'+
+    '<div id="stepType" class="step"><b>① 記事タイプを選ぶ</b><div class="typeRow" style="margin-top:10px"><label class="typeCard"><input type="radio" name="articleType" value="ADSENSE"> AdSense記事</label><label class="typeCard"><input type="radio" name="articleType" value="AFFILIATE"> アフィリエイト記事</label></div><div class="hint">記事タイプだけは選択してください。以下の入力項目はすべて任意です。</div></div>'+
+    '<div id="stepSelect" class="step hidden"><b>② Creatorへ渡したい情報を選ぶ</b><div class="hint">複数選択できます。何も選ばず「SIMSに任せる」こともできます。後から何度でも追加・変更できます。</div><div id="commonChecks"><div class="groupTitle">共通項目</div><div id="commonGrid" class="checkGrid"></div></div><div id="affiliateChecks" class="hidden"><div class="groupTitle">アフィリエイト記事の追加項目</div><div id="affiliateGrid" class="checkGrid"></div></div><div class="actions"><button class="secondary" onclick="saveDraftOnly()">途中保存</button><button class="primary" onclick="showInputs()">選んだ入力欄を表示</button></div></div>'+
+    '<div id="stepInputs" class="step hidden"><b>③ 選択した項目を入力する</b><span class="badge">空欄＝SIMSに任せる</span><div id="inputFields"></div><div class="actions"><button class="secondary" onclick="backToSelect()">入力項目を追加・変更</button><button class="secondary" onclick="saveDraftOnly()">途中保存</button><button class="primary" onclick="generateRequest()">aCreator依頼文を作成</button></div><div id="draftStatus" class="status"></div></div>'+
+    '<div id="stepRequest" class="step hidden"><b>④ aCreatorへ依頼する</b><div class="hint">下の依頼文をコピーしてaCreatorへ貼り付けてください。利用者が入力していない項目はSIMS判断として明示されています。</div><textarea id="creatorRequest" class="request" readonly></textarea><div class="actions"><button class="secondary" onclick="backToInputs()">入力内容を修正</button><button class="primary" onclick="copyRequest()">依頼文をコピー</button></div><div id="copyStatus" class="status"></div></div>'+
+    '<div id="stepResponse" class="step hidden"><b>⑤ aCreatorの回答を受け取る</b><div class="hint">aCreatorの回答全文をそのまま貼り付けて保存します。保存後に中断しても再開できます。</div><textarea id="creatorResponse" class="response" placeholder="aCreatorの回答全文を貼り付け"></textarea><div class="actions"><button id="saveResponseBtn" class="primary" onclick="saveResponse()">回答を保存して公開登録へ</button></div><div id="responseStatus" class="status"></div></div>'+
+    '<div id="stepPublish" class="step hidden"><b>⑥ 公開した新記事をSIMSへ登録</b><div class="hint">aCreatorの原稿を確認・公開したあと、公開URLを入力してください。登録後は記事管理へ追加し、モニターを開始します。</div><div class="field"><label>公開した記事URL</label><input id="publishedUrl" type="url" placeholder="https://example.com/..."></div><div class="actions"><button id="publishBtn" class="primary" onclick="registerPublished()">新記事を登録してモニター開始</button></div><div id="publishStatus" class="status"></div></div>'+
+    '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button></div></div>'+
+    '<script>const enc='+JSON.stringify(encoded)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";const b=atob(v),a=Uint8Array.from(b,c=>c.charCodeAt(0));return new TextDecoder("utf-8").decode(a)}const boot=JSON.parse(dec(enc)),defs=boot.defs||[],load=boot.load||{};let caseId=load.caseId||"",draft=load.draft||{},selected=Array.isArray(draft.selected_fields)?draft.selected_fields.slice():[],values=draft.values||{},articleType=draft.article_type||"";'+
+    'function show(id){document.getElementById(id).classList.remove("hidden")}function hide(id){document.getElementById(id).classList.add("hidden")}function st(id,msg,cls){const e=document.getElementById(id);if(e){e.textContent=msg||"";e.className="status "+(cls||"")}}'+
+    'function renderChecks(){const cg=document.getElementById("commonGrid"),ag=document.getElementById("affiliateGrid");cg.innerHTML="";ag.innerHTML="";defs.forEach(function(d){if(d.group==="affiliate"&&articleType!=="AFFILIATE")return;const l=document.createElement("label");l.className="checkCard";const c=document.createElement("input");c.type="checkbox";c.value=d.key;c.checked=selected.indexOf(d.key)>=0;c.onchange=function(){if(c.checked){if(selected.indexOf(d.key)<0)selected.push(d.key)}else selected=selected.filter(x=>x!==d.key)};l.appendChild(c);l.appendChild(document.createTextNode(" "+d.label));(d.group==="affiliate"?ag:cg).appendChild(l)});document.getElementById("affiliateChecks").classList.toggle("hidden",articleType!=="AFFILIATE")}'+
+    'function currentType(){const x=document.querySelector("input[name=articleType]:checked");return x?x.value:""}document.querySelectorAll("input[name=articleType]").forEach(function(r){r.onchange=function(){articleType=r.value;show("stepSelect");renderChecks()}});'+
+    'function collectVisibleInputs(){document.querySelectorAll("[data-field]").forEach(function(el){values[el.getAttribute("data-field")]=el.value||""})}'+
+    'function renderInputs(){collectVisibleInputs();const box=document.getElementById("inputFields");box.innerHTML="";if(!selected.length){box.innerHTML="<div class=hint style=\\"margin-top:12px\\">入力項目は選択されていません。記事内容はSIMSに任せます。必要になったら「入力項目を追加・変更」から追加できます。</div>";return}selected.forEach(function(k){const d=defs.find(x=>x.key===k);if(!d)return;const wrap=document.createElement("div");wrap.className="field";const lab=document.createElement("label");lab.textContent=d.label;wrap.appendChild(lab);let el;if(d.kind==="textarea"){el=document.createElement("textarea")}else{el=document.createElement("input");el.type=d.kind==="url"?"url":"text"}el.setAttribute("data-field",k);el.placeholder=d.placeholder||"";el.value=values[k]||"";wrap.appendChild(el);const h=document.createElement("div");h.className="hint";h.textContent="任意。空欄の場合はSIMSに任せます。";wrap.appendChild(h);box.appendChild(wrap)})}'+
+    'function showInputs(){articleType=currentType()||articleType;if(!articleType){alert("記事タイプを選択してください。");return}hide("stepSelect");show("stepInputs");renderInputs()}function backToSelect(){collectVisibleInputs();hide("stepInputs");show("stepSelect");renderChecks()}function backToInputs(){hide("stepRequest");show("stepInputs");renderInputs()}'+
+    'function saveDraftOnly(){articleType=currentType()||articleType;if(!articleType){alert("記事タイプを選択してください。");return}collectVisibleInputs();st("draftStatus","保存しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st("draftStatus",r&&r.message?r.message:"保存できませんでした。","err");return}caseId=r.caseId||caseId;st("draftStatus",r.message||"保存しました。","ok")}).withFailureHandler(function(e){st("draftStatus",e&&e.message?e.message:String(e),"err")}).sbmNewArticleSaveDraft(caseId,articleType,selected,values)}'+
+    'function generateRequest(){articleType=currentType()||articleType;if(!articleType){alert("記事タイプを選択してください。");return}collectVisibleInputs();st("draftStatus","aCreator依頼文を作成しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st("draftStatus",r&&r.message?r.message:"依頼文を作成できませんでした。","err");return}caseId=r.caseId||caseId;document.getElementById("creatorRequest").value=r.request||"";hide("stepInputs");show("stepRequest");show("stepResponse");st("draftStatus","","")}).withFailureHandler(function(e){st("draftStatus",e&&e.message?e.message:String(e),"err")}).sbmNewArticleGenerateCreatorRequest(caseId,articleType,selected,values)}'+
+    'async function copyRequest(){const t=document.getElementById("creatorRequest");let ok=false;try{await navigator.clipboard.writeText(t.value);ok=true}catch(e){t.focus();t.select();ok=document.execCommand("copy")}st("copyStatus",ok?"aCreator依頼文をコピーしました。":"自動コピーできませんでした。手動でコピーしてください。",ok?"ok":"err")}'+
+    'function saveResponse(){const raw=document.getElementById("creatorResponse").value.trim(),b=document.getElementById("saveResponseBtn");if(!raw){st("responseStatus","aCreatorの回答全文を貼り付けてください。","err");return}b.disabled=true;b.textContent="保存中…";st("responseStatus","aCreator回答を確認しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="回答を保存して公開登録へ";if(!r||!r.ok){st("responseStatus",r&&r.message?r.message:"保存できませんでした。","err");return}st("responseStatus",r.message||"保存しました。","ok");show("stepPublish")}).withFailureHandler(function(e){b.disabled=false;b.textContent="回答を保存して公開登録へ";st("responseStatus",e&&e.message?e.message:String(e),"err")}).sbmNewArticleSaveCreatorResponse(caseId,raw)}'+
+    'function registerPublished(){const url=document.getElementById("publishedUrl").value.trim(),b=document.getElementById("publishBtn");if(!url){st("publishStatus","公開した記事URLを入力してください。","err");return}b.disabled=true;b.textContent="登録中…";st("publishStatus","新記事を記事管理へ登録しています…","");google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="新記事を登録してモニター開始";st("publishStatus",r&&r.message?r.message:"登録できませんでした。","err");return}b.disabled=true;b.textContent="登録完了";st("publishStatus",r.message||"登録しました。","ok")}).withFailureHandler(function(e){b.disabled=false;b.textContent="新記事を登録してモニター開始";st("publishStatus",e&&e.message?e.message:String(e),"err")}).sbmNewArticleRegisterPublished(caseId,url)}'+
+    'if(articleType){var typeRadio=document.querySelector("input[name=articleType][value=\""+articleType+"\"]");if(typeRadio)typeRadio.checked=true;show("stepSelect");renderChecks()}'+
+    'if(load.state==="NEW_ARTICLE_SETUP"){if(articleType){hide("stepSelect");show("stepInputs");renderInputs()}}else if(load.state==="NEW_ARTICLE_CREATOR_IN_PROGRESS"){hide("stepSelect");hide("stepInputs");show("stepRequest");show("stepResponse");document.getElementById("creatorRequest").value=load.request||"";document.getElementById("creatorResponse").value=load.response||""}else if(load.state==="NEW_ARTICLE_PUBLICATION_PENDING"){hide("stepSelect");hide("stepInputs");show("stepRequest");show("stepResponse");show("stepPublish");document.getElementById("creatorRequest").value=load.request||"";document.getElementById("creatorResponse").value=load.response||""}'+
+    '</script></body></html>'
+  ).setWidth(860).setHeight(820);
+  sbmShowThemedModalDialog_(html,'新記事を作成');
+}
+
 function sbmOpenCreatorPublicationRegisterDialog(){
   var html=HtmlService.createHtmlOutput(
     '<!doctype html><html><head><base target="_top"><style>'+
@@ -19254,7 +19525,7 @@ function sbmRegisterCreatorPublicationResponse(raw,manualPublishedUrl){
     if(!caseId){var direct=sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId||localSite);if(direct&&direct.ok)direct.message=(direct.message||'aCreator新記事を登録しました。')+'\n登録経路：aCreator単独作成（case_idなし）';return direct;}
     var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('aCreator案件をSIMSで見つけられません：'+caseId);
     var state=rec.hm['状態コード']?String(rec.values[rec.hm['状態コード']-1]||'').trim():'';
-    if(state!=='MONITORING'&&['CREATOR_IN_PROGRESS','CREATOR_REQUEST_READY'].indexOf(state)<0)throw new Error('このcase_idはCreator公開登録待ちではありません。\nCaseID：'+caseId+'\n状態：'+state);
+    if(state!=='MONITORING'&&['CREATOR_IN_PROGRESS','CREATOR_REQUEST_READY','NEW_ARTICLE_PUBLICATION_PENDING','NEW_ARTICLE_CREATOR_IN_PROGRESS'].indexOf(state)<0)throw new Error('このcase_idはCreator公開登録待ちではありません。\nCaseID：'+caseId+'\n状態：'+state);
     var r=sbmDoctorCreatorPublishedArticle_(caseId,url,title);
     if(r&&r.ok){r.message=(r.message||'aCreator新記事を登録しました。')+'\n入力方法：'+(manualUrl&&url===manualUrl?'aCreator回答＋公開URL補完':'aCreator回答全文から自動登録');}
     return r;
@@ -19267,7 +19538,7 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
   if(state==='MONITORING'){
     return {ok:true,alreadyCompleted:true,caseId:caseId,articleId:rec.hm['記事ID']?String(rec.values[rec.hm['記事ID']-1]||''):'',articleUrl:rec.hm['記事URL']?String(rec.values[rec.hm['記事URL']-1]||''):'',message:'このaCreator案件はすでに公開登録済みで、モニター中です。'};
   }
-  if(['CREATOR_IN_PROGRESS','CREATOR_REQUEST_READY'].indexOf(state)<0)throw new Error('現在の状態ではCreator公開登録できません：'+state);
+  if(['CREATOR_IN_PROGRESS','CREATOR_REQUEST_READY','NEW_ARTICLE_PUBLICATION_PENDING','NEW_ARTICLE_CREATOR_IN_PROGRESS'].indexOf(state)<0)throw new Error('現在の状態ではCreator公開登録できません：'+state);
   var url=String(articleUrl||'').trim();var norm=sbmNormalizeUrl_(url);if(!norm||!sbmIsValidArticleUrl_(url))throw new Error('公開した新記事URLを正しく入力してください。');
   try{
     var blog=String(sbmGetSetting_('BlogUrl','')||'').trim(),bh=blog?new URL(blog).hostname.replace(/^www\./,'').toLowerCase():'',uh=new URL(url).hostname.replace(/^www\./,'').toLowerCase();
