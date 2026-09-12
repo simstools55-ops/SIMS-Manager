@@ -1,12 +1,8 @@
-feat: add resumable new article creation workflow (v6.4.1)
+fix: repair new article dialog initial navigation (v6.4.2)
 
-- add New Article Creation under the new-article menu
-- support AdSense and affiliate article modes
-- let users choose only the optional fields they want to provide
-- include personal experience, close-person experience and review inputs
-- treat unchecked or blank fields as SIMS-decides
-- prevent Creator from inventing personal experience
-- save draft, Creator request and Creator response as workflow checkpoints
-- resume interrupted creation from unfinished work
-- register the published article and start monitoring through the existing Creator path
+- remove the duplicate inner dialog title
+- start new article creation with no article type preselected
+- reliably reveal the field selector when a type is chosen
+- auto-scroll to the next step after selection
+- clarify the next action in the type-selection hint
 - sync Full and Starter editions

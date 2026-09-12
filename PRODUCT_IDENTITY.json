@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.4.1",
+  "current_version": "6.4.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.4.1: 新記事関連に「新記事を作成」Workflowを追加。任意項目選択式、AdSense/アフィリエイト切替、体験談・口コミ入力、未入力はSIMS判断、途中保存・未完了再開・Creator回答保存・公開登録まで一連化。",
-  "version": "6.4.1",
+  "notes": "v6.4.2: 新記事作成ダイアログの二重タイトルを解消。記事タイプは新規開始時未選択とし、選択時に②の入力項目選択を確実に表示・スクロール。",
+  "version": "6.4.2",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.4.1-ST"
+  "starter_display_version": "v6.4.2-ST"
 }
