@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.2
+ * SIMS Manager Product v6.5.3
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.2';
+const SBM_VERSION = '6.5.3';
+// v6.5.3: 今日の改善の『収益改善（流入）』を2行表示にして区分列の視認性を改善。観察終了前の処置確認はaDoctor再診準備ではなく経過観察状況の確認と明示し、4回測定完了後に必要時のみ再診へ進む案内へ修正。
 // v6.5.2: 高評価記事の改善前スナップショットを改善計画へ保存し、28日後aDoctor再診へKEEP/IMPROVE/RESTORE判断材料として渡す。RESTORE判定時は復元パッケージを提示し、利用者の原状復帰完了登録から新しい7・14・21・28日目の再観察サイクルを開始。今日の改善の区分列は2行表示に対応。
 // v6.5.1: エース記事の『収益改善』をGSCで判断可能な『収益改善（流入）』として明確化。勝ちクエリ・SEO骨格を保護し、ページ内収益改善はGA4等の行動データ未接続時に推測しない。Writerのreview日数に関係なくSBMは7・14・21・28日目で固定測定。
 // v6.5.0: 起動/Home表示の無駄な全体テーマ再適用と重複更新を削減。版表示を先にflushし、Home軽量表示は保存Snapshotを優先。今日の改善は保存済み候補でも新しい収益優先コメントへ軽量再描画する。
@@ -6114,7 +6115,7 @@ function sbmRefreshTodayPresentationOnly_(){
   for(var i=0;i<n;i++){
     var c=byUrl[sbmNormalizeUrl_(urls[i][0]||'')];if(!c)continue;
     c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
+    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善\n（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
     var reason=sbmTodayReason_(c,kind),estimate=sbmTodayEstimate_(c,kind);
     if(String(kinds[i][0]||'')!==kind){kinds[i][0]=kind;changed++;}
     if(String(reasons[i][0]||'')!==reason){reasons[i][0]=reason;changed++;}
@@ -6453,7 +6454,7 @@ function sbmSelectTodayRecommendations_() {
     return sb-sa;
   });
   var growth=take(ordered.filter(function(c){return c.rankCode==='GROWTH';}),'📈 エース化',10);
-  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善（流入）',10);
+  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善\n（流入）',10);
   var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'🌱 育成改善',10);
   var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'✅ 安全改善',10);
   return growth.concat(ace,nurture,stable).slice(0,10);
@@ -14689,7 +14690,7 @@ function sbmProcessSelectedEffectAfterObservation(){
 function sbmShowEffectAfterObservationProgressDialog_(){
   var html='<!DOCTYPE html><html><head><base target="_top"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:24px;color:#202124}.row{display:flex;gap:14px;align-items:flex-start}.spin{width:28px;height:28px;border:4px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r 1s linear infinite;flex:0 0 auto}@keyframes r{to{transform:rotate(360deg)}}h2{margin:0 0 10px;color:#174ea6}.msg{line-height:1.7;color:#5f6368}.err{color:#b31412}.ok{color:#188038}.actions{margin-top:20px;text-align:right}button{border:1px solid #dadce0;background:#fff;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer}</style></head><body>'+
-    '<div class="row"><div id="spin" class="spin"></div><div><h2>aDoctor再診を準備しています</h2><div id="msg" class="msg">選択した記事の状態と改善履歴を確認しています。<br>再診が必要な場合だけSearch Console・Evidenceを準備します。</div></div></div>'+
+    '<div class="row"><div id="spin" class="spin"></div><div><h2>経過観察の状況を確認しています</h2><div id="msg" class="msg">選択した記事の測定状況と改善履歴を確認しています。<br>4回の測定完了後、必要な場合だけaDoctor再診へ進みます。</div></div></div>'+
     '<div id="actions" class="actions" style="display:none"><button onclick="google.script.host.close()">閉じる</button></div>'+
     '<script>function fail(e){document.getElementById("spin").style.display="none";var m=document.getElementById("msg");m.className="msg err";m.textContent=(e&&e.message)?e.message:String(e);document.getElementById("actions").style.display="block";}function done(r){document.getElementById("spin").style.display="none";var m=document.getElementById("msg");if(r&&r.ok===false){m.className="msg err";m.textContent=r.message||r.error||"処理を完了できませんでした。";document.getElementById("actions").style.display="block";return;}if(r&&r.dialogHtml){google.script.host.setWidth(820);google.script.host.setHeight(720);document.open();document.write(r.dialogHtml);document.close();return;}m.className="msg ok";m.textContent=(r&&r.message)||"準備が完了しました。";document.getElementById("actions").style.display="block";}google.script.run.withFailureHandler(fail).withSuccessHandler(done).sbmProcessSelectedEffectAfterObservationWorker();</script></body></html>';
   SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(285),'経過観察終了後の処置');
@@ -14715,8 +14716,8 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
 
   var rec=sbmRowRecord_(sh,row),life=sbmEffectLifecycleState_(rec),title=String(rec['記事タイトル']||target.title||'対象記事');
   if(life.code==='MEASURING'){
-    sbmAlert_('まだ経過観察中です',title+'\n\n測定回数：'+String(rec['測定回数']||'')+'\n所定の観察期間が終わるまで追加処置は行いません。');
-    return {ok:true,message:'まだ経過観察中です。'};
+    sbmAlert_('経過観察の状況を確認しました',title+'\n\nまだ経過観察中です。\n測定回数：'+String(rec['測定回数']||'')+'\n4回の測定完了後に、必要に応じてaDoctor再診へ進めます。');
+    return {ok:true,message:'まだ経過観察中です。4回の測定完了後に、必要に応じてaDoctor再診へ進めます。'};
   }
   if(life.code==='DOCTOR_MONITORING'){
     // v5.21.51: この操作で必要なのは「選択した1記事を最新のaDoctor判定へ反映する」ことだけ。

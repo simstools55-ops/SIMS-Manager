@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.2",
+  "current_version": "6.5.3",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.2: 高評価記事の改善前スナップショットを保存し、28日後aDoctor再診でKEEP/IMPROVE/RESTOREを判断。RESTORE時は復元パッケージを提示し、利用者の原状復帰完了登録後に7・14・21・28日目の再観察を開始。今日の改善の区分列を折り返し表示。",
-  "version": "6.5.2",
+  "notes": "v6.5.3: 高評価記事の改善前スナップショットを保存し、28日後aDoctor再診でKEEP/IMPROVE/RESTOREを判断。RESTORE時は復元パッケージを提示し、利用者の原状復帰完了登録後に7・14・21・28日目の再観察を開始。今日の改善の区分列を折り返し表示。",
+  "version": "6.5.3",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.2-ST"
+  "starter_display_version": "v6.5.3-ST"
 }

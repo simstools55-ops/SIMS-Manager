@@ -1,9 +1,7 @@
-feat: add safe restore workflow for protected improvements (v6.5.2)
+fix: polish revenue label and observation status UI (v6.5.3)
 
-- save pre-change snapshots with improvement history
-- require KEEP / IMPROVE / RESTORE decision on post-observation Doctor review
-- generate a restore package instead of auto-publishing rollback changes
-- start a new 7/14/21/28-day monitoring cycle after manual restore completion
-- preserve the prior cycle as restored history
-- wrap Today category labels so revenue improvement scope remains readable
+- wrap revenue improvement traffic scope onto a second line
+- replace premature aDoctor preparation wording with observation-status wording
+- explain that aDoctor recheck is available after four measurements when needed
+- keep observation gating and restore workflow behavior unchanged
 - sync Full and Starter editions
