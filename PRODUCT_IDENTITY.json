@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.7",
+  "current_version": "6.5.8",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.7: 改善ナビ高速化。対象URLクエリは全件走査を避け、GSC URL候補は並列照会。内部リンク候補生成も必要列だけを読み込む。aWriter依頼文・改善判定ロジックは変更なし。",
-  "version": "6.5.7",
+  "notes": "v6.5.8: 改善ナビの表示後初期化を安定化。DOMContentLoadedの取りこぼしでクエリ・本文取得が開始されない事象を防止。aWriter依頼文・データ取得ロジックは変更なし。",
+  "version": "6.5.8",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.7-ST"
+  "starter_display_version": "v6.5.8-ST"
 }
