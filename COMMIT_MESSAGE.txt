@@ -1,8 +1,9 @@
-feat: define safe traffic revenue improvement for ace articles (v6.5.1)
+feat: add safe restore workflow for protected improvements (v6.5.2)
 
-- rename ace daily work to revenue improvement (traffic)
-- protect winning queries and core SEO structure in Writer requests
-- limit GSC-only revenue work to traffic acquisition opportunities
-- prohibit guessed page-level monetization changes without GA4 or revenue behavior data
-- normalize Writer review guidance to the 7/14/21/28-day SBM measurement cycle
+- save pre-change snapshots with improvement history
+- require KEEP / IMPROVE / RESTORE decision on post-observation Doctor review
+- generate a restore package instead of auto-publishing rollback changes
+- start a new 7/14/21/28-day monitoring cycle after manual restore completion
+- preserve the prior cycle as restored history
+- wrap Today category labels so revenue improvement scope remains readable
 - sync Full and Starter editions
