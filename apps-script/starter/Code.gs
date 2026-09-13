@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.6
+ * SIMS Manager Product v6.5.7
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.6';
+const SBM_VERSION = '6.5.7';
+// v6.5.7: 改善ナビ高速化。SearchConsole_Dataの対象URLクエリ取得を全件走査からTextFinder優先＋必要行取得へ変更し、GSC URL候補は並列照会。内部リンク候補生成も必要列だけを読む。aWriter依頼文・改善判定ロジックは変更なし。
 // v6.5.6: 改善ガイドを3件固定からaWriterと同じ改善スコープに基づく必要件数表示へ拡張。小見出しは太字＋改行。Fullは内部リンク候補も初期折りたたみ。aWriter依頼文生成・Contractは変更なし。
 // v6.5.5: 改善ナビの『改善ポイント』を利用者向け『自分で修正する場合の改善ガイド』へ刷新。何のために・どこを・どう直すか・完了目安を具体化。FullはaWriter依頼文を従来どおり主導線として改善ガイドを必要時のみ展開、Starterは改善ガイドを初期表示。aWriter依頼文生成ロジック・Contractは変更なし。
 // v6.5.4: ダイアログのネイティブタイトルと本文先頭見出しが同一の場合、共通表示関数で本文見出しを自動除去し、タイトル二重化を横断防止。日次処理を含む既存ダイアログへ一括適用。
@@ -4839,13 +4840,27 @@ function sbmGscFetchQueryRowsResolved_(url,range,rowLimit,allowContains){
   var property=String(sbmGetSetting_('SearchConsoleProperty','')||'').trim();
   if(!property)return {rows:[],matchedUrl:'',stage:'NO_PROPERTY'};
   var variants=sbmGscUrlVariants_(url),rows=[],matched='',stage='';
-  for(var i=0;i<variants.length&&!rows.length;i++){
-    var data=sbmSearchConsoleApiRequest_(property,{
-      startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
-      dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:variants[i]}]}]
-    })||{};
-    rows=sbmGscSortQueryRows_(data.rows||[]);
-    if(rows.length){matched=variants[i];stage=(i===0?'EXACT_PRIMARY':'EXACT_VARIANT');}
+  // v6.5.7: exact URL候補は逐次API呼出しせずfetchAllで並列照会し、従来と同じ候補順で最初のヒットを採用する。
+  try{
+    var endpoint='https://www.googleapis.com/webmasters/v3/sites/'+encodeURIComponent(property)+'/searchAnalytics/query';
+    var token=ScriptApp.getOAuthToken();
+    var req=variants.map(function(v){return sbmGscExactRequest_(endpoint,token,range,v,rowLimit);});
+    var responses=sbmGscFetchAllChunked_(req,80);
+    for(var i=0;i<variants.length;i++){
+      var parsed=sbmGscParseQueryResponse_(responses[i]);
+      if(parsed.length){rows=parsed;matched=variants[i];stage=(i===0?'EXACT_PRIMARY':'EXACT_VARIANT');break;}
+    }
+  }catch(ignoreParallelExact){
+    for(var j=0;j<variants.length&&!rows.length;j++){
+      try{
+        var data=sbmSearchConsoleApiRequest_(property,{
+          startDate:range.startDate,endDate:range.endDate,dimensions:['query'],rowLimit:Math.max(1,Number(rowLimit||10)),
+          dimensionFilterGroups:[{filters:[{dimension:'page',operator:'equals',expression:variants[j]}]}]
+        })||{};
+        rows=sbmGscSortQueryRows_(data.rows||[]);
+        if(rows.length){matched=variants[j];stage=(j===0?'EXACT_PRIMARY':'EXACT_VARIANT');}
+      }catch(ignoreOneVariant){}
+    }
   }
   if(!rows.length&&allowContains!==false){
     var pathMatch=norm.match(/^https?:\/\/[^/]+(\/.*)$/i);
@@ -6740,8 +6755,20 @@ function sbmTopQueriesByUrl_(){
   return grouped;
 }
 function sbmInternalLinkQueriesByUrl_(){
-  var detailed=sbmTopQueriesByUrl_(),simple={};
-  Object.keys(detailed).forEach(function(url){simple[url]=detailed[url].map(function(x){return x.query;});});
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.RAW_DATA),simple={};
+  if(!sh||sh.getLastRow()<2)return simple;
+  var hm=sbmHeaderMap_(sh),keys=['URL','Query','Clicks','Impressions','CTR','Position'];
+  var cols=keys.map(function(k){return hm[k]||0;}).filter(function(c){return c>0;});if(cols.length<6)return simple;
+  var min=Math.min.apply(null,cols),max=Math.max.apply(null,cols),vals=sh.getRange(2,min,sh.getLastRow()-1,max-min+1).getValues(),grouped={};
+  function cell(r,k){var c=hm[k]||0;return c?r[c-min]:'';}
+  vals.forEach(function(r){
+    var url=sbmNormalizeUrl_(cell(r,'URL')||''),q=String(cell(r,'Query')||'').trim();if(!url||!q)return;
+    (grouped[url]||(grouped[url]=[])).push({query:q,clicks:sbmNumber_(cell(r,'Clicks'))||0,imps:sbmNumber_(cell(r,'Impressions'))||0,position:sbmNumber_(cell(r,'Position'))||0});
+  });
+  Object.keys(grouped).forEach(function(url){
+    grouped[url].sort(function(a,b){return(b.clicks-a.clicks)||(b.imps-a.imps)||(a.position-b.position);});
+    simple[url]=grouped[url].slice(0,20).map(function(x){return x.query;});
+  });
   return simple;
 }
 function sbmInternalLinkCategory_(url){try{var path=String(url||'').replace(/^https?:\/\/[^/]+/i,'').split(/[?#]/)[0],parts=path.split('/').filter(Boolean);if(parts.length>=2&&!/^\d{4}$/.test(parts[0]))return parts[0];}catch(e){}return '';}
@@ -6758,9 +6785,17 @@ function sbmInternalLinkRelatedQuery_(targetMain,targetQueries,candidateMain,can
   if(common.length)return common.slice(0,3).join('・');
   return String(candidateMain||((candidateQueries||[])[0])||'').trim();
 }
+function sbmInternalLinkArticleRows_(){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);if(!sh||sh.getLastRow()<2)return [];
+  var hm=sbmHeaderMap_(sh),keys=['記事URL','管理フラグ','記事ステータス','記事タイトル','H1タイトル','SEOタイトル','メインクエリ','記事ランク'];
+  var cols=keys.map(function(k){return hm[k]||0;}).filter(function(c){return c>0;});if(!cols.length)return [];
+  var min=Math.min.apply(null,cols),max=Math.max.apply(null,cols),vals=sh.getRange(2,min,sh.getLastRow()-1,max-min+1).getValues();
+  return vals.map(function(r){var o={};keys.forEach(function(k){var c=hm[k]||0;o[k]=c?r[c-min]:'';});return o;});
+}
+
 function sbmFindInternalLinkCandidates_(targetArticle,minCount,maxCount,freshTargetQueries){
   minCount=Math.max(0,Number(minCount||3));maxCount=Math.max(minCount,Math.min(8,Number(maxCount||8)));
-  var articles=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],queryMap=sbmInternalLinkQueriesByUrl_();
+  var articles=sbmInternalLinkArticleRows_(),queryMap=sbmInternalLinkQueriesByUrl_();
   var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
   var targetUrl=sbmNormalizeUrl_(targetArticle['記事URL']||targetArticle.URL||''),targetTitle=sbmCleanDataListText_(targetArticle['記事タイトル']||targetArticle['H1タイトル']||'',targetUrl,blogName),targetMain=sbmRealMainQuery_(targetArticle['メインクエリ']);
   var targetQueries=(freshTargetQueries&&freshTargetQueries.length?freshTargetQueries:(queryMap[targetUrl]||[])).map(function(q){return typeof q==='string'?q:String(q&&q.query||'');}).filter(Boolean);
@@ -7034,10 +7069,27 @@ function sbmTopQueriesForUrlLocal_(url,limit){
   var hm=sbmHeaderMap_(sh),keys=['Query','URL','Clicks','Impressions','CTR','Position','CapturedAt'];
   var cols=keys.map(function(k){return hm[k]||0;}).filter(function(c){return c>0;});
   if(cols.length<6)return [];
-  var min=Math.min.apply(null,cols),max=Math.max.apply(null,cols),n=sh.getLastRow()-1;
-  var vals=sh.getRange(2,min,n,max-min+1).getValues(),out=[];
+  var min=Math.min.apply(null,cols),max=Math.max.apply(null,cols),lastRow=sh.getLastRow(),urlCol=hm['URL'],rowNums=[],seenRows={};
+  var variants=sbmGscUrlVariants_(url);
+  [String(url||'').trim(),norm].concat(variants).forEach(function(v){
+    v=String(v||'').trim(); if(!v)return;
+    try{
+      sh.getRange(2,urlCol,lastRow-1,1).createTextFinder(v).matchEntireCell(true).findAll().forEach(function(r){
+        var rn=r.getRow();if(!seenRows[rn]){seenRows[rn]=1;rowNums.push(rn);}
+      });
+    }catch(ignoreFind){}
+  });
+  if(!rowNums.length){
+    var allUrls=sh.getRange(2,urlCol,lastRow-1,1).getValues();
+    for(var ai=0;ai<allUrls.length;ai++)if(sbmNormalizeUrl_(allUrls[ai][0]||'')===norm)rowNums.push(ai+2);
+  }
+  if(!rowNums.length)return [];
+  rowNums.sort(function(a,b){return a-b;});
+  var a1s=rowNums.map(function(r){return sh.getRange(r,min,1,max-min+1).getA1Notation();});
+  var ranges=sh.getRangeList(a1s).getRanges(),out=[];
   function cell(row,key){var c=hm[key]||0;return c?row[c-min]:'';}
-  vals.forEach(function(r){
+  ranges.forEach(function(rg){
+    var r=rg.getValues()[0];
     if(sbmNormalizeUrl_(cell(r,'URL'))!==norm)return;
     var q=String(cell(r,'Query')||'').trim(); if(!q)return;
     out.push({query:q,clicks:sbmNumber_(cell(r,'Clicks'))||0,imps:sbmNumber_(cell(r,'Impressions'))||0,ctr:sbmNormalizeCtrNumber_(cell(r,'CTR')),position:sbmNumber_(cell(r,'Position'))||0,capturedAt:String(cell(r,'CapturedAt')||'')});
@@ -7053,7 +7105,9 @@ function sbmLoadImprovementNaviQueries(seed){
   var a=sbmFindArticleDbByUrlFast_(url)||{},query=sbmRealMainQuery_(a['メインクエリ']||seed.query||'');
   var qr=sbmImprovementNaviQueries_(url,QUERY_ROW_LIMIT),top=(qr&&qr.ok)?(qr.queries||[]):[];
   if(!query&&top.length){query=String(top[0].query||'').trim();if(query)try{sbmSaveMainQueryForArticle_(url,query);}catch(ignoreSave){}}
-  return {ok:true,queryResult:qr||{},topQueries:top,query:query};
+  var snap={};
+  ['ArticleID','記事URL','記事タイトル','H1タイトル','SEOタイトル','メタディスクリプション','メインクエリ','記事ランク','クリック数','表示回数','CTR','掲載順位','管理フラグ','記事ステータス'].forEach(function(k){var v=a[k];snap[k]=(v instanceof Date)?sbmDateText_(v):v;});
+  return {ok:true,queryResult:qr||{},topQueries:top,query:query,articleSnapshot:snap};
 }
 
 /** v6.1.9: 記事本文取得だけを独立実行。GSC取得と並列に呼び出す。 */
@@ -7067,7 +7121,7 @@ function sbmLoadImprovementNaviSource(seed){
 function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   seed=seed||{};queryPayload=queryPayload||{};sourcePayload=sourcePayload||{};
   var url=String(seed.url||'').trim(); if(!url)return {ok:false,message:'記事URLを取得できません。'};
-  var a=sbmFindArticleDbByUrlFast_(url)||{};
+  var a=(queryPayload.articleSnapshot&&queryPayload.articleSnapshot['記事URL'])?queryPayload.articleSnapshot:(sbmFindArticleDbByUrlFast_(url)||{});
   var top=Array.isArray(queryPayload.topQueries)?queryPayload.topQueries:[],
       query=sbmRealMainQuery_(queryPayload.query||a['メインクエリ']||seed.query||'');
   var clicks=sbmNumber_(a['クリック数']||seed.clicks)||0,
