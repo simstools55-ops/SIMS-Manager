@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.8
+ * SIMS Manager Product v6.4.9
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.8';
+const SBM_VERSION = '6.4.9';
+// v6.4.9: 今日の改善候補を収益優先・ランク保護型へ変更。成長→エース化を最優先、エースは保護付き収益改善、育成を次点、安定は条件付きとし、発芽・未発芽は日次改善から除外。改善理由・期待効果へ今回の改善方針コメントを追加。
 // v6.4.8: 収益最大化を最終目的とする「収益優先・安全改善ポリシー」を正本化。記事ランクと作業優先度を分離し、成長・エースの保護改善、変更前スナップショット、28日後のaDoctor再診によるKEEP/IMPROVE/RESTORE、原状復帰後の再測定を段階実装する設計基準を確定。
 // v6.4.7: 記事詳細トリアージを6ランクへ拡張。未発芽・発芽はaDoctor優先、育成は改善ナビ、安定・成長・エースは保護観察を基本とし、要改善等の異常時は既存のaDoctor優先分岐を維持。
 // v6.4.5: aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
@@ -6367,54 +6368,37 @@ function sbmSelectTodayRecommendations_() {
     var ctr = sbmNormalizeCtrNumber_(r['CTR']);
     var pos = sbmNumber_(r['掲載順位']) || 0;
     var rank = String(r['記事ランク'] || '').trim();
+    var rankCode = sbmDoctorRankCode_(rank);
     var work = String(r['作業状態'] || '未着手').trim();
     var flag = String(r['管理フラグ'] || '').trim();
     if (!url || !title || imps < minImps || pos <= 0) return null;
     if (flag === 'データ未取得' || flag === '要確認' || flag === '管理対象外' || flag === '削除済み' || flag === 'URL変更') return null;
     if (work.indexOf('改善中') >= 0 || work.indexOf('モニター中') >= 0 || work.indexOf('完了') >= 0) return null;
+
+    // v6.4.9: 日次改善は収益に近い記事へ集中する。
+    // 発芽・未発芽は原因診断を先に行うため、今日の改善へ直接入れない。
+    if (rankCode === 'UNGERMINATED' || rankCode === 'SPROUT' || rankCode === 'UNMEASURED' || rankCode === 'LOW') return null;
+
     var target = sbmExpectedCtrTarget_(pos);
     var gap = Math.max(0, target - ctr);
     var expected = Math.max(0, Math.round(imps * gap));
     var posFit = (pos >= 4 && pos <= 15) ? (16 - pos) / 12 : (pos > 15 && pos <= 30 ? (31 - pos) / 32 : 0.05);
     var impPower = Math.log10(imps + 10);
-    var instantScore = (posFit * 50) + (Math.min(3.5,impPower) * 12) + (Math.min(0.08,gap) * 420) + (rank.indexOf('成長')>=0 ? 8 : 0);
-    var ctrScore = expected * 1.8 + impPower * 18 + (gap * 500);
-    return {url:url,title:title,query:query,clicks:clicks,impressions:imps,ctr:ctr,position:pos,rank:rank,work:work,targetCtr:target,expectedClicks:expected,instantScore:instantScore,ctrScore:ctrScore};
+    var baseOpportunity = (posFit * 50) + (Math.min(3.5,impPower) * 12) + (Math.min(0.08,gap) * 420);
+    var ctrOpportunity = expected * 1.8 + impPower * 18 + (gap * 500);
+    var rankPriority = rankCode === 'GROWTH' ? 400 : (rankCode === 'ACE' ? 300 : (rankCode === 'NURTURE' ? 200 : 100));
+
+    // 安定記事は通常放置。明確なCTR余地がある場合だけ候補化する。
+    if (rankCode === 'STABLE' && !(imps >= 1000 && gap >= 0.008 && expected >= 10)) return null;
+
+    return {
+      url:url,title:title,query:query,clicks:clicks,impressions:imps,ctr:ctr,position:pos,
+      rank:rank,rankCode:rankCode,work:work,targetCtr:target,expectedClicks:expected,
+      instantScore:rankPriority + baseOpportunity,
+      ctrScore:rankPriority + ctrOpportunity
+    };
   }).filter(Boolean);
 
-  // 厳格条件で2件未満の場合も、記事DBに有効な未処理記事があれば候補を補います。
-  // 改善中・モニター中・完了済みは除外し、表示回数と順位を基準に軽量に並べます。
-  if (pool.length < 2) {
-    var existing = {};
-    pool.forEach(function(c){ existing[c.url] = true; });
-    rows.forEach(function(r){
-      var url = String(r['記事URL'] || '').trim();
-      var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', r['記事URL'] || '');
-      var work = String(r['作業状態'] || '未着手').trim();
-      var flag = String(r['管理フラグ'] || '').trim();
-      var fallbackQuery = sbmRealMainQuery_(r['メインクエリ']);
-      if (!url || !title || existing[url] || sbmIsPendingArticleIdentity_(title, fallbackQuery)) return;
-      if (flag === 'データ未取得' || flag === '要確認' || flag === '管理対象外' || flag === '削除済み' || flag === 'URL変更') return;
-      if (work.indexOf('改善中') >= 0 || work.indexOf('モニター中') >= 0 || work.indexOf('完了') >= 0) return;
-      var clicks = sbmNumber_(r['クリック数']) || 0;
-      var imps = sbmNumber_(r['表示回数']) || 0;
-      var ctr = sbmNormalizeCtrNumber_(r['CTR']);
-      var pos = sbmNumber_(r['掲載順位']) || 0;
-      if (imps <= 0 || pos <= 0) return;
-      var target = sbmExpectedCtrTarget_(pos);
-      var gap = Math.max(0, target - ctr);
-      var expected = Math.max(0, Math.round(imps * gap));
-      var impPower = Math.log10(imps + 10);
-      pool.push({
-        url:url,title:title,query:fallbackQuery,clicks:clicks,
-        impressions:imps,ctr:ctr,position:pos,rank:String(r['記事ランク'] || '').trim(),work:work,
-        targetCtr:target,expectedClicks:expected,
-        instantScore:(Math.max(0,31-pos) * 1.2) + impPower * 10 + gap * 250,
-        ctrScore:expected * 1.5 + impPower * 15 + gap * 350
-      });
-      existing[url] = true;
-    });
-  }
   var used = {};
   function take(sorted, kind, max) {
     var out=[];
@@ -6430,13 +6414,17 @@ function sbmSelectTodayRecommendations_() {
     }
     return out;
   }
-  var instant = pool.slice().sort(function(a,b){ return b.instantScore-a.instantScore; });
-  var ctr = pool.slice().sort(function(a,b){ return b.ctrScore-a.ctrScore; });
-  var a = take(instant,'⚡ 即効性',5);
-  var b = take(ctr,'📈 CTR改善',5);
-  var merged=[];
-  for (var i=0;i<5;i++){ if(a[i]) merged.push(a[i]); if(b[i]) merged.push(b[i]); }
-  return merged.slice(0,10);
+
+  // 成長を最優先。その次にエースの保護付き収益改善、育成、条件を満たす安定。
+  var ordered = pool.slice().sort(function(a,b){
+    var sa=Math.max(a.instantScore,a.ctrScore), sb=Math.max(b.instantScore,b.ctrScore);
+    return sb-sa;
+  });
+  var growth=take(ordered.filter(function(c){return c.rankCode==='GROWTH';}),'⚡ 即効性',10);
+  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'📈 CTR改善',10);
+  var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'⚡ 即効性',10);
+  var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'📈 CTR改善',10);
+  return growth.concat(ace,nurture,stable).slice(0,10);
 }
 
 function sbmExpectedCtrTarget_(pos) {
@@ -6457,10 +6445,16 @@ function sbmNormalizeCtrNumber_(v) {
 
 function sbmTodayReason_(c, kind) {
   var pct = (c.ctr*100).toFixed(1);
+  var expected = Math.max(1,c.expectedClicks);
+  var comment = '';
+  if (c.rankCode === 'GROWTH') comment = '今回の方針：エース化を狙い、現在の検索評価を保護しながら不足部分だけを改善します。';
+  else if (c.rankCode === 'ACE') comment = '今回の方針：エース評価を最優先で保護し、SEO骨格を変えない範囲の収益・CTR改善に限定します。';
+  else if (c.rankCode === 'NURTURE') comment = '今回の方針：育成中の検索シグナルを残し、成長段階へ進めるための限定改善を行います。';
+  else if (c.rankCode === 'STABLE') comment = '今回の方針：安定評価を崩さず、明確な改善余地がある箇所だけを小さく調整します。';
   if (kind.indexOf('即効性') >= 0) {
-    return '順位' + c.position.toFixed(1) + '位・CTR' + pct + '%で、少ない修正でも伸びる余地があります。\n期待効果：タイトルや導入文の改善で約' + Math.max(1,c.expectedClicks) + 'クリック増が見込めます。';
+    return '順位' + c.position.toFixed(1) + '位・CTR' + pct + '%で、少ない修正でも伸びる余地があります。\n期待効果：CTR機会値では約' + expected + 'クリック分の改善余地があります。\n' + comment;
   }
-  return '表示回数' + Math.round(c.impressions).toLocaleString() + '回に対してCTR' + pct + '%です。\n期待効果：CTRが目安値まで改善すると約' + Math.max(1,c.expectedClicks) + 'クリック増が見込めます。';
+  return '表示回数' + Math.round(c.impressions).toLocaleString() + '回に対してCTR' + pct + '%です。\n期待効果：CTR目安値との差では約' + expected + 'クリック分の改善余地があります。\n' + comment;
 }
 
 function sbmTodayEstimate_(c, kind) {
