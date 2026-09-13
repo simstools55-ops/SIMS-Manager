@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.9
+ * SIMS Manager Product v6.5.0
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.9';
+const SBM_VERSION = '6.5.0';
+// v6.5.0: 起動/Home表示の無駄な全体テーマ再適用と重複更新を削減。版表示を先にflushし、Home軽量表示は保存Snapshotを優先。今日の改善は保存済み候補でも新しい収益優先コメントへ軽量再描画する。
 // v6.4.9: 今日の改善候補を収益優先・ランク保護型へ変更。成長→エース化を最優先、エースは保護付き収益改善、育成を次点、安定は条件付きとし、発芽・未発芽は日次改善から除外。改善理由・期待効果へ今回の改善方針コメントを追加。
 // v6.4.8: 収益最大化を最終目的とする「収益優先・安全改善ポリシー」を正本化。記事ランクと作業優先度を分離し、成長・エースの保護改善、変更前スナップショット、28日後のaDoctor再診によるKEEP/IMPROVE/RESTORE、原状復帰後の再測定を段階実装する設計基準を確定。
 // v6.4.7: 記事詳細トリアージを6ランクへ拡張。未発芽・発芽はaDoctor優先、育成は改善ナビ、安定・成長・エースは保護観察を基本とし、要改善等の異常時は既存のaDoctor優先分岐を維持。
@@ -6021,8 +6022,9 @@ function sbmOpenHome() {
   }
   // Homeを開くだけの操作では、Doctor再照合・効果測定再計算を実行しない。
   // 日次処理や結果登録で保存済みのデータから表示だけを更新する。
-  try { sbmRefreshHome_({light:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
-  try { sh=ss.getSheetByName(SBM_SHEETS.HOME); sbmApplyHomeDisplayTheme_(sh); } catch(eThemeHome) { sbmLog_('HomeTheme','Warning',String(eThemeHome)); }
+  try { sbmRefreshHome_({light:true,liveArticle:false}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
+  // sbmRefreshHome_内で現在テーマまで仕上げるため、ここでの重複テーマ適用は行わない。
+  sh=ss.getSheetByName(SBM_SHEETS.HOME) || sh;
   if (sh) { sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); }
 }
 
@@ -6095,6 +6097,32 @@ function sbmBuildTodayImprovementSheet_() {
   sh.hideColumns(12,2); // URL・候補IDは内部利用
 }
 
+/** v6.5.0: 保存済み候補の順位や選択状態を変えず、表示文言だけを現行ルールへ同期する。 */
+function sbmRefreshTodayPresentationOnly_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh),urlCol=hm['記事URL'],kindCol=hm['区分'],reasonCol=hm['改善理由・期待効果'],timeCol=hm['予想時間'];
+  if(!urlCol||!kindCol||!reasonCol||!timeCol)return 0;
+  var candidates=sbmGetTodayCandidates_(),byUrl={};
+  candidates.forEach(function(c){var u=sbmNormalizeUrl_(c&&c.url||'');if(u)byUrl[u]=c;});
+  var n=sh.getLastRow()-1,urls=sh.getRange(2,urlCol,n,1).getDisplayValues(),changed=0;
+  var kinds=sh.getRange(2,kindCol,n,1).getValues(),reasons=sh.getRange(2,reasonCol,n,1).getValues(),times=sh.getRange(2,timeCol,n,1).getValues();
+  var savedChanged=false;
+  for(var i=0;i<n;i++){
+    var c=byUrl[sbmNormalizeUrl_(urls[i][0]||'')];if(!c)continue;
+    c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
+    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
+    var reason=sbmTodayReason_(c,kind),estimate=sbmTodayEstimate_(c,kind);
+    if(String(kinds[i][0]||'')!==kind){kinds[i][0]=kind;changed++;}
+    if(String(reasons[i][0]||'')!==reason){reasons[i][0]=reason;changed++;}
+    if(String(times[i][0]||'')!==estimate){times[i][0]=estimate;changed++;}
+    if(c.kind!==kind||c.reason!==reason||c.estimate!==estimate){c.kind=kind;c.reason=reason;c.estimate=estimate;savedChanged=true;}
+  }
+  if(changed){sh.getRange(2,kindCol,n,1).setValues(kinds);sh.getRange(2,reasonCol,n,1).setValues(reasons);sh.getRange(2,timeCol,n,1).setValues(times);}
+  if(savedChanged)sbmSetSetting_('TodayRecommendationJson',JSON.stringify(candidates),'今日の改善候補の表示文言を現行ルールへ同期');
+  return changed;
+}
+
 // UAT17互換注記（表示時には実行しない）: try { sbmRepairTodayMainQueryDisplay_(); }
 function sbmOpenTodayImprovement() {
   // v6.1.15: 日次処理で確定した「今日の改善」は、その日の作業中は固定リストとして扱う。
@@ -6106,6 +6134,7 @@ function sbmOpenTodayImprovement() {
   if (!sh) { sbmBuildTodayImprovementSheet_(); sh = ss.getSheetByName(SBM_SHEETS.TODAY); }
 
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
+  try { sbmRefreshTodayPresentationOnly_(); } catch(eTodayPresentation) { try{sbmLog_('TodayPresentation','Warning',String(eTodayPresentation));}catch(ignoreTodayPresentationLog){} }
 
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
   try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){}
@@ -6420,10 +6449,10 @@ function sbmSelectTodayRecommendations_() {
     var sa=Math.max(a.instantScore,a.ctrScore), sb=Math.max(b.instantScore,b.ctrScore);
     return sb-sa;
   });
-  var growth=take(ordered.filter(function(c){return c.rankCode==='GROWTH';}),'⚡ 即効性',10);
-  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'📈 CTR改善',10);
-  var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'⚡ 即効性',10);
-  var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'📈 CTR改善',10);
+  var growth=take(ordered.filter(function(c){return c.rankCode==='GROWTH';}),'📈 エース化',10);
+  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善',10);
+  var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'🌱 育成改善',10);
+  var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'✅ 安全改善',10);
   return growth.concat(ace,nurture,stable).slice(0,10);
 }
 
@@ -6451,15 +6480,16 @@ function sbmTodayReason_(c, kind) {
   else if (c.rankCode === 'ACE') comment = '今回の方針：エース評価を最優先で保護し、SEO骨格を変えない範囲の収益・CTR改善に限定します。';
   else if (c.rankCode === 'NURTURE') comment = '今回の方針：育成中の検索シグナルを残し、成長段階へ進めるための限定改善を行います。';
   else if (c.rankCode === 'STABLE') comment = '今回の方針：安定評価を崩さず、明確な改善余地がある箇所だけを小さく調整します。';
-  if (kind.indexOf('即効性') >= 0) {
+  if (c.rankCode === 'GROWTH' || c.rankCode === 'NURTURE') {
     return '順位' + c.position.toFixed(1) + '位・CTR' + pct + '%で、少ない修正でも伸びる余地があります。\n期待効果：CTR機会値では約' + expected + 'クリック分の改善余地があります。\n' + comment;
   }
   return '表示回数' + Math.round(c.impressions).toLocaleString() + '回に対してCTR' + pct + '%です。\n期待効果：CTR目安値との差では約' + expected + 'クリック分の改善余地があります。\n' + comment;
 }
 
 function sbmTodayEstimate_(c, kind) {
-  if (kind.indexOf('即効性') >= 0) return c.position <= 10 ? '約15分' : '約20分';
-  return c.impressions >= 5000 ? '約20分' : '約15分';
+  if (c&&c.rankCode==='GROWTH') return c.position <= 10 ? '約15分' : '約20分';
+  if (c&&c.rankCode==='ACE') return c.impressions >= 5000 ? '約20分' : '約15分';
+  return '約15分';
 }
 
 
@@ -7557,7 +7587,8 @@ const SBM_EFFECT_HEADERS_V2 = [
 ];
 
 
-function sbmApplyProductVisibleTabs_() {
+function sbmApplyProductVisibleTabs_(options) {
+  options=options||{};
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var visible = {};
   [SBM_SHEETS.HOME, SBM_SHEETS.TODAY, SBM_SHEETS.EFFECT, SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.FEEDBACK_HISTORY].forEach(function(n){ visible[n] = true; });
@@ -7566,7 +7597,9 @@ function sbmApplyProductVisibleTabs_() {
   });
   var home = ss.getSheetByName(SBM_SHEETS.HOME);
   if (home) ss.setActiveSheet(home);
-  try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
+  // v6.5.0: onOpenでは5シート全体のテーマ再描画をしない。
+  // テーマ変更時・初期構築時など、明示された場合だけ全体テーマを適用する。
+  if(options.applyTheme!==false){try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}}
 }
 
 /**
@@ -11460,7 +11493,7 @@ function sbmGetHomeSnapshot_(){
     var raw=PropertiesService.getDocumentProperties().getProperty('SBM_HOME_SNAPSHOT_V1');
     if(!raw)return null;
     var obj=JSON.parse(raw);
-    return obj&&obj.version===1&&String(obj.productVersion||'')===String(SBM_DISPLAY_VERSION||SBM_VERSION||'')?obj:null;
+    return obj&&obj.version===1?obj:null; // v6.5.0: Product版更新だけでSnapshot全再構築しない。schema versionで互換性を判断。
   }catch(e){return null;}
 }
 
@@ -11496,22 +11529,26 @@ function sbmRefreshHome_(options) {
   // データ変更後の通常refreshはスナップショットを再構築する。
   var snap;
   if(light){
+    var hadSnapshot=!!sbmGetHomeSnapshot_();
     snap=sbmEnsureHomeSnapshot_();
-    // v6.2.60: Homeを開くたびに記事管理だけを軽量再読込し、ランク・未取得・改善状況を現在値へ同期する。
-    // 改善履歴・改善の推移は保存済みスナップショットを維持するため、追加GSC取得は発生しない。
-    try{
-      var liveArticleRows=sbmHomeReadRowsOnce_(SBM_SHEETS.ARTICLE_DB)||[];
-      var liveArticleStats=sbmHomeArticleStatsFromRows_(liveArticleRows);
-      snap.total=liveArticleStats.total;
-      snap.counts=liveArticleStats.counts;
-      snap.work=liveArticleStats.work;
-      snap.missingCount=liveArticleStats.missingCount;
-      snap.clicks=liveArticleStats.clicks;
-      snap.impressions=liveArticleStats.impressions;
-      snap.generatedAt=Date.now();
-      PropertiesService.getDocumentProperties().setProperty('SBM_HOME_SNAPSHOT_V1',JSON.stringify(snap));
-    }catch(eLiveHomeArticle){
-      try{sbmLog_('HomeLiveArticleRefresh','Warning',String(eLiveHomeArticle));}catch(ignoreLiveHomeArticleLog){}
+    // v6.5.0: Homeを開くだけなら保存Snapshotをそのまま使う。
+    // 記事DBを再読込するのは呼び出し側が liveArticle:true を明示した場合、またはSnapshot初回生成時だけ。
+    if(options.liveArticle===true || !hadSnapshot){
+      try{
+        var liveArticleRows=sbmHomeReadRowsOnce_(SBM_SHEETS.ARTICLE_DB)||[];
+        var liveArticleStats=sbmHomeArticleStatsFromRows_(liveArticleRows);
+        snap.total=liveArticleStats.total;
+        snap.counts=liveArticleStats.counts;
+        snap.work=liveArticleStats.work;
+        snap.missingCount=liveArticleStats.missingCount;
+        snap.clicks=liveArticleStats.clicks;
+        snap.impressions=liveArticleStats.impressions;
+        snap.productVersion=String(SBM_DISPLAY_VERSION||SBM_VERSION||'');
+        snap.generatedAt=Date.now();
+        PropertiesService.getDocumentProperties().setProperty('SBM_HOME_SNAPSHOT_V1',JSON.stringify(snap));
+      }catch(eLiveHomeArticle){
+        try{sbmLog_('HomeLiveArticleRefresh','Warning',String(eLiveHomeArticle));}catch(ignoreLiveHomeArticleLog){}
+      }
     }
   }else{
     snap=sbmBuildHomeSnapshot_();
@@ -11696,9 +11733,15 @@ function sbmRefreshHomeDailyStatusOnly_() {
   var runtimeState = sbmGetDailyRuntimeState_(settingsMap);
   var statusText = runtimeState.running ? '▶ 実行中' : (runtimeState.completedToday ? '○ 本日完了' : (runtimeState.continuationRequired ? '◇ 続行待ち' : (runtimeState.label === 'エラー' ? '▲ エラー' : '● 未実施')));
   sh.getRange('B4:J4').setValue(statusText);
-  sh.getRange('A4:J4').setBackground(runtimeState.running ? '#dbeafe' : (runtimeState.completedToday ? '#e6f4ea' : (runtimeState.continuationRequired ? '#fef7e0' : (runtimeState.label === 'エラー' ? '#fce8e6' : '#fff2cc'))));
-  sh.getRange('B4:J4').setFontColor(runtimeState.running ? '#174ea6' : (runtimeState.completedToday ? '#0b8043' : '#b3261e')).setFontWeight(runtimeState.completedToday ? 'normal' : 'bold');
-  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeDailyTheme){}
+  var fg=runtimeState.running ? '#174ea6' : (runtimeState.completedToday ? '#0b8043' : '#b3261e');
+  if(sbmIsMonochromeTheme_()){
+    // v6.5.0: STANDARD色を一瞬塗ってからMONOCHROMEへ戻す二重描画を廃止。
+    sh.getRange('A4').setBackground('#5f6368').setFontColor('#ffffff').setFontWeight('bold');
+    sh.getRange('B4:J4').setBackground('#ffffff').setFontColor(fg).setFontWeight(runtimeState.completedToday ? 'normal' : 'bold');
+  }else{
+    sh.getRange('A4:J4').setBackground(runtimeState.running ? '#dbeafe' : (runtimeState.completedToday ? '#e6f4ea' : (runtimeState.continuationRequired ? '#fef7e0' : (runtimeState.label === 'エラー' ? '#fce8e6' : '#fff2cc'))));
+    sh.getRange('B4:J4').setFontColor(fg).setFontWeight(runtimeState.completedToday ? 'normal' : 'bold');
+  }
   return true;
 }
 
@@ -12584,6 +12627,14 @@ function sbmWriteTodayRecommendations_(candidates, count) {
 
   if (shown.length) {
     var values = shown.map(function(c) {
+      c=c||{};
+      c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
+      if(c.rankCode==='GROWTH')c.kind='📈 エース化';
+      else if(c.rankCode==='ACE')c.kind='💰 収益改善';
+      else if(c.rankCode==='NURTURE')c.kind='🌱 育成改善';
+      else if(c.rankCode==='STABLE')c.kind='✅ 安全改善';
+      c.reason=sbmTodayReason_(c,c.kind||'');
+      c.estimate=sbmTodayEstimate_(c,c.kind||'');
       return [
         false,
         c.kind,
@@ -13544,18 +13595,8 @@ function onOpen() {
     .addItem('SIMS Managerについて','sbmShowVersionInfo')
     .addToUi();
 
-  // v6.1.37: SIMS標準TZへ軽量統一。メニュー生成後なので失敗してもメニューは維持される。
-  try{sbmEnsureSpreadsheetTimeZoneV6137_();}catch(ignoreTimeZoneRepair){}
-
-  // v6.1.34: メニューを先に確定させてから、一度限りの互換修復を実行する。
-  // 修復が失敗・長時間化してもメニュー自体は既に利用可能な状態を維持する。
-  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
-  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
-
-  // v5.21.53: 起動時は利用者向け5シートだけを表示し、内部管理シートが前回操作で露出していても再び隠す。
-  try { sbmApplyProductVisibleTabs_(); } catch (eTabs) { try { sbmLog_('OnOpenVisibleTabs','Warning',String(eTabs)); } catch(ignoreTabs) {} }
-
-  // 起動時は重い再集計をせず、日付依存の日次処理状態だけを更新してHomeを表示する。
+  // v6.5.0: 版表示とHomeの日次状態を最優先で反映し、ここで一度flushする。
+  // 互換修復・タブ整理より先に利用者へ新バージョンが見えるようにする。
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var home = ss.getSheetByName(SBM_SHEETS.HOME);
@@ -13565,10 +13606,21 @@ function onOpen() {
       home.showSheet();
       ss.setActiveSheet(home);
       home.activate();
+      try{SpreadsheetApp.flush();}catch(ignoreFastHomeFlush){}
     }
   } catch (eHome) {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
   }
+
+  // v6.1.37: SIMS標準TZへ軽量統一。Home初期表示後に実行する。
+  try{sbmEnsureSpreadsheetTimeZoneV6137_();}catch(ignoreTimeZoneRepair){}
+
+  // 一度限りの互換修復。Homeの初期表示をブロックしない順序へ移動。
+  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
+  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
+
+  // 起動時は表示/非表示だけを整える。5シート全体のテーマ再描画はしない。
+  try { sbmApplyProductVisibleTabs_({applyTheme:false}); } catch (eTabs) { try { sbmLog_('OnOpenVisibleTabs','Warning',String(eTabs)); } catch(ignoreTabs) {} }
 }
 
 

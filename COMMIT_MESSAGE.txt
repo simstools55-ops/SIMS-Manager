@@ -1,10 +1,10 @@
-feat: prioritize revenue-safe daily improvements (v6.4.9)
+perf: remove redundant Home and theme refresh work (v6.5.0)
 
-- prioritize Growth articles for Ace promotion
-- protect Ace articles and limit them to low-risk revenue/CTR opportunities
-- place Nurture after Ace and Stable only when a clear CTR opportunity exists
-- exclude Sprout and Ungerminated articles from direct daily improvement selection
-- remove forced fallback filling from low-priority articles
-- add a rank-aware improvement comment to the reason and expected-effect column
-- express click uplift as an opportunity estimate rather than a guaranteed forecast
+- flush Home version and daily status before compatibility repairs
+- skip all-sheet theme repaint during onOpen
+- prevent standard-to-monochrome double painting on Home status refresh
+- remove duplicate Home theme application
+- reuse Home snapshots across product version bumps
+- avoid live Article DB rereads when simply opening Home
+- refresh saved Today recommendation wording with revenue-first labels
 - sync Full and Starter editions
