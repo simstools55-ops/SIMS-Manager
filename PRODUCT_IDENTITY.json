@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.5",
+  "current_version": "6.5.6",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.5: 改善ナビの改善ポイントを利用者向け改善ガイドへ刷新。FullはaWriter依頼文を主導線のままガイドを任意展開、Starterはガイドを初期表示。aWriter依頼文生成ロジック・Contractは変更なし。",
-  "version": "6.5.5",
+  "notes": "v6.5.6: 改善ガイドを3件固定からaWriterと同じ改善スコープに基づく必要件数表示へ拡張。小見出しは太字＋改行。Fullは内部リンク候補も初期折りたたみ。aWriter依頼文生成・Contractは変更なし。",
+  "version": "6.5.6",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.5-ST"
+  "starter_display_version": "v6.5.6-ST"
 }
