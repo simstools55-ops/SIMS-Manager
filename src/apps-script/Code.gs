@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.3
+ * SIMS Manager Product v6.5.4
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.3';
+const SBM_VERSION = '6.5.4';
+// v6.5.4: ダイアログのネイティブタイトルと本文先頭見出しが同一の場合、共通表示関数で本文見出しを自動除去し、タイトル二重化を横断防止。日次処理を含む既存ダイアログへ一括適用。
 // v6.5.3: 今日の改善の『収益改善（流入）』を2行表示にして区分列の視認性を改善。観察終了前の処置確認はaDoctor再診準備ではなく経過観察状況の確認と明示し、4回測定完了後に必要時のみ再診へ進む案内へ修正。
 // v6.5.2: 高評価記事の改善前スナップショットを改善計画へ保存し、28日後aDoctor再診へKEEP/IMPROVE/RESTORE判断材料として渡す。RESTORE判定時は復元パッケージを提示し、利用者の原状復帰完了登録から新しい7・14・21・28日目の再観察サイクルを開始。今日の改善の区分列は2行表示に対応。
 // v6.5.1: エース記事の『収益改善』をGSCで判断可能な『収益改善（流入）』として明確化。勝ちクエリ・SEO骨格を保護し、ページ内収益改善はGA4等の行動データ未接続時に推測しない。Writerのreview日数に関係なくSBMは7・14・21・28日目で固定測定。
@@ -9584,7 +9585,7 @@ function sbmOpenSelectedArticleManagementDialog(){
       '<label class="choice"><input type="checkbox" class="one" id="other"> その他の理由で検索改善の管理対象から外す</label>'+
       '<label class="confirm"><input type="checkbox" id="excludeConfirmed"> ブログ側の処置を完了し、この記事を検索改善の対象外にすることを確認しました</label>';
   }
-  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{font-size:18px;margin:0 0 8px;color:#174ea6}.meta{background:#f8f9fa;border-radius:8px;padding:10px 12px;line-height:1.55;margin:8px 0 14px}.lead{margin:8px 0}.choice,.confirm{display:block;border:1px solid #dadce0;border-radius:8px;padding:11px 12px;margin:8px 0}.confirm{background:#fff8e1}.notice{background:#fce8e6;color:#8a1c13;border-radius:8px;padding:12px;line-height:1.6}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}button{border:0;border-radius:6px;padding:9px 16px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.status{margin-top:10px;white-space:pre-wrap;font-size:13px}.err{color:#b31412}.ok{color:#188038}</style></head><body><h2>記事の管理状態を変更</h2><div class="meta">'+
+  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{font-size:18px;margin:0 0 8px;color:#174ea6}.meta{background:#f8f9fa;border-radius:8px;padding:10px 12px;line-height:1.55;margin:8px 0 14px}.lead{margin:8px 0}.choice,.confirm{display:block;border:1px solid #dadce0;border-radius:8px;padding:11px 12px;margin:8px 0}.confirm{background:#fff8e1}.notice{background:#fce8e6;color:#8a1c13;border-radius:8px;padding:12px;line-height:1.6}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}button{border:0;border-radius:6px;padding:9px 16px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.status{margin-top:10px;white-space:pre-wrap;font-size:13px}.err{color:#b31412}.ok{color:#188038}</style></head><body><div class="meta">'+
     sbmDoctorEscapeHtml_((id?id+'　':'')+title)+'<br>'+sbmDoctorEscapeHtml_(url)+'<br>現在：'+sbmDoctorEscapeHtml_(String(rec['作業状態']||'')+' / '+String(rec['記事ステータス']||'')+' / '+String(rec['管理フラグ']||''))+'</div>'+options+
     '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button>'+(locked?'':'<button id="submit" class="primary" onclick="submitState()">登録</button>')+'</div><div id="status" class="status"></div><script>document.querySelectorAll(".one").forEach(function(x){x.addEventListener("change",function(){if(!this.checked)return;document.querySelectorAll(".one").forEach(function(y){if(y!==x)y.checked=false})})});function submitState(){var action="";["restore","noindex","unpublished","other"].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked)action=id});var st=document.getElementById("status");if(!action){st.className="status err";st.textContent="処置を1つ選択してください。";return}var confirmId=action==="restore"?"restoreConfirmed":"excludeConfirmed",c=document.getElementById(confirmId);if(!c||!c.checked){st.className="status err";st.textContent="ブログ側の状態確認にもチェックしてください。";return}var b=document.getElementById("submit");b.disabled=true;b.textContent="登録中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="登録";if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";setTimeout(function(){google.script.host.close()},900)}).withFailureHandler(function(e){b.disabled=false;b.textContent="登録";st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyArticleManagementState({articleId:'+JSON.stringify(id)+',articleUrl:'+JSON.stringify(url)+',action:action,confirmed:true})}</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(520),'記事の管理状態');
@@ -10184,8 +10185,34 @@ function sbmApplyThemeToHtmlOutput_(output){
   try{rebuilt.setHeight(htmlOutput.getHeight());}catch(ignoreHeight){}
   return rebuilt;
 }
+function sbmRemoveDuplicateDialogHeading_(output,title){
+  var htmlOutput=output;
+  if(typeof output==='string')htmlOutput=HtmlService.createHtmlOutput(output);
+  if(!htmlOutput||typeof htmlOutput.getContent!=='function')return output;
+  var content=htmlOutput.getContent();
+  var dialogTitle=String(title||'').replace(/\s+/g,' ').trim();
+  if(!dialogTitle)return htmlOutput;
+  // v6.5.4: Apps Script native dialog title and body-first heading must not repeat the same label.
+  // Only an exact text match is removed so status/result headings such as
+  // 「記事情報補完を保存しました」 remain visible.
+  // HTML document / fragmentのどちらでも、最初に現れる見出しを対象にする。
+  // CSS内の h2{...} はタグではないため、この検索には一致しない。
+  var headingRe=/<h([1-3])([^>]*)>([\s\S]*?)<\/h\1>/i;
+  var m=content.match(headingRe);
+  if(m){
+    var headingText=String(m[3]||'').replace(/<[^>]*>/g,'').replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/\s+/g,' ').trim();
+    if(headingText===dialogTitle){
+      content=content.replace(headingRe,'');
+    }
+  }
+  var rebuilt=HtmlService.createHtmlOutput(content);
+  try{rebuilt.setWidth(htmlOutput.getWidth());}catch(ignoreWidth){}
+  try{rebuilt.setHeight(htmlOutput.getHeight());}catch(ignoreHeight){}
+  return rebuilt;
+}
 function sbmShowThemedModalDialog_(output,title){
-  SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(output),title);
+  var cleaned=sbmRemoveDuplicateDialogHeading_(output,title);
+  SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(cleaned),title);
 }
 
 function sbmCommonDialogCss_(){
@@ -19554,7 +19581,7 @@ function sbmOpenCreatorPublicationRegisterDialog(){
   var html=HtmlService.createHtmlOutput(
     '<!doctype html><html><head><base target="_top"><style>'+
     'html,body{height:100%;margin:0}body{font-family:Arial,"Noto Sans JP",sans-serif;color:#202124;display:flex;flex-direction:column;overflow:hidden}.content{padding:18px 18px 8px;overflow:auto;flex:1}h2{font-size:18px;margin:0 0 8px}.note{font-size:13px;line-height:1.65;color:#5f6368;margin-bottom:10px}label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}textarea{width:100%;height:280px;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-family:monospace;font-size:12px;resize:vertical}input[type=url]{width:100%;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-size:13px}.required{color:#b3261e}.hint{font-size:12px;color:#5f6368;line-height:1.5;margin-top:5px}.footer{flex:none;border-top:1px solid #e8eaed;background:#fff;padding:10px 18px 14px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{border:0;border-radius:5px;padding:9px 16px;cursor:pointer}.secondary{background:#f1f3f4}.primary{background:#1a73e8;color:white}.primary:disabled{opacity:.55;cursor:default}.status{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:9px;border-radius:5px;background:#f8f9fa}.ok{background:#e6f4ea;color:#137333}.err{background:#fce8e6;color:#b3261e}</style></head><body>'+
-    '<div class="content"><h2>aCreatorで作成した新記事をSIMS Managerへ登録</h2>'+
+    '<div class="content">'+
     '<div class="note">この登録は、aCreatorで作成した記事を実際に公開した後に行います。最初に公開済みの記事URLを入力し、その下にaCreatorの回答全文（JSONを含む）を貼り付けてください。公開URLがない記事は登録できません。SIMSはSearch Console反映前でも「検索露出待ち」として記事管理へ登録し、初観測後から実績データを同じURLへ合流します。</div>'+
     '<label for="publishedUrl">公開した記事のURL <span class="required">（必須）</span></label>'+
     '<input id="publishedUrl" type="url" inputmode="url" placeholder="https://example.com/entry/...">'+

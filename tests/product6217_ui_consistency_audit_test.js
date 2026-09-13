@@ -1,7 +1,8 @@
 const fs=require('fs');
 const s=fs.readFileSync(process.argv[2]||'Code.gs','utf8');
+const current=fs.readFileSync('VERSION','utf8').trim().replace(/\./g,'\\.');
 const checks=[
-  ['version',/const SBM_VERSION = '6\.2\.18';/],
+  ['version',new RegExp("const SBM_VERSION = '"+current+"';")],
   ['unfinished counter',/へ依頼（未完了 /],
   ['skip explicit',/今回の改善を取りやめる/],
   ['copy confirmation',/コピーしました ✓/],
