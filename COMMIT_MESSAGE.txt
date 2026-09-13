@@ -1,10 +1,8 @@
-perf: remove redundant Home and theme refresh work (v6.5.0)
+feat: define safe traffic revenue improvement for ace articles (v6.5.1)
 
-- flush Home version and daily status before compatibility repairs
-- skip all-sheet theme repaint during onOpen
-- prevent standard-to-monochrome double painting on Home status refresh
-- remove duplicate Home theme application
-- reuse Home snapshots across product version bumps
-- avoid live Article DB rereads when simply opening Home
-- refresh saved Today recommendation wording with revenue-first labels
+- rename ace daily work to revenue improvement (traffic)
+- protect winning queries and core SEO structure in Writer requests
+- limit GSC-only revenue work to traffic acquisition opportunities
+- prohibit guessed page-level monetization changes without GA4 or revenue behavior data
+- normalize Writer review guidance to the 7/14/21/28-day SBM measurement cycle
 - sync Full and Starter editions

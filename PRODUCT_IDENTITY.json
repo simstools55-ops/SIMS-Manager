@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.0",
+  "current_version": "6.5.1",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.0: 起動/Home高速化。onOpenの全5シートテーマ再描画を廃止し、版表示を先行flush。Home Snapshotを製品版更新で無効化しない。今日の改善表示文言を現行の収益優先ルールへ軽量同期。",
-  "version": "6.5.0",
+  "notes": "v6.5.1: エース記事の収益改善を「流入収益改善」として明確化。勝ちクエリ・SEO骨格を保護し、GA4等の行動データなしにページ内収益改善を推測しない。Writer依頼の効果測定表現を7・14・21・28日目へ統一。",
+  "version": "6.5.1",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.0-ST"
+  "starter_display_version": "v6.5.1-ST"
 }

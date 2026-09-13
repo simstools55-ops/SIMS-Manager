@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.0
+ * SIMS Manager Product v6.5.1
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.0';
+const SBM_VERSION = '6.5.1';
+// v6.5.1: エース記事の『収益改善』をGSCで判断可能な『収益改善（流入）』として明確化。勝ちクエリ・SEO骨格を保護し、ページ内収益改善はGA4等の行動データ未接続時に推測しない。Writerのreview日数に関係なくSBMは7・14・21・28日目で固定測定。
 // v6.5.0: 起動/Home表示の無駄な全体テーマ再適用と重複更新を削減。版表示を先にflushし、Home軽量表示は保存Snapshotを優先。今日の改善は保存済み候補でも新しい収益優先コメントへ軽量再描画する。
 // v6.4.9: 今日の改善候補を収益優先・ランク保護型へ変更。成長→エース化を最優先、エースは保護付き収益改善、育成を次点、安定は条件付きとし、発芽・未発芽は日次改善から除外。改善理由・期待効果へ今回の改善方針コメントを追加。
 // v6.4.8: 収益最大化を最終目的とする「収益優先・安全改善ポリシー」を正本化。記事ランクと作業優先度を分離し、成長・エースの保護改善、変更前スナップショット、28日後のaDoctor再診によるKEEP/IMPROVE/RESTORE、原状復帰後の再測定を段階実装する設計基準を確定。
@@ -6111,7 +6112,7 @@ function sbmRefreshTodayPresentationOnly_(){
   for(var i=0;i<n;i++){
     var c=byUrl[sbmNormalizeUrl_(urls[i][0]||'')];if(!c)continue;
     c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
+    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
     var reason=sbmTodayReason_(c,kind),estimate=sbmTodayEstimate_(c,kind);
     if(String(kinds[i][0]||'')!==kind){kinds[i][0]=kind;changed++;}
     if(String(reasons[i][0]||'')!==reason){reasons[i][0]=reason;changed++;}
@@ -6450,7 +6451,7 @@ function sbmSelectTodayRecommendations_() {
     return sb-sa;
   });
   var growth=take(ordered.filter(function(c){return c.rankCode==='GROWTH';}),'📈 エース化',10);
-  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善',10);
+  var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善（流入）',10);
   var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'🌱 育成改善',10);
   var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'✅ 安全改善',10);
   return growth.concat(ace,nurture,stable).slice(0,10);
@@ -6477,7 +6478,7 @@ function sbmTodayReason_(c, kind) {
   var expected = Math.max(1,c.expectedClicks);
   var comment = '';
   if (c.rankCode === 'GROWTH') comment = '今回の方針：エース化を狙い、現在の検索評価を保護しながら不足部分だけを改善します。';
-  else if (c.rankCode === 'ACE') comment = '今回の方針：エース評価を最優先で保護し、SEO骨格を変えない範囲の収益・CTR改善に限定します。';
+  else if (c.rankCode === 'ACE') comment = '今回の方針：エース評価を最優先で保護し、GSCで確認できる取りこぼしクエリ・CTRなどの流入収益機会だけを改善します。ページ内収益改善は行動データなしで推測しません。';
   else if (c.rankCode === 'NURTURE') comment = '今回の方針：育成中の検索シグナルを残し、成長段階へ進めるための限定改善を行います。';
   else if (c.rankCode === 'STABLE') comment = '今回の方針：安定評価を崩さず、明確な改善余地がある箇所だけを小さく調整します。';
   if (c.rankCode === 'GROWTH' || c.rankCode === 'NURTURE') {
@@ -6851,6 +6852,20 @@ function sbmInternalLinkCandidatesHtml_(candidates){
   return candidates.map(function(c,i){return '<div class="link-candidate"><b>'+(i+1)+'. '+sbmEscapeHtml_(c.title)+'</b><br><a href="'+sbmEscapeHtml_(c.url)+'" target="_blank">'+sbmEscapeHtml_(c.url)+'</a><br><span>推奨アンカー：'+sbmEscapeHtml_(c.anchor)+'</span><br><span>関連クエリ：'+sbmEscapeHtml_(c.relatedQuery||'－')+'</span><br><span>関連度：'+sbmEscapeHtml_(c.stars)+'</span></div>';}).join('');
 }
 
+/** v6.5.1: 今日の改善種別に応じた収益改善スコープ。 */
+function sbmRevenueImprovementPromptText_(meta){
+  meta=meta||{};
+  var kind=String(meta.kind||''),rank=String(meta.rank||''),isAce=(kind.indexOf('収益改善')>=0)||sbmDoctorRankCode_(rank)==='ACE';
+  if(!isAce)return '';
+  return '\n【収益改善モード：流入】\n'+
+    '・この記事はエース級SEO資産です。既存の勝ちクエリ、SEOタイトル、記事タイトル（H1）、主要検索意図、主要H2、上位表示中の本文骨格を最優先で保護してください。\n'+
+    '・現在SIMS Managerから渡している主データはSearch Consoleです。この依頼で判断できる収益改善は、取りこぼしクエリ、CTR、関連検索流入など「流入収益改善」までです。\n'+
+    '・AdSenseの広告到達、滞在、回遊、アフィリエイトのリンククリック、CVR等のページ内収益改善は、GA4等の行動・収益データが無い限り推測で変更しないでください。\n'+
+    '・メインクエリが高順位・高CTRならSEOタイトル/H1は原則据え置きです。変更が必要と考えても、明確な悪化根拠がない限りPUBLIC_OKにせずuser_decision_changesへ回してください。\n'+
+    '・既存の強いクエリを守りながら、表示回数があるのに順位・CTRが弱い関連クエリ、明確なSERP差分、鮮度不足など、低リスクで追加流入を得られる箇所だけを改善してください。\n'+
+    '・商品リンク、アフィリエイトリンク、広告コード、CTA配置は行動・収益データなしに変更しないでください。\n';
+}
+
 function sbmBuildImprovementPrompt_(meta, articleData) {
   var articleId=String(meta.articleId||''), url=String(meta.url||''), title=String(meta.title||''), seoTitle=String(meta.seoTitle||''), description=String(meta.description||''), query=String(meta.query||'');
   var site = sbmEnsureSiteIdentity_(), siteId=String(site.siteId||''), siteName=String(site.siteName||''), siteUrl=String(site.siteUrl||site.blogUrl||'');
@@ -6861,6 +6876,7 @@ function sbmBuildImprovementPrompt_(meta, articleData) {
     sbmTopQueriesPromptText_(topQueries,meta.topQueryStatus) +
     (limitedMode?'\n【重要：クエリ未取得の限定モード】\nSearch ConsoleのURL別実クエリを取得できていません。実際の検索語を推測・捏造しないでください。現在の記事本文、記事タイトル、保存済みページ指標を根拠に、既存の検索意図を変えない範囲だけ改善してください。タイトル・SEOタイトル・メインクエリの変更、記事テーマの拡張、大規模な見出し再編は原則禁止です。必要性を感じても実施せず、利用者判断が必要な提案としてuser_decision_changesへ入れてください。\n':'') +
     '\n【改善目的】\n'+meta.kind+'。検索意図を優先し、既存記事の良い部分を残したまま改善してください。\n' +
+    sbmRevenueImprovementPromptText_(meta) +
     sbmImprovementPriorityText_() +
     '\n【記事ランク】\n'+sbmCoreRankText_(meta.rank)+'\n' +
     sbmChangePolicyText_();
@@ -6868,8 +6884,8 @@ function sbmBuildImprovementPrompt_(meta, articleData) {
   else prompt+='\n【現在の記事本文】\n本文を取得できていません。改善ナビで本文を貼り付けてから依頼文をコピーしてください。\n';
   prompt+=sbmInternalLinkPromptText_(internalLinkCandidates)+sbmInternalLinkRulesText_();
   return prompt+'\n【SIMSへのフィードバック出力ルール】\n回答の最後に、aWriter Contract v4.2準拠のJSONをコードブロックで必ず1つ出力してください。公開OKの修正はpublication_result.public_ok_changes、利用者判断が必要な修正はpublication_result.user_decision_changesへ分けてください。\n'+
-    '{\n  "format": "SIMS_FEEDBACK_V2",\n  "contract_version": "4.2",\n  "site_id": "'+siteId+'",\n  "site_name": "'+siteName+'",\n  "site_url": "'+siteUrl+'",\n  "article_id": "'+articleId+'",\n  "article_url": "'+url+'",\n  "completed_at": "YYYY-MM-DD",\n  "publication_result": {\n    "public_ok_changes": [],\n    "user_decision_changes": [],\n    "change_summary": "実施した改善の要約"\n  },\n  "new_values": {\n    "article_title": "", "seo_title": "", "description": "", "main_query": "'+query+'"\n  },\n  "improvement_type": "normal",\n  "confidence": "high",\n  "expected_effect": {"ctr": "", "clicks": ""},\n  "next_action": "monitor",\n  "warnings": [],\n  "estimated_minutes": 20,\n  "recommended_review_days": 14\n}\n'+
-    'public_ok_changesとuser_decision_changesは配列形式で出力し、各変更にはtarget・before・after・reasonを含めてください。変更がない場合は空配列にしてください。recommended_review_daysは7・14・30のいずれか、improvement_typeはminor・normal・major、confidenceはhigh・medium・low、next_actionはmonitor・remeasure・rewrite・noneのいずれかにしてください。'+
+    '{\n  "format": "SIMS_FEEDBACK_V2",\n  "contract_version": "4.2",\n  "site_id": "'+siteId+'",\n  "site_name": "'+siteName+'",\n  "site_url": "'+siteUrl+'",\n  "article_id": "'+articleId+'",\n  "article_url": "'+url+'",\n  "completed_at": "YYYY-MM-DD",\n  "publication_result": {\n    "public_ok_changes": [],\n    "user_decision_changes": [],\n    "change_summary": "実施した改善の要約"\n  },\n  "new_values": {\n    "article_title": "", "seo_title": "", "description": "", "main_query": "'+query+'"\n  },\n  "improvement_type": "normal",\n  "confidence": "high",\n  "expected_effect": {"ctr": "", "clicks": ""},\n  "next_action": "monitor",\n  "warnings": [],\n  "estimated_minutes": 20,\n  "recommended_review_days": 28\n}\n'+
+    'public_ok_changesとuser_decision_changesは配列形式で出力し、各変更にはtarget・before・after・reasonを含めてください。変更がない場合は空配列にしてください。recommended_review_daysは28を出力してください。SBMはWriterの再診目安にかかわらず、公開日を起点に7日目・14日目・21日目・28日目の4回測定を行います。improvement_typeはminor・normal・major、confidenceはhigh・medium・low、next_actionはmonitor・remeasure・rewrite・noneのいずれかにしてください。'+
     (limitedMode?'限定モードではconfidenceをmedium以下とし、実クエリが無いことをwarningsへ明記してください。':'')+
     sbmDetailedQueryDataPromptText_(topQueries,meta.topQueryStatus,meta.imps);
 }
