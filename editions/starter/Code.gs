@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.4.7
+ * SIMS Manager Product v6.4.8
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.4.7';
+const SBM_VERSION = '6.4.8';
+// v6.4.8: 収益最大化を最終目的とする「収益優先・安全改善ポリシー」を正本化。記事ランクと作業優先度を分離し、成長・エースの保護改善、変更前スナップショット、28日後のaDoctor再診によるKEEP/IMPROVE/RESTORE、原状復帰後の再測定を段階実装する設計基準を確定。
 // v6.4.7: 記事詳細トリアージを6ランクへ拡張。未発芽・発芽はaDoctor優先、育成は改善ナビ、安定・成長・エースは保護観察を基本とし、要改善等の異常時は既存のaDoctor優先分岐を維持。
 // v6.4.5: aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
 // v6.4.4: Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。

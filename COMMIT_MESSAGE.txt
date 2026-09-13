@@ -1,8 +1,11 @@
-feat: complete six-rank article detail triage (v6.4.7)
+docs: freeze revenue-first safe improvement policy (v6.4.8)
 
-- route ungerminated and sprout articles to aDoctor first
-- route nurture articles to Improvement Navi for minimal intervention
-- protect stable, growth and ace articles with observation-first guidance
-- preserve aDoctor precedence for abnormal management states
-- show rank-aware triage reasons in article detail
+- define revenue maximization as the primary SIMS Manager objective
+- separate article rank from daily work priority
+- define protected improvement rules for growth and ace articles
+- specify pre-change snapshots for high-value articles
+- standardize 7/14/21/28-day measurement with Doctor reassessment
+- define KEEP, IMPROVE and RESTORE recovery decisions
+- specify safe restore workflow and post-restore remeasurement
+- keep runtime behavior unchanged until phased implementation
 - sync Full and Starter editions
