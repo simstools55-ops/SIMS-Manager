@@ -1,4 +1,10 @@
 ## v6.5.0
+
+## 6.5.9
+- Fix improvement navigation client-side JavaScript syntax error introduced by guide HTML rendering.
+- Restore automatic Search Console query and article source loading.
+- Add generated-dialog client-script syntax regression test.
+
 - 起動時の版表示を互換修復・タブ整理より先に反映し、早期flushするよう変更。
 - onOpenで利用者向け5シートすべてにモノクロテーマを再適用する重複処理を停止。
 - Home日次状態更新でSTANDARD色→MONOCHROME色の二重描画を廃止。

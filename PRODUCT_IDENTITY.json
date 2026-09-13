@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.8",
+  "current_version": "6.5.9",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.8: 改善ナビの表示後初期化を安定化。DOMContentLoadedの取りこぼしでクエリ・本文取得が開始されない事象を防止。aWriter依頼文・データ取得ロジックは変更なし。",
-  "version": "6.5.8",
+  "notes": "v6.5.9: 改善ナビのクライアントJavaScript構文エラーを修正。改善ガイドHTMLの属性引用符が生成後スクリプトを壊し、クエリ・本文取得が起動しない問題を解消。aWriter依頼文・取得ロジックは変更なし。",
+  "version": "6.5.9",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.8-ST"
+  "starter_display_version": "v6.5.9-ST"
 }
