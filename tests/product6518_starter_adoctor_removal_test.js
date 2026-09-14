@@ -1,11 +1,12 @@
 const fs = require('fs');
 const code = fs.readFileSync('apps-script/starter/Code.gs', 'utf8');
+const version = fs.readFileSync('VERSION', 'utf8').trim();
 
 function ok(value, message) {
   if (!value) throw new Error(message);
 }
 
-ok(code.includes("const SBM_VERSION = '6.5.18';"), 'Starter version must be 6.5.18');
+ok(code.includes("const SBM_VERSION = '" + version + "';"), 'Starter version must match VERSION');
 ok(code.includes("const SBM_EDITION = 'STARTER';"), 'Starter edition marker is missing');
 ok(code.includes("function sbmIsADoctorEnabled_(){return String(SBM_EDITION||'').toUpperCase()==='FULL';}"), 'aDoctor edition gate is missing');
 ok(code.includes("if(isFullEdition){\n    healthMenu.addSeparator()"), 'aDoctor health menu must be Full-only');

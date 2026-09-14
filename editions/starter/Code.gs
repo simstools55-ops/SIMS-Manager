@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.19
+ * SIMS Manager Product v6.5.20
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.19';
+const SBM_VERSION = '6.5.20';
+// v6.5.20: Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
 // v6.5.19: Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成する方式へ統一。Starter Editionは従来の自己修正向け改善ガイドを維持。「CTR機会値」を平易な説明へ変更し、「今回の方針」表示を削除。
 // v6.5.18: Starter EditionからaDoctor連携を除外。サイト健康診断はManager内蔵診断として維持し、精密診断候補・aDoctor依頼・再診・追加診断への入口を非表示化／停止。未発芽・発芽・要改善はStarter改善ナビへ案内し、28日観察後の要見直しもStarter内で再改善判断する。Full EditionのaDoctor連携動作は変更なし。
 // v6.5.17: 保存済みタイトルのローカル正規化を共通化。正常タイトルは再取得せず、設定済みブログ名が末尾に混入した記事タイトル/SEOタイトルだけをネットワークアクセスなしで補正。記事情報更新も混入タイトルをローカル修正対象として検出し、今日の改善の詳細チェックから改善ナビが開かない回帰を修正。GSC・aWriter依頼文・改善判定仕様は変更なし。
@@ -6846,9 +6847,11 @@ function sbmAnalyzePastedArticleSource(text, meta) {
   if (!result.ok) return result;
   meta=meta||{};
   var qs=Array.isArray(meta.topQueries)?meta.topQueries:[];
-  var ready=qs.length>0, writerPrompt=ready?sbmBuildImprovementPrompt_(meta,result.data):'';
-  var isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER';
-  return {ok:true, prompt:writerPrompt, improvementReady:ready, improvementAdvice:ready?(isStarter?sbmBuildConcreteImprovementAdvice_(meta,result.data,writerPrompt):sbmBuildWriterRequestAlignedGuide_(meta,writerPrompt)):[], message:ready?'':'Search Consoleクエリがないため改善ガイドはまだ生成していません。', characterCount:result.data.character_count, sectionCount:result.data.sections.length};
+  var ready=qs.length>0,isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER';
+  var basePrompt=ready?sbmBuildImprovementPrompt_(meta,result.data):'';
+  var advice=ready?sbmBuildConcreteImprovementAdvice_(meta,result.data,basePrompt):[];
+  var writerPrompt=ready&& !isStarter?sbmAppendConcreteImprovementInstructions_(basePrompt,advice):basePrompt;
+  return {ok:true, prompt:writerPrompt, improvementReady:ready, improvementAdvice:advice, message:ready?'':'Search Consoleクエリがないため改善ガイドはまだ生成していません。', characterCount:result.data.character_count, sectionCount:result.data.sections.length};
 }
 
 /** Product 5.2.1: SIMS-Core向け依頼文と内部リンク候補を生成します。 */
@@ -7191,6 +7194,21 @@ function sbmBuildWriterRequestAlignedGuide_(meta,writerPrompt){
   return out;
 }
 
+/** v6.5.20: 画面に表示する記事固有の改善ガイドを、同じ文面のままaWriter依頼文へ追加します。 */
+function sbmAppendConcreteImprovementInstructions_(writerPrompt,advice){
+  writerPrompt=String(writerPrompt||'');advice=Array.isArray(advice)?advice.filter(function(x){return String(x||'').trim();}):[];
+  if(!writerPrompt)return '';
+  var block='\n【今回の記事で実施する具体的な改善指示】\n';
+  if(advice.length){
+    block+='以下はSIMS Managerが記事本文とSearch Consoleデータを照合して確定した、今回の記事固有の改善内容です。共通の優先順位ではなく、この指示を実際の作業対象として扱ってください。各項目の「どこを」「どうする」「完了の目安」に従い、指示されていない箇所は推測で変更しないでください。\n\n';
+    advice.forEach(function(item,i){block+=(i+1)+'. '+String(item||'').trim()+'\n\n';});
+  }else{
+    block+='記事本文とSearch Consoleデータを照合しましたが、現時点で確定できる具体的な修正項目はありません。推測で記事を変更せず、変更なしの理由を回答してください。\n';
+  }
+  var marker='\n【SIMSへのフィードバック出力ルール】',at=writerPrompt.indexOf(marker);
+  return at>=0?writerPrompt.substring(0,at)+block+writerPrompt.substring(at):writerPrompt+block;
+}
+
 function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   meta=meta||{};source=source||{};
   var policy=sbmImprovementGuidePolicyFromWriterPrompt_(writerPrompt);
@@ -7513,9 +7531,10 @@ function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   var linkMax=(String(SBM_EDITION||'').toUpperCase()==='STARTER'?3:8),
       links=ready?sbmFindInternalLinkCandidates_(a,3,linkMax,top):[];
   meta.internalLinkCandidates=links;
-  var writerPrompt=ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',
-      isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER',
-      advice=ready?(isStarter?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source,writerPrompt):sbmBuildWriterRequestAlignedGuide_(meta,writerPrompt)):[];
+  var isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER',
+      baseWriterPrompt=ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',
+      advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source,baseWriterPrompt):[],
+      writerPrompt=ready&&!isStarter?sbmAppendConcreteImprovementInstructions_(baseWriterPrompt,advice):baseWriterPrompt;
 
   var wait='';
   if(!sReady&&!qReady)wait='記事本文とSearch Consoleクエリを取得できないため、改善ガイドの生成を保留しています。';
@@ -7568,8 +7587,8 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     '<div class="sec"><b>記事本文データ</b><div id="sourceStatus" class="source-loading"><span class="miniSpinner"></span>記事本文を取得しています…</div><div id="pastedTools" style="display:none"><textarea id="pasted" placeholder="記事タイトル、見出し、本文を貼り付けてください。"></textarea><br><button class="btn" onclick="analyzePasted()">貼り付け本文を解析</button><span id="analyzeMsg"></span></div></div>'+ 
     '<div class="sec"><b>なぜ今改善するのか</b><div class="reason">'+esc(reason||('表示回数とCTR・順位から改善余地がある記事です。期待効果：約'+expected+'クリック増。'))+'</div></div>'+ 
     '<div class="sec"><b>今やる価値</b><p>'+(expected>=30?'★★★★★ 非常に高い':expected>=10?'★★★★☆ 高い':'★★★☆☆ 検討価値あり')+'</p></div>'+ 
-    '<div class="sec"><b>'+(isFullEdition?'aWriter依頼内容に沿った改善ガイド':'自分で修正する場合の改善ガイド')+'</b><p style="color:#5f6368;font-size:13px">'+(isFullEdition?'aWriterへ渡す依頼文を正本として、改善目的・優先する場所・変更時に守る条件を分かりやすく案内します。表示内容とaWriterへの依頼内容は同じ方針です。':'検索データと記事本文をもとに、改善効果が見込める修正箇所だけを「なぜ・どこを・どうする・完了の目安」に分けて具体的に案内します。件数は固定しません。')+'</p>'+ 
-    (isFullEdition?'<button id="toggleGuideBtn" class="btn" style="background:#5f6368" onclick="toggleImprovementGuide()">依頼内容の説明を開く</button>':'')+
+    '<div class="sec"><b>'+(isFullEdition?'今回の記事で実施する改善ガイド':'自分で修正する場合の改善ガイド')+'</b><p style="color:#5f6368;font-size:13px">'+(isFullEdition?'記事本文とSearch Consoleデータを照合し、今回の記事で実際に依頼する修正内容を「なぜ・どこを・どうする・完了の目安」で表示します。ここに表示する内容とaWriterへ渡す具体的な改善指示は同一です。':'検索データと記事本文をもとに、改善効果が見込める修正箇所だけを「なぜ・どこを・どうする・完了の目安」に分けて具体的に案内します。件数は固定しません。')+'</p>'+ 
+    (isFullEdition?'<button id="toggleGuideBtn" class="btn" style="background:#5f6368" onclick="toggleImprovementGuide()">具体的な改善内容を開く</button>':'')+
     '<div id="improvementGuideWrap" style="'+(isFullEdition?'display:none;margin-top:10px':'margin-top:10px')+'"><div id="improvementAdvice" class="source-loading"><span class="miniSpinner"></span>本文とクエリを確認しています…</div></div></div>'+ 
     '<div class="sec"><b>内部リンク候補（<span id="internalLinkCount">待機中</span>）</b><p style="color:#5f6368;font-size:13px">記事タイトル・メインクエリ・本文テーマを使って候補を抽出します。実クエリがない場合は関連度を保守的に判定します。</p>'+
     (isFullEdition?'<button id="toggleInternalLinksBtn" class="btn" style="background:#5f6368" onclick="toggleInternalLinks()">内部リンク候補を開く</button>':'')+

@@ -1,4 +1,10 @@
-# SIMS Manager v6.5.19 Repository Baseline
+# SIMS Manager v6.5.20 Repository Baseline
+
+## v6.5.20
+
+- Fullの改善ガイドとaWriter依頼文に、同一の記事固有改善指示を使用します。
+- 記事本文とSearch Consoleデータを根拠に、今回実施する修正箇所を具体化します。
+- Starterの自己修正向け改善ガイドは現状維持です。
 
 ## v6.5.19
 
@@ -18,7 +24,7 @@ v6.5.1 triage: 記事詳細で未発芽・発芽をaDoctor優先へ自動分岐�
 
 v6.2.80の機能を維持したまま、Repository内の版管理情報を再監査・同期した整合修正版です。
 
-- Full v6.5.19 / Starter v6.5.19-ST
+- Full v6.5.20 / Starter v6.5.20-ST
 - Repository root `Code.gs` がFull Editionの機能正本
 - Fullは `SBM_EDITION = 'FULL'`
 - Starter派生コードは `SBM_EDITION = 'STARTER'`

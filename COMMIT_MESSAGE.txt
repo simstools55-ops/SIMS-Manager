@@ -1,7 +1,7 @@
-feat: align Full improvement guide with aWriter request in v6.5.19
+feat: share article-specific instructions with Full guide and aWriter in v6.5.20
 
-- Fullの改善ガイドをaWriter依頼文由来へ統一
+- 記事本文とSearch Consoleデータから具体的改善指示を一度だけ生成
+- Fullの改善ガイドとaWriter依頼文へ同一指示を使用
+- 共通ルールだけの抽象的なFullガイドを廃止
 - Starterの自己修正向け改善ガイドは現状維持
-- CTR改善余地の説明を平易化
-- 「今回の方針」の定型表示を削除
 - Full / Starterの版数を同期
