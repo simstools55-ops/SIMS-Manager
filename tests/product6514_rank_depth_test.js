@@ -19,7 +19,7 @@ function extract(name){
 const promptHash=crypto.createHash('sha256').update(extract('sbmBuildImprovementPrompt_')).digest('hex');
 const BASELINE='535465dc613e78b33e68a738d1b959f7e1930324001227701cb4be4179dcc4b4';
 if(promptHash!==BASELINE) throw new Error('aWriter prompt function changed: '+promptHash);
-const names=['sbmExpectedCtrTarget_','sbmInternalLinkNormalizeText_','sbmInternalLinkTokens_','sbmInternalLinkTokenSet_','sbmInternalLinkOverlap_','sbmImprovementAdviceTokens_','sbmImprovementAdviceOverlap_','sbmImprovementGuidePolicyFromWriterPrompt_','sbmImprovementAdviceIntentTerms_','sbmImprovementAdviceMissingIntentTerms_','sbmBuildConcreteImprovementAdvice_'];
+const names=['sbmExpectedCtrTarget_','sbmInternalLinkNormalizeText_','sbmInternalLinkTokens_','sbmInternalLinkTokenSet_','sbmInternalLinkOverlap_','sbmImprovementAdviceTokens_','sbmImprovementAdviceOverlap_','sbmImprovementGuidePolicyFromWriterPrompt_','sbmImprovementAdviceIntentTerms_','sbmImprovementAdviceMissingIntentTerms_','sbmImprovementStructuralTerms_','sbmImprovementMissingStructuralTerms_','sbmBuildConcreteImprovementAdvice_'];
 const sandbox={console}; vm.createContext(sandbox); vm.runInContext(names.map(extract).join('\n'),sandbox);
 const writerPrompt='【変更方針】\n・既存本文は可能な限り維持してください。\n・SEOタイトル・導入文・H2見出し・FAQを優先して改善してください。\n・広告コードは変更しないでください。\n・商品リンク、アフィリエイトリンクは変更しないでください。\n';
 const meta={rank:'育成',query:'windows11 wifi 接続できない',title:'Windows11のWi-Fiトラブル対処法',seoTitle:'Windows11のWi-Fiトラブル対処法',description:'Windows11でWi-Fiの問題を解決する方法を解説。',imps:1800,ctrText:'1.3%',posText:'7.8',topQueries:[

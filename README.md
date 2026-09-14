@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.5.14
+> **Current product:** SIMS Manager v6.5.15
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.5.14`
+- Product Version: `6.5.15`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.5.14
+> Current release: SIMS Manager Product v6.5.15
 
 ## v6.5.1 — 記事詳細のSIMSトリアージ
 

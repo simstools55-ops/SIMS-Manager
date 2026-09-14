@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.5.14
+ * SIMS Manager Product v6.5.15
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.14';
+const SBM_VERSION = '6.5.15';
 // v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
 // v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
 // v6.5.11: 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
@@ -7002,6 +7002,26 @@ function sbmImprovementAdviceMissingIntentTerms_(query,text){
     var n=sbmInternalLinkNormalizeText_(t);if(!n||seen[n])return false;seen[n]=true;return hay.indexOf(n)<0;
   });
 }
+
+function sbmImprovementStructuralTerms_(query){
+  var raw=String(query||'').trim();
+  if(!raw)return [];
+  var stop={'notion':1,'windows':1,'windows11':1,'win11':1,'方法':1,'やり方':1,'使い方':1};
+  var seen={},out=[];
+  raw.split(/[\s　]+/).forEach(function(part){
+    var n=sbmInternalLinkNormalizeText_(part);
+    if(!n||n.length<2||stop[n]||seen[n])return;
+    seen[n]=true;out.push(part);
+  });
+  // 空白分割できないクエリでも、既知の具体意図語は構造診断に使う。
+  sbmImprovementAdviceIntentTerms_(raw).forEach(function(t){var n=sbmInternalLinkNormalizeText_(t);if(n&&!seen[n]){seen[n]=true;out.push(t);}});
+  return out;
+}
+function sbmImprovementMissingStructuralTerms_(query,text){
+  var hay=sbmInternalLinkNormalizeText_(text),seen={};
+  return sbmImprovementStructuralTerms_(query).filter(function(t){var n=sbmInternalLinkNormalizeText_(t);if(!n||seen[n])return false;seen[n]=true;return hay.indexOf(n)<0;});
+}
+
 function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   meta=meta||{};source=source||{};
   var policy=sbmImprovementGuidePolicyFromWriterPrompt_(writerPrompt);
@@ -7018,7 +7038,7 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   var fullText=String(source.introduction||'')+' '+sections.map(function(s){return String(s.heading||'')+' '+String(s.text||'');}).join(' '),faq=faqSection();
   var headingsText=sections.map(function(s){return String(s.heading||'');}).join(' ');
   var pageImps=Math.max(0,Number(meta.imps||0)),minImps=Math.max(5,Math.min(25,Math.round(pageImps*0.01)||5));
-  // v6.5.14: 記事ランクは件数ノルマではなく診断深度に使う。育成・成長は本文構成まで一段深く点検する。
+  // v6.5.15: 記事ランクは件数ノルマではなく診断深度に使う。育成・成長はメインクエリとタイトル・導入・見出し・回答位置・FAQの構造整合まで点検する。
   var rankText=String(meta.rank||'');
   var deepGrowth=/育成|成長/.test(rankText),training=/育成/.test(rankText);
 
@@ -7074,9 +7094,24 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
     }
   }
 
+  // v6.5.15: 成長・育成は、メインクエリの具体語がタイトル/H1で欠ける場合も独立した構造ギャップとして扱う。
+  if(deepGrowth&&main){
+    var titleText=String(meta.seoTitle||meta.title||'')+' '+String(meta.h1||meta.articleTitle||meta.title||'');
+    var missingTitle=sbmImprovementMissingStructuralTerms_(main,titleText);
+    var structuralInBody=sbmImprovementStructuralTerms_(main).filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+    if(missingTitle.length&&structuralInBody.length){
+      var titleTerm=missingTitle[0];
+      add('記事タイトルで主検索意図との一致を明確にする',
+        'メインクエリ「'+main+'」で重要な「'+titleTerm+'」は本文で扱っていますが、記事タイトル/H1では明確に伝わりません。育成中の記事では、本文のテーマを変えずに検索意図との一致をタイトル段階で明確にする価値があります。',
+        '記事タイトル/H1',
+        '現在の主題と主要語を維持しながら、「'+titleTerm+'」の意味が自然に伝わるタイトル表現へ調整してください。本文にない新しい約束や過度な強調は加えません。',
+        'タイトルだけで「'+main+'」を探す読者が自分向けの記事だと判断でき、本文で実際に説明している範囲を超えていない状態です。');
+    }
+  }
+
   // 3) 主検索意図が本文にはあるのに見出しから見つけにくい場合は、内容追加ではなく見出し表現だけを改善する。
   if(policy.prioritizeHeadingsFaq&&main&&sections.length){
-    var mainIntent=sbmImprovementAdviceIntentTerms_(main),missingInHeadings=mainIntent.filter(function(t){return sbmInternalLinkNormalizeText_(headingsText).indexOf(sbmInternalLinkNormalizeText_(t))<0;});
+    var mainIntent=deepGrowth?sbmImprovementStructuralTerms_(main):sbmImprovementAdviceIntentTerms_(main),missingInHeadings=mainIntent.filter(function(t){return sbmInternalLinkNormalizeText_(headingsText).indexOf(sbmInternalLinkNormalizeText_(t))<0;});
     var presentInBody=mainIntent.filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
     if(missingInHeadings.length&&presentInBody.length){
       var fitMain=bestSection(main),secMain=fitMain.section,termMain=missingInHeadings[0];
@@ -7092,7 +7127,7 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
 
   // 4) 導入文に主検索意図の具体語が欠けている場合のみ、冒頭の結論を明確化する。本文全体に答えがあることを前提にする。
   if(policy.prioritizeHeadingsFaq&&main&&String(source.introduction||'').trim()){
-    var intro=String(source.introduction||''),missingIntro=sbmImprovementAdviceMissingIntentTerms_(main,intro),mainInFull=sbmImprovementAdviceIntentTerms_(main).filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+    var intro=String(source.introduction||''),missingIntro=deepGrowth?sbmImprovementMissingStructuralTerms_(main,intro):sbmImprovementAdviceMissingIntentTerms_(main,intro),mainInFull=(deepGrowth?sbmImprovementStructuralTerms_(main):sbmImprovementAdviceIntentTerms_(main)).filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
     if(missingIntro.length&&mainInFull.length){
       var introTerm=missingIntro[0];
       add('冒頭で主検索意図への答えを先に伝える',

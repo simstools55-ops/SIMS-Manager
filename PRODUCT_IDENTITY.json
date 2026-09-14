@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.14",
+  "current_version": "6.5.15",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.14: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリ改善を必要に応じて併記し、利用者向け改善ナビのガイド本文からaWriter表記を除外。aWriter依頼文生成ロジック・Contractは変更なし。",
-  "version": "6.5.14",
+  "notes": "v6.5.15: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリ改善を必要に応じて併記し、利用者向け改善ナビのガイド本文からaWriter表記を除外。aWriter依頼文生成ロジック・Contractは変更なし。",
+  "version": "6.5.15",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.14-ST"
+  "starter_display_version": "v6.5.15-ST"
 }
