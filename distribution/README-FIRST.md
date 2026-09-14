@@ -1,4 +1,10 @@
-# SIMS Manager v6.5.16 Repository Baseline
+# SIMS Manager v6.5.17 Repository Baseline
+
+## v6.5.17
+
+- 正常な保存済みタイトルは再取得せず、BlogName末尾混入だけをローカル補正します。
+- 「今日の改善」の詳細チェックから改善ナビが開かない回帰を修正しました。
+- GSC・改善ガイド・aWriter依頼文は変更していません。
 
 v6.5.1 triage: 記事詳細で未発芽・発芽をaDoctor優先へ自動分岐し、任意診断を抑制します。
 
@@ -6,7 +12,7 @@ v6.5.1 triage: 記事詳細で未発芽・発芽をaDoctor優先へ自動分岐�
 
 v6.2.80の機能を維持したまま、Repository内の版管理情報を再監査・同期した整合修正版です。
 
-- Full v6.5.16 / Starter v6.5.16-ST
+- Full v6.5.17 / Starter v6.5.17-ST
 - Repository root `Code.gs` がFull Editionの機能正本
 - Fullは `SBM_EDITION = 'FULL'`
 - Starter派生コードは `SBM_EDITION = 'STARTER'`

@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.16
+ * SIMS Manager Product v6.5.17
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.16';
+const SBM_VERSION = '6.5.17';
+// v6.5.17: 保存済みタイトルのローカル正規化を共通化。正常タイトルは再取得せず、設定済みブログ名が末尾に混入した記事タイトル/SEOタイトルだけをネットワークアクセスなしで補正。記事情報更新も混入タイトルをローカル修正対象として検出し、今日の改善の詳細チェックから改善ナビが開かない回帰を修正。GSC・aWriter依頼文・改善判定仕様は変更なし。
 // v6.5.16: GA4プロトタイプで確認した記事領域正規化をSBMへ移植。はてなブログのtitleタグ末尾のブログ名を除去し、記事本文取得はentry-content等の記事本文領域を優先。ブログ名・共通見出しの混入を抑止し、改善ナビのタイトル/見出し診断精度を改善。GSC・aWriter依頼文・改善判定仕様は変更なし。
 // v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
 // v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
@@ -1061,13 +1062,15 @@ function sbmArticleInfoStoredRows_() {
   var titles = sh.getRange(2,hm['記事タイトル'],n,1).getDisplayValues();
   var queries = sh.getRange(2,hm['メインクエリ'],n,1).getDisplayValues();
   var rows=[];
+  var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
   for (var i=0;i<n;i++) {
     var articleId=String(ids[i][0]||'').trim();
     var url=sbmNormalizeUrl_(urls[i][0]||'');
     if (!articleId || !url) continue;
     var title=String(titles[i][0]||'').trim();
     var query=String(queries[i][0]||'').trim();
-    var needsTitle=!title || sbmIsTitlePlaceholder_(title,url);
+    var normalizedTitle=sbmNormalizeStoredTitle_(title,url,blogName);
+    var needsTitle=!title || sbmIsTitlePlaceholder_(title,url) || (!!normalizedTitle && normalizedTitle!==title);
     var needsQuery=!query || sbmIsMainQueryPlaceholder_(query) || sbmIsInferredQueryDisplay_(query);
     rows.push({
       _rowNumber:i+2,
@@ -1254,11 +1257,24 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
   var rankBefore=String(r['記事ランク']||'').trim(),rankPlanned=rankBefore;
   var blogName = String(sbmGetSetting_('BlogName','') || '').trim();
   var rawTitle=String(r['記事タイトル']||'').trim();
+  var normalizedStoredTitle=sbmNormalizeStoredTitle_(rawTitle,url,blogName);
   var titleNeeds=!rawTitle || sbmIsTitlePlaceholder_(rawTitle,url);
+  var titleNeedsLocalFix=!!rawTitle && !!normalizedStoredTitle && normalizedStoredTitle!==rawTitle;
   var rawQuery=String(r['メインクエリ']||'').trim();
   var queryNeeds=!rawQuery || sbmIsMainQueryPlaceholder_(rawQuery) || sbmIsInferredQueryDisplay_(rawQuery);
   var patch={articleId:articleId,url:url,updates:{},expected:{}};
-  var resolvedTitle=titleNeeds?'':rawTitle;
+  var resolvedTitle=titleNeeds?'':(normalizedStoredTitle||rawTitle);
+
+  if (titleNeedsLocalFix) {
+    patch.expected['記事タイトル']=r['記事タイトル'];
+    patch.updates['記事タイトル']=normalizedStoredTitle;
+    var storedH1=String(r['H1タイトル']||'').trim();
+    var normalizedStoredH1=sbmNormalizeStoredTitle_(storedH1,url,blogName);
+    if(storedH1 && normalizedStoredH1 && normalizedStoredH1!==storedH1){
+      patch.expected['H1タイトル']=r['H1タイトル'];
+      patch.updates['H1タイトル']=normalizedStoredH1;
+    }
+  }
 
   if (titleNeeds) {
     var meta=sbmFetchArticleMetaInfo_(url)||{};
@@ -1355,8 +1371,8 @@ function sbmSupplementNewArticlesWorker_() {
     processed++;
     var meta = sbmFetchArticleMetaInfo_(url) || {};
     var query = sbmFetchMainQueryForUrl_(url) || '';
-    var title = sbmCleanDataListText_(meta.h1 || meta.titleTag || '',url);
-    var seo = sbmCleanDataListText_(meta.titleTag || '',url);
+    var title = sbmNormalizeStoredTitle_(meta.h1 || meta.titleTag || '',url);
+    var seo = sbmNormalizeStoredTitle_(meta.titleTag || '',url);
     var desc = sbmCleanDataListText_(meta.metaDescription || '',url);
     var ok = !!(title || seo || desc || query);
     sbmSetObjectValues_(sh,r._rowNumber,{'記事タイトル':title,'SEOタイトル':seo,'メタディスクリプション':desc,'メインクエリ':query,'記事情報補完済み':ok?'○':'エラー','補完日時':sbmNowText_(),'補完エラー':ok?'':'記事情報を取得できませんでした','管理フラグ':ok?'正常':'新規記事'});
@@ -4010,6 +4026,33 @@ function sbmCleanDataListText_(value, url, blogNameOverride) {
   return value;
 }
 
+/**
+ * v6.5.17: 保存済みのタイトル系文字列をネットワークアクセスなしで正規化する。
+ * 正常なタイトルはそのまま返し、SettingsのBlogNameと完全一致する末尾サフィックスだけを除去する。
+ */
+function sbmNormalizeStoredTitle_(value, url, blogNameOverride) {
+  var text=sbmCleanDataListText_(value,url,blogNameOverride);
+  if(!text)return '';
+  var blogName = blogNameOverride !== undefined && blogNameOverride !== null
+    ? String(blogNameOverride||'').trim()
+    : String(sbmGetSetting_('BlogName','')||'').trim();
+  if(!blogName)return text;
+  var normalized=String(text||'').trim();
+  var escaped=sbmRegexEscape_(blogName);
+  // 「記事タイトル - ブログ名」「記事タイトル｜ブログ名」等、ブログ名が完全一致する場合だけ除去する。
+  var re=new RegExp('\\s*(?:[-‐‑‒–—―－]|[|｜]|::|»|«)\\s*'+escaped+'\\s*$','i');
+  if(!re.test(normalized))return text;
+  var cleaned=normalized.replace(re,'').trim();
+  return cleaned||text;
+}
+
+function sbmStoredTitleNeedsLocalNormalization_(value, url, blogNameOverride) {
+  var raw=String(value||'').trim();
+  if(!raw)return false;
+  var clean=sbmNormalizeStoredTitle_(raw,url,blogNameOverride);
+  return !!clean && clean!==raw;
+}
+
 function sbmCleanDisplayTitle_(title, url) {
   title = String(title || '').trim();
   url = sbmNormalizeUrl_(url || '');
@@ -4034,7 +4077,7 @@ function sbmRepairArticleTitleCells_(sheetName) {
   for(var i=0;i<n;i++){
     var raw=String(vals[i][0]||'').trim();
     if(!raw)continue;
-    var clean=sbmCleanDataListText_(raw,uc?urls[i][0]:'',blogName);
+    var clean=sbmNormalizeStoredTitle_(raw,uc?urls[i][0]:'',blogName);
     if(clean&&clean!==raw){vals[i][0]=clean;changed++;}
   }
   if(changed)sh.getRange(2,tc,n,1).setValues(vals);
@@ -4053,15 +4096,16 @@ function sbmRepairArticleDisplayTitlesLight_(sh){
   var blogName=String(sbmGetSetting_('BlogName','')||'').trim(), changed=0;
   vals.forEach(function(row){
     var url=String(row[hm['記事URL']-1]||'').trim();
-    var h1=sbmCleanDataListText_(row[hm['H1タイトル']-1]||'',url,blogName);
-    var art=hm['記事タイトル']?sbmCleanDataListText_(row[hm['記事タイトル']-1]||'',url,blogName):'';
-    var seo=hm['SEOタイトル']?sbmCleanDataListText_(row[hm['SEOタイトル']-1]||'',url,blogName):'';
+    var h1=sbmNormalizeStoredTitle_(row[hm['H1タイトル']-1]||'',url,blogName);
+    var art=hm['記事タイトル']?sbmNormalizeStoredTitle_(row[hm['記事タイトル']-1]||'',url,blogName):'';
+    var seo=hm['SEOタイトル']?sbmNormalizeStoredTitle_(row[hm['SEOタイトル']-1]||'',url,blogName):'';
     if(sbmIsTitlePlaceholder_(h1,url))h1='';
     if(sbmIsTitlePlaceholder_(art,url))art='';
     if(sbmIsTitlePlaceholder_(seo,url))seo='';
     var best=h1||art||seo||'タイトル取得待ち';
     if(String(row[hm['H1タイトル']-1]||'').trim()!==best){row[hm['H1タイトル']-1]=best;changed++;}
     if(hm['記事タイトル']&&art&&String(row[hm['記事タイトル']-1]||'').trim()!==art){row[hm['記事タイトル']-1]=art;changed++;}
+    if(hm['SEOタイトル']&&seo&&String(row[hm['SEOタイトル']-1]||'').trim()!==seo){row[hm['SEOタイトル']-1]=seo;changed++;}
   });
   if(changed)sh.getRange(2,1,n,cols).setValues(vals);
   return changed;
@@ -6093,7 +6137,12 @@ function sbmShowBriefForRow_(row) {
   }
   ss.setActiveSheet(sh);
   sh.setActiveRange(sh.getRange(row, 1));
-  return sbmOpenSelectedImprovementNavi();
+  // v6.5.17: 詳細チェックはonEditで即FALSEへ戻すため、チェック行再探索に依存せず
+  // クリックされた行のレコードをそのまま改善ナビへ渡す。
+  var record=sbmRowRecord_(sh,row);
+  var url=String(record['記事URL']||'').trim();
+  if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
+  return sbmStartNormalImprovementAndShow_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
 }
 
 function sbmCompleteImprovementRow_(row, fromEdit) {
@@ -7410,8 +7459,8 @@ function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   var meta={
     articleId:String(a['ArticleID']||seed.articleId||'').trim(),
     url:url,
-    title:sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||seed.title||'（タイトル未取得）',url)||'（タイトル未取得）',
-    seoTitle:sbmCleanDataListText_(a['SEOタイトル']||seed.seoTitle||'',url),
+    title:sbmNormalizeStoredTitle_(a['記事タイトル']||a['H1タイトル']||seed.title||'（タイトル未取得）',url)||'（タイトル未取得）',
+    seoTitle:sbmNormalizeStoredTitle_(a['SEOタイトル']||seed.seoTitle||'',url),
     description:sbmCleanDataListText_(a['メタディスクリプション']||seed.description||'',url),
     query:query,
     rank:String(a['記事ランク']||seed.rank||''),
@@ -7463,12 +7512,12 @@ function sbmImprovementNaviQueries_(url, limit) {
 function sbmShowImprovementNaviDialog_(a,kind,reason){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var isFullEdition=String(SBM_EDITION||'').toUpperCase()==='FULL';
-  var url=String(a['記事URL']||''),title=sbmCleanDataListText_(a['記事タイトル']||a['H1タイトル']||'（タイトル未取得）',url)||'（タイトル未取得）';
+  var url=String(a['記事URL']||''),blogName=String(sbmGetSetting_('BlogName','')||'').trim(),title=sbmNormalizeStoredTitle_(a['記事タイトル']||a['H1タイトル']||'（タイトル未取得）',url,blogName)||'（タイトル未取得）';
   var query=sbmRealMainQuery_(a['メインクエリ']),rank=String(a['記事ランク']||''),work=String(a['作業状態']||'未着手');
   var clicks=sbmNumber_(a['クリック数'])||0,imps=sbmNumber_(a['表示回数'])||0,ctr=sbmNormalizeCtrNumber_(a['CTR']),pos=sbmNumber_(a['掲載順位'])||0;
   var target=sbmExpectedCtrTarget_(pos),expected=Math.max(0,Math.round(imps*Math.max(0,target-ctr)));
   var advice=[];
-  var seed={articleId:String(a['ArticleID']||'').trim(),url:url,title:title,seoTitle:String(a['SEOタイトル']||'').trim(),description:String(a['メタディスクリプション']||'').trim(),query:query,rank:rank,clicks:clicks,imps:imps,ctr:ctr,pos:pos,kind:kind};
+  var seed={articleId:String(a['ArticleID']||'').trim(),url:url,title:title,seoTitle:sbmNormalizeStoredTitle_(a['SEOタイトル']||'',url,blogName),description:String(a['メタディスクリプション']||'').trim(),query:query,rank:rank,clicks:clicks,imps:imps,ctr:ctr,pos:pos,kind:kind};
   function esc(x){return String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   var html='<!doctype html><html><head><base target="_top"><style>'+ 
     'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}h2{margin:0 0 8px;color:#0b8043}.tag{display:inline-block;padding:4px 10px;border-radius:14px;background:#e6f4ea;color:#137333;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;text-align:center}.sec{margin-top:16px;border-top:1px solid #dadce0;padding-top:12px}.p{background:#fff8e1;border-left:4px solid #fbbc04;padding:12px;margin:10px 0}.guide-part{margin-top:9px}.guide-text{display:block;margin-top:2px}.reason{white-space:pre-wrap;background:#eef5ff;padding:12px;border-radius:8px}.prompt{white-space:pre-wrap;background:#f1f3f4;padding:12px;border-radius:8px;font-size:12px;max-height:300px;overflow:auto}.btn{display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:9px 14px;border-radius:6px;font-weight:700;margin-right:8px;border:0;cursor:pointer}.source-ok{background:#e6f4ea;color:#137333;padding:10px;border-radius:8px}.source-ng{background:#fef7e0;color:#7a4d00;padding:10px;border-radius:8px}.source-loading{background:#eef5ff;color:#174ea6;padding:10px;border-radius:8px}.link-candidate{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;margin:8px 0;font-size:13px}.link-candidate a{color:#1a73e8;word-break:break-all}.query-details{margin-top:10px;border:1px solid #dadce0;border-radius:8px;background:#fff}.query-details summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#1a73e8}.query-table-wrap{max-height:260px;overflow:auto;border-top:1px solid #dadce0}.query-table{width:100%;border-collapse:collapse;font-size:12px}.query-table th,.query-table td{padding:7px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap}.query-table th:first-child,.query-table td:first-child{text-align:left;white-space:normal;min-width:220px}.query-table thead th{position:sticky;top:0;background:#f8f9fa}textarea{width:100%;height:150px;box-sizing:border-box;padding:10px;margin-top:8px;font-family:monospace}.writerBox{background:#e6f4ea;border:1px solid #b7dfc2;border-radius:8px;padding:14px}.writerBox textarea{height:220px;background:#fff;border:1px solid #c8d5cb;border-radius:6px;resize:vertical}.inlineStatus{min-height:20px;margin-top:7px;font-size:13px;font-weight:700}.inlineStatus.ok{color:#137333}.inlineStatus.error{color:#b3261e}.registerStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:7px;font-weight:700;white-space:pre-wrap}.registerStatus.busy{display:block;background:#eef5ff;color:#174ea6}.registerStatus.ok{display:block;background:#e6f4ea;color:#137333}.registerStatus.error{display:block;background:#fce8e6;color:#b3261e}.miniSpinner{display:inline-block;width:14px;height:14px;margin-right:8px;border:2px solid #c7d7f7;border-top-color:#1a73e8;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}button:disabled{opacity:.65;cursor:default}</style></head><body>'+ 
@@ -8265,11 +8314,7 @@ function sbmNormalizeImprovementFeedback_(raw) {
  * ========================================================================== */
 
 function sbmStripConfiguredBlogSuffix_(v){
-  var text=String(v||'').normalize('NFKC');
-  var blog=String(sbmGetSetting_('BlogName','')||'').normalize('NFKC').trim();
-  if(!blog)return text;
-  var escaped=blog.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  return text.replace(new RegExp('\\s*-\\s*'+escaped+'\\s*$','i'),'');
+  return sbmNormalizeStoredTitle_(v,'');
 }
 
 function sbmMonitoringTitleKey_(v){

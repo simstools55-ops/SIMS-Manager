@@ -1,7 +1,7 @@
-fix: polish revenue label and observation status UI (v6.5.3)
+fix: v6.5.17 保存済みタイトルのローカル正規化と改善ナビ起動を修正
 
-- wrap revenue improvement traffic scope onto a second line
-- replace premature aDoctor preparation wording with observation-status wording
-- explain that aDoctor recheck is available after four measurements when needed
-- keep observation gating and restore workflow behavior unchanged
-- sync Full and Starter editions
+- 正常な保存済みタイトルは再取得せず、そのまま利用
+- BlogNameが末尾に混入した記事タイトル/SEOタイトルだけをローカル補正
+- 記事情報更新で混入タイトルをWebアクセスなしの修正対象として検出
+- 今日の改善の詳細チェックから改善ナビが開かない回帰を修正
+- Full / Starterを同期

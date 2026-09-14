@@ -12,7 +12,7 @@ for(const p of paths){
   const ctx={
     SpreadsheetApp:{getActiveSpreadsheet(){return {}}},
     SBM_EDITION:p.includes('starter')?'STARTER':'FULL',
-    sbmCleanDataListText_:x=>x||'', sbmRealMainQuery_:x=>x||'',
+    sbmCleanDataListText_:x=>x||'', sbmNormalizeStoredTitle_:x=>x||'', sbmGetSetting_:()=>'', sbmRealMainQuery_:x=>x||'',
     sbmNumber_:x=>Number(x)||0, sbmNormalizeCtrNumber_:x=>Number(x)||0,
     sbmExpectedCtrTarget_:()=>0.05,
     HtmlService:{createHtmlOutput(s){return {s,width:0,height:0,setWidth(w){this.width=w;return this},setHeight(h){this.height=h;return this},getContent(){return this.s},getWidth(){return this.width},getHeight(){return this.height}}}},

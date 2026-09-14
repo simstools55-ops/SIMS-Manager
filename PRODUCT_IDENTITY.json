@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.16",
+  "current_version": "6.5.17",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.16: GA4プロトタイプで確認した記事領域正規化をSBMへ移植。はてなブログのtitleタグ末尾のブログ名を除去し、記事本文取得はentry-content等の記事本文領域を優先。ブログ名・共通見出しの混入を抑止し、改善ナビのタイトル/見出し診断精度を改善。GSC・aWriter依頼文・改善判定仕様は変更なし。",
-  "version": "6.5.16",
+  "notes": "v6.5.17: 保存済みタイトルのローカル正規化を共通化。正常タイトルは再取得せず、設定済みブログ名が末尾に混入したタイトルだけをネットワークアクセスなしで補正。今日の改善から改善ナビが開かない回帰も修正。GSC・aWriter依頼文・改善判定仕様は変更なし。",
+  "version": "6.5.17",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.16-ST"
+  "starter_display_version": "v6.5.17-ST"
 }

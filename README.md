@@ -1,22 +1,30 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.5.16
+> **Current product:** SIMS Manager v6.5.17
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.5.16`
+- Product Version: `6.5.17`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.5.16
+> Current release: SIMS Manager Product v6.5.17
+
+## v6.5.17 — 保存済みタイトルのローカル正規化と改善ナビ起動修正
+
+- 正常な保存済みタイトルは再取得・再修正せず、そのまま使用します。
+- `BlogName` と完全一致する末尾ブログ名だけをローカルで除去し、不要なWebアクセスを発生させません。
+- 記事管理の軽量整形と改善ナビ表示にも同じ正規化を適用します。
+- 「今日の改善」の詳細チェックから改善ナビが開かない回帰を修正しました。
+- GSC・改善判定・aWriter依頼文は変更しません。
 
 ## v6.5.16 — 記事タイトル・本文領域の正規化
 
-- はてなブログのSEOタイトルに付随するブログ名を除去し、記事固有タイトルだけを保存します。
+- はてなブログのSEOタイトルに付随するブログ名を除去し、記事固有タイトルだけを取得します。
 - 改善ナビの本文取得では記事本文コンテナを優先し、ブログ名・共通見出し・関連記事等の混入を抑止します。
 - GA4プロトタイプで確認した抽出方針をSBMへ反映し、タイトル/H2/H3診断の入力精度を改善します。
 - GSC・改善判定・aWriter依頼文は変更しません。
