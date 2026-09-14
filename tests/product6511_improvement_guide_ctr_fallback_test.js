@@ -42,7 +42,7 @@ const source={introduction:'Notionのブロック数や制限を確認したい�
   {level:2,heading:'FAQ',text:'ブロック数を確認する方法も紹介します。'}
 ]};
 const advice=sandbox.sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt);
-if(!Array.isArray(advice)||advice.length<1) throw new Error('CTR opportunity must not end with zero guides');
+if(!Array.isArray(advice)||advice.length<2) throw new Error('independent CTR + heading opportunities should produce at least two guides: '+JSON.stringify(advice));
 if(!advice[0].includes('検索結果')||!advice[0].includes('約25クリック')) throw new Error('CTR fallback guide missing: '+JSON.stringify(advice));
-if(/確認してください|利用者判断/.test(advice.join('\n'))) throw new Error('non-actionable wording leaked');
+if(/確認してください|利用者判断|aWriter|Writer依頼文/.test(advice.join('\n'))) throw new Error('non-actionable/internal wording leaked: '+advice.join('\n'));
 console.log('PASS: CTR opportunity receives actionable guide while aWriter prompt remains unchanged');

@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.12
+ * SIMS Manager Product v6.5.13
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.12';
+const SBM_VERSION = '6.5.13';
+// v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
 // v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
 // v6.5.11: 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
 // v6.5.9: 改善ナビのクライアントJavaScript構文エラーを修正。改善ガイドHTMLの属性引用符が生成後スクリプトを壊し、クエリ・本文取得が起動しない問題を解消。
@@ -7004,7 +7005,8 @@ function sbmImprovementAdviceMissingIntentTerms_(query,text){
 function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   meta=meta||{};source=source||{};
   var policy=sbmImprovementGuidePolicyFromWriterPrompt_(writerPrompt);
-  // v6.5.10: aWriter依頼文を正本とする。正本を確認できない状態では独自判断でガイドを出さない。
+  // v6.5.13: aWriter依頼文を正本とし、そこから矛盾しない独立した改善目的を必要件数だけ派生表示する。
+  // 件数を固定せず、関連クエリの表現ギャップ・検索結果CTR・見出しでの主意図発見性など、効果根拠が異なる改善は別ガイドとして残す。
   if(!policy.valid)return [];
   var sections=Array.isArray(source.sections)?source.sections:[],queries=Array.isArray(meta.topQueries)?meta.topQueries:[];
   var main=String(meta.query||'').trim(),out=[],used={};
@@ -7014,9 +7016,10 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   function bestSection(q){var best=null,bestScore=-1;sections.forEach(function(sec){var ov=sbmImprovementAdviceOverlap_(q,String(sec.heading||'')+' '+String(sec.text||''));var score=ov.count*10+(String(sec.heading||'').length?sbmImprovementAdviceOverlap_(q,sec.heading).count*8:0);if(score>bestScore){bestScore=score;best=sec;}});return {section:best,score:bestScore};}
   function faqSection(){for(var i=0;i<sections.length;i++){if(/FAQ|よくある|Q&A|質問/i.test(String(sections[i].heading||'')))return sections[i];}return null;}
   var fullText=String(source.introduction||'')+' '+sections.map(function(s){return String(s.heading||'')+' '+String(s.text||'');}).join(' '),faq=faqSection();
+  var headingsText=sections.map(function(s){return String(s.heading||'');}).join(' ');
   var pageImps=Math.max(0,Number(meta.imps||0)),minImps=Math.max(5,Math.min(25,Math.round(pageImps*0.01)||5));
 
-  // 関連クエリは「表示されている」だけでは採用しない。本文に具体的な意図語の不足があり、修正場所まで特定できる場合だけ指示する。
+  // 1) 関連クエリの表現ギャップ。表示されているだけでは採用せず、本文に具体的な意図語の不足があり、修正場所まで特定できる場合だけ指示する。
   queries.filter(function(q){
     var text=String(q&&q.query||'').trim();if(!text||text===main)return false;
     var imp=Number(q.imps||0),pos=Number(q.position||0),ctr=Number(q.ctr||0);
@@ -7040,37 +7043,63 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
         '「'+q+'」で訪れた読者が、見出しまたは該当回答を見てすぐに自分の求める内容だと判断でき、既存の説明量や記事テーマは増えていない状態です。');
     });
 
-  // v6.5.11: 今日の改善候補としてCTR機会が明確なのに、関連クエリの語句差だけでは
-  // ガイドが0件になるデッドエンドを防ぐ。aWriter依頼文の優先順位（SEOタイトル→導入文→H2→FAQ）を正本とし、
-  // 検索結果上の主クエリ訴求に明確な不足がある場合は、低リスクなCTR改善を1件だけ派生表示する。
-  if(!policy.limited&&out.length===0){
-    var pos=Number(meta.posText||meta.position||0),ctr=Number(String(meta.ctrText||'').replace('%',''))/100;
-    if(!isFinite(ctr)||ctr<0)ctr=Number(meta.ctr||0)||0;
-    var target=sbmExpectedCtrTarget_(pos),expected=Math.max(0,Math.round(pageImps*Math.max(0,target-ctr)));
-    var ctrOpportunity=pageImps>=100&&pos>=4&&pos<=20&&ctr<target&&expected>=3;
-    if(ctrOpportunity&&policy.prioritizeHeadingsFaq){
-      var focus=main||String((queries[0]&&queries[0].query)||'').trim();
-      var serpText=String(meta.seoTitle||meta.title||'')+' '+String(meta.description||'');
-      var missingSerp=focus?sbmImprovementAdviceMissingIntentTerms_(focus,serpText):[];
-      var missingLabel=missingSerp.slice(0,2).join('」「');
-      if(policy.revenueProtect){
-        add('検索結果の説明文で主検索意図を明確にする',
-          '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。aWriter依頼文ではSEOタイトル/H1の保護が優先されるため、タイトルを動かさず検索結果の説明文だけを改善します。',
-          'メタディスクリプション',
-          (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果の説明から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果の説明から伝わるように、')+'現在の記事内容と主要語を維持したまま、何が分かる記事かを前半で明確にしてください。本文・SEOタイトル・H1は変更しません。',
-          '検索結果の説明だけで「'+focus+'」への答えが記事内にあると判断でき、既存のSEOタイトル・H1・本文を変更していない状態です。');
-      }else{
-        add('検索結果で主検索意図を明確にする',
-          '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。aWriter依頼文でもSEOタイトルを最優先改善箇所としているため、検索結果上の訴求を先に整える価値があります。',
-          'SEOタイトルとメタディスクリプション',
-          (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果から伝わるように、')+'現在の記事テーマと主要語を維持したままSEOタイトルの前半を分かりやすく整理し、メタディスクリプションも同じ検索意図に合わせてください。記事テーマの拡張や本文の大幅変更は行いません。',
-          '検索結果を見ただけで「'+focus+'」について何が分かる記事か判断でき、記事テーマ・主要語・既存本文を維持している状態です。');
+  // 正本が限定モードなら、実クエリを推測した追加改善は出さない。
+  if(policy.limited)return [];
+
+  // 2) 検索結果CTRの改善余地。関連クエリ改善が既にあっても独立目的なので併記する。
+  var pos=Number(meta.posText||meta.position||0),ctr=Number(String(meta.ctrText||'').replace('%',''))/100;
+  if(!isFinite(ctr)||ctr<0)ctr=Number(meta.ctr||0)||0;
+  var target=sbmExpectedCtrTarget_(pos),expected=Math.max(0,Math.round(pageImps*Math.max(0,target-ctr)));
+  var ctrOpportunity=pageImps>=100&&pos>=4&&pos<=20&&ctr<target&&expected>=3;
+  if(ctrOpportunity&&policy.prioritizeHeadingsFaq){
+    var focus=main||String((queries[0]&&queries[0].query)||'').trim();
+    var serpText=String(meta.seoTitle||meta.title||'')+' '+String(meta.description||'');
+    var missingSerp=focus?sbmImprovementAdviceMissingIntentTerms_(focus,serpText):[];
+    var missingLabel=missingSerp.slice(0,2).join('」「');
+    if(policy.revenueProtect){
+      add('検索結果の説明文で主検索意図を明確にする',
+        '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。現在評価されているタイトルを動かさず、検索結果の説明文だけを改善します。',
+        'メタディスクリプション',
+        (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果の説明から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果の説明から伝わるように、')+'現在の記事内容と主要語を維持したまま、何が分かる記事かを前半で明確にしてください。本文・SEOタイトル・H1は変更しません。',
+        '検索結果の説明だけで「'+focus+'」への答えが記事内にあると判断でき、既存のSEOタイトル・H1・本文を変更していない状態です。');
+    }else{
+      add('検索結果で主検索意図を明確にする',
+        '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。検索結果上で記事の答えをより明確に伝える価値があります。',
+        'SEOタイトルとメタディスクリプション',
+        (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果から伝わるように、')+'現在の記事テーマと主要語を維持したままSEOタイトルの前半を分かりやすく整理し、メタディスクリプションも同じ検索意図に合わせてください。記事テーマの拡張や本文の大幅変更は行いません。',
+        '検索結果を見ただけで「'+focus+'」について何が分かる記事か判断でき、記事テーマ・主要語・既存本文を維持している状態です。');
+    }
+  }
+
+  // 3) 主検索意図が本文にはあるのに見出しから見つけにくい場合は、内容追加ではなく見出し表現だけを改善する。
+  if(policy.prioritizeHeadingsFaq&&main&&sections.length){
+    var mainIntent=sbmImprovementAdviceIntentTerms_(main),missingInHeadings=mainIntent.filter(function(t){return sbmInternalLinkNormalizeText_(headingsText).indexOf(sbmInternalLinkNormalizeText_(t))<0;});
+    var presentInBody=mainIntent.filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+    if(missingInHeadings.length&&presentInBody.length){
+      var fitMain=bestSection(main),secMain=fitMain.section,termMain=missingInHeadings[0];
+      if(secMain&&fitMain.score>0){
+        add('主検索意図を見出しから見つけやすくする',
+          'メインクエリ「'+main+'」で重要な「'+termMain+'」の内容は本文にありますが、見出しでは伝わりにくい状態です。本文を増やさず、該当箇所を見つけやすくすることで検索者の迷いを減らせます。',
+          label(secMain),
+          '既存本文はそのまま維持し、見出しに「'+termMain+'」の意味が自然に伝わる表現を加えてください。キーワードを不自然に詰め込まず、見出しだけでその節に何が書かれているか分かる形にします。',
+          '「'+main+'」で訪れた読者が、目次や見出しを見て該当箇所をすぐ見つけられ、本文の説明内容を増減していない状態です。');
       }
     }
   }
 
-  // 正本が限定モードなら、実クエリを推測した追加改善は一切出さない。
-  if(policy.limited)return [];
+  // 4) 導入文に主検索意図の具体語が欠けている場合のみ、冒頭の結論を明確化する。本文全体に答えがあることを前提にする。
+  if(policy.prioritizeHeadingsFaq&&main&&String(source.introduction||'').trim()){
+    var intro=String(source.introduction||''),missingIntro=sbmImprovementAdviceMissingIntentTerms_(main,intro),mainInFull=sbmImprovementAdviceIntentTerms_(main).filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+    if(missingIntro.length&&mainInFull.length){
+      var introTerm=missingIntro[0];
+      add('冒頭で主検索意図への答えを先に伝える',
+        'メインクエリ「'+main+'」で重要な「'+introTerm+'」の内容は記事内にありますが、導入文では伝わりにくいため、読者が答えの有無を判断しにくくなっています。',
+        '記事の導入文・本文冒頭',
+        '既存の導入文を大きく書き換えず、冒頭2〜4文の中で「'+introTerm+'」についてこの記事で分かることを先に明示してください。詳しい説明は既存本文に任せ、導入文を長くしません。',
+        '導入文だけで「'+main+'」への答えが記事内にあると判断でき、その後の本文と内容が重複していない状態です。');
+    }
+  }
+
   return out;
 }
 function sbmUpsertEffectRowForHistory_(historyId,articleId,articleUrl){

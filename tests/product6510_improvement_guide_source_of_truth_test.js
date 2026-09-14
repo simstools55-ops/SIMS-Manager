@@ -21,7 +21,7 @@ const promptHash=crypto.createHash('sha256').update(promptFn).digest('hex');
 const BASELINE='535465dc613e78b33e68a738d1b959f7e1930324001227701cb4be4179dcc4b4';
 if(promptHash!==BASELINE) throw new Error('aWriter prompt function changed: '+promptHash);
 const names=[
-  'sbmInternalLinkNormalizeText_','sbmInternalLinkTokens_','sbmInternalLinkTokenSet_','sbmInternalLinkOverlap_',
+  'sbmExpectedCtrTarget_','sbmInternalLinkNormalizeText_','sbmInternalLinkTokens_','sbmInternalLinkTokenSet_','sbmInternalLinkOverlap_',
   'sbmImprovementAdviceTokens_','sbmImprovementAdviceOverlap_',
   'sbmImprovementGuidePolicyFromWriterPrompt_','sbmImprovementAdviceIntentTerms_',
   'sbmImprovementAdviceMissingIntentTerms_','sbmBuildConcreteImprovementAdvice_'
