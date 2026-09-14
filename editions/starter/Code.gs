@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.15
+ * SIMS Manager Product v6.5.16
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.15';
+const SBM_VERSION = '6.5.16';
+// v6.5.16: GA4プロトタイプで確認した記事領域正規化をSBMへ移植。はてなブログのtitleタグ末尾のブログ名を除去し、記事本文取得はentry-content等の記事本文領域を優先。ブログ名・共通見出しの混入を抑止し、改善ナビのタイトル/見出し診断精度を改善。GSC・aWriter依頼文・改善判定仕様は変更なし。
 // v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
 // v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
 // v6.5.11: 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
@@ -4195,7 +4196,7 @@ function sbmResolveArticleTitleInfo_(url, fallback, allowFetch) {
   allowFetch = allowFetch === true && enabled;
   if (!allowFetch || !/^https?:\/\//i.test(url)) return base;
   var cache = CacheService.getScriptCache();
-  var key = 'titleinfo:' + Utilities.base64EncodeWebSafe(url).slice(0,170);
+  var key = 'titleinfo6516:' + Utilities.base64EncodeWebSafe(url).slice(0,170);
   var cached = cache.get(key);
   if (cached) {
     try {
@@ -4209,10 +4210,10 @@ function sbmResolveArticleTitleInfo_(url, fallback, allowFetch) {
   try {
     var res = UrlFetchApp.fetch(url, {muteHttpExceptions:true, followRedirects:true, headers:{'User-Agent':'SIMS-Blog-Manager'}});
     var html = res.getContentText() || '';
-    var t = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    var h = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-    if (t && t[1]) info.titleTag = sbmCleanHtmlText_(t[1]);
-    if (h && h[1]) info.h1 = sbmCleanDisplayTitle_(sbmCleanHtmlText_(h[1]), url);
+    var rawTitle = sbmExtractTitleTag_(html);
+    var articleTitle = sbmPickArticleTitle_(html, rawTitle, url);
+    if (rawTitle) info.titleTag = sbmNormalizeFetchedTitleTag_(rawTitle, html, url);
+    if (articleTitle) info.h1 = sbmCleanDisplayTitle_(articleTitle, url);
     if (!info.h1) info.h1 = info.titleTag || base.h1;
     if (!info.titleTag) info.titleTag = info.h1 || base.titleTag;
   } catch(e) {}
@@ -4949,7 +4950,7 @@ function sbmFetchArticleMetaInfo_(url) {
   try {
     url = sbmNormalizeUrl_(url);
     if (!/^https?:\/\//i.test(url)) return {h1:'', titleTag:'', metaDescription:''};
-    var key = 'meta:' + Utilities.base64EncodeWebSafe(url).slice(0, 180);
+    var key = 'meta6516:' + Utilities.base64EncodeWebSafe(url).slice(0, 180);
     var cache = CacheService.getDocumentCache();
     var cached = cache.get(key);
     if (cached) return JSON.parse(cached);
@@ -4961,8 +4962,9 @@ function sbmFetchArticleMetaInfo_(url) {
     var code = res.getResponseCode();
     if (code < 200 || code >= 400) return {h1:'', titleTag:'', metaDescription:''};
     var html = res.getContentText() || '';
-    var titleTag = sbmExtractTitleTag_(html);
-    var articleTitle = sbmPickArticleTitle_(html, titleTag, url);
+    var rawTitleTag = sbmExtractTitleTag_(html);
+    var articleTitle = sbmPickArticleTitle_(html, rawTitleTag, url);
+    var titleTag = sbmNormalizeFetchedTitleTag_(rawTitleTag, html, url);
     var metaDescription = sbmExtractDescription_(html);
     var obj = {
       h1: sbmCleanDataListText_(articleTitle || '', url),
@@ -5054,6 +5056,31 @@ function sbmStripSiteNameFromTitle_(title, url) {
         if (last.length >= 8) return last;
       }
     }
+  }
+  return title;
+}
+
+/** v6.5.16: はてな等のtitleタグに付くブログ名を、記事タイトル診断へ持ち込まない。 */
+function sbmNormalizeFetchedTitleTag_(titleTag, html, url, blogNameOverride) {
+  var title = sbmCleanHtmlText_(titleTag || '');
+  if (!title) return '';
+  url = sbmNormalizeUrl_(url || '');
+  var blogName = blogNameOverride !== undefined && blogNameOverride !== null
+    ? String(blogNameOverride || '').trim()
+    : String(sbmGetSetting_('BlogName','') || '').trim();
+  var firstH1 = sbmCleanHtmlText_(sbmExtractFirstH1_(html) || '');
+  var isHatena = /https?:\/\/[^\/]+\.(?:hatenablog|hatenadiary)\.com(?:\/|$)/i.test(url);
+  var siteNames = [];
+  [blogName, firstH1].forEach(function(x){ x=String(x||'').trim(); if(x && siteNames.indexOf(x)<0) siteNames.push(x); });
+  var seps = ['｜','|',' - ',' – ',' — ', ' :: ', ' » ', ' « '];
+  for (var i=0;i<seps.length;i++) {
+    var sep=seps[i],pos=title.lastIndexOf(sep);
+    if(pos<=0) continue;
+    var left=title.substring(0,pos).trim(),right=title.substring(pos+sep.length).trim();
+    if(!left||!right) continue;
+    var exactSite=siteNames.some(function(n){return n===right;});
+    // はてなは標準的に「記事SEOタイトル - ブログ名」。first H1がブログ名なので安全に除去できる。
+    if(exactSite || (isHatena && right.length<=60)) return left;
   }
   return title;
 }
@@ -6614,23 +6641,67 @@ function sbmExtractArticleLinksFromHtml_(html,baseUrl){
   }return out;
 }
 
-function sbmArticleTextFromHtml_(html) {
+function sbmFindElementStartByClass_(html, classPattern) {
+  html=String(html||'');
+  var re=/<(div|main|article|section)\b[^>]*\bclass=["'][^"']*["'][^>]*>/gi,m;
+  while((m=re.exec(html))!==null){
+    var tag=String(m[0]||''),cm=tag.match(/\bclass=["']([^"']*)["']/i),cls=cm?String(cm[1]||''):'';
+    if(classPattern.test(cls)) return {index:m.index,tagName:String(m[1]||'').toLowerCase(),openTag:tag,endIndex:re.lastIndex};
+  }
+  return null;
+}
+
+function sbmExtractBalancedElementInnerHtml_(html, startInfo) {
+  html=String(html||''); if(!startInfo||!startInfo.tagName)return '';
+  var tag=startInfo.tagName, pos=Number(startInfo.endIndex||0), depth=1;
+  var re=new RegExp('<\\/?'+sbmRegexEscape_(tag)+'\\b[^>]*>','gi'); re.lastIndex=pos; var m;
+  while((m=re.exec(html))!==null){
+    if(/^<\//.test(m[0])) depth--; else if(!/\/\s*>$/.test(m[0])) depth++;
+    if(depth===0) return html.substring(pos,m.index);
+  }
+  return '';
+}
+
+/** v6.5.16: 共通ページ全体ではなく記事本文コンテナを優先して抽出する。 */
+function sbmArticleBodyHtmlFromPage_(html, url) {
+  html=String(html||''); if(!html)return '';
+  var patterns=[
+    /(?:^|\s)entry-content(?:\s|$)/i,
+    /(?:^|\s)post-content(?:\s|$)/i,
+    /(?:^|\s)article-body(?:\s|$)/i,
+    /(?:^|\s)article-content(?:\s|$)/i,
+    /(?:^|\s)post-body(?:\s|$)/i,
+    /(?:^|\s)main-content(?:\s|$)/i,
+    /(?:^|\s)hatena-body(?:\s|$)/i
+  ];
+  for(var i=0;i<patterns.length;i++){
+    var si=sbmFindElementStartByClass_(html,patterns[i]);
+    if(si){var inner=sbmExtractBalancedElementInnerHtml_(html,si);if(inner&&inner.length>=200)return inner;}
+  }
+  var articleMatch=/<article\b[^>]*>/i.exec(html);
+  if(articleMatch){
+    var ai={index:articleMatch.index,tagName:'article',openTag:articleMatch[0],endIndex:articleMatch.index+articleMatch[0].length};
+    var articleInner=sbmExtractBalancedElementInnerHtml_(html,ai); if(articleInner&&articleInner.length>=200)return articleInner;
+  }
+  var mainMatch=/<main\b[^>]*>/i.exec(html);
+  if(mainMatch){
+    var mi={index:mainMatch.index,tagName:'main',openTag:mainMatch[0],endIndex:mainMatch.index+mainMatch[0].length};
+    var mainInner=sbmExtractBalancedElementInnerHtml_(html,mi); if(mainInner&&mainInner.length>=200)return mainInner;
+  }
+  return html;
+}
+
+function sbmArticleTextFromHtml_(html, url) {
   html = String(html || '');
   if (!html) return '';
+  var pageHtml=html;
+  html = sbmArticleBodyHtmlFromPage_(html,url);
   html = html.replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<(script|style|noscript|svg|canvas|iframe|form)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<(nav|header|footer|aside)[^>]*>[\s\S]*?<\/\1>/gi, ' ');
 
-  var candidates = [];
-  var patterns = [
-    /<article\b[^>]*>([\s\S]*?)<\/article>/gi,
-    /<(?:div|main)\b[^>]*(?:class|id)=["'][^"']*(?:entry-content|post-content|article-body|article-content|post-body|main-content|hatena-body|hentry)[^"']*["'][^>]*>([\s\S]*?)<\/(?:div|main)>/gi,
-    /<main\b[^>]*>([\s\S]*?)<\/main>/gi
-  ];
-  patterns.forEach(function(re){ var m; while ((m = re.exec(html)) !== null) candidates.push(m[1] || ''); });
-  var source = candidates.length ? candidates.sort(function(a,b){return b.length-a.length;})[0] : html;
-  source = source
-    .replace(/<(div|section|aside)\b[^>]*(?:class|id)=["'][^"']*(?:share|social|related|recommend|ranking|profile|author|comment|breadcrumb|advert|adsense|widget|sidebar|toc)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, ' ')
+  html = html
+    .replace(/<(div|section|aside)\b[^>]*(?:class|id)=["'][^"']*(?:share|social|related|recommend|ranking|profile|author|comment|breadcrumb|advert|adsense|widget|sidebar|toc|entry-footer)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<br\s*\/?\s*>/gi, '\n')
     .replace(/<h1\b[^>]*>/gi, '\n# ').replace(/<h2\b[^>]*>/gi, '\n## ').replace(/<h3\b[^>]*>/gi, '\n### ')
     .replace(/<h4\b[^>]*>/gi, '\n#### ')
@@ -6638,11 +6709,20 @@ function sbmArticleTextFromHtml_(html) {
     .replace(/<(p|blockquote|tr|table|ul|ol)\b[^>]*>/gi, '\n')
     .replace(/<\/(h1|h2|h3|h4|p|blockquote|li|tr|table|ul|ol|div|section)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ');
-  source = sbmDecodeHtmlEntities_(source)
+  var source = sbmDecodeHtmlEntities_(html)
     .replace(/[ \t]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+
+  // フォールバックで共通領域が混ざった場合も、はてなのブログ名H1だけは診断見出しから除外する。
+  if(url && /https?:\/\/[^\/]+\.(?:hatenablog|hatenadiary)\.com(?:\/|$)/i.test(String(url))){
+    var siteName=sbmCleanHtmlText_(sbmExtractFirstH1_(pageHtml)||'');
+    if(siteName){
+      var escaped=sbmRegexEscape_(siteName);
+      source=source.replace(new RegExp('^#\\s*'+escaped+'\\s*(?:\\n|$)','i'),'').trim();
+    }
+  }
   return source;
 }
 
@@ -6684,7 +6764,7 @@ function sbmStructureArticleText_(text, sourceType) {
 function sbmFetchArticleSource_(url) {
   url = sbmNormalizeUrl_(url || '');
   if (!/^https?:\/\//i.test(url)) return {ok:false, message:'記事URLが正しくありません。'};
-  var cache=CacheService.getScriptCache(),cacheKey='articleSource:'+Utilities.base64EncodeWebSafe(url).slice(0,170);
+  var cache=CacheService.getScriptCache(),cacheKey='articleSource6516:'+Utilities.base64EncodeWebSafe(url).slice(0,170);
   try {
     var cached=cache.get(cacheKey);
     if(cached){var parsed=JSON.parse(cached);if(parsed&&parsed.ok&&parsed.data)return parsed;}
@@ -6700,7 +6780,7 @@ function sbmFetchArticleSource_(url) {
     var contentType = String(headers['Content-Type'] || headers['content-type'] || '');
     if (contentType && contentType.toLowerCase().indexOf('text/html') < 0) return {ok:false, message:'HTML記事ではないため本文を取得できませんでした。'};
     var html = res.getContentText() || '';
-    var text = sbmArticleTextFromHtml_(html);
+    var text = sbmArticleTextFromHtml_(html, url);
     if (text.length < 200) return {ok:false, message:'本文として十分な文章を抽出できませんでした。'};
     var structured=sbmStructureArticleText_(text, 'url');
     if(structured.ok) structured.data.outbound_links=sbmExtractArticleLinksFromHtml_(html,url);

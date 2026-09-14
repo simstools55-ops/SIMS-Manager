@@ -1,18 +1,25 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.5.15
+> **Current product:** SIMS Manager v6.5.16
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.5.15`
+- Product Version: `6.5.16`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.5.15
+> Current release: SIMS Manager Product v6.5.16
+
+## v6.5.16 — 記事タイトル・本文領域の正規化
+
+- はてなブログのSEOタイトルに付随するブログ名を除去し、記事固有タイトルだけを保存します。
+- 改善ナビの本文取得では記事本文コンテナを優先し、ブログ名・共通見出し・関連記事等の混入を抑止します。
+- GA4プロトタイプで確認した抽出方針をSBMへ反映し、タイトル/H2/H3診断の入力精度を改善します。
+- GSC・改善判定・aWriter依頼文は変更しません。
 
 ## v6.5.1 — 記事詳細のSIMSトリアージ
 
