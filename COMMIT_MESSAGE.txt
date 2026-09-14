@@ -1,7 +1,7 @@
-feat: v6.5.18 Starter EditionからaDoctor連携を除外
+feat: align Full improvement guide with aWriter request in v6.5.19
 
-- 正常な保存済みタイトルは再取得せず、そのまま利用
-- BlogNameが末尾に混入した記事タイトル/SEOタイトルだけをローカル補正
-- 記事情報更新で混入タイトルをWebアクセスなしの修正対象として検出
-- 今日の改善の詳細チェックから改善ナビが開かない回帰を修正
-- Full / Starterを同期
+- Fullの改善ガイドをaWriter依頼文由来へ統一
+- Starterの自己修正向け改善ガイドは現状維持
+- CTR改善余地の説明を平易化
+- 「今回の方針」の定型表示を削除
+- Full / Starterの版数を同期

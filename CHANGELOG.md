@@ -1,3 +1,9 @@
+# v6.5.19
+
+- Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成。
+- Starter Editionの自己修正向け改善ガイドは変更せず維持。
+- 「CTR機会値」を平易化し、「今回の方針」の定型表示を削除。
+
 # v6.5.18
 
 - Starter EditionからaDoctor連携の利用者導線を除外。

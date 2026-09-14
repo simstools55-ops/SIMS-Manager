@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.18",
+  "current_version": "6.5.19",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.18: Starter EditionからaDoctor精密診断・追加診断・再診・未完了Case再開の利用者導線を除外。サイト健康診断は維持し、要見直し記事は改善ナビへ接続。Full EditionのaDoctor連携動作は維持。",
-  "version": "6.5.18",
+  "notes": "v6.5.19: Full Editionの改善ガイドをaWriter依頼文の内容から直接生成して整合。Starter Editionの自己修正ガイドは維持。CTR改善余地の説明を平易化し、『今回の方針』表示を削除。",
+  "version": "6.5.19",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.18-ST"
+  "starter_display_version": "v6.5.19-ST"
 }

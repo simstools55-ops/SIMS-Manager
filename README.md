@@ -1,18 +1,25 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.5.18
+> **Current product:** SIMS Manager v6.5.19
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.5.18`
+- Product Version: `6.5.19`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.5.18
+> Current release: SIMS Manager Product v6.5.19
+
+## v6.5.19 — Full改善ガイドとaWriter依頼文の統一
+
+- Full Editionの改善ガイドは、aWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成します。
+- Starter Editionは従来の自己修正向け改善ガイドを維持します。
+- 「CTR機会値」を使わず、表示回数・CTR・現在順位を基にした改善余地として平易に説明します。
+- 「今回の方針」の定型表示を削除しました。
 
 ## v6.5.18 — Starter EditionのaDoctor連携除外
 
