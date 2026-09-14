@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.17
+ * SIMS Manager Product v6.5.18
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.17';
+const SBM_VERSION = '6.5.18';
+// v6.5.18: Starter EditionからaDoctor連携を除外。サイト健康診断はManager内蔵診断として維持し、精密診断候補・aDoctor依頼・再診・追加診断への入口を非表示化／停止。未発芽・発芽・要改善はStarter改善ナビへ案内し、28日観察後の要見直しもStarter内で再改善判断する。Full EditionのaDoctor連携動作は変更なし。
 // v6.5.17: 保存済みタイトルのローカル正規化を共通化。正常タイトルは再取得せず、設定済みブログ名が末尾に混入した記事タイトル/SEOタイトルだけをネットワークアクセスなしで補正。記事情報更新も混入タイトルをローカル修正対象として検出し、今日の改善の詳細チェックから改善ナビが開かない回帰を修正。GSC・aWriter依頼文・改善判定仕様は変更なし。
 // v6.5.16: GA4プロトタイプで確認した記事領域正規化をSBMへ移植。はてなブログのtitleタグ末尾のブログ名を除去し、記事本文取得はentry-content等の記事本文領域を優先。ブログ名・共通見出しの混入を抑止し、改善ナビのタイトル/見出し診断精度を改善。GSC・aWriter依頼文・改善判定仕様は変更なし。
 // v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
@@ -124,6 +125,7 @@ const SBM_VERSION = '6.5.17';
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
 const SBM_EDITION = 'FULL';
 const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
+function sbmIsADoctorEnabled_(){return String(SBM_EDITION||'').toUpperCase()==='FULL';}
 // v6.2.0: Workflow再開/復旧を正式再編。未完了再開を共通Dispatcherへ統一し、データ整合性点検を集約。再開時は新規Doctor結果登録欄を隠し、現在地点から直接続行する。
 // v6.1.43: 未完了Workflowの再開入口を共通Dispatcherへ統合。通常aDoctor/Site Doctorを利用者に選ばせず、Case状態からDoctor・確認・Writer・Merge・Creatorを自動判定する。
 // v6.1.42: aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
@@ -8014,8 +8016,8 @@ function sbmShowVersionInfo() {
     + '<div class="label">Edition</div><div class="value">' + SBM_EDITION + '</div>'
     + '<div class="label">主な役割</div><div class="desc">' + (String(SBM_EDITION || '').toUpperCase() === 'FULL'
     ? '記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。'
-    : '記事管理、今日の改善、サイト健康診断、aDoctorによる精密診断、改善履歴と経過観察の管理を行います。') + '</div>'
-    + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Doctorの「約30日後」などの指定は再診時期の目安として扱います。</div>'
+    : '記事管理、今日の改善、サイト健康診断、改善ナビ、改善履歴と経過観察の管理を行います。aDoctorによる精密診断は含みません。') + '</div>'
+    + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Starterでは観察結果をManager内で確認し、必要な場合は改善ナビで再改善します。</div>'
     + '<div class="note">SIMS Managerは、個別のAI診断結果だけでなく、その後の実施・観察・再判定までを一元管理します。</div>'
         + '</body></html>';
   sbmShowThemedModalDialog_(
@@ -12509,6 +12511,7 @@ function sbmOpenImprovementHistory() {
  * 「形式が正しくないHTMLコンテンツ」エラーを防止します。
  */
 function sbmArticleDetailDoctorEligibility_(o){
+  if(!sbmIsADoctorEnabled_())return {eligible:false,reason:''};
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
   var work=String(o['作業状態']||'').trim();
@@ -12526,13 +12529,15 @@ function sbmArticleDetailActionSpec_(o){
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
   var work=String(o['作業状態']||'').trim();
-  var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(o['ArticleID']||'',o['記事URL']||'',false);
+  var starter=!sbmIsADoctorEnabled_();
+  var pending=starter?{required:false}:sbmDoctorPendingAdditionalDiagnosisForArticle_(o['ArticleID']||'',o['記事URL']||'',false);
   if(pending.required)return {type:'ADDITIONAL_DIAGNOSIS',label:'カニバリ精密診断へ進む',color:'#174ea6'};
   if(flag==='管理対象外')return {type:'NONE',label:'',color:''};
   if(flag==='インデックス要確認')return {type:'INDEX_REVIEW',label:'インデックス問題を処置する',color:'#b06000'};
   if(flag==='要確認')return {type:'NEEDS_REVIEW',label:'要確認記事を処理する',color:'#b06000'};
   if(work.indexOf('モニター')>=0)return {type:'EFFECT',label:'改善効果・経過を見る',color:'#174ea6'};
   if(work.indexOf('改善中')>=0||work.indexOf('処置中')>=0)return {type:'NAVI',label:'改善詳細（改善ナビ）を開く',color:'#0b8043'};
+  if(starter&&(flag==='要改善'||sbmDoctorRankCode_(o['記事ランク']||'')==='UNGERMINATED'||sbmDoctorRankCode_(o['記事ランク']||'')==='SPROUT'))return {type:'NAVI',label:'改善ナビで確認する',color:'#0b8043',reason:'StarterではaDoctorを使用せず、改善ナビで改善ポイントを確認します。'};
   var doctor=sbmArticleDetailDoctorEligibility_(o);
   if(doctor.eligible)return {type:'DOCTOR',label:'aDoctorで精密診断する',color:'#174ea6',reason:doctor.reason};
   var rankCode=sbmDoctorRankCode_(o['記事ランク']||'');
@@ -12548,7 +12553,7 @@ function sbmArticleDetailStateAdvice_(o){
   var rank=String(o['記事ランク']||'').trim();
   if(flag==='インデックス要確認')return 'Search Consoleでインデックス問題が確認されています。通常の改善作業より先に、インデックス問題の処置を進めてください。';
   if(flag==='要確認')return '長期間GSCページデータを取得できていません。記事の公開状態とSearch ConsoleのURL検査結果を確認してください。';
-  if(flag==='要改善')return '公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。';
+  if(flag==='要改善')return sbmIsADoctorEnabled_()?'公開・検索運用上の問題は確認されませんでした。検索成果が弱い原因をaDoctorで精密診断してください。':'公開・検索運用上の問題は確認されませんでした。Starterの改善ナビで改善ポイントを確認してください。';
   var doctor=sbmArticleDetailDoctorEligibility_(o);
   if(doctor.eligible)return doctor.reason;
   var rankCode=sbmDoctorRankCode_(rank);
@@ -12574,12 +12579,14 @@ function sbmFindArticleDbRowByIdentity_(articleId,url){
 }
 
 function sbmDoctorCreateRequestFromArticleIdentity(articleId,url){
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('Starter Edition','Starter EditionではaDoctor精密診断を利用できません。改善ナビをご利用ください。');
   var hit=sbmFindArticleDbRowByIdentity_(articleId,url);
   if(!hit)return sbmAlert_('aDoctor','記事管理から対象記事を確認できません。');
   return sbmDoctorCreateAndSaveRequest_('ARTICLE_LIST',hit.sheet,hit.row);
 }
 
 function sbmDoctorCreateRequestFromArticleDetailTriage(articleId,url){
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('Starter Edition','Starter EditionではaDoctor精密診断を利用できません。改善ナビをご利用ください。');
   var hit=sbmFindArticleDbRowByIdentity_(articleId,url);
   if(!hit)return sbmAlert_('aDoctor','記事管理から対象記事を確認できません。');
   var article=sbmRowRecord_(hit.sheet,hit.row)||{};
@@ -12602,6 +12609,7 @@ function sbmOpenArticleEffectFromDetail(articleId,url){
 function sbmOpenIndexIssueFromArticleDetail(articleId,url){
   var a=sbmFindArticleDbByIdentity_(articleId,url)||{};
   if(!a||!Object.keys(a).length)return sbmAlert_('インデックス問題','記事管理から対象記事を確認できません。');
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('インデックス問題の確認','Search ConsoleのURL検査で、noindex・非公開・URL変更・クロール拒否・重複ページなどを確認してください。\n\n記事内容を見直す場合は、記事詳細から「改善ナビで確認する」を利用できます。');
   var e=function(v){return sbmEscapeHtml_(v===0?'0':v);};
   var title=String(a['記事タイトル']||a['H1タイトル']||a['記事URL']||'').trim();
   var pending=sbmDoctorPendingAdditionalDiagnosisForArticle_(a['ArticleID']||articleId,a['記事URL']||url,false);
@@ -12622,6 +12630,7 @@ function sbmOpenIndexIssueFromArticleDetail(articleId,url){
 
 function sbmRunArticleDetailAction(action,articleId,url){
   action=String(action||'');
+  if(!sbmIsADoctorEnabled_()&&(action==='ADDITIONAL_DIAGNOSIS'||action==='DOCTOR'))action='NAVI';
   if(action==='ADDITIONAL_DIAGNOSIS')return sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url);
   if(action==='INDEX_REVIEW')return sbmOpenIndexIssueFromArticleDetail(articleId,url);
   if(action==='NEEDS_REVIEW')return sbmOpenNeedsReviewArticles(articleId);
@@ -13950,7 +13959,7 @@ function onOpen() {
   ui.createMenu('改善の推移・履歴')
     .addItem('1．改善の推移を開く','sbmOpenImprovementStatus')
     .addItem('2．選択記事の改善効果を見る','sbmShowSelectedEffectDetail')
-    .addItem('3．観察終了後の処置を進める','sbmProcessSelectedEffectAfterObservation')
+    .addItem(isFullEdition?'3．観察終了後の処置を進める':'3．観察終了後の結果を確認','sbmProcessSelectedEffectAfterObservation')
     .addSeparator()
     .addItem('改善履歴を開く','sbmOpenImprovementHistory')
     .addItem('選択した改善履歴の詳細を見る','sbmOpenSelectedHistoryDetail')
@@ -13967,13 +13976,15 @@ function onOpen() {
     .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
     .addToUi();
 
-  ui.createMenu('サイト健康診断')
+  var healthMenu = ui.createMenu('サイト健康診断')
     .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
-    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport')
-    .addSeparator()
-    .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
-    .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate')
-    .addToUi();
+    .addItem('サイト健康診断結果を開く','sbmDoctorOpenHealthReport');
+  if(isFullEdition){
+    healthMenu.addSeparator()
+      .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
+      .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate');
+  }
+  healthMenu.addToUi();
 
   if (isFullEdition) {
     ui.createMenu('新記事関連')
@@ -15047,7 +15058,7 @@ function sbmEffectLifecycleState_(effectRow){
 function sbmProcessSelectedEffectAfterObservation(){
   var sh=SpreadsheetApp.getActiveSheet();
   if(!sh||sh.getName()!==SBM_SHEETS.EFFECT){
-    return sbmAlert_('要再診・要処置','「改善の推移」を開き、対象記事を左端のチェックボックスで1件選択してください。');
+    return sbmAlert_(sbmIsADoctorEnabled_()?'要再診・要処置':'観察結果の確認','「改善の推移」を開き、対象記事を左端のチェックボックスで1件選択してください。');
   }
   var row=sbmGetCheckedRow_(sh);
   if(!row)return;
@@ -15070,9 +15081,10 @@ function sbmProcessSelectedEffectAfterObservation(){
 }
 
 function sbmShowEffectAfterObservationProgressDialog_(){
+  var nextGuide=sbmIsADoctorEnabled_()?'4回の測定完了後、必要な場合だけaDoctor再診へ進みます。':'4回の測定完了後、結果を確認し、必要な場合は改善ナビへ進みます。';
   var html='<!DOCTYPE html><html><head><base target="_top"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:24px;color:#202124}.row{display:flex;gap:14px;align-items:flex-start}.spin{width:28px;height:28px;border:4px solid #d2e3fc;border-top-color:#1a73e8;border-radius:50%;animation:r 1s linear infinite;flex:0 0 auto}@keyframes r{to{transform:rotate(360deg)}}h2{margin:0 0 10px;color:#174ea6}.msg{line-height:1.7;color:#5f6368}.err{color:#b31412}.ok{color:#188038}.actions{margin-top:20px;text-align:right}button{border:1px solid #dadce0;background:#fff;padding:9px 18px;border-radius:7px;font-weight:700;cursor:pointer}</style></head><body>'+
-    '<div class="row"><div id="spin" class="spin"></div><div><h2>経過観察の状況を確認しています</h2><div id="msg" class="msg">選択した記事の測定状況と改善履歴を確認しています。<br>4回の測定完了後、必要な場合だけaDoctor再診へ進みます。</div></div></div>'+
+    '<div class="row"><div id="spin" class="spin"></div><div><h2>経過観察の状況を確認しています</h2><div id="msg" class="msg">選択した記事の測定状況と改善履歴を確認しています。<br>'+nextGuide+'</div></div></div>'+
     '<div id="actions" class="actions" style="display:none"><button onclick="google.script.host.close()">閉じる</button></div>'+
     '<script>function fail(e){document.getElementById("spin").style.display="none";var m=document.getElementById("msg");m.className="msg err";m.textContent=(e&&e.message)?e.message:String(e);document.getElementById("actions").style.display="block";}function done(r){document.getElementById("spin").style.display="none";var m=document.getElementById("msg");if(r&&r.ok===false){m.className="msg err";m.textContent=r.message||r.error||"処理を完了できませんでした。";document.getElementById("actions").style.display="block";return;}if(r&&r.dialogHtml){google.script.host.setWidth(820);google.script.host.setHeight(720);document.open();document.write(r.dialogHtml);document.close();return;}m.className="msg ok";m.textContent=(r&&r.message)||"準備が完了しました。";document.getElementById("actions").style.display="block";}google.script.run.withFailureHandler(fail).withSuccessHandler(done).sbmProcessSelectedEffectAfterObservationWorker();</script></body></html>';
   SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(285),'経過観察終了後の処置');
@@ -15097,6 +15109,17 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
   if(row<2)throw new Error('選択した記事の現在サイクルを確認できません。並べ替え後でもArticleIDと改善履歴IDで再検索しますので、対象をもう一度1件選択してください。');
 
   var rec=sbmRowRecord_(sh,row),life=sbmEffectLifecycleState_(rec),title=String(rec['記事タイトル']||target.title||'対象記事');
+  if(!sbmIsADoctorEnabled_()){
+    if(life.code==='MEASURING'){
+      sbmAlert_('経過観察の状況',title+'\n\nまだ経過観察中です。\n測定回数：'+String(rec['測定回数']||'')+'\n4回の測定完了後に結果を確認できます。');
+      return {ok:true,message:'まだ経過観察中です。4回の測定完了後に結果を確認できます。'};
+    }
+    if(life.code!=='COMPLETED'&&life.code!=='NORMAL_CLOSE'){
+      var starterUrl=String(rec['記事URL']||'');
+      var starterHtml='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.7}.box{background:#f8f9fa;border-left:5px solid #0b8043;padding:14px;margin:14px 0}.actions{text-align:right;margin-top:20px}button{display:inline-block;border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer;margin-left:8px}.navi{background:#0b8043;color:#fff}.close{background:#fff;color:#3c4043;border:1px solid #9aa0a6}</style></head><body><div class="box"><b>'+sbmEscapeHtml_(title)+'</b><br>4回の測定結果では、もう一度改善内容を見直す候補です。Starter EditionではaDoctor再診を行わず、改善ナビで現在のデータに基づく改善ポイントを確認します。</div><div class="actions"><button class="navi" onclick="openNavi()">改善ナビを開く</button><button class="close" onclick="google.script.host.close()">閉じる</button></div><script>var u='+JSON.stringify(starterUrl).replace(/</g,'\\u003c')+';function openNavi(){google.script.run.withSuccessHandler(function(){google.script.host.close()}).sbmOpenImprovementNaviFromArticleDetail(u)}</script></body></html>';
+      return {ok:true,dialogHtml:starterHtml,starterReview:true};
+    }
+  }
   if(life.code==='MEASURING'){
     sbmAlert_('経過観察の状況を確認しました',title+'\n\nまだ経過観察中です。\n測定回数：'+String(rec['測定回数']||'')+'\n4回の測定完了後に、必要に応じてaDoctor再診へ進めます。');
     return {ok:true,message:'まだ経過観察中です。4回の測定完了後に、必要に応じてaDoctor再診へ進めます。'};
@@ -16649,7 +16672,9 @@ function sbmDoctorBuildHealthReportSheets_(healthCheckId, run, counts) {
   ].filter(function(x){return x[1]>0;}).sort(function(a,b){return b[1]-a[1];});
   var trendText=(trendItems.length?trendItems.slice(0,5).map(function(x){return '・'+x[0]+' '+x[1]+'件（'+Math.round(x[1]/trendBase*100)+'%）';}).join('\n'):'・健康診断で数値化できる共通傾向は見つかりませんでした。')+'\n※鮮度・競合強化・カニバリ等は精密診断で追加判定します。';
   var resultText='大きな問題なし '+Number(counts.healthy||0)+'件 / 未発芽 '+Number(counts.ungerminated||0)+'件 / 経過観察 '+observationCount+'件 / 改善管理中 '+Number(counts.excluded||0)+'件 / データ不足 '+Number(counts.lowSample||0)+'件 / 精密診断 '+Number(counts.selected||0)+'件';
-  var nextText=Number(counts.selected||0)>0 ? '「診断」から「精密診断候補を見る」を開き、1件選択してaDoctor診断依頼文を作成します。' : '通常のSIMS運用を続け、次回の健康診断で推移を確認します。';
+  var nextText=Number(counts.selected||0)>0
+    ? (sbmIsADoctorEnabled_()?'「サイト健康診断」から「精密診断候補を見る」を開き、1件選択してaDoctor診断依頼文を作成します。':'診断結果の記事を記事管理で確認し、必要な記事は改善ナビで改善ポイントを確認します。')
+    : '通常のSIMS運用を続け、次回の健康診断で推移を確認します。';
 
   var healthRows=[
     ['サイト名',sbmGetSetting_('SiteName','')],
@@ -17164,6 +17189,7 @@ function sbmRunProgressWorker(workerName){
 }
 
 function sbmDoctorOpenDetailedCandidates(){
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('Starter Edition','Starter EditionではaDoctor精密診断候補を使用しません。サイト健康診断結果と改善ナビをご利用ください。');
   return sbmShowAsyncProgressDialog_({title:'精密診断候補を準備しています',description:'最新の健康診断結果を確認し、処理済みの記事を除外して、優先度の高い記事を最大10件まで選んでいます。',workers:['sbmDoctorCandidateProgressStep1_','sbmDoctorCandidateProgressStep2_','sbmDoctorCandidateProgressStep3_'],steps:['最新の健康診断結果を確認','診断済み・モニター中の記事を除外','優先順位を整理して候補シートを作成']});
 }
 function sbmDoctorCandidateProgressStep1_(){
@@ -17269,6 +17295,7 @@ function sbmDoctorCreateAndSaveResolvedRequest_(context){
 }
 
 function sbmDoctorCreateRequestFromDetailedCandidate(){
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('Starter Edition','Starter EditionではaDoctor精密診断を利用できません。');
   try{
     sbmDoctorAssertSafeToExport_();
     var ss=SpreadsheetApp.getActiveSpreadsheet(),active=ss.getActiveSheet();
@@ -19337,6 +19364,9 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
     caseId=String(caseId||'').trim();
     var rec=sbmDoctorFindCaseRow_(caseId);if(!rec)throw new Error('対象Caseが見つかりません。');
 
+    // Starterは通常改善Workflowだけを再開対象とし、旧版で残ったaDoctor Caseへ戻しません。
+    if(!sbmIsADoctorEnabled_())throw new Error('Starter EditionではaDoctor関連の未完了作業を再開できません。改善ナビをご利用ください。');
+
     if(virtualFollowUp===true){
       var follow=String(sbmDoctorWorkflowReadPayload_(caseId,'FOLLOW_UP_REQUEST')||'');
       if(!follow){
@@ -19406,6 +19436,10 @@ function sbmResumeUnfinishedWorkflowCore_(){
     // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
     var normal=sbmFindLatestNormalImprovementWorkflow_(wfIndex);
+    if(!sbmIsADoctorEnabled_()){
+      if(normal)return sbmResumeNormalImprovementWorkflow_(normal);
+      return sbmAlert_('未完了の作業を再開','再開できる通常改善の作業はありません。\n\nStarter Editionでは、旧版のaDoctor関連Caseは再開対象に表示しません。モニター中の記事は「改善の推移・履歴」から確認してください。');
+    }
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[];
     var doctorOrConfirm={
       'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,

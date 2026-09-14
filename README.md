@@ -1,26 +1,25 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.5.17
+> **Current product:** SIMS Manager v6.5.18
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.5.17`
+- Product Version: `6.5.18`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.5.17
+> Current release: SIMS Manager Product v6.5.18
 
-## v6.5.17 — 保存済みタイトルのローカル正規化と改善ナビ起動修正
+## v6.5.18 — Starter EditionのaDoctor連携除外
 
-- 正常な保存済みタイトルは再取得・再修正せず、そのまま使用します。
-- `BlogName` と完全一致する末尾ブログ名だけをローカルで除去し、不要なWebアクセスを発生させません。
-- 記事管理の軽量整形と改善ナビ表示にも同じ正規化を適用します。
-- 「今日の改善」の詳細チェックから改善ナビが開かない回帰を修正しました。
-- GSC・改善判定・aWriter依頼文は変更しません。
+- StarterのaDoctor精密診断候補・診断依頼・追加診断・再診への導線を除外します。
+- サイト健康診断はManager内蔵機能として維持します。
+- Starterの未発芽・発芽・要改善・観察後要見直しは改善ナビへ接続します。
+- Full EditionのaDoctor連携動作は維持します。
 
 ## v6.5.16 — 記事タイトル・本文領域の正規化
 
