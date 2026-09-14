@@ -1,10 +1,10 @@
 /**
- * SIMS Manager Product v6.5.13
+ * SIMS Manager Product v6.5.14
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.13';
+const SBM_VERSION = '6.5.14';
 // v6.5.13: 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
 // v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
 // v6.5.11: 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
@@ -7018,6 +7018,9 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
   var fullText=String(source.introduction||'')+' '+sections.map(function(s){return String(s.heading||'')+' '+String(s.text||'');}).join(' '),faq=faqSection();
   var headingsText=sections.map(function(s){return String(s.heading||'');}).join(' ');
   var pageImps=Math.max(0,Number(meta.imps||0)),minImps=Math.max(5,Math.min(25,Math.round(pageImps*0.01)||5));
+  // v6.5.14: 記事ランクは件数ノルマではなく診断深度に使う。育成・成長は本文構成まで一段深く点検する。
+  var rankText=String(meta.rank||'');
+  var deepGrowth=/育成|成長/.test(rankText),training=/育成/.test(rankText);
 
   // 1) 関連クエリの表現ギャップ。表示されているだけでは採用せず、本文に具体的な意図語の不足があり、修正場所まで特定できる場合だけ指示する。
   queries.filter(function(q){
@@ -7099,6 +7102,46 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
         '導入文だけで「'+main+'」への答えが記事内にあると判断でき、その後の本文と内容が重複していない状態です。');
     }
   }
+
+
+  // 5) 成長・育成: 主検索意図への答えが節の後半に埋もれている場合、内容追加ではなく回答位置を前へ出す。
+  if(deepGrowth&&main&&sections.length){
+    var fitAnswer=bestSection(main),answerSec=fitAnswer.section;
+    if(answerSec&&fitAnswer.score>0){
+      var answerText=String(answerSec.text||''),answerLead=answerText.slice(0,180),intentAll=sbmImprovementAdviceIntentTerms_(main);
+      var bodyIntent=intentAll.filter(function(t){return sbmInternalLinkNormalizeText_(answerText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+      var leadIntent=intentAll.filter(function(t){return sbmInternalLinkNormalizeText_(answerLead).indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
+      if(bodyIntent.length&&leadIntent.length<bodyIntent.length){
+        var buried=bodyIntent.filter(function(t){return leadIntent.indexOf(t)<0;})[0]||bodyIntent[0];
+        add('該当セクションの冒頭で答えを先に示す',
+          'メインクエリ「'+main+'」への説明は'+label(answerSec)+'にありますが、重要な「'+buried+'」の説明が節の後半にあるため、読者が答えへ到達するまでに時間がかかります。育成中の記事では、既存情報を増やすより回答順序を整える方が効果を確認しやすい改善です。',
+          label(answerSec)+'の冒頭',
+          '既存の説明・手順・注意点は削除せず、この節の最初の2〜3文で「'+buried+'」について結論を先に示してください。その後に現在の詳しい説明が続く順序へ整えます。',
+          'この節を開いた直後に「'+main+'」への答えが分かり、その後に既存の詳しい説明を読める順序になっている状態です。');
+      }
+    }
+  }
+
+  // 6) 成長・育成: 表示実績のある関連クエリが本文では回答済みでもFAQから見つけにくい場合、FAQに1問だけ要約する。
+  if(deepGrowth&&faq&&queries.length){
+    var faqText=String(faq.heading||'')+' '+String(faq.text||''),faqCandidate=null;
+    queries.filter(function(q){var text=String(q&&q.query||'').trim();return text&&text!==main&&Number(q.imps||0)>=minImps;})
+      .sort(function(a,b){return Number(b.imps||0)-Number(a.imps||0);})
+      .some(function(q){
+        var terms=sbmImprovementAdviceIntentTerms_(q.query),inBody=terms.filter(function(t){return sbmInternalLinkNormalizeText_(fullText).indexOf(sbmInternalLinkNormalizeText_(t))>=0;}),missingFaq=terms.filter(function(t){return sbmInternalLinkNormalizeText_(faqText).indexOf(sbmInternalLinkNormalizeText_(t))<0;});
+        if(inBody.length&&missingFaq.length){faqCandidate={q:q,term:missingFaq[0]};return true;}return false;
+      });
+    if(faqCandidate){
+      var fq=String(faqCandidate.q.query||''),fimp=Math.round(Number(faqCandidate.q.imps||0));
+      add('関連する疑問をFAQからすぐ確認できるようにする',
+        '「'+fq+'」は表示'+fimp.toLocaleString()+'回あり、記事本文には関連する説明がありますが、FAQからは答えを見つけにくい状態です。本文を増やさず、既存回答への入口を作ることで検索意図への対応を明確にできます。',
+        label(faq),
+        'FAQに「'+fq+'」の疑問が自然に伝わる質問を1問追加し、回答は本文にある結論を2〜4文で要約してください。詳しい手順を重複させず、必要なら該当見出しを読むよう案内します。',
+        'FAQだけで「'+fq+'」への短い答えが分かり、詳しい説明は既存本文に集約されて重複していない状態です。');
+    }
+  }
+
+  // 育成は深く診断するが、改善項目を水増しするための最低件数は設けない。
 
   return out;
 }
