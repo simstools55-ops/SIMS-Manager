@@ -1,11 +1,12 @@
 /**
- * SIMS Manager Product v6.5.10
+ * SIMS Manager Product v6.5.12
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.10';
-// v6.5.10: aWriter依頼文を改善方針の正本として固定し、改善ガイドはその方針に反しない確定的な自己修正だけを派生表示。確認・利用者判断・クエリ列挙型の追記指示を除外し、aWriter依頼文生成ロジック・Contractは変更なし。
+const SBM_VERSION = '6.5.12';
+// v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
+// v6.5.11: 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
 // v6.5.9: 改善ナビのクライアントJavaScript構文エラーを修正。改善ガイドHTMLの属性引用符が生成後スクリプトを壊し、クエリ・本文取得が起動しない問題を解消。
 // v6.5.8: 改善ナビの表示後初期化を安定化。DOMContentLoaded取りこぼしでクエリ・本文取得が開始されない事象を防ぎ、readyState判定＋一度だけ実行するフォールバックで詳細取得を確実に開始。aWriter依頼文・取得ロジックは変更なし。
 // v6.5.7: 改善ナビ高速化。SearchConsole_Dataの対象URLクエリ取得を全件走査からTextFinder優先＋必要行取得へ変更し、GSC URL候補は並列照会。内部リンク候補生成も必要列だけを読む。aWriter依頼文・改善判定ロジックは変更なし。
@@ -6990,7 +6991,7 @@ function sbmImprovementAdviceIntentTerms_(query){
   var terms=[
     '表示されない','接続できない','つながらない','元に戻す','アンインストール','インストール',
     'ダークモード','ショートカット','背景色','黒背景','解除','できない','原因','消し方','削除','戻す','リセット',
-    '設定','変更','同期','保存','反映','エラー','違い','比較','料金','価格','無料','有料','初期化','復元','使い方','方法','やり方'
+    '確認','制限','上限','限界','ブロック数','無料版','設定','変更','同期','保存','反映','エラー','違い','比較','料金','価格','無料','有料','初期化','復元','使い方','方法','やり方'
   ];
   return terms.filter(function(t){return query.indexOf(sbmInternalLinkNormalizeText_(t))>=0;});
 }
@@ -7038,6 +7039,35 @@ function sbmBuildConcreteImprovementAdvice_(meta,source,writerPrompt){
         targets.join('、'),action,
         '「'+q+'」で訪れた読者が、見出しまたは該当回答を見てすぐに自分の求める内容だと判断でき、既存の説明量や記事テーマは増えていない状態です。');
     });
+
+  // v6.5.11: 今日の改善候補としてCTR機会が明確なのに、関連クエリの語句差だけでは
+  // ガイドが0件になるデッドエンドを防ぐ。aWriter依頼文の優先順位（SEOタイトル→導入文→H2→FAQ）を正本とし、
+  // 検索結果上の主クエリ訴求に明確な不足がある場合は、低リスクなCTR改善を1件だけ派生表示する。
+  if(!policy.limited&&out.length===0){
+    var pos=Number(meta.posText||meta.position||0),ctr=Number(String(meta.ctrText||'').replace('%',''))/100;
+    if(!isFinite(ctr)||ctr<0)ctr=Number(meta.ctr||0)||0;
+    var target=sbmExpectedCtrTarget_(pos),expected=Math.max(0,Math.round(pageImps*Math.max(0,target-ctr)));
+    var ctrOpportunity=pageImps>=100&&pos>=4&&pos<=20&&ctr<target&&expected>=3;
+    if(ctrOpportunity&&policy.prioritizeHeadingsFaq){
+      var focus=main||String((queries[0]&&queries[0].query)||'').trim();
+      var serpText=String(meta.seoTitle||meta.title||'')+' '+String(meta.description||'');
+      var missingSerp=focus?sbmImprovementAdviceMissingIntentTerms_(focus,serpText):[];
+      var missingLabel=missingSerp.slice(0,2).join('」「');
+      if(policy.revenueProtect){
+        add('検索結果の説明文で主検索意図を明確にする',
+          '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。aWriter依頼文ではSEOタイトル/H1の保護が優先されるため、タイトルを動かさず検索結果の説明文だけを改善します。',
+          'メタディスクリプション',
+          (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果の説明から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果の説明から伝わるように、')+'現在の記事内容と主要語を維持したまま、何が分かる記事かを前半で明確にしてください。本文・SEOタイトル・H1は変更しません。',
+          '検索結果の説明だけで「'+focus+'」への答えが記事内にあると判断でき、既存のSEOタイトル・H1・本文を変更していない状態です。');
+      }else{
+        add('検索結果で主検索意図を明確にする',
+          '平均順位'+pos.toFixed(1)+'位・CTR'+(ctr*100).toFixed(1)+'%で、現在順位のCTR目安との差から約'+expected+'クリック分の改善余地があります。aWriter依頼文でもSEOタイトルを最優先改善箇所としているため、検索結果上の訴求を先に整える価値があります。',
+          'SEOタイトルとメタディスクリプション',
+          (missingLabel?'メインクエリ「'+focus+'」で重要な「'+missingLabel+'」が検索結果から伝わるように、':'メインクエリ「'+focus+'」への答えが検索結果から伝わるように、')+'現在の記事テーマと主要語を維持したままSEOタイトルの前半を分かりやすく整理し、メタディスクリプションも同じ検索意図に合わせてください。記事テーマの拡張や本文の大幅変更は行いません。',
+          '検索結果を見ただけで「'+focus+'」について何が分かる記事か判断でき、記事テーマ・主要語・既存本文を維持している状態です。');
+      }
+    }
+  }
 
   // 正本が限定モードなら、実クエリを推測した追加改善は一切出さない。
   if(policy.limited)return [];
@@ -7261,7 +7291,7 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     '<div class="sec"><b>記事本文データ</b><div id="sourceStatus" class="source-loading"><span class="miniSpinner"></span>記事本文を取得しています…</div><div id="pastedTools" style="display:none"><textarea id="pasted" placeholder="記事タイトル、見出し、本文を貼り付けてください。"></textarea><br><button class="btn" onclick="analyzePasted()">貼り付け本文を解析</button><span id="analyzeMsg"></span></div></div>'+ 
     '<div class="sec"><b>なぜ今改善するのか</b><div class="reason">'+esc(reason||('表示回数とCTR・順位から改善余地がある記事です。期待効果：約'+expected+'クリック増。'))+'</div></div>'+ 
     '<div class="sec"><b>今やる価値</b><p>'+(expected>=30?'★★★★★ 非常に高い':expected>=10?'★★★★☆ 高い':'★★★☆☆ 検討価値あり')+'</p></div>'+ 
-    '<div class="sec"><b>自分で修正する場合の改善ガイド</b><p style="color:#5f6368;font-size:13px">aWriterへ渡す改善対象と同じ根拠を使い、ご自身で修正する場合に必要な改善内容を「なぜ・どこを・どうする・完了の目安」に分けて案内します。件数は3件に固定しません。</p>'+ 
+    '<div class="sec"><b>自分で修正する場合の改善ガイド</b><p style="color:#5f6368;font-size:13px">検索データと記事本文をもとに、改善効果が見込める修正箇所だけを「なぜ・どこを・どうする・完了の目安」に分けて具体的に案内します。件数は固定しません。</p>'+ 
     (isFullEdition?'<button id="toggleGuideBtn" class="btn" style="background:#5f6368" onclick="toggleImprovementGuide()">改善ガイドを開く</button>':'')+
     '<div id="improvementGuideWrap" style="'+(isFullEdition?'display:none;margin-top:10px':'margin-top:10px')+'"><div id="improvementAdvice" class="source-loading"><span class="miniSpinner"></span>本文とクエリを確認しています…</div></div></div>'+ 
     '<div class="sec"><b>内部リンク候補（<span id="internalLinkCount">待機中</span>）</b><p style="color:#5f6368;font-size:13px">記事タイトル・メインクエリ・本文テーマを使って候補を抽出します。実クエリがない場合は関連度を保守的に判定します。</p>'+

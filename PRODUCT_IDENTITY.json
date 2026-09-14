@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.10",
+  "current_version": "6.5.12",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.10: aWriter依頼文を改善方針の正本として固定し、改善ガイドは正本に反しない確定的な自己修正だけを派生表示。確認・利用者判断・クエリ列挙型の追記指示を除外。aWriter依頼文生成ロジック・Contractは変更なし。",
-  "version": "6.5.10",
+  "notes": "v6.5.12: 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。改善ガイドの判定ロジックおよびaWriter依頼文生成ロジック・Contractは変更なし。",
+  "version": "6.5.12",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.10-ST"
+  "starter_display_version": "v6.5.12-ST"
 }
