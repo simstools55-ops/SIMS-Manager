@@ -1,5 +1,11 @@
 ## v6.5.0
 
+## 6.5.10
+- aWriter依頼文を改善方針の正本として固定し、改善ガイドをその派生表示へ変更。
+- 改善効果を見込める確定修正だけを表示し、確認・利用者判断・クエリ列挙型の追記指示を除外。
+- aWriter依頼文生成ロジック・Contractは変更なし。
+
+
 ## 6.5.9
 - Fix improvement navigation client-side JavaScript syntax error introduced by guide HTML rendering.
 - Restore automatic Search Console query and article source loading.

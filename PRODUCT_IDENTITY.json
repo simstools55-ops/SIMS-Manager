@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.9",
+  "current_version": "6.5.10",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.9: 改善ナビのクライアントJavaScript構文エラーを修正。改善ガイドHTMLの属性引用符が生成後スクリプトを壊し、クエリ・本文取得が起動しない問題を解消。aWriter依頼文・取得ロジックは変更なし。",
-  "version": "6.5.9",
+  "notes": "v6.5.10: aWriter依頼文を改善方針の正本として固定し、改善ガイドは正本に反しない確定的な自己修正だけを派生表示。確認・利用者判断・クエリ列挙型の追記指示を除外。aWriter依頼文生成ロジック・Contractは変更なし。",
+  "version": "6.5.10",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.9-ST"
+  "starter_display_version": "v6.5.10-ST"
 }
