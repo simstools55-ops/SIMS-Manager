@@ -1,0 +1,3 @@
+apps-script/Code.gs: gate_calls=12, gate_defs=1, required_defs=OK, syntax=OK
+apps-script/full/Code.gs: gate_calls=12, gate_defs=1, required_defs=OK, syntax=OK
+apps-script/starter/Code.gs: gate_calls=12, gate_defs=1, required_defs=OK, syntax=OK

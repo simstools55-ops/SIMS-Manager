@@ -1,6 +1,6 @@
-# SIMS Manager v6.5.20
+# SIMS Manager v6.5.25
 
-## v6.5.20 変更点
+## v6.5.25 変更点
 
 - Full Editionでは、記事本文とSearch Consoleデータから今回の記事固有の改善指示を生成します。
 - 同じ具体的な改善指示を、利用者向け改善ガイドとaWriter依頼文の両方へ使用します。

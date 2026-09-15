@@ -1,10 +1,11 @@
 /**
- * SIMS Manager Product v6.5.20
+ * SIMS Manager Product v6.5.25
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.5.20';
+const SBM_VERSION = '6.6.0';
+// v6.5.25: License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
 // v6.5.20: Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
 // v6.5.19: Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成する方式へ統一。Starter Editionは従来の自己修正向け改善ガイドを維持。「CTR機会値」を平易な説明へ変更し、「今回の方針」表示を削除。
 // v6.5.18: Starter EditionからaDoctor連携を除外。サイト健康診断はManager内蔵診断として維持し、精密診断候補・aDoctor依頼・再診・追加診断への入口を非表示化／停止。未発芽・発芽・要改善はStarter改善ナビへ案内し、28日観察後の要見直しもStarter内で再改善判断する。Full EditionのaDoctor連携動作は変更なし。
@@ -125,9 +126,9 @@ const SBM_VERSION = '6.5.20';
 // v6.1.20: aDoctor WAIT/MONITORは治療ロック中でも追加経過観察へ正しく遷移。改善履歴を開く処理から全行修復・再装飾・選択列全消去を外し、新規行だけを整形して表示を軽量化。
 // v6.1.18: v6.1.16以前に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
 // v6.1.17: 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
-const SBM_EDITION = 'FULL';
-const SBM_DISPLAY_VERSION = SBM_VERSION + (String(SBM_EDITION).toUpperCase() === 'STARTER' ? '-ST' : '');
-function sbmIsADoctorEnabled_(){return String(SBM_EDITION||'').toUpperCase()==='FULL';}
+const SBM_EDITION = 'FULL'; // bootstrap fallback only; runtime Edition is License Center
+const SBM_DISPLAY_VERSION = SBM_VERSION;
+function sbmIsADoctorEnabled_(){return sbmEffectiveEdition_()==='FULL';}
 // v6.2.0: Workflow再開/復旧を正式再編。未完了再開を共通Dispatcherへ統一し、データ整合性点検を集約。再開時は新規Doctor結果登録欄を隠し、現在地点から直接続行する。
 // v6.1.43: 未完了Workflowの再開入口を共通Dispatcherへ統合。通常aDoctor/Site Doctorを利用者に選ばせず、Case状態からDoctor・確認・Writer・Merge・Creatorを自動判定する。
 // v6.1.42: aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
@@ -976,7 +977,10 @@ function sbmHandleDailyUpdateError_(e) {
   try { sbmLog_('DailyUpdate','Error',text); } catch(ignore2) {}
 }
 
-function sbmRunDailyUpdateManual() { return sbmOpenDailyUpdateDialog(); }
+function sbmRunDailyUpdateManual() {
+  if (!sbmLicenseRequireForProcessing_()) return;
+  return sbmOpenDailyUpdateDialog();
+}
 function sbmMaybePromptDailyUpdate_() { return false; }
 function sbmSkipDailyUpdateToday() { return true; }
 function sbmRunDailyUpdateFromStartup() { return sbmOpenDailyUpdateDialog(); }
@@ -1126,6 +1130,7 @@ function sbmArticleInfoUpdateAudit_(forceFresh) {
 }
 
 function sbmOpenArticleInfoUpdate() {
+  if (!sbmLicenseRequireForProcessing_()) return;
   var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
     + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}'
     + '.lead{color:#5f6368;margin:0 0 14px}.card{border:1px solid #dadce0;border-radius:10px;padding:14px 16px;margin:12px 0;background:#fff}'
@@ -1667,7 +1672,7 @@ function sbmBuildHomeSheet_() {
   sh.clear();
   if (sh.getMaxRows() < 32) sh.insertRowsAfter(sh.getMaxRows(), 32 - sh.getMaxRows());
 
-  sh.getRange('A1:I1').merge().setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');
+  sh.getRange('A1:I1').merge().setValue(sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');
   sh.getRange('J1').setValue('v' + SBM_DISPLAY_VERSION);
   sh.getRange('A2').setValue('サイト名'); sh.getRange('B2:D2').merge();
   sh.getRange('E2').setValue('最終更新'); sh.getRange('F2:J2').merge();
@@ -6232,6 +6237,7 @@ function sbmRefreshTodayPresentationOnly_(){
 
 // UAT17互換注記（表示時には実行しない）: try { sbmRepairTodayMainQueryDisplay_(); }
 function sbmOpenTodayImprovement() {
+  if (!sbmLicenseRequireForProcessing_()) return;
   // v6.1.15: 日次処理で確定した「今日の改善」は、その日の作業中は固定リストとして扱う。
   // 通常表示では完了行の除去・不足候補の補充・シート再描画を一切行わない。
   // これにより、連続改善中のチェック状態と完了表示を保持する。
@@ -6847,7 +6853,7 @@ function sbmAnalyzePastedArticleSource(text, meta) {
   if (!result.ok) return result;
   meta=meta||{};
   var qs=Array.isArray(meta.topQueries)?meta.topQueries:[];
-  var ready=qs.length>0,isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER';
+  var ready=qs.length>0,isStarter=sbmEffectiveEdition_()==='STARTER';
   var basePrompt=ready?sbmBuildImprovementPrompt_(meta,result.data):'';
   var advice=ready?sbmBuildConcreteImprovementAdvice_(meta,result.data,basePrompt):[];
   var writerPrompt=ready&& !isStarter?sbmAppendConcreteImprovementInstructions_(basePrompt,advice):basePrompt;
@@ -7430,7 +7436,7 @@ function sbmRepairMissingActiveEffectRows_(){
 function sbmRepairMissingStarterEffectRows_(){return sbmRepairMissingActiveEffectRows_();}
 
 function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary,adviceJson){
-  if(String(SBM_EDITION||'').toUpperCase()!=='STARTER')return {ok:false,message:'この登録はStarter用です。'};
+  if(sbmEffectiveEdition_()!=='STARTER')return {ok:false,message:'この登録はStarter用です。'};
   var row=sbmFindArticleDbByIdentity_(String(articleId||''),String(articleUrl||''));
   if(!row)return {ok:false,message:'対象記事が記事管理に見つかりません。'};
   var starterAdvice=[];try{var parsedAdvice=JSON.parse(String(adviceJson||'[]'));if(Array.isArray(parsedAdvice))starterAdvice=parsedAdvice.map(function(x){return String(x||'').trim();}).filter(Boolean);}catch(ignoreAdvice){}
@@ -7528,10 +7534,10 @@ function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
     topQueryStatus:queryPayload.queryResult||{},
     queryEvidenceMode:limitedMode?'LIMITED':'FULL'
   };
-  var linkMax=(String(SBM_EDITION||'').toUpperCase()==='STARTER'?3:8),
+  var linkMax=(sbmEffectiveEdition_()==='STARTER'?3:8),
       links=ready?sbmFindInternalLinkCandidates_(a,3,linkMax,top):[];
   meta.internalLinkCandidates=links;
-  var isStarter=String(SBM_EDITION||'').toUpperCase()==='STARTER',
+  var isStarter=sbmEffectiveEdition_()==='STARTER',
       baseWriterPrompt=ready?sbmBuildImprovementPrompt_(meta,sourcePayload.source):'',
       advice=ready?sbmBuildConcreteImprovementAdvice_(meta,sourcePayload.source,baseWriterPrompt):[],
       writerPrompt=ready&&!isStarter?sbmAppendConcreteImprovementInstructions_(baseWriterPrompt,advice):baseWriterPrompt;
@@ -7571,7 +7577,7 @@ function sbmImprovementNaviQueries_(url, limit) {
 
 function sbmShowImprovementNaviDialog_(a,kind,reason){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
-  var isFullEdition=String(SBM_EDITION||'').toUpperCase()==='FULL';
+  var isFullEdition=sbmEffectiveEdition_()==='FULL';
   var url=String(a['記事URL']||''),blogName=String(sbmGetSetting_('BlogName','')||'').trim(),title=sbmNormalizeStoredTitle_(a['記事タイトル']||a['H1タイトル']||'（タイトル未取得）',url,blogName)||'（タイトル未取得）';
   var query=sbmRealMainQuery_(a['メインクエリ']),rank=String(a['記事ランク']||''),work=String(a['作業状態']||'未着手');
   var clicks=sbmNumber_(a['クリック数'])||0,imps=sbmNumber_(a['表示回数'])||0,ctr=sbmNormalizeCtrNumber_(a['CTR']),pos=sbmNumber_(a['掲載順位'])||0;
@@ -8071,8 +8077,8 @@ function sbmShowVersionInfo() {
     + '<div class="desc">ブログ記事の診断・改善・効果測定・履歴管理を一連の流れで支援するSIMSシリーズの管理中核です。</div></div>'
     + '<div class="label">製品名</div><div class="value">SIMS Manager</div>'
     + '<div class="label">製品バージョン</div><div class="value">v' + SBM_DISPLAY_VERSION + '</div>'
-    + '<div class="label">Edition</div><div class="value">' + SBM_EDITION + '</div>'
-    + '<div class="label">主な役割</div><div class="desc">' + (String(SBM_EDITION || '').toUpperCase() === 'FULL'
+    + '<div class="label">Edition</div><div class="value">' + sbmEffectiveEdition_() + '</div>'
+    + '<div class="label">主な役割</div><div class="desc">' + (sbmEffectiveEdition_()==='FULL'
     ? '記事管理、今日の改善、aDoctor / Site Doctor連携、aWriter / aCreator / aMergeへの引き継ぎ、改善履歴と経過観察の管理を行います。'
     : '記事管理、今日の改善、サイト健康診断、改善ナビ、改善履歴と経過観察の管理を行います。aDoctorによる精密診断は含みません。') + '</div>'
     + '<div class="label">効果測定の標準</div><div class="desc">7日目・14日目・21日目・28日目の1週間ごとに4回測定します。Starterでは観察結果をManager内で確認し、必要な場合は改善ナビで再改善します。</div>'
@@ -9957,6 +9963,7 @@ function sbmApplyNeedsReviewDisposition(payload){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmOpenNeedsReviewArticles(focusArticleId){
+  if (!sbmLicenseRequireForProcessing_()) return;
   var items=sbmNeedsReviewArticleList_();
   focusArticleId=String(focusArticleId||'').trim();
   if(focusArticleId&&items.length){
@@ -9982,6 +9989,7 @@ function sbmArticleManagementReasonCode_(article){
   return String(article&&article['管理フラグ']||'').indexOf('管理対象外')>=0?'OTHER_EXCLUDED':'ACTIVE';
 }
 function sbmOpenSelectedArticleManagementDialog(){
+  if (!sbmLicenseRequireForProcessing_()) return;
   var sh=SpreadsheetApp.getActiveSheet();
   if(!sh||sh.getName()!==SBM_SHEETS.ARTICLE_DB)return sbmAlert_('記事の管理状態','「記事管理」シートを開いて、対象記事を1件チェックしてください。');
   var row=sbmGetCheckedRow_(sh);if(!row)return;
@@ -11995,7 +12003,7 @@ function sbmRefreshHome_(options) {
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
-  try{sh.getRange('A1:I1').setValue(String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
+  try{sh.getRange('A1:I1').setValue(sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
 
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
@@ -13693,7 +13701,7 @@ function sbmSyncHomeVersionOnly_(){
     if(!sh)return;
     var expected='v'+SBM_DISPLAY_VERSION;
     if(String(sh.getRange('J1').getValue()||'')!==expected) sh.getRange('J1').setValue(expected);
-    var expectedTitle=String(SBM_EDITION).toUpperCase()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
+    var expectedTitle=sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
     if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:I1').setValue(expectedTitle);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
@@ -14002,7 +14010,7 @@ function onOpen() {
   // Product v6.1.1: Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
-  var isFullEdition = String(SBM_EDITION || '').toUpperCase() === 'FULL';
+  var isFullEdition = sbmEffectiveEdition_()==='FULL';
   // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
   ui.createMenu('SIMS今日の作業')
@@ -14069,6 +14077,14 @@ function onOpen() {
   }
 
   maintenanceMenu
+    .addSeparator()
+    .addItem('ライセンス認証','sbmLicenseActivate')
+    .addItem('ライセンス状態を確認','sbmLicenseRc4StatusDialog')
+    .addSeparator()
+    .addItem('通信障害テスト（RC6）','sbmLicenseCommunicationTest')
+    .addItem('テスト状態を解除（RC6）','sbmLicenseCommunicationTestReset')
+    .addItem('ライセンスを再確認','sbmLicenseRevalidate')
+    .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets')
     .addSeparator()
     .addItem('初期設定','sbmStartInitialSetup')
@@ -14186,6 +14202,7 @@ function sbmDoctorPrepareHealthCheckScreen_(){
 }
 
 function sbmDoctorRunHealthCheck() {
+  if (!sbmLicenseRequireForProcessing_()) return;
   try {
     sbmDoctorPrepareHealthCheckScreen_();
     var dailyState = sbmGetDailyRuntimeState_();
@@ -17353,6 +17370,7 @@ function sbmDoctorCreateAndSaveResolvedRequest_(context){
 }
 
 function sbmDoctorCreateRequestFromDetailedCandidate(){
+  if (!sbmLicenseRequireForProcessing_()) return;
   if(!sbmIsADoctorEnabled_())return sbmAlert_('Starter Edition','Starter EditionではaDoctor精密診断を利用できません。');
   try{
     sbmDoctorAssertSafeToExport_();
@@ -19480,6 +19498,7 @@ function sbmDoctorShowResumeCaseChooser_(items){
 // v6.1.43: 正常な途中状態をCase状態から判定する共通Workflow Dispatcher。
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
+  if (!sbmLicenseRequireForProcessing_()) return;
   // v6.2.8: メニュー選択直後に空の待機画面を出す。重いWorkflow探索はgoogle.script.run側で続行する。
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">保存済みCaseとWorkflowStateを一括で読み込み、再開が必要な案件だけを抽出しています。<br>記事情報の再取得・GSC取得・診断処理は行いません。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="未完了案件の抽出に時間がかかっています";document.querySelector(".msg").innerHTML="通常は短時間で完了します。45秒を超えたため、いったん閉じて再実行してください。待ち続ける必要はありません。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore();</script></body></html>';
   SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(250),'未完了の作業を再開');
@@ -19987,7 +20006,10 @@ function sbmNewArticleLoadWorkflow_(caseId){
   return {caseId:caseId,state:state,draft:draft,request:req,response:resp};
 }
 
-function sbmOpenNewArticleCreation(){return sbmShowNewArticleCreationDialog_('');}
+function sbmOpenNewArticleCreation() {
+  if (!sbmLicenseRequireForProcessing_()) return;
+  return sbmShowNewArticleCreationDialog_('');
+}
 function sbmResumeNewArticleCreation(caseId){try{sbmShowNewArticleCreationDialog_(caseId);return {ok:true};}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
 
 function sbmShowNewArticleCreationDialog_(caseId){
@@ -20025,6 +20047,7 @@ function sbmShowNewArticleCreationDialog_(caseId){
 }
 
 function sbmOpenCreatorPublicationRegisterDialog(){
+  if (!sbmLicenseRequireForProcessing_()) return;
   var html=HtmlService.createHtmlOutput(
     '<!doctype html><html><head><base target="_top"><style>'+
     'html,body{height:100%;margin:0}body{font-family:Arial,"Noto Sans JP",sans-serif;color:#202124;display:flex;flex-direction:column;overflow:hidden}.content{padding:18px 18px 8px;overflow:auto;flex:1}h2{font-size:18px;margin:0 0 8px}.note{font-size:13px;line-height:1.65;color:#5f6368;margin-bottom:10px}label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}textarea{width:100%;height:280px;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-family:monospace;font-size:12px;resize:vertical}input[type=url]{width:100%;box-sizing:border-box;border:1px solid #dadce0;border-radius:6px;padding:10px;font-size:13px}.required{color:#b3261e}.hint{font-size:12px;color:#5f6368;line-height:1.5;margin-top:5px}.footer{flex:none;border-top:1px solid #e8eaed;background:#fff;padding:10px 18px 14px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}button{border:0;border-radius:5px;padding:9px 16px;cursor:pointer}.secondary{background:#f1f3f4}.primary{background:#1a73e8;color:white}.primary:disabled{opacity:.55;cursor:default}.status{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:9px;border-radius:5px;background:#f8f9fa}.ok{background:#e6f4ea;color:#137333}.err{background:#fce8e6;color:#b3261e}</style></head><body>'+
@@ -21871,6 +21894,7 @@ function sbmSerpCreateCreatorReferral(keyword,reviewJson){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmOpenSerpEntryCheckDialog(){
+  if (!sbmLicenseRequireForProcessing_()) return;
   var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:20px;color:#202124;background:#f8f9fa}h2{margin:0 0 8px}.lead{font-size:13px;line-height:1.7;color:#5f6368}.card{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;margin:12px 0}.field{width:100%;box-sizing:border-box;padding:9px;border:1px solid #bdc1c6;border-radius:6px}textarea{width:100%;box-sizing:border-box;min-height:180px;padding:9px;border:1px solid #bdc1c6;border-radius:6px;font:12px/1.5 monospace;resize:vertical}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}button{border:1px solid #dadce0;border-radius:18px;padding:8px 15px;background:#fff;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.status{font-size:13px;line-height:1.6;white-space:pre-wrap;margin-top:8px}.err{color:#b3261e}.ok{color:#137333}.hidden{display:none}.match{border-top:1px solid #eee;padding:8px 0;font-size:13px;line-height:1.55}.grade{padding:14px;border-radius:8px;font-weight:800;font-size:18px;margin:10px 0}.small{font-size:12px;color:#5f6368}</style></head><body>'+
     '<h2>SERP参入余地チェック</h2><div class="lead">1件のキーワードを確認します。最初にSIMS Managerが保有するSearch Consoleクエリと記事情報でカニバリを確認し、疑いがあればそこで終了します。問題がなければClaudeへSERP上位10件の精査を依頼します。判定が難しい場合だけ11〜20位を追加確認します。</div>'+
@@ -22171,4 +22195,327 @@ function sbmSyncRepairedArticleTitle_(articleId, url, newTitle) {
     }
   });
   return result;
+}
+
+
+/* ========================================================================== *
+ * v6.5.25 License Center site registration test module
+ * - Does not use Session.getActiveUser()/getEffectiveUser().
+ * - Initial test activation asks for the registered Google account email and
+ *   license key, then binds License + email + installationId + spreadsheetId.
+ * - This test module does NOT lock Manager features yet.
+ * ========================================================================== */
+const SBM_LICENSE_TEST_VERSION = '0.2.0';
+
+function sbmLicenseNormalizeEmail_(value){
+  return String(value||'').trim().toLowerCase();
+}
+
+function sbmLicenseEnsureInstallationId_(){
+  var props=PropertiesService.getDocumentProperties();
+  var id=String(props.getProperty('SIMS_INSTALLATION_ID')||'').trim();
+  if(!id){
+    id=Utilities.getUuid();
+    props.setProperty('SIMS_INSTALLATION_ID',id);
+  }
+  return id;
+}
+
+function sbmLicenseApiUrl_(){
+  return 'https://script.google.com/macros/s/AKfycbwxx_821rhHjEAPQyIxRCENOsjmgB0QIcAXlqAw4pD6g5d2M9NrvVG4s4mtbsiVq-zE9A/exec';
+}
+
+function sbmLicensePost_(payload){
+  var url=sbmLicenseApiUrl_();
+  if(!url) throw new Error('SIMS_LICENSE_API_URL が設定されていません。Apps Script のプロジェクトの設定 → スクリプト プロパティを確認してください。');
+  var res=UrlFetchApp.fetch(url,{
+    method:'post',
+    contentType:'application/json',
+    payload:JSON.stringify(payload),
+    muteHttpExceptions:true,
+    followRedirects:true
+  });
+  var text=res.getContentText();
+  var body;
+  try{body=JSON.parse(text);}catch(e){throw new Error('License Center から正しいJSON応答を取得できませんでした。HTTP '+res.getResponseCode());}
+  if(res.getResponseCode()<200||res.getResponseCode()>=300) throw new Error('License Center HTTPエラー: '+res.getResponseCode());
+  return body;
+}
+
+function sbmLicenseSiteIdentity_(){
+  var props=PropertiesService.getDocumentProperties();
+  var id=String(props.getProperty('SIMS_LICENSE_SITE_ID')||'').trim();
+  if(!id){
+    id='LSITE-'+Utilities.getUuid();
+    props.setProperty('SIMS_LICENSE_SITE_ID',id);
+  }
+  var site=sbmEnsureSiteIdentity_();
+  return {
+    siteId:id,
+    siteName:String(site.siteName||sbmGetSetting_('SiteName','')||sbmGetSetting_('BlogName','')||'').trim(),
+    siteUrl:String(site.siteUrl||site.blogUrl||sbmGetSetting_('BlogUrl','')||sbmGetSetting_('SiteUrl','')||'').trim()
+  };
+}
+
+function sbmLicenseActivate(){
+  return sbmLicenseActivationTest();
+}
+function sbmLicenseRevalidate(){
+  var ui=SpreadsheetApp.getUi();
+  var props=PropertiesService.getDocumentProperties();
+  try{
+    var email=sbmLicenseNormalizeEmail_(props.getProperty('SIMS_LICENSE_EMAIL'));
+    var installationId=sbmLicenseEnsureInstallationId_();
+    if(!email){
+      ui.alert('ライセンス認証が必要です',
+        '先に「ライセンス認証」を行ってください。',
+        ui.ButtonSet.OK);
+      return;
+    }
+    var site=sbmLicenseSiteIdentity_();
+    var body=sbmLicensePost_({
+      action:'validate',
+      email:email,
+      installationId:installationId,
+      spreadsheetId:SpreadsheetApp.getActiveSpreadsheet().getId(),
+      appVersion:String(SBM_VERSION||''),
+      siteId:site.siteId,
+      siteName:site.siteName,
+      siteUrl:site.siteUrl
+    });
+    if(!body||!body.ok){
+      sbmLicenseRc4SaveInvalid_(body||{});
+      ui.alert('ライセンスを利用できません',
+        String(body&&body.message||'ライセンスの状態を確認してください。'),
+        ui.ButtonSet.OK);
+      return;
+    }
+    sbmLicenseRc4SaveSuccess_(body);
+    ui.alert('ライセンスは有効です',
+      'Edition：'+String(body.edition||'-')+'\nライセンス情報を更新しました。',
+      ui.ButtonSet.OK);
+  }catch(e){
+    var detail=String(e&&e.message||e||'不明なエラー');
+    console.error('SIMS License revalidate error: '+detail);
+    ui.alert('ライセンス確認エラー',
+      'ライセンス情報の更新中にエラーが発生しました。\n時間をおいて、もう一度ライセンスを再確認してください。',
+      ui.ButtonSet.OK);
+  }
+}
+function sbmLicenseActivationTest(){
+  var ui=SpreadsheetApp.getUi();
+  var licenseSite=sbmLicenseSiteIdentity_();
+  var emailRes=ui.prompt('ライセンス認証','License Centerでライセンス発行時に登録したGoogleアカウントのメールアドレスを入力してください。',ui.ButtonSet.OK_CANCEL);
+  if(emailRes.getSelectedButton()!==ui.Button.OK)return;
+  var email=sbmLicenseNormalizeEmail_(emailRes.getResponseText());
+  if(!email||email.indexOf('@')<1){ui.alert('ライセンス認証','メールアドレスを正しく入力してください。',ui.ButtonSet.OK);return;}
+  var keyRes=ui.prompt('ライセンス認証','発行されたLicense Keyを入力してください。',ui.ButtonSet.OK_CANCEL);
+  if(keyRes.getSelectedButton()!==ui.Button.OK)return;
+  var key=String(keyRes.getResponseText()||'').trim();
+  if(!key){ui.alert('ライセンス認証','License Keyを入力してください。',ui.ButtonSet.OK);return;}
+  try{
+    var ss=SpreadsheetApp.getActiveSpreadsheet();
+    var props=PropertiesService.getDocumentProperties();
+    var installationId=sbmLicenseEnsureInstallationId_();
+    var result=sbmLicensePost_({
+      action:'activate',email:email,licenseKey:key,installationId:installationId,
+      spreadsheetId:ss.getId(),editionRequested:'',appVersion:String(SBM_VERSION||''),
+      siteId:sbmLicenseSiteIdentity_().siteId,siteName:sbmLicenseSiteIdentity_().siteName,siteUrl:sbmLicenseSiteIdentity_().siteUrl
+    });
+    if(!result||!result.ok){
+      ui.alert('ライセンス認証：失敗',(result&&result.message?result.message:'認証できませんでした。')+'\n\nCode: '+String(result&&result.code||'UNKNOWN'),ui.ButtonSet.OK);return;
+    }
+    props.setProperties({
+      SIMS_LICENSE_EMAIL:email,
+      SIMS_LICENSE_ID:String(result.licenseId||''),
+      SIMS_LICENSE_EDITION:String(result.edition||''),
+      SIMS_LICENSE_LAST_OK:new Date().toISOString(),
+      SIMS_LICENSE_CACHE_HOURS:String(result.cacheHours||24),
+      SIMS_LICENSE_GRACE_DAYS:String(result.offlineGraceDays||7)
+    });
+    ui.alert('ライセンス認証：成功','状態：'+String(result.status||'ACTIVE')+'\nEdition：'+String(result.edition||'')+'\nLicense ID：'+String(result.licenseId||'')+'\n\n登録メール：'+email+'\n',ui.ButtonSet.OK);
+  }catch(e){ui.alert('ライセンス認証：通信エラー',String(e&&e.message||e),ui.ButtonSet.OK);}
+}
+
+function sbmLicenseValidateTest(){
+  var ui=SpreadsheetApp.getUi(),props=PropertiesService.getDocumentProperties();
+  var email=sbmLicenseNormalizeEmail_(props.getProperty('SIMS_LICENSE_EMAIL'));
+  var installationId=String(props.getProperty('SIMS_INSTALLATION_ID')||'').trim();
+  if(!email||!installationId){ui.alert('ライセンス状態を再確認','まだライセンス認証が完了していません。先に「ライセンス認証」を実行してください。',ui.ButtonSet.OK);return;}
+  try{
+    var result=sbmLicensePost_({action:'validate',email:email,installationId:installationId,spreadsheetId:SpreadsheetApp.getActiveSpreadsheet().getId(),appVersion:String(SBM_VERSION||''),
+      siteId:sbmLicenseSiteIdentity_().siteId,siteName:sbmLicenseSiteIdentity_().siteName,siteUrl:sbmLicenseSiteIdentity_().siteUrl});
+    if(!result||!result.ok){ui.alert('ライセンス状態：無効',(result&&result.message?result.message:'ライセンスを確認できませんでした。')+'\n\nCode: '+String(result&&result.code||'UNKNOWN'),ui.ButtonSet.OK);return;}
+    props.setProperties({SIMS_LICENSE_ID:String(result.licenseId||''),SIMS_LICENSE_EDITION:String(result.edition||''),SIMS_LICENSE_LAST_OK:new Date().toISOString()});
+    ui.alert('ライセンス状態：有効','状態：'+String(result.status||'ACTIVE')+'\nEdition：'+String(result.edition||'')+'\nLicense ID：'+String(result.licenseId||'')+'\n登録メール：'+email,ui.ButtonSet.OK);
+  }catch(e){ui.alert('ライセンス状態を再確認：通信エラー',String(e&&e.message||e),ui.ButtonSet.OK);}
+}
+
+
+/* ========================================================================== *
+ * v6.6.0-RC4 License validation cache / outage grace
+ * No business-function blocking is applied in RC4.
+ * ========================================================================== */
+const SBM_LICENSE_CACHE_HOURS_RC4 = 24;
+const SBM_LICENSE_GRACE_DAYS_RC4 = 7;
+
+function sbmLicenseRc4State_(){
+  var p=PropertiesService.getDocumentProperties();
+  var last=Date.parse(String(p.getProperty('SIMS_LICENSE_LAST_OK')||''));
+  if(isNaN(last)) last=0;
+  var status=String(p.getProperty('SIMS_LICENSE_STATUS')||'').toUpperCase();
+  return {
+    status:status,
+    lastOk:last,
+    ageMs:last ? Date.now()-last : Infinity,
+    edition:String(p.getProperty('SIMS_LICENSE_EDITION')||'').toUpperCase()
+  };
+}
+function sbmLicenseRc4CacheValid_(){
+  var s=sbmLicenseRc4State_();
+  return s.status==='ACTIVE' && s.ageMs <= SBM_LICENSE_CACHE_HOURS_RC4*60*60*1000;
+}
+function sbmLicenseRc4GraceValid_(){
+  var s=sbmLicenseRc4State_();
+  return s.status==='ACTIVE' && s.ageMs <= SBM_LICENSE_GRACE_DAYS_RC4*24*60*60*1000;
+}
+function sbmLicenseRc4SaveSuccess_(body){
+  var p=PropertiesService.getDocumentProperties();
+  p.setProperties({
+    SIMS_LICENSE_STATUS:'ACTIVE',
+    SIMS_LICENSE_LAST_OK:new Date().toISOString(),
+    SIMS_LICENSE_LAST_CHECK:new Date().toISOString(),
+    SIMS_LICENSE_LAST_RESULT:'ONLINE_OK',
+    SIMS_LICENSE_LAST_CODE:'',
+    SIMS_LICENSE_EDITION:String(body&&body.edition||p.getProperty('SIMS_LICENSE_EDITION')||'').toUpperCase(),
+    SIMS_LICENSE_ID:String(body&&body.licenseId||p.getProperty('SIMS_LICENSE_ID')||'')
+  });
+}
+function sbmLicenseRc4SaveInvalid_(body){
+  PropertiesService.getDocumentProperties().setProperties({
+    SIMS_LICENSE_STATUS:'INVALID',
+    SIMS_LICENSE_LAST_CHECK:new Date().toISOString(),
+    SIMS_LICENSE_LAST_RESULT:'EXPLICIT_INVALID',
+    SIMS_LICENSE_LAST_CODE:String(body&&body.code||'INVALID')
+  });
+}
+function sbmLicenseRc4OnlineValidate_(){
+  if(PropertiesService.getDocumentProperties().getProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR')==='1') throw new Error('RC5 simulated communication failure');
+  var p=PropertiesService.getDocumentProperties();
+  var email=sbmLicenseNormalizeEmail_(p.getProperty('SIMS_LICENSE_EMAIL'));
+  if(!email) return {ok:false,explicitInvalid:true,message:'ライセンス認証がまだ完了していません。'};
+  var site=sbmLicenseSiteIdentity_();
+  var body=sbmLicensePost_({
+    action:'validate',email:email,installationId:sbmLicenseEnsureInstallationId_(),
+    spreadsheetId:SpreadsheetApp.getActiveSpreadsheet().getId(),
+    appVersion:String(SBM_VERSION||''),siteId:site.siteId,siteName:site.siteName,siteUrl:site.siteUrl
+  });
+  if(body&&body.ok){sbmLicenseRc4SaveSuccess_(body);return {ok:true,mode:'ONLINE',body:body};}
+  sbmLicenseRc4SaveInvalid_(body);
+  return {ok:false,explicitInvalid:true,message:String(body&&body.message||'ライセンスを確認できませんでした。'),body:body};
+}
+function sbmLicenseRc4Check_(forceOnline){
+  if(!forceOnline && sbmLicenseRc4CacheValid_()) return {ok:true,mode:'CACHE'};
+  try{
+    return sbmLicenseRc4OnlineValidate_();
+  }catch(e){
+    PropertiesService.getDocumentProperties().setProperties({
+      SIMS_LICENSE_LAST_CHECK:new Date().toISOString(),
+      SIMS_LICENSE_LAST_RESULT:'COMMUNICATION_ERROR'
+    });
+    if(sbmLicenseRc4GraceValid_()) return {ok:true,mode:'GRACE',communicationError:true};
+    return {ok:false,mode:'COMMUNICATION_ERROR',communicationError:true,
+      message:'ライセンスを確認できません。インターネット接続を確認して、もう一度お試しください。'};
+  }
+}
+function sbmLicenseRc4StatusDialog(){
+  var ui=SpreadsheetApp.getUi(),r=sbmLicenseRc4Check_(false),s=sbmLicenseRc4State_();
+  if(r.ok){
+    var label=r.mode==='CACHE'?'認証済み（24時間キャッシュ）':r.mode==='GRACE'?'認証済み（通信障害時の猶予期間）':'認証済み';
+    ui.alert('ライセンス状態',label+'\nEdition：'+(s.edition||'-'),ui.ButtonSet.OK);
+  }else{
+    ui.alert('ライセンスを確認してください',r.message||'ライセンスを確認できませんでした。',ui.ButtonSet.OK);
+  }
+}
+
+
+
+/* ========================================================================== *
+ * v6.6.0-RC5 License resilience test helpers
+ * TEST ONLY. Remove before final release.
+ * ========================================================================== */
+function sbmLicenseCommunicationTest(){
+  return sbmLicenseRc5SimulateCommunicationFailure_();
+}
+function sbmLicenseCommunicationTestReset(){
+  return sbmLicenseRc5RestoreOnlineState_();
+}
+
+function sbmLicenseRc5SimulateCommunicationFailure_(){
+  var p=PropertiesService.getDocumentProperties();
+  var st=sbmLicenseRc4State_();
+  if(st.status!=='ACTIVE'||!st.lastOk){
+    SpreadsheetApp.getUi().alert('通信障害テスト','先に正常なライセンス認証を行ってください。',SpreadsheetApp.getUi().ButtonSet.OK);
+    return;
+  }
+  // Keep last successful validation within 7 days, but older than the 24h cache.
+  p.setProperty('SIMS_LICENSE_LAST_OK',new Date(Date.now()-25*60*60*1000).toISOString());
+  p.setProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR','1');
+  var r=sbmLicenseRc4Check_(false);
+  p.deleteProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR');
+  if(r.ok&&r.mode==='GRACE'){
+    SpreadsheetApp.getUi().alert('通信障害テスト：成功',
+      'License Centerへ通信できない状態を再現しました。\n\n認証済み（通信障害時の猶予期間）\nEdition：'+(sbmLicenseRc4State_().edition||'-')+
+      '\n\n最終正常認証から7日以内なので利用可能と判定されています。',SpreadsheetApp.getUi().ButtonSet.OK);
+  }else{
+    SpreadsheetApp.getUi().alert('通信障害テスト：要確認',
+      '期待した猶予判定になりませんでした。',SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+function sbmLicenseRc5RestoreOnlineState_(){
+  PropertiesService.getDocumentProperties().deleteProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR');
+  try{
+    var r=sbmLicenseRc4Check_(true);
+    if(r&&r.ok){
+      SpreadsheetApp.getUi().alert('テスト状態を解除しました','License Centerで正常認証し、通常状態へ戻しました。',SpreadsheetApp.getUi().ButtonSet.OK);
+    }else{
+      SpreadsheetApp.getUi().alert('ライセンスを確認してください',String(r&&r.message||'正常認証できませんでした。'),SpreadsheetApp.getUi().ButtonSet.OK);
+    }
+  }catch(e){
+    SpreadsheetApp.getUi().alert('テスト状態を解除できません','License Centerへの接続を確認してください。',SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+
+
+
+/* v6.6.0-RC9: first business-function license gate.
+ * Applies only to "今日の改善を開く" in RC9.
+ */
+function sbmLicenseRc9RequireForToday_(){
+  var ui=SpreadsheetApp.getUi();
+  var r=sbmLicenseRc4Check_(false);
+  if(r&&r.ok) return true;
+  ui.alert('SIMS Managerを利用できません',
+    String(r&&r.message||'ライセンスの状態を確認してください。'),
+    ui.ButtonSet.OK);
+  return false;
+}
+
+
+
+/* v6.6.0-RC10: common license gate for processing/update/diagnosis/generation. */
+function sbmLicenseRequireForProcessing_(){
+  var ui=SpreadsheetApp.getUi();
+  var r=sbmLicenseRc4Check_(false);
+  if(r&&r.ok) return true;
+  ui.alert('SIMS Managerを利用できません',
+    String(r&&r.message||'ライセンスの状態を確認してください。'),
+    ui.ButtonSet.OK);
+  return false;
+}
+
+
+function sbmEffectiveEdition_(){
+  var e=String(PropertiesService.getDocumentProperties().getProperty('SIMS_LICENSE_EDITION')||'').toUpperCase();
+  return (e==='FULL'||e==='STARTER') ? e : String(SBM_EDITION||'').toUpperCase();
 }

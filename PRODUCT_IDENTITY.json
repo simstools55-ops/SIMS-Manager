@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.5.20",
+  "current_version": "6.5.25",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.5.20: Full Editionで記事本文とSearch Consoleデータから記事固有の具体的改善指示を一度だけ生成し、改善ガイドとaWriter依頼文へ同一内容を使用。Starter Editionは現状維持。",
-  "version": "6.5.20",
+  "notes": "v6.5.25: Full Editionで記事本文とSearch Consoleデータから記事固有の具体的改善指示を一度だけ生成し、改善ガイドとaWriter依頼文へ同一内容を使用。Starter Editionは現状維持。",
+  "version": "6.5.25",
   "display_name": "SIMS Manager",
   "edition": "FULL",
   "edition_model": "FULL_CANONICAL_STARTER_DERIVED",
-  "starter_display_version": "v6.5.20-ST"
+  "starter_display_version": "v6.5.25-ST"
 }
