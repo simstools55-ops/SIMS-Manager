@@ -1,0 +1,12 @@
+{
+  "version": "6.6.6",
+  "syntax_ok": true,
+  "menu_targets_missing": [],
+  "improvement_dialog_uses_common_sync_modal": true,
+  "direct_showModalDialog_in_improvement_dialog": false,
+  "checkpoint_before_show": false,
+  "checkpoint_after_dom": true,
+  "gsc_source_after_dom": true,
+  "article_source_after_dom": true,
+  "launch_success_logging_present": false
+}

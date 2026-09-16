@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.5';
-// 改善ナビ高速化：表示前のWorkflowState全件Checkpoint処理と起動成功ログ書込を非同期化し、HTML再構築を1回削減。
+const SBM_VERSION = '6.6.6';
+// 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
 // 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
 // Current release: v6.6.4 — 表示系シートは保存済みデータを軽量表示し、全件修復・全体再装飾を通常閲覧から分離。
 // License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
@@ -7637,8 +7637,9 @@ function sbmShowImprovementNaviDialog_(a,kind,reason,sourceSheet){
     'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){renderImprovementAdvice(r.improvementAdvice||[],false);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"本文情報を確認できないため改善ガイドは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
     'function registerStarterComplete(){var b=document.getElementById("starterCompleteBtn"),st=document.getElementById("starterCompleteStatus");if(!b||!st)return;if(!confirm("ブログ側で記事の修正を公開済みですか？\\n公開後に登録すると、今日を起点に効果測定を開始します。"))return;b.disabled=true;b.textContent="登録中…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善履歴と効果測定を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="registerStatus ok";st.textContent=r.effectSynced?"✓ 改善を登録し、改善の推移へ反映しました。7日目・14日目・21日目・28日目の効果測定へ進みます。":"改善履歴は登録しましたが、改善の推移への反映を確認できませんでした。設定・メンテナンスからシート修復を実行してください。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=e&&e.message?e.message:String(e)}).sbmRegisterStarterImprovementComplete(meta.articleId,meta.url,"Starter改善ナビに基づく記事改善を公開",JSON.stringify(finalAdvice||[]))}function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
     'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}var checkpointStarted=false;function checkpointNaviOpen(){if(checkpointStarted)return;checkpointStarted=true;google.script.run.withFailureHandler(function(){}).sbmCheckpointImprovementNaviOpen(seed)}var detailLoadStarted=false;function startImprovementDetailLoad(){if(detailLoadStarted)return;detailLoadStarted=true;loadDetail()}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){checkpointNaviOpen();startImprovementDetailLoad()})}else{checkpointNaviOpen();startImprovementDetailLoad()}setTimeout(function(){checkpointNaviOpen();startImprovementDetailLoad()},0);</script></body></html>';
-  var naviOutput=sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760));
-  SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(naviOutput),'改善ナビ');
+  // UI表示はユーザー操作の同期コンテキストで、既存の共通モーダル経路から実行する。
+  // Checkpoint/GSC/本文取得はHTML描画後のgoogle.script.runに限定する。
+  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
 }
 
 /** Homeを記事DBと設定だけから更新する現行版。 */
@@ -9522,7 +9523,7 @@ function sbmResumeNormalImprovementWorkflow_(entry){
 }
 
 // 通常改善の入口を共通化する。どの画面から開いても
-// ArticleID/URLを確定 → Checkpoint保存 → 改善ナビ表示、の順を必ず通す。
+// ArticleID/URLを確定 → 改善ナビ表示 → 表示後にCheckpoint保存、の順を通す。
 function sbmStartNormalImprovementAndShow_(record,sourceSheet,kind,reason){
   record=record||{};
   var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
@@ -9552,7 +9553,7 @@ function sbmOpenSelectedImprovementNavi(){
     record=sbmRowRecord_(sh,row);
     url=String(record['記事URL']||'').trim();
     if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
-    // 通常改善も「未完了の作業を再開」で復元できるよう、表示前に軽量Checkpointを保存する。
+    // 通常改善のCheckpointはダイアログ描画後にHTML側から非同期保存する。
     // 今日の改善／記事管理のどちらからでも同じ通常改善開始処理を通す。
     sbmStartNormalImprovementAndShow_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
   }catch(e){
