@@ -1,5 +1,5 @@
 {
-  "version": "6.6.1",
+  "version": "6.6.2",
   "syntax_ok": true,
   "menu_targets_missing": [],
   "category_caps": {

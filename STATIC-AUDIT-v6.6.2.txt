@@ -1,0 +1,7 @@
+{
+  "syntax_ok": true,
+  "stale_version_prefixed_comments_remaining": 0,
+  "policy_migration": true,
+  "max_per_category": 2,
+  "max_total": 8
+}
