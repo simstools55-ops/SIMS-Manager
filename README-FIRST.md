@@ -1,5 +1,12 @@
-# SIMS Manager v6.5.25
+# SIMS Manager v6.6.18
 
+
+## v6.6.18 変更点
+
+- 改善ナビのSearch Console最新クエリ・記事本文取得で必要な `script.external_request` を、Granular OAuthの個別scopeとして明示確認する方式へ変更しました。
+- 再承認が必要な場合は、そのscopeに対応するGoogle承認URLを表示します。
+- 承認済みの場合は最小のUrlFetch接続テストを行います。
+- 改善ナビ本体、aWriter依頼文、Full/StarterのランタイムEdition判定は変更していません。
 ## v6.5.25 変更点
 
 - Full Editionでは、記事本文とSearch Consoleデータから今回の記事固有の改善指示を生成します。

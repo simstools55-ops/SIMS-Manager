@@ -4,11 +4,11 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.7';
+const SBM_VERSION = '6.6.18';
+// Current release: v6.6.18 — 外部通信権限を直接確認・有効化する運用へ統一し、試行用の承認URL判定経路を削除。初回セットアップSTEP3でも外部通信を検証。
 // 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
 // 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
 // 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
-// Current release: v6.6.4 — 表示系シートは保存済みデータを軽量表示し、全件修復・全体再装飾を通常閲覧から分離。
 // License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
 // Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
 // Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成する方式へ統一。Starter Editionは従来の自己修正向け改善ガイドを維持。「CTR機会値」を平易な説明へ変更し、「今回の方針」表示を削除。
@@ -9580,9 +9580,11 @@ function sbmOpenSelectedImprovementNavi(){
     // 今日の改善／記事管理のどちらからでも同じ通常改善開始処理を通す。
     sbmStartNormalImprovementAndShow_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
   }catch(e){
-    var msg=String(e&&e.message||e);
-    try{sbmLog_('ImprovementNaviLaunch','Error','stage=launch / sheet='+(sh?sh.getName():'')+' / row='+row+' / url='+url+' / error='+msg);}catch(ignoreLogError){}
-    return sbmAlert_('改善ナビを起動できませんでした','改善ナビの起動中にエラーが発生しました。\n\n'+msg+'\n\n設定・メンテナンスのシステムログに ImprovementNaviLaunch として記録しました。');
+    var msg=String(e&&e.message||e),name=String(e&&e.name||''),stack=String(e&&e.stack||'');
+    var detail='stage=launch / sheet='+(sh?sh.getName():'')+' / row='+row+' / url='+url+' / name='+name+' / message='+msg+' / stack='+stack;
+    console.error('[ImprovementNaviLaunch] '+detail);
+    try{sbmLog_('ImprovementNaviLaunch','Error',detail);}catch(ignoreLogError){}
+    return sbmAlert_('改善ナビを起動できませんでした','改善ナビの起動中にエラーが発生しました。\n\n'+msg+'\n\n完全な例外情報はApps Scriptの実行ログとシステムログへ記録しました。');
   }
 }
 
@@ -10669,6 +10671,35 @@ function sbmRemoveDuplicateDialogHeading_(output,title){
 function sbmShowThemedModalDialog_(output,title){
   var cleaned=sbmRemoveDuplicateDialogHeading_(output,title);
   SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(cleaned),title);
+}
+
+
+/** v6.6.18: 外部通信権限を直接確認・有効化する正式な入口。
+ * メニューまたはApps Scriptエディタから直接実行する。権限例外は握りつぶさず、
+ * Google標準のOAuth再承認を発生させる。
+ */
+function sbmAuthorizeExternalAccess(){
+  var res=UrlFetchApp.fetch('https://www.googleapis.com/generate_204',{muteHttpExceptions:true,followRedirects:true});
+  var code=res.getResponseCode();
+  sbmSetupSetSettingsBulk_([{key:'ExternalAccessStatus',value:'OK',desc:'外部通信権限確認済み'},{key:'LastExternalAccessCheckAt',value:sbmNowText_(),desc:'外部通信権限の最終確認日時'}]);
+  SpreadsheetApp.getActiveSpreadsheet().toast('外部通信権限は有効です（HTTP '+code+'）。','SIMS Manager',6);
+  return code;
+}
+
+/** 初回セットアップ用。非同期実行で権限不足なら、直接メニュー実行を案内する。 */
+function sbmVerifyExternalAccessForSetup_(){
+  try{
+    var res=UrlFetchApp.fetch('https://www.googleapis.com/generate_204',{muteHttpExceptions:true,followRedirects:true});
+    var code=res.getResponseCode();
+    sbmSetupSetSettingsBulk_([{key:'ExternalAccessStatus',value:'OK',desc:'外部通信権限確認済み'},{key:'LastExternalAccessCheckAt',value:sbmNowText_(),desc:'外部通信権限の最終確認日時'}]);
+    return {ok:true,code:code};
+  }catch(e){
+    var msg=String(e&&e.message||e);
+    if(msg.indexOf('script.external_request')>=0 || msg.indexOf('UrlFetchApp.fetch')>=0){
+      throw new Error('外部通信権限の承認が必要です。いったん初回セットアップを終了し、「設定・メンテナンス → 外部通信権限を確認・有効化」を1回実行してGoogleの権限を承認してください。その後、初回セットアップSTEP3を再開してください。');
+    }
+    throw e;
+  }
 }
 
 function sbmCommonDialogCss_(){
@@ -13385,7 +13416,7 @@ function sbmShowRelease1SetupStep_(step) {
   var descriptions = {
     1:'サイト名、サイトURL、Search Consoleプロパティを登録します。',
     2:'Google Search Console APIの有効化と認証手順だけを確認します。',
-    3:'登録済みプロパティへの接続だけを確認します。',
+    3:'外部通信権限を確認したうえで、登録済みSearch Consoleプロパティへの接続を確認します。',
     4:'Search ConsoleからページURLと指標を取得し、記事管理を作成します。',
     5:'未補完記事のタイトル、SEOタイトル、ディスクリプション等を取得します。',
     6:'記事管理の登録件数と記事情報の補完状況を確認し、Homeへ移動します。'
@@ -13502,6 +13533,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
     var settings3=sbmGetSettingsMap_();
     if(String(settings3['SetupBlogInfo']||'NO')!=='YES')throw new Error('先にSTEP1を実行してください。');
     if(!String(settings3['GoogleCloudProjectNumber']||'').trim())throw new Error('先にSTEP2でGoogle Cloudのプロジェクト番号を確認・入力し、Search Console APIを有効化してください。');
+    sbmVerifyExternalAccessForSetup_();
     var result=sbmTestSearchConsoleConnection_();
     if(!result.ok){
       sbmSetupSetSettingsBulk_([{key:'ConnectionStatus',value:'ERROR',desc:'Search Console接続失敗'}]);
@@ -14106,6 +14138,8 @@ function onOpen() {
   }
 
   maintenanceMenu
+    .addSeparator()
+    .addItem('外部通信権限を確認・有効化','sbmAuthorizeExternalAccess')
     .addSeparator()
     .addItem('ライセンス認証','sbmLicenseActivate')
     .addItem('ライセンス状態を確認','sbmLicenseRc4StatusDialog')

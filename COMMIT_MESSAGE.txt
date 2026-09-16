@@ -1,7 +1,1 @@
-feat: share article-specific instructions with Full guide and aWriter in v6.5.20
-
-- 記事本文とSearch Consoleデータから具体的改善指示を一度だけ生成
-- Fullの改善ガイドとaWriter依頼文へ同一指示を使用
-- 共通ルールだけの抽象的なFullガイドを廃止
-- Starterの自己修正向け改善ガイドは現状維持
-- Full / Starterの版数を同期
+v6.6.18: 外部通信権限を直接確認・有効化する運用へ統一し初回セットアップに権限検証を組み込む
