@@ -1,0 +1,27 @@
+{
+  "version": "6.6.4",
+  "syntax_ok": true,
+  "menu_missing": [],
+  "open_functions": {
+    "sbmOpenEffectiveness": {
+      "flush": false,
+      "activate": false,
+      "cached": true,
+      "length": 1664
+    },
+    "sbmOpenArticleDb": {
+      "flush": false,
+      "activate": false,
+      "cached": true,
+      "length": 828
+    },
+    "sbmOpenImprovementHistory": {
+      "flush": false,
+      "activate": false,
+      "cached": true,
+      "length": 778
+    }
+  },
+  "old_version_number_comments_remaining": [],
+  "comments_cleaned": 72
+}
