@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.2';
+const SBM_VERSION = '6.6.3';
+// 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
 // Current release: v6.6.2 — 今日の改善は4区分×最大2件。旧保存候補は初回表示時に一度だけ再選定します。
 // License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
 // Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
@@ -6102,8 +6103,8 @@ function sbmUpdateArticleRankManual() {
  * メニューと現行機能の呼び出し先を一元化し、リファクタリング途中の未定義参照を防ぎます。
  */
 function sbmOpenHome() {
+  // 表示専用の軽量経路。Today移行・全件再集計・全体テーマ描画は行わない。
   sbmHideOptionalAdminSheets_();
-  try { sbmEnsureTodayPolicyMigration_(); } catch(eTodayPolicy) { try{sbmLog_('TodayPolicyMigration','Warning',String(eTodayPolicy));}catch(ignoreTodayPolicy){} }
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SBM_SHEETS.HOME);
   if (!sh) {
@@ -6115,7 +6116,10 @@ function sbmOpenHome() {
   try { sbmRefreshHome_({light:true,liveArticle:false}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
   // sbmRefreshHome_内で現在テーマまで仕上げるため、ここでの重複テーマ適用は行わない。
   sh=ss.getSheetByName(SBM_SHEETS.HOME) || sh;
-  if (sh) { sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); }
+  if (sh) {
+    if (sh.isSheetHidden()) sh.showSheet();
+    if (ss.getActiveSheet().getSheetId() !== sh.getSheetId()) ss.setActiveSheet(sh);
+  }
 }
 
 function sbmOpenToday() {
@@ -8034,17 +8038,19 @@ const SBM_EFFECT_HEADERS_V2 = [
 
 function sbmApplyProductVisibleTabs_(options) {
   options=options||{};
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var visible = {};
-  [SBM_SHEETS.HOME, SBM_SHEETS.TODAY, SBM_SHEETS.EFFECT, SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.FEEDBACK_HISTORY].forEach(function(n){ visible[n] = true; });
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),visible={};
+  [SBM_SHEETS.HOME,SBM_SHEETS.TODAY,SBM_SHEETS.EFFECT,SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.FEEDBACK_HISTORY]
+    .forEach(function(n){visible[n]=true;});
   ss.getSheets().forEach(function(sh){
-    try { if (visible[sh.getName()]) sh.showSheet(); else sh.hideSheet(); } catch(e) {}
+    var shouldShow=!!visible[sh.getName()],hidden=sh.isSheetHidden();
+    try{
+      if(shouldShow&&hidden)sh.showSheet();
+      else if(!shouldShow&&!hidden)sh.hideSheet();
+    }catch(e){}
   });
-  var home = ss.getSheetByName(SBM_SHEETS.HOME);
-  if (home) ss.setActiveSheet(home);
-  // onOpenでは5シート全体のテーマ再描画をしない。
-  // テーマ変更時・初期構築時など、明示された場合だけ全体テーマを適用する。
-  if(options.applyTheme!==false){try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}}
+  if(options.applyTheme===true){
+    try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
+  }
 }
 
 /**
@@ -12120,7 +12126,10 @@ function sbmRefreshHome_(options) {
     sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   }
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
-  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
+  // 通常の数値更新ではHome全体の書式を再描画しない。
+  if(options.applyTheme===true){
+    try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
+  }
 }
 
 function sbmRefreshHomeRankSummaryOnly_(snapshot) {
@@ -14081,8 +14090,6 @@ function onOpen() {
     .addItem('ライセンス認証','sbmLicenseActivate')
     .addItem('ライセンス状態を確認','sbmLicenseRc4StatusDialog')
     .addSeparator()
-    .addItem('通信障害テスト（RC6）','sbmLicenseCommunicationTest')
-    .addItem('テスト状態を解除（RC6）','sbmLicenseCommunicationTestReset')
     .addItem('ライセンスを再確認','sbmLicenseRevalidate')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets')
@@ -14100,24 +14107,15 @@ function onOpen() {
     if (home) {
       try { sbmSyncHomeVersionOnly_(); } catch (eVersionHome) {}
       try { sbmRefreshHomeDailyStatusOnly_(); } catch (eDailyHome) { try { sbmLog_('OnOpenDailyStatus','Warning',String(eDailyHome)); } catch(ignoreDailyHome) {} }
-      home.showSheet();
-      ss.setActiveSheet(home);
-      home.activate();
-      try{SpreadsheetApp.flush();}catch(ignoreFastHomeFlush){}
+      if(home.isSheetHidden())home.showSheet();
+      if(ss.getActiveSheet().getSheetId()!==home.getSheetId())ss.setActiveSheet(home);
     }
   } catch (eHome) {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
   }
 
-  // SIMS標準TZへ軽量統一。Home初期表示後に実行する。
-  try{sbmEnsureSpreadsheetTimeZoneV6137_();}catch(ignoreTimeZoneRepair){}
-
-  // 一度限りの互換修復。Homeの初期表示をブロックしない順序へ移動。
-  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
-  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
-
-  // 起動時は表示/非表示だけを整える。5シート全体のテーマ再描画はしない。
-  try { sbmApplyProductVisibleTabs_({applyTheme:false}); } catch (eTabs) { try { sbmLog_('OnOpenVisibleTabs','Warning',String(eTabs)); } catch(ignoreTabs) {} }
+  // F5/onOpenでは、ここから先の保守処理・全シート走査を行わない。
+  // 旧版互換修復やTZ補正は初期設定/メンテナンス/業務処理側へ委譲する。
 }
 
 
