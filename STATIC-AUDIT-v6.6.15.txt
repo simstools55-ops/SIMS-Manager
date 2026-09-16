@@ -1,0 +1,14 @@
+{
+  "version_6615": true,
+  "code_hashes_equal": true,
+  "old_escape_refs": 0,
+  "auth_function_full_document_tokens": {
+    "<!doctype": false,
+    "<html": false,
+    "<head": false,
+    "<body": false,
+    "<meta": false
+  },
+  "fragment_marker": true,
+  "menu_target": true
+}

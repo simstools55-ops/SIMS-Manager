@@ -1,0 +1,19 @@
+{
+  "version": "6.6.2",
+  "syntax_ok": true,
+  "menu_targets_missing": [],
+  "category_caps": {
+    "エース化": 2,
+    "収益改善（流入）": 2,
+    "育成改善": 2,
+    "安全改善": 2
+  },
+  "max_total": 8,
+  "cross_category_fill": false,
+  "legacy_setting_reference_counts": {
+    "TodayDisplayCount": 8,
+    "TodayInitialDisplayCount": 1,
+    "TodayMaxDisplayCount": 1,
+    "QueueLimit": 1
+  }
+}

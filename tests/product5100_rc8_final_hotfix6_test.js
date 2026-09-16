@@ -1,0 +1,24 @@
+const fs=require('fs'), path=require('path');
+const code=fs.readFileSync(path.join(__dirname,'..','apps-script','Code.gs'),'utf8');
+function must(x,msg){if(!x){console.error('FAIL:',msg);process.exit(1);}console.log('PASS:',msg);}
+must(code.includes('function sbmDoctorReconcileCompletedTreatments_'),'保存済みDoctor処置結果の自己修復処理がある');
+must(code.includes("String(o.treatment_status||'').toUpperCase()!=='COMPLETED'"),'完了済みWriter結果だけを自己修復対象にする');
+must(code.includes("route.indexOf('Doctor→')!==0"),'既存Doctor改善履歴を正本にモニター状態を復元する');
+must(code.includes("setValue('👀 モニター中')"),'記事管理をモニター中へ同期する');
+must(code.includes("improvement_method:'Doctor→Writer'"),'Doctor→Writer改善経路を保存する');
+must(code.includes("try{sbmUpdateEffectivenessCore_(false);}catch(eEffectSync)"),'結果登録時に改善の推移を即時同期する');
+must(code.includes("・改善の推移へ反映しました"),'結果登録メッセージに改善の推移反映を明示する');
+const effectOpen=code.slice(code.indexOf('function sbmOpenEffectiveness()'),code.indexOf('function sbmUpdateEffectiveness()',code.indexOf('function sbmOpenEffectiveness()')));
+must(!effectOpen.includes('sbmDoctorReconcileCompletedTreatments_'),'改善の推移を開くだけではDoctor旧データ自己修復を実行しない');
+const articleListStart=code.indexOf('function sbmOpenAllBlogArticles()');
+const articleListEnd=code.indexOf('function sbmOpenImprovementTrend()',articleListStart);
+const articleListOpen=code.slice(articleListStart,articleListEnd);
+must(!articleListOpen.includes('sbmDoctorReconcileCompletedTreatments_'),'記事一覧を開くだけではDoctor旧データ自己修復を実行しない');
+const historyStart=code.indexOf('function sbmOpenImprovementHistory()');
+const historyEnd=code.indexOf('利用者向けメニューの最終構成。',historyStart);
+const historyOpen=code.slice(historyStart,historyEnd);
+must(!historyOpen.includes('sbmDoctorReconcileCompletedTreatments_'),'改善履歴を開くだけではDoctor旧データ自己修復を実行しない');
+const onOpenFast=code.slice(code.indexOf('function onOpen()'),code.indexOf('function sbmGetDailyUpdateClientStatus()',code.indexOf('function onOpen()'))); must(!onOpenFast.includes('sbmStyleEffectSheetV2_'),'起動時に改善の推移を全装飾しない');
+must(code.includes("if(writerResult)return false"),'Writer結果保存済み記事は精密診断候補へ戻さない');
+must(code.includes("'PUBLICATION_PENDING'"),'旧結果登録待ち状態も新規候補から除外する');
+console.log('PASS product5100_rc8_final_hotfix6_test');

@@ -1,0 +1,10 @@
+SIMS Manager v6.2.24 RELEASE AUDIT
+
+- Full canonical version: 6.2.24
+- Starter display version: 6.2.24-ST
+- Article info update no longer performs per-URL GSC calls
+- Daily GSC representative-query enrichment uses one query×page batch request
+- Article page metadata uses fetchAll in 8-item chunks
+- Article info audit is local-only and cacheable
+- Code.gs syntax checks: PASS
+- Regression tests 6.2.19-6.2.24: PASS

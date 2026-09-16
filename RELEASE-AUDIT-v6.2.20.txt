@@ -1,0 +1,12 @@
+SIMS Manager v6.2.20 Release Audit
+
+Scope: improvement-history dialog UI consistency
+- Full canonical version: 6.2.20
+- Starter display version: 6.2.20-ST
+- 9 Code.gs copies synchronized by edition
+- Apps Script manifests unchanged
+- Improvement Trend detail uses common history dialog CSS
+- Selected article history uses common article header/status/card/close UI
+- Full article history uses common article header/status/card/close UI
+- Improvement history detail preserves existing content sections and uses common article header/close UI
+- No history/measurement data contract changes

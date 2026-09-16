@@ -1,0 +1,10 @@
+{
+  "version": "6.6.5",
+  "syntax_ok": true,
+  "menu_targets_missing": [],
+  "sync_checkpoint_before_dialog": false,
+  "async_checkpoint": true,
+  "launch_info_log": false,
+  "launch_done_log": false,
+  "fast_navi_modal": true
+}

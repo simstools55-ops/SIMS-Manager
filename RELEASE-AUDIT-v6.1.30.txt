@@ -1,0 +1,7 @@
+SIMS Manager v6.1.30 release audit
+
+- Doctor V2 routing precedence patched in all Code.gs copies.
+- Full/Starter canonical version synchronized to 6.1.30.
+- Starter display version: 6.1.30-ST.
+- appsscript.json unchanged; Drive scope retained.
+- Syntax and repository consistency verified during build.

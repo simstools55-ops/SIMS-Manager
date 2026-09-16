@@ -1,0 +1,22 @@
+SIMS Manager v6.2.17 UI consistency audit
+
+Scope:
+- unfinished-work shared treatment dialog
+- direct aDoctor resume dialog
+- aCreator publication registration dialog
+- Multi-Merge completion guidance
+
+Resolved:
+1. Ambiguous referral counter clarified as unfinished-work position.
+2. Skip-treatment action wording/confirmation made explicit and non-destructive.
+3. Copy completion visible at the clicked action and status area.
+4. aMerge Package vs aWriter referral restore wording separated.
+5. Multi-Merge completion guidance no longer hard-codes aDoctor→aMerge.
+6. aCreator registration labels distinguish search-exposure waiting from monitoring.
+7. Creator Direct review cadence aligned to 28 days.
+8. Direct resume button geometry aligned with common dialog.
+
+Deferred intentionally:
+- no broad visual redesign of Home/sheets
+- no workflow/state-machine changes
+- no artificial test cases for aDoctor→aCreator or observation-end re-diagnosis

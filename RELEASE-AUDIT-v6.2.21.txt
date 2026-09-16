@@ -1,0 +1,23 @@
+SIMS Manager v6.2.21 Release Audit
+==================================
+Scope: Improvement Trend / Improvement History dialog live-UI corrections
+
+PASS - 9 active Code.gs copies use SBM_VERSION 6.2.21
+PASS - Full copies remain SBM_EDITION=FULL
+PASS - Starter copies remain SBM_EDITION=STARTER
+PASS - Duplicate in-body dialog headings removed from common history header
+PASS - Legacy missing-title placeholder is detected
+PASS - Missing title can be recovered from Article DB by ArticleID/URL
+PASS - Unrecoverable title displays 記事タイトル未取得
+PASS - 測定待ち is not treated as a recorded weekly measurement
+PASS - Pending week displays 状態:測定待ち and 測定予定
+PASS - History date format standardized to yyyy/M/d
+PASS - History datetime format standardized to yyyy/M/d HH:mm; midnight 00:00 suppressed
+PASS - Effect next-measurement date uses the same date formatter
+PASS - History-detail next-measurement date uses the same date formatter
+PASS - product6219_creator_direct_monitoring_test.js
+PASS - product6220_history_dialog_ui_test.js
+PASS - product6221_history_dialog_live_audit_test.js
+PASS - Node syntax check for all 9 active Code.gs copies
+
+No measurement data schema or judgment logic changed.
