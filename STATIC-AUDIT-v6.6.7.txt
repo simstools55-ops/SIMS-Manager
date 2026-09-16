@@ -1,0 +1,13 @@
+{
+  "version": "6.6.7",
+  "syntax_ok": true,
+  "legacy_onEdit_forbidden_calls": {
+    "sbmShowBriefForRow_(": false,
+    "sbmShowEffectDetailForRow_(": false,
+    "sbmShowInProgressDetailForRow_(": false,
+    "sbmShowSelectedDataListDetail(": false,
+    "showModalDialog(": true
+  },
+  "pending_navi_row": true,
+  "selected_navi_uses_pending": true
+}

@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.6';
+const SBM_VERSION = '6.6.7';
+// 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
 // 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
 // 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
 // Current release: v6.6.4 — 表示系シートは保存済みデータを軽量表示し、全件修復・全体再装飾を通常閲覧から分離。
@@ -5476,32 +5477,39 @@ function sbmLegacyOnEdit_(e) {
     if (sheetName === SBM_SHEETS.EFFECT && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowEffectDetailForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。改善の推移・履歴メニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.IN_PROGRESS && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowInProgressDetailForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.QUERY_DATA && map['詳細表示'] && col === map['詳細表示'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowSelectedDataListDetail();
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.QUERY_DATA && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowSelectedDataListDetail();
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName !== SBM_SHEETS.TODAY) return;
     if (map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
+      // simple onEditトリガーからUi.showModalDialog()は呼ばない。
+      // 対象行だけを記録し、利用者のメニュー操作（同期UIコンテキスト）で改善ナビを開く。
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowBriefForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_NAVI_ROW_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('記事を選択しました。SIMS今日の作業 → 4．選択記事の改善内容を見る を実行してください。','改善ナビ',5);}catch(ignoreToast){}
       return;
     }
     if (map['完了'] && col === map['完了'] && String(e.value).toUpperCase() === 'TRUE') {
@@ -9410,8 +9418,13 @@ function sbmGetCheckedRow_(sh, silent) {
   if (!col) { var ar=sh.getActiveRange(); return ar && ar.getRow()>1 ? ar.getRow() : 0; }
   var vals=sh.getRange(2,col,sh.getLastRow()-1,1).getValues(), found=[];
   vals.forEach(function(v,i){ if(v[0]===true) found.push(i+2); });
-  if(found.length!==1){ if(!silent) sbmAlert_('対象を1件選択してください', found.length>1?'チェックは1件だけにしてください。':'左端のチェックボックスで対象を1件選択してください。'); return 0; }
-  return found[0];
+  if(found.length===1)return found[0];
+  if(found.length===0){
+    var saved=Number(PropertiesService.getDocumentProperties().getProperty('SBM_LAST_CHECKED_'+sh.getSheetId())||0);
+    if(saved>1&&saved<=sh.getLastRow())return saved;
+  }
+  if(!silent) sbmAlert_('対象を1件選択してください', found.length>1?'チェックは1件だけにしてください。':'左端のチェックボックスで対象を1件選択してください。');
+  return 0;
 }
 
 
@@ -9549,7 +9562,17 @@ function sbmOpenSelectedImprovementNavi(){
     if(!sh||(sh.getName()!==SBM_SHEETS.TODAY&&sh.getName()!==SBM_SHEETS.ARTICLE_DB)){
       return sbmAlert_('改善ナビ','今日の改善または記事管理を開いてください。');
     }
-    row=sbmGetCheckedRow_(sh);if(!row)return;
+    var props=PropertiesService.getDocumentProperties();
+    var pendingKey='SBM_LAST_NAVI_ROW_'+sh.getSheetId();
+    var pendingRow=Number(props.getProperty(pendingKey)||0);
+    if(pendingRow>1&&pendingRow<=sh.getLastRow()) row=pendingRow;
+    else row=sbmGetCheckedRow_(sh,true);
+    if(!row){
+      var ar=sh.getActiveRange();
+      if(ar&&ar.getRow()>1)row=ar.getRow();
+    }
+    if(!row)return sbmAlert_('対象を選択してください','一覧で対象記事の行を選択してから、もう一度実行してください。');
+    props.deleteProperty(pendingKey);
     record=sbmRowRecord_(sh,row);
     url=String(record['記事URL']||'').trim();
     if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
