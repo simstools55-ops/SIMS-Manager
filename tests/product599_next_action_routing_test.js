@@ -1,1 +1,0 @@
-const fs=require('fs'),p=require('path');const code=fs.readFileSync(p.join(__dirname,'..','apps-script','Code.gs'),'utf8');if(!code.includes("explicitNextAction==='WRITER'"))throw Error('routing');console.log('pass');

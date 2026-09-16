@@ -1,9 +1,0 @@
-apps-script/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-apps-script/full/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-apps-script/starter/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-distribution/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-src/apps-script/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-src/distribution/Code.gs: syntax=OK, runtime_SBM_EDITION_residual=0
-All active/distribution Code.gs copies: byte-identical=YES
-Edition authority: License Center via sbmEffectiveEdition_=YES

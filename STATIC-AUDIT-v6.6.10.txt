@@ -1,5 +1,0 @@
-SIMS Manager v6.6.10 static audit
-- Added ACTUAL_PAYLOAD diagnostic using selected real article data.
-- Existing minimal/common/actual-size/large-html/large-script diagnostics retained.
-- Production Improvement Navi business logic unchanged.
-- apps-script / distribution / root / src Code.gs synchronized.

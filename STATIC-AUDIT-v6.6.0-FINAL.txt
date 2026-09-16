@@ -1,9 +1,0 @@
-SIMS Manager v6.6.0 FINAL REPOSITORY AUDIT
-Canonical source: apps-script/Code.gs
-Canonical manifest: apps-script/appsscript.json
-Canonical Code.gs syntax OK: True
-Removed obsolete edition directories: ['apps-script/full', 'apps-script/starter', 'editions/full', 'editions/starter']
-Remaining Full/Starter directories: []
-Code.gs under apps-script: ['apps-script/Code.gs']
-Runtime Edition authority: SIMS License Center
-Script replacement required for Edition change: No
