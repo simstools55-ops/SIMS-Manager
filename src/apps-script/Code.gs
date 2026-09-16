@@ -4,8 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.18';
-// Current release: v6.6.18 — 外部通信権限を直接確認・有効化する運用へ統一し、試行用の承認URL判定経路を削除。初回セットアップSTEP3でも外部通信を検証。
+const SBM_VERSION = '6.6.19';
+// v6.6.19: 日次STEP2候補選定でBlogNameの全記事Settings反復I/Oを除去し、候補選定内訳計測を追加。
+// Current release: v6.6.19 — 日次STEP2候補選定のSettings反復I/Oを除去し、候補選定内訳計測を追加。
 // 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
 // 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
 // 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
@@ -689,8 +690,11 @@ function sbmRunDailyAnalysisStageFromDialog() {
     sbmSetSetting_('DailyAnalysisStageElapsedSeconds', String(analysisElapsed), '日次処理STEP2の所要時間（秒）');
     sbmSetSetting_('DailyTotalElapsedSeconds', String(totalElapsed), '日次処理全体の所要時間（秒）');
     sbmSetSetting_('DailyAnalysisContinuationPhase','','日次STEP2継続位置');
+    var selectTiming = candidates && candidates._timing ? candidates._timing : {};
     var step2TimingSummary = 'DB差分反映 ' + Number(step2MergeSec||0) + '秒 / 候補選定 ' + Number(step2SelectSec||0) +
-      '秒 / 今日シート ' + Number(step2TodayWriteSec||0) + '秒 / 作業状態 ' + Number(step2WorkStateSec||0) + '秒';
+      '秒（記事DB読込 ' + Number(selectTiming.articleDbReadSec||0) + '秒 / 設定取得 ' + Number(selectTiming.settingsReadSec||0) +
+      '秒 / 走査・採点 ' + Number(selectTiming.scanAndScoreSec||0) + '秒 / 元記事 ' + Number(selectTiming.sourceRows||0) + '件 / 適格 ' + Number(selectTiming.eligibleRows||0) +
+      '件） / 今日シート ' + Number(step2TodayWriteSec||0) + '秒 / 作業状態 ' + Number(step2WorkStateSec||0) + '秒';
     sbmProcessLog_('日次処理 STEP2 分析・記事DB更新', '完了', validRows, mergeResult.total, analysisElapsed,
       '既存更新 ' + Number(mergeResult.updated||0) + '件 / 実セル変更 ' + Number(mergeResult.changedCells||0) + '件 / 新規追加 ' + Number(mergeResult.added||0) + '件 / 改善候補 ' + candidateCount + '件 / 今日の改善 ' + displayedCount + '件 / ' + step2TimingSummary + ' / 全体 ' + totalElapsed + '秒', startedText, sbmNowText_());
     var stage2Summary = {
@@ -6538,11 +6542,17 @@ function sbmBuildTodayRecommendationsManual() {
 }
 
 function sbmSelectTodayRecommendations_() {
+  // v6.6.19: 候補選定の全記事ループ内でSettingsを再読込しない。
+  // BlogName/MinImpressionsは開始時に1回だけ取得し、タイトル正規化へ渡す。
+  var tStart = Date.now();
   var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || [];
+  var tRows = Date.now();
   var minImps = Math.max(20, sbmNumber_(sbmGetSetting_('MinImpressions', 50)) || 50);
+  var blogName = String(sbmGetSetting_('BlogName', '') || '').trim();
+  var tSettings = Date.now();
   var pool = rows.map(function(r){
     var url = String(r['記事URL'] || '').trim();
-    var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', r['記事URL'] || '');
+    var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', r['記事URL'] || '', blogName);
     var query = sbmRealMainQuery_(r['メインクエリ']);
     if (sbmIsPendingArticleIdentity_(title, query)) return null;
     var clicks = sbmNumber_(r['クリック数']) || 0;
@@ -6607,7 +6617,16 @@ function sbmSelectTodayRecommendations_() {
   var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善\n（流入）',2);
   var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'🌱 育成改善',2);
   var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'✅ 安全改善',2);
-  return growth.concat(ace,nurture,stable);
+  var result = growth.concat(ace,nurture,stable);
+  // Spreadsheetへの追加書込みなしで、呼出元の処理ログへ内訳を渡す。
+  result._timing = {
+    articleDbReadSec: Math.max(0, Math.round((tRows - tStart) / 1000)),
+    settingsReadSec: Math.max(0, Math.round((tSettings - tRows) / 1000)),
+    scanAndScoreSec: Math.max(0, Math.round((Date.now() - tSettings) / 1000)),
+    sourceRows: rows.length,
+    eligibleRows: pool.length
+  };
+  return result;
 }
 
 function sbmExpectedCtrTarget_(pos) {

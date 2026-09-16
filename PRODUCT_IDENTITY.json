@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.18",
+  "current_version": "6.6.19",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.18: UrlFetchAppを直接実行する外部通信権限初期化関数を追加し、Google標準の再承認フローを起動できる導線へ変更。",
-  "version": "6.6.18",
+  "notes": "v6.6.19: 日次STEP2候補選定でBlogNameのSettings反復I/Oを除去し、候補選定内訳計測を追加。",
+  "version": "6.6.19",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.18-ST"
+  "starter_display_version": "v6.6.19-ST"
 }
