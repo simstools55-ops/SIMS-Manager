@@ -4,10 +4,12 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.21';
-// Current release: v6.6.21 - STEP3完了処理を区間計測し、日次全体時間とSTEP3実行時間の表示を分離。
-// v6.6.19: 日次STEP2候補選定でBlogNameの全記事Settings反復I/Oを除去し、候補選定内訳計測を追加。
-// Current release: v6.6.20 — 日次STEP2候補選定のSettings反復I/Oを除去し、候補選定内訳計測を追加。
+const SBM_VERSION = '6.6.28';
+// Current release: v6.6.28 - aDoctor精密診断候補の本人確認をArticleID＋URLへ統一し、タイトル正規化差分による誤停止を解消。
+// v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
+// v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
+// v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
+// v6.6.20: 日次STEP3の旧日付修復全件走査を初回限定化。v6.6.19で日次STEP2候補選定のSettings反復I/Oを除去。
 // 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
 // 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
 // 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
@@ -1472,9 +1474,13 @@ function sbmHandleRepairNextAction_(action) { return sbmHandleRepairNextAction(a
 /** 日常画面へ移動した際、必要時だけ開く管理シートを再び隠します。 */
 function sbmHideOptionalAdminSheets_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var activeName='';
+  try{activeName=ss.getActiveSheet().getName();}catch(ignoreActive){}
   [SBM_SHEETS.USER_SETTINGS, SBM_SHEETS.PROCESS_LOG, SBM_SHEETS.PROFILE_LOG].forEach(function(name){
     var sh = ss.getSheetByName(name);
-    if (sh && ss.getActiveSheet().getName() !== name) { try { sh.hideSheet(); } catch(e) {} }
+    // v6.6.24: 既に非表示の管理シートへ hideSheet() を再発行しない。
+    // 通常画面を開くたびの不要なSpreadsheet書込みを避ける。
+    if (sh && activeName !== name && !sh.isSheetHidden()) { try { sh.hideSheet(); } catch(e) {} }
   });
 }
 
@@ -3224,8 +3230,18 @@ function sbmEnsureViewStyleCached_(sh, cacheKey, styleFn) {
   var props=PropertiesService.getDocumentProperties();
   var theme='STANDARD';
   try{theme=sbmIsMonochromeTheme_()?'MONO':'STANDARD';}catch(ignoreTheme){}
-  var sig=String(SBM_VERSION)+'|'+theme+'|'+String(sh.getLastRow())+'|'+String(sh.getLastColumn());
-  if(props.getProperty(cacheKey)===sig)return false;
+  var rows=String(sh.getLastRow()), cols=String(sh.getLastColumn());
+  // v6.6.26: 表示書式キャッシュを製品バージョンから分離する。
+  // コード更新だけで記事管理の全書式を再適用しない。テーマ・行列構造が変わった場合だけ再装飾する。
+  var sig='ARTICLE_VIEW_STYLE_V1|'+theme+'|'+rows+'|'+cols;
+  var saved=String(props.getProperty(cacheKey)||'');
+  if(saved===sig)return false;
+  // v6.6.25以前の「version|theme|rows|cols」形式も、見た目条件が同一なら有効として移行する。
+  var legacy=saved.split('|');
+  if(legacy.length===4 && legacy[1]===theme && legacy[2]===rows && legacy[3]===cols){
+    props.setProperty(cacheKey,sig);
+    return false;
+  }
   styleFn(sh);
   props.setProperty(cacheKey,sig);
   return true;
@@ -3241,7 +3257,7 @@ function sbmRunArticleViewRepairOnce_(sh){
 }
 
 function sbmOpenArticleDb() {
-  // 通常閲覧では全件タイトル補正・全行書式再設定を繰り返さない。
+  // v6.6.27: v6.6.25の一時性能ログを整理。v6.6.26の書式キャッシュ高速化は維持する。
   sbmHideOptionalAdminSheets_();
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
   if(!sh)sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
@@ -8473,19 +8489,19 @@ function sbmStripConfiguredBlogSuffix_(v){
   return sbmNormalizeStoredTitle_(v,'');
 }
 
-function sbmMonitoringTitleKey_(v){
-  return sbmStripConfiguredBlogSuffix_(v).toLowerCase()
+function sbmMonitoringTitleKey_(v,blogNameOverride){
+  return sbmNormalizeStoredTitle_(v,'',blogNameOverride).toLowerCase()
     .replace(/[\s　]+/g,'')
     .replace(/[‐‑‒–—―ー－]/g,'-')
     .trim();
 }
 
-function sbmMonitoringAliasesFrom_(o){
+function sbmMonitoringAliasesFrom_(o,blogNameOverride){
   o=o||{};
   var out=[];
   var id=String(o['ArticleID']||o.article_id||'').trim();
   var url=sbmNormalizeUrl_(o['記事URL']||o.article_url||'');
-  var title=sbmMonitoringTitleKey_(o['記事タイトル']||o.article_title||'');
+  var title=sbmMonitoringTitleKey_(o['記事タイトル']||o.article_title||'',blogNameOverride);
   if(id)out.push('ID:'+id);
   if(url)out.push('URL:'+url);
   if(title)out.push('TITLE:'+title);
@@ -10287,11 +10303,20 @@ function sbmEffectViewNeedsOneTimeRefresh_(sh){
 }
 
 function sbmOpenEffectiveness(){
-  // 改善の推移は保存済み表示を優先。全件の日付検査・タイトル補正・再生成は版更新後の初回だけ行う。
+  // v6.6.27: 改善の推移の残存表示時間を区間計測する。表示仕様・判定・データ更新ロジックは変更しない。
+  var started=new Date(),mark=started,parts=[];
+  function phase_(name){
+    var sec=sbmSecondsSince_(mark);parts.push(name+'='+sec+'秒');mark=new Date();
+    try{console.log('[EffectViewPerf] '+name+'='+sec+'秒 / elapsed='+sbmSecondsSince_(started)+'秒');}catch(ignoreConsole){}
+    return sec;
+  }
   sbmMigrateEffectSheetName_();
+  phase_('migrateName');
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
   if(!sh){sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}}
+  phase_('sheetLookup');
   try{sbmEnsureVisibleMeasurementSchemasV623_('effect');sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(ignoreVisibleSchema){}
+  phase_('schema');
   var props=PropertiesService.getDocumentProperties(),repairKey='SBM_EFFECT_VIEW_REPAIR_664_'+String(sh.getSheetId());
   if(props.getProperty(repairKey)!=='1'){
     try{
@@ -10303,9 +10328,15 @@ function sbmOpenEffectiveness(){
     }catch(eRepair){try{sbmLog_('EffectViewRepair','Warning',String(eRepair));}catch(ignoreLog){}}
     props.setProperty(repairKey,'1');
   }
+  phase_('repairOnce');
   try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
+  phase_('style');
   if(sh.isSheetHidden())sh.showSheet();
+  phase_('showSheet');
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
+  phase_('activate');
+  var total=sbmSecondsSince_(started);
+  try{console.log('[EffectViewPerf] TOTAL='+total+'秒 / '+parts.join(' / '));}catch(ignoreTotal){}
 }
 
 /** 改善の推移：閲覧専用の軽量表示整形。データ更新・autoResizeRows・flushは行わない。 */
@@ -11913,7 +11944,7 @@ function sbmHomeCurrentTreatmentStats_(preloadedRows){
   return {total:rows.length,counts:counts};
 }
 
-function sbmHomeTreatmentHistoryStats_(preloadedRows){
+function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
   var rows=Array.isArray(preloadedRows)?preloadedRows:[];
   if(!Array.isArray(preloadedRows)){
     try{rows=sbmHomeReadRowsOnce_(SBM_SHEETS.FEEDBACK_HISTORY)||[];}catch(e){rows=[];}
@@ -11931,7 +11962,7 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows){
     delete groups[sourceKey];
   }
   rows.forEach(function(r){
-    var aliases=sbmMonitoringAliasesFrom_(r),existing=[];
+    var aliases=sbmMonitoringAliasesFrom_(r,blogNameOverride),existing=[];
     aliases.forEach(function(a){var k=aliasToKey[a];if(k&&existing.indexOf(k)<0)existing.push(k);});
     var key=existing.length?existing[0]:('G:'+(++seq));
     ensureGroup(key);
@@ -12085,9 +12116,12 @@ function sbmBuildHomeSnapshot_(){
   try{effectRows=sbmHomeReadRowsOnce_(SBM_SHEETS.EFFECT)||[];}catch(eEffect){}
   try{historyRows=sbmHomeReadRowsOnce_(SBM_SHEETS.FEEDBACK_HISTORY)||[];}catch(eHistory){}
 
+  // v6.6.22: 改善履歴の各行でSettingsを読み直さない。BlogNameはSnapshot生成時に1回だけ取得する。
+  var homeBlogName='';
+  try{homeBlogName=String(sbmGetSetting_('BlogName','')||'').trim();}catch(eBlogName){}
   var articleStats=sbmHomeArticleStatsFromRows_(rows);
   var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
-  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows);
+  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows,homeBlogName);
   var weekly=sbmHomeWeeklyActivity_(historyRows);
 
   var snapshot={
@@ -13773,11 +13807,10 @@ function sbmRepairStaleCreatorDirectEffectLabels_(){
 }
 
 function sbmOpenImprovementStatus() {
-  // 旧キャッシュに残るCreator Directの誤った『追加経過観察』表示だけを軽量補正する。
-  try{sbmRepairStaleCreatorDirectEffectLabels_();}catch(eCreatorLabel){try{sbmLog_('CreatorDirectEffectLabelRepair','Warning',String(eCreatorLabel));}catch(ignoreCreatorLabelLog){}}
-  // Full/Starter共通。ACTIVE/REVIEW_REQUIRED履歴があるのに推移行だけ欠ける場合、
-  // 対象履歴だけ軽量補完する。全件効果再計算・Doctor全体整合は行わない。
-  try{sbmRepairMissingActiveEffectRows_();}catch(eRepair){try{sbmLog_('ActiveEffectOpenRepair','Warning',String(eRepair));}catch(ignoreLog){}}
+  // v6.6.23: 「改善の推移を開く」は閲覧専用とする。
+  // 旧Creator Directラベル補正と欠落推移行の自己修復は全履歴・全推移を読み込むため、
+  // 表示のたびには実行しない。通常の登録経路では改善履歴と推移行を同時同期する。
+  // 既存の互換性修復関数自体はメンテナンス用途のため残す。
   return sbmOpenEffectiveness();
 }
 
@@ -17343,7 +17376,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   cand.getRange('A1:K1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
   cand.getRange('A2:K2').merge().setValue('サイト健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はサイト健康診断、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
-  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl+'|'+title;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
+  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');
   cand.setFrozenRows(6);
   var widths=[62,92,300,105,260,95,145,125,135,120,115,110,220,260];for(var wi=0;wi<widths.length;wi++)cand.setColumnWidth(wi+1,widths[wi]);
@@ -17477,8 +17510,9 @@ function sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,url,title,se
   for(var i=0;i<rows.length;i++){
     var r=rows[i];
     if(latestId&&String(r[hm['健康診断ID']-1]||'')!==latestId)continue;
-    var rid=String(r[hm['記事ID']-1]||'').trim(), ru=sbmNormalizeUrl_(r[hm['記事URL']-1]||''), rt=String(r[hm['記事タイトル']-1]||'').trim();
-    if(rid===String(articleId||'').trim() && ru===norm && rt===String(title||'').trim()){match=r;break;}
+    var rid=String(r[hm['記事ID']-1]||'').trim(), ru=sbmNormalizeUrl_(r[hm['記事URL']-1]||'');
+    // v6.6.28: 記事同一性はArticleID＋正規化URLで確認する。タイトルは正規化・更新で変化し得るため本人確認キーにしない。
+    if(rid===String(articleId||'').trim() && ru===norm){match=r;break;}
   }
   if(!match)throw new Error('選択した候補の表示内容と最新健康診断スナップショットが一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
   var code=String(match[hm['一次検査コード']-1]||''), expected=sbmDoctorSeverityForRow_(code,String(match[hm['優先度']-1]||''),match,hm);
@@ -17517,8 +17551,9 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     function val(name){return col[name]?String(rowValues[col[name]-1]||'').trim():'';}
     var articleId=val('記事ID')||val('ArticleID'), articleUrl=val('記事URL')||val('URL'), visibleTitle=val('記事タイトル'), severity=val('重症度'), candidateKey=val('候補キー');
     if(!articleId||!articleUrl||!visibleTitle)throw new Error('選択行の記事ID・URL・タイトルを取得できません。候補シートを開き直してください。');
-    var expectedKey=String(articleId)+'|'+sbmNormalizeUrl_(articleUrl)+'|'+visibleTitle;
-    if(candidateKey&&candidateKey!==expectedKey)throw new Error('選択行の候補識別情報が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
+    var expectedKey=String(articleId)+'|'+sbmNormalizeUrl_(articleUrl);
+    // v6.6.28: 旧候補キー（ArticleID|URL|title）も移行互換として許容する。ArticleID＋URLが一致すれば同一記事と判定する。
+    if(candidateKey&&candidateKey!==expectedKey&&candidateKey.indexOf(expectedKey+'|')!==0)throw new Error('選択行の候補識別情報（ArticleID＋URL）が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
     var health=sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,articleUrl,visibleTitle,severity);
     var db=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(!db)throw new Error('記事管理シートがありません。');
     var hm=sbmHeaderMap_(db), vals=db.getLastRow()>1?db.getRange(2,1,db.getLastRow()-1,db.getLastColumn()).getValues():[], dbRow=0;
@@ -17529,7 +17564,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     }
     if(!dbRow)throw new Error('選択した候補と記事管理のArticleID＋URLが一致しません。誤診断防止のため依頼を作成しません。');
     var dbTitle=dbTitleCol?String(db.getRange(dbRow,dbTitleCol).getDisplayValue()||'').trim():'';
-    if(dbTitle&&dbTitle!==visibleTitle)throw new Error('選択した候補の記事タイトルと記事管理のタイトルが一致しません。誤診断防止のため停止しました。');
+    // v6.6.28: タイトル差分では停止しない。aDoctor依頼は記事管理側の最新タイトルを正本としてsbmDoctorResolveContext_から取得する。
     var context=sbmDoctorResolveContext_('ARTICLE_LIST',db,dbRow);
     context.sourceType='DETAILED_CANDIDATE';context.sourceSheet=sh.getName();context.sourceRow=row;context.candidateSeverity=severity;context.candidateUrgency=sbmDoctorUrgencyFromCandidateSeverity_(severity);context.healthScreeningCode=health.code;context.healthCheckId=health.healthCheckId;
     var result=sbmDoctorCreateAndSaveResolvedRequest_(context);

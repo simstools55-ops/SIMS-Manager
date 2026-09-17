@@ -1,3 +1,32 @@
+# Changelog
+
+## v6.6.28
+- aDoctor精密診断候補の誤診断防止キーをArticleID＋正規化URLへ統一。
+- 候補・健康診断スナップショット・記事管理でタイトル表記が異なっても、ArticleID＋URLが一致すれば診断依頼を継続。
+- aDoctor依頼の記事タイトルは記事管理に保存された最新タイトルを正本として使用。
+- v6.6.27以前に作成済みの旧候補キー（ArticleID＋URL＋タイトル）も互換受理。
+- ArticleIDまたはURLが不一致の場合は従来どおり誤診断防止で停止。
+
+## v6.6.27
+- 改善の推移表示の残存時間をApps Script実行ログへ区間計測し、migrateName / sheetLookup / schema / repairOnce / style / showSheet / activate を可視化。
+- v6.6.25で追加した記事管理の一時性能ログを整理。v6.6.26の書式キャッシュ高速化は維持。
+- 改善の推移の表示仕様・判定・データ更新ロジックは変更なし。
+
+## v6.6.26
+- 記事管理の表示書式キャッシュ署名をSIMS Manager本体バージョンから分離。
+- v6.6.25以前のキャッシュも、テーマ・行数・列数が同一なら再装飾せず新形式へ移行。
+- 記事管理のデータ・フィルター・診断改善ロジックは変更なし。
+
+## v6.6.25
+- 記事管理表示の性能内訳をApps Script実行ログへ追加し、style処理が主要ボトルネックであることを計測可能化。
+- v6.6.24の不要なhideSheet再実行抑制を維持。
+- 表示仕様・記事データ・診断改善ロジックは変更なし。
+
+## v6.6.22
+- 日次STEP3 Home Snapshotで改善履歴行ごとに発生していたBlogNameのSettings反復I/Oを除去。
+- BlogNameをSnapshot生成時に1回取得してタイトル正規化へ再利用。
+- 集計・判定仕様は変更なし。
+
 # v6.5.20
 
 - 記事本文とSearch Consoleデータから記事固有の具体的改善指示を一度だけ生成。
@@ -617,6 +646,11 @@
 
 # Changelog
 
+## v6.6.27
+- 改善の推移表示の残存時間をApps Script実行ログへ区間計測し、migrateName / sheetLookup / schema / repairOnce / style / showSheet / activate を可視化。
+- v6.6.25で追加した記事管理の一時性能ログを整理。v6.6.26の書式キャッシュ高速化は維持。
+- 改善の推移の表示仕様・判定・データ更新ロジックは変更なし。
+
 ## v6.2.6 - 2026-09-09
 
 - 共通「未完了の作業を再開」で、通常aDoctor案件の長文Writer紹介状がSiteDiagnosisCaseID必須判定により復元できない問題を修正。
@@ -706,6 +740,11 @@
 - Fullは`v6.1.21`、Starterは`v6.1.21-Starter`表示。
 
 # Changelog
+
+## v6.6.27
+- 改善の推移表示の残存時間をApps Script実行ログへ区間計測し、migrateName / sheetLookup / schema / repairOnce / style / showSheet / activate を可視化。
+- v6.6.25で追加した記事管理の一時性能ログを整理。v6.6.26の書式キャッシュ高速化は維持。
+- 改善の推移の表示仕様・判定・データ更新ロジックは変更なし。
 
 ## v6.1.20
 - aDoctorのWAIT / MONITOR判定は `doctor_treatment_allowed=false` 等の治療ロックがあっても、処置を行わず追加経過観察へ正しく遷移するよう修正。
