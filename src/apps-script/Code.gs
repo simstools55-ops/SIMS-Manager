@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.36';
-// Current release: v6.6.36 - aDoctor精密診断ダイアログ高速化の効果確認を完了し、一時性能診断ログを撤去。
+const SBM_VERSION = '6.6.37';
+// Current release: v6.6.37 - aDoctor回答でWriter治療範囲が欠落した場合、安全な補完再診へ自動誘導。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -18328,6 +18328,19 @@ function sbmDoctorReferralDetails_(doctor,n,evidence){
   var handoff=doctor&&doctor.workflow_handoff||{};
   allowed=allowed.concat(handoff.allowed_scope||[]);
   blocked=blocked.concat(handoff.blocked_scope||[]);
+  // v6.6.37: Doctor契約の表記差を安全に吸収する。明示された治療範囲だけを採用し、
+  // Manager側で治療範囲を推測・拡張しない。
+  var scopeAliases=[
+    doctor&&doctor.treatment_scope, doctor&&doctor.scope,
+    tp&&tp.treatment_scope, tp&&tp.scope,
+    handoff&&handoff.treatment_scope, handoff&&handoff.scope,
+    doctor&&doctor.referral&&doctor.referral.treatment_scope, doctor&&doctor.referral&&doctor.referral.scope
+  ];
+  scopeAliases.forEach(function(sc){
+    if(!sc||typeof sc!=='object')return;
+    allowed=allowed.concat(sc.allowed_scope||sc.allowed||sc.permitted||[]);
+    blocked=blocked.concat(sc.blocked_scope||sc.blocked||sc.prohibited||[]);
+  });
   if(handoff.instructions)instructions=instructions.concat(Array.isArray(handoff.instructions)?handoff.instructions:[handoff.instructions]);
   if(handoff.candidate_urls)candidates=candidates.concat(handoff.candidate_urls);
   linkRecs=linkRecs.concat(handoff.internal_link_recommendations||[]);
@@ -18736,6 +18749,19 @@ function sbmRunV6133DoctorContinuationRepairOnce_(){
   return repaired;
 }
 
+function sbmDoctorBuildScopeRepairRequest_(source,doctor,n){
+  var p=JSON.parse(JSON.stringify(source||{})),now=new Date(),stamp=Utilities.formatDate(now,SBM_DEFAULTS.TIMEZONE,'yyyyMMdd-HHmmss');
+  p.message_id='MSG-'+stamp+'-SCOPE-REPAIR';p.generated_at=sbmDoctorIso_(now);p.case_id=n.caseId||p.case_id;
+  p.request=p.request||{};p.request.case_id=p.case_id;p.request.request_id='REQ-'+stamp+'-'+String(p.article&&p.article.article_id||'ARTICLE')+'-SCOPE';p.request.requested_at=sbmDoctorIso_(now);
+  p.request.trigger='SBM_DOCTOR_SCOPE_CONTRACT_REPAIR';p.request.consultation_mode='TREATMENT_SCOPE_CONFIRMATION';
+  p.request.chief_complaint='診断方針は受領済みですが、aWriterへ安全に引き継ぐための明示的なallowed_scopeが診断結果にありません。診断をやり直さず、既存診断を維持したまま治療可能範囲と禁止範囲を確定してください。';
+  p.follow_up_context={type:'TREATMENT_SCOPE_CONTRACT_REPAIR',same_case:true,previous_request_id:String(source&&source.request&&source.request.request_id||''),reason:'Writer治療範囲の安全境界を補完するため。Managerは治療範囲を推測しない。'};
+  p.attachments=p.attachments||{};p.attachments.previous_doctor_result=doctor;
+  p.return_contract=p.return_contract||{};p.return_contract.required_fields=['format','case_id','workflow_handoff.next_action','workflow_handoff.allowed_scope','workflow_handoff.blocked_scope'];
+  p.return_contract.scope_instruction='next_action=WRITERの場合、workflow_handoff.allowed_scopeを1件以上明示してください。変更禁止項目はworkflow_handoff.blocked_scopeへ明示してください。';
+  return p;
+}
+
 function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
   try{
     var sourceText=sbmDoctorExtractJsonText_(requestJsonText),source,doctor,resultText='',adoptedFromPrior=false;
@@ -18789,7 +18815,14 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
     if(pkIngest && pkIngest.error){sbmLog_('PersonalKnowledgeWriter','Warning','aDoctor candidate ingest error count: '+pkIngest.error);}
     if(n.restore){var rp=sbmDoctorBuildRestorePackage_(source,doctor,n),rpText=JSON.stringify(rp,null,2);return {ok:true,message:'aDoctor診断結果を登録し、原状復帰パッケージを作成しました。',route:'RESTORE',nextTitle:'③ aDoctor判定：原状復帰を推奨',nextMessage:'下の復元パッケージを確認し、ブログ側で改善前の状態へ戻してください。SIMSがブログを自動更新することはありません。反映後に「原状復帰の完了を登録」を押すと、新しい7日目・14日目・21日目・28日目の再観察を開始します。',nextRequest:rpText,restorePackage:rp,caseId:n.caseId,articleId:sourceArticle,articleUrl:String(source.article&&source.article.url||''),historyId:String(source.improvement_context&&source.improvement_context.improvement_history_id||'')};}
     if(n.mergeReady){var mreq=sbmDoctorBuildMergeTreatmentRequest_(source,doctor,n),mtext=JSON.stringify(mreq,null,2);sbmDoctorSaveGeneratedMergeRequest_(n.caseId,mreq);return {ok:true,message:'aDoctor診断結果を登録し、aMerge紹介状／aMerge Packageを作成しました。',route:'MERGE',nextTitle:'③ 次はSIMS Mergeです',nextMessage:'下のaMerge Packageをすべてコピーし、SIMS Mergeへそのまま貼り付けてください。統合対象記事の本文・GSC Evidence・aDoctorの統合方向をSIMSが同梱しています。',nextRequest:mtext};}
-    if(n.writerReady){var req=sbmDoctorBuildWriterTreatmentRequest_(source,doctor,n),text=JSON.stringify(req,null,2);sbmDoctorSaveGeneratedWriterRequest_(n.caseId,req);return {ok:true,message:'aDoctor診断結果を登録し、aWriter紹介状を作成しました。',route:'WRITER',nextTitle:'③ 次はaWriterです',nextMessage:'下の紹介状をすべてコピーし、aWriterへそのまま貼り付けてください。記事本文・クエリ・内部リンク候補・aDoctorの治療方針を含んでいます。',nextRequest:text};}
+    if(n.writerReady){
+      var writerDetail=sbmDoctorReferralDetails_(doctor,n,source&&source.evidence_package||{});
+      if(!writerDetail.allowed_scope||!writerDetail.allowed_scope.length){
+        var scopeReq=sbmDoctorBuildScopeRepairRequest_(source,doctor,n),scopeText=JSON.stringify(scopeReq,null,2);
+        try{sbmDoctorWorkflowWritePayload_(n.caseId,'FOLLOW_UP_REQUEST',scopeText);sbmDoctorWorkflowWriteMeta_(n.caseId,{workflow_type:'TREATMENT_SCOPE_CONTRACT_REPAIR',current_stage:'FOLLOW_UP_REQUEST_READY',registration_status:'WAITING',last_error:''});}catch(eScopeSave){try{sbmLog_('DoctorScopeRepairSave','Warning',String(eScopeSave));}catch(ignoreScopeSave){}}
+        return {ok:true,message:'aDoctor診断結果は登録しました。aWriterへ渡す治療範囲だけが不足しているため、安全確認用の追加依頼を作成しました。',route:'ADDITIONAL_DIAGNOSIS',nextTitle:'③ aDoctorへ治療範囲だけ確認します',nextMessage:'診断のやり直しではありません。下の依頼をaDoctorへ渡し、allowed_scope / blocked_scopeを明示した回答を受け取ってください。SIMSは治療範囲を推測してaWriterへ渡しません。',nextRequest:scopeText,followUpRequest:scopeText,scopeRepair:true};
+      }
+      var req=sbmDoctorBuildWriterTreatmentRequest_(source,doctor,n),text=JSON.stringify(req,null,2);sbmDoctorSaveGeneratedWriterRequest_(n.caseId,req);return {ok:true,message:'aDoctor診断結果を登録し、aWriter紹介状を作成しました。',route:'WRITER',nextTitle:'③ 次はaWriterです',nextMessage:'下の紹介状をすべてコピーし、aWriterへそのまま貼り付けてください。記事本文・クエリ・内部リンク候補・aDoctorの治療方針を含んでいます。',nextRequest:text};}
     if(n.additionalDiagnosis){
       var addReq=sbmDoctorBuildAdditionalDiagnosisRequest_(source,doctor,n),addText=JSON.stringify(addReq,null,2);
       try{sbmDoctorWorkflowWritePayload_(n.caseId,'FOLLOW_UP_REQUEST',addText);sbmDoctorWorkflowWriteMeta_(n.caseId,{workflow_type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',current_stage:'FOLLOW_UP_REQUEST_READY',registration_status:'WAITING'});}catch(eAddSave){try{sbmLog_('DoctorAdditionalDiagnosisSave','Warning',String(eAddSave));}catch(ignoreAddSave){}}
