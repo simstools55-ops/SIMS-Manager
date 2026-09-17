@@ -4,9 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.39';
-// v6.6.39: HOMEを開く際に現在の表示テーマを再適用し、モノクロ表示が標準配色へ戻る問題を修正。SIMS今日の作業を0〜3へ整理。
-// Current release: v6.6.39 - HOME表示テーマ保持と「SIMS今日の作業」0〜3番号整理。
+const SBM_VERSION = '6.6.40';
+// v6.6.40: 「0．HOME画面を開く」を画面遷移専用にし、既存Homeの再描画を停止。モノクロ表示から標準配色へ一時的に戻るちらつきを解消。
+// Current release: v6.6.40 - HOME画面を開く操作の再描画を停止し、表示テーマのちらつきを解消。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -6198,19 +6198,25 @@ function sbmUpdateArticleRankManual() {
  * メニューと現行機能の呼び出し先を一元化し、リファクタリング途中の未定義参照を防ぎます。
  */
 function sbmOpenHome() {
-  // 表示専用の軽量経路。Today移行・全件再集計・全体テーマ描画は行わない。
+  // 「HOME画面を開く」は画面遷移だけを行う。既存Homeを標準配色で再描画しない。
+  // データ更新は日次処理・各結果登録側で行い、選択中の表示テーマをそのまま維持する。
   sbmHideOptionalAdminSheets_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SBM_SHEETS.HOME);
-  if (!sh) {
-    sbmInitializeSheets();
-    sh = ss.getSheetByName(SBM_SHEETS.HOME);
+  var needsBuild = !sh;
+  if (!needsBuild) {
+    try {
+      needsBuild = String(sh.getRange('J1').getValue()) !== ('v'+SBM_DISPLAY_VERSION) || sbmHomeLayoutNeedsRebuild_(sh);
+    } catch (eCheckHome) {
+      needsBuild = true;
+    }
   }
-  // Homeを開くだけの操作では、Doctor再照合・効果測定再計算を実行しない。
-  // 日次処理や結果登録で保存済みのデータから表示だけを更新する。
-  try { sbmRefreshHome_({light:true,liveArticle:false,applyTheme:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
-  // sbmRefreshHome_内で現在テーマまで仕上げるため、ここでの重複テーマ適用は行わない。
-  sh=ss.getSheetByName(SBM_SHEETS.HOME) || sh;
+  if (needsBuild) {
+    // Home自体が無い／レイアウト更新が必要な場合だけ再構築する。
+    // 再構築後は現在テーマを完成させてからHomeを表示する。
+    try { sbmRefreshHome_({light:true,liveArticle:false,applyTheme:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
+    sh = ss.getSheetByName(SBM_SHEETS.HOME) || sh;
+  }
   if (sh) {
     if (sh.isSheetHidden()) sh.showSheet();
     if (ss.getActiveSheet().getSheetId() !== sh.getSheetId()) ss.setActiveSheet(sh);
