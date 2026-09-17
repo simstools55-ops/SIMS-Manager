@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.37",
+  "current_version": "6.6.39",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.37: aDoctorのWriter治療範囲欠落を安全に検出し、治療範囲確認の追加依頼へ自動誘導。",
-  "version": "6.6.37",
+  "notes": "v6.6.39: HOME表示テーマ保持と「SIMS今日の作業」0〜3番号整理。",
+  "version": "6.6.39",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.37-ST"
+  "starter_display_version": "v6.6.39-ST"
 }

@@ -1,9 +1,4 @@
-## v6.6.37
-- aDoctor結果がWRITER処置を指示しているのに `allowed_scope` が欠落した場合、aWriter紹介状生成をエラー停止せず、安全な治療範囲確認の追加aDoctor依頼へ自動誘導。
-- `treatment_scope` / `scope` 等に明示された allowed / blocked の表記差を互換吸収。ただしManager側で治療範囲を推測・拡張しない。
-- 途中再開フローでも同一Caseの診断結果を保持し、診断のやり直しではなく治療境界だけを補完できるようにした。
-
-## v6.6.36
+## v6.6.39
 - aDoctor精密診断ダイアログ高速化の効果確認を完了し、一時性能診断コードを撤去。
 - v6.6.35で確認した高速化ロジックは維持。
 - 実測最終値: DoctorDialogPerf TOTAL 17秒、buildRequestEvidence 9秒（診断コード撤去前）。
