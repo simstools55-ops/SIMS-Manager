@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.28",
+  "current_version": "6.6.36",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.28: aDoctor精密診断候補の本人確認をArticleID＋正規化URLへ統一し、タイトル正規化・更新差分による誤停止を解消。",
-  "version": "6.6.28",
+  "notes": "v6.6.36: aDoctor精密診断ダイアログ高速化を完了し、一時性能診断ログを撤去。",
+  "version": "6.6.36",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.28-ST"
+  "starter_display_version": "v6.6.36-ST"
 }

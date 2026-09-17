@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.28';
-// Current release: v6.6.28 - aDoctor精密診断候補の本人確認をArticleID＋URLへ統一し、タイトル正規化差分による誤停止を解消。
+const SBM_VERSION = '6.6.36';
+// Current release: v6.6.36 - aDoctor精密診断ダイアログ高速化の効果確認を完了し、一時性能診断ログを撤去。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -2053,6 +2053,16 @@ function sbmPersonalKnowledgeLog_(status, detail) {
     if (String(status || '').toUpperCase() === 'WARNING' || String(status || '').toUpperCase() === 'ERROR') console.warn('[SIMS Personal Knowledge] ' + text);
     else console.log('[SIMS Personal Knowledge] ' + text);
   } catch (e2) {}
+}
+
+function sbmPersonalKnowledgeGetContextFast_(hint) {
+  // v6.6.34: 通常運用ではDocumentPropertiesに確定済みsite_idがあるため、
+  // aDoctor依頼作成のたびにDriveフォルダ／PROFILEを再検証しない。未設定時だけ従来処理へフォールバックする。
+  try {
+    var cached=String(PropertiesService.getDocumentProperties().getProperty(SBM_PERSONAL_KNOWLEDGE_DOC_PROP_SITE)||'').trim();
+    if(cached) return {available:true,schema_version:SBM_PERSONAL_KNOWLEDGE_SCHEMA_VERSION,site_id:cached,cached:true};
+  } catch(ignorePkFast) {}
+  return sbmPersonalKnowledgeGetContext_(hint);
 }
 
 function sbmPersonalKnowledgeGetContext_(hint) {
@@ -10303,20 +10313,11 @@ function sbmEffectViewNeedsOneTimeRefresh_(sh){
 }
 
 function sbmOpenEffectiveness(){
-  // v6.6.27: 改善の推移の残存表示時間を区間計測する。表示仕様・判定・データ更新ロジックは変更しない。
-  var started=new Date(),mark=started,parts=[];
-  function phase_(name){
-    var sec=sbmSecondsSince_(mark);parts.push(name+'='+sec+'秒');mark=new Date();
-    try{console.log('[EffectViewPerf] '+name+'='+sec+'秒 / elapsed='+sbmSecondsSince_(started)+'秒');}catch(ignoreConsole){}
-    return sec;
-  }
+  // v6.6.29: [EffectViewPerf] 一時診断コードを撤去。v6.6.27までに確定した軽量表示経路は維持する。
   sbmMigrateEffectSheetName_();
-  phase_('migrateName');
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
   if(!sh){sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}}
-  phase_('sheetLookup');
   try{sbmEnsureVisibleMeasurementSchemasV623_('effect');sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(ignoreVisibleSchema){}
-  phase_('schema');
   var props=PropertiesService.getDocumentProperties(),repairKey='SBM_EFFECT_VIEW_REPAIR_664_'+String(sh.getSheetId());
   if(props.getProperty(repairKey)!=='1'){
     try{
@@ -10328,15 +10329,9 @@ function sbmOpenEffectiveness(){
     }catch(eRepair){try{sbmLog_('EffectViewRepair','Warning',String(eRepair));}catch(ignoreLog){}}
     props.setProperty(repairKey,'1');
   }
-  phase_('repairOnce');
   try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
-  phase_('style');
   if(sh.isSheetHidden())sh.showSheet();
-  phase_('showSheet');
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
-  phase_('activate');
-  var total=sbmSecondsSince_(started);
-  try{console.log('[EffectViewPerf] TOTAL='+total+'秒 / '+parts.join(' / '));}catch(ignoreTotal){}
 }
 
 /** 改善の推移：閲覧専用の軽量表示整形。データ更新・autoResizeRows・flushは行わない。 */
@@ -12630,12 +12625,10 @@ function sbmEnsureImprovementHistoryViewLight_(){
   var props=PropertiesService.getDocumentProperties();
   var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_26_'+String(sh.getSheetId());
   if(props.getProperty(styleKey)==='1'){
-    // a schema migration may have cleared formatting while leaving an old ready flag.
-    // Trust the cache only when the visible header formatting is still intact.
-    var styleIntact=false;
-    try{styleIntact=String(sh.getRange(1,1).getBackground()||'').toLowerCase()==='#0b8043';}catch(ignoreStyleCheck){}
-    if(styleIntact)return;
-    try{props.deleteProperty(styleKey);}catch(ignoreStyleKey){}
+    // v6.6.31: テーマ適用後はヘッダー色が #0b8043 とは限らない。
+    // 色でキャッシュ有効性を判定すると、通常表示のたびに全行書式を再適用してしまうため、
+    // 完了フラグを正本として即時終了する。ヘッダー構造の整合は直前の schema 処理が担当する。
+    return;
   }
 
   var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
@@ -15986,8 +15979,22 @@ function sbmDoctorCompleteRestore(caseId,articleId,articleUrl,historyId){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 
+function sbmDoctorSettingsSnapshot_() {
+  // v6.6.35: aDoctor依頼作成中にsbmGetSetting_を繰り返すと、その都度Settings全体を読み直す。
+  // 必要設定を1回のgetValuesで取得し、同一依頼内ではこのスナップショットを正本として再利用する。
+  var out={};
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.SETTINGS);
+  for(var i=0;i<rows.length;i++){
+    var k=String(rows[i].Key||'').trim();
+    if(k)out[k]=rows[i].Value;
+  }
+  return out;
+}
+
 function sbmDoctorBuildSingleCaseRequest_(ctx) {
   var article=ctx.article, effect=ctx.effect || {}, history=ctx.history || {};
+  var doctorSettings=sbmDoctorSettingsSnapshot_();
+  function doctorSetting_(key,def){return Object.prototype.hasOwnProperty.call(doctorSettings,key)?doctorSettings[key]:def;}
   var now=new Date();
   var articleId=String(article['ArticleID']||'').trim();
   var url=String(article['記事URL']||'').trim();
@@ -16028,12 +16035,15 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
     generated_at:sbmDoctorIso_(now),
     timezone:SBM_DEFAULTS.TIMEZONE,
     site:{
-      site_id:String(sbmGetSetting_('SiteID','')).trim(),
-      personal_knowledge_site_id:String(sbmPersonalKnowledgeGetContext_().site_id||'').trim(),
+      site_id:String(doctorSetting_('SiteID','')).trim(),
+      personal_knowledge_site_id:(function(){
+        var pkHint={site:{site_id:String(doctorSetting_('SiteID','')).trim(),site_name:String(doctorSetting_('SiteName','')||doctorSetting_('BlogName','')).trim(),blog_url:String(doctorSetting_('BlogUrl','')).trim()},article:{url:url}};
+        var c=sbmPersonalKnowledgeGetContextFast_(pkHint);return String(c.site_id||'').trim();
+      })(),
       personal_knowledge_schema_version:SBM_PERSONAL_KNOWLEDGE_SCHEMA_VERSION,
-      site_name:String(sbmGetSetting_('SiteName','')||sbmGetSetting_('BlogName','')).trim(),
-      blog_url:String(sbmGetSetting_('BlogUrl','')).trim(),
-      search_console_property:String(sbmGetSetting_('SearchConsoleProperty','')).trim()
+      site_name:String(doctorSetting_('SiteName','')||doctorSetting_('BlogName','')).trim(),
+      blog_url:String(doctorSetting_('BlogUrl','')).trim(),
+      search_console_property:String(doctorSetting_('SearchConsoleProperty','')).trim()
     },
     request:{
       request_id:requestId,
@@ -16067,7 +16077,7 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       article_status:String(article['記事ステータス']||'ACTIVE').trim()||'ACTIVE'
     },
     current_performance:{
-      period_days:Number(sbmGetSetting_('SearchDays',SBM_DEFAULTS.SEARCH_DAYS)||SBM_DEFAULTS.SEARCH_DAYS),
+      period_days:Number(doctorSetting_('SearchDays',SBM_DEFAULTS.SEARCH_DAYS)||SBM_DEFAULTS.SEARCH_DAYS),
       clicks:current.clicks,
       impressions:current.impressions,
       ctr:current.ctr,
@@ -16272,9 +16282,12 @@ function sbmDoctorEscapeHtml_(value) {
 }
 
 function sbmDoctorRememberLastRequest_(payload) {
-  sbmSetSetting_('DoctorLastRequestId',payload.request.request_id,'最後に生成したDoctor外来診療RequestID');
-  sbmSetSetting_('DoctorLastRequestArticleId',payload.article.article_id,'最後にaDoctor診断を依頼したArticleID');
-  sbmSetSetting_('DoctorLastRequestAt',payload.generated_at,'最後にDoctor外来診療依頼を生成した日時');
+  // v6.6.34: 3回の個別Settings走査・書込を1回のバッチ更新へ統合する。
+  sbmSetSettingsBatch_([
+    {key:'DoctorLastRequestId',value:payload.request.request_id,desc:'最後に生成したDoctor外来診療RequestID'},
+    {key:'DoctorLastRequestArticleId',value:payload.article.article_id,desc:'最後にaDoctor診断を依頼したArticleID'},
+    {key:'DoctorLastRequestAt',value:payload.generated_at,desc:'最後にDoctor外来診療依頼を生成した日時'}
+  ]);
 }
 
 function sbmDoctorCaseNextAction_(code){
@@ -16767,21 +16780,26 @@ function sbmDoctorFetchSiteImpactSummary_(){
  * 対象記事の上位クエリから最大15件を抽出し、同じクエリで表示された自サイト内URLを取得します。
  */
 function sbmDoctorFetchCannibalizationEvidence_(queryRows,days,targetUrl){
+  // v6.6.34: 上位クエリごとのGSC API逐次照会（最大15回）を、query+pageのサイト横断1回取得へ集約する。
+  // 25,000行上限に達した場合や一括取得に失敗した場合だけ、精度保護のため従来の個別照会へフォールバックする。
   var full=sbmDoctorEvidenceRange_(days),property=sbmGetSetting_('SearchConsoleProperty',''),target=sbmNormalizeUrl_(targetUrl),maxQueries=15,pageLimit=50;
   var ranked=(queryRows||[]).slice().sort(function(a,b){var aa=a.full_180_days||{},bb=b.full_180_days||{};return (Number(bb.clicks||0)-Number(aa.clicks||0))||(Number(bb.impressions||0)-Number(aa.impressions||0));}).slice(0,maxQueries);
-  var rows=[],errors=[];
-  ranked.forEach(function(item){
-    var q=String(item.query||'').trim();if(!q)return;
-    try{
-      var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['page'],rowLimit:pageLimit,dimensionFilterGroups:[{filters:[{dimension:'query',operator:'equals',expression:q}]}]});
-      var pages=(data.rows||[]).map(function(r){var u=String(r.keys&&r.keys[0]||'');return {url:u,normalized_url:sbmNormalizeUrl_(u),clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)};}).filter(function(p){return !!p.normalized_url&&sbmIsValidArticleUrl_(p.normalized_url);});
-      var targetRows=pages.filter(function(p){return p.normalized_url===target;});
-      var competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});
-      if(competitors.length){rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});}
-    }catch(e){errors.push({query:q,message:String(e&&e.message||e)});}
-  });
+  var wanted={};ranked.forEach(function(item){var q=String(item.query||'').trim();if(q)wanted[q]=item;});
+  var rows=[],errors=[],batchLimit=25000,batchUsed=false;
+  try{
+    var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['query','page'],rowLimit:batchLimit})||{};
+    var raw=data.rows||[];
+    if(raw.length>=batchLimit)throw new Error('BATCH_TRUNCATED');
+    var grouped={};
+    raw.forEach(function(r){var q=String(r.keys&&r.keys[0]||'').trim();if(!wanted[q])return;var u=String(r.keys&&r.keys[1]||''),nu=sbmNormalizeUrl_(u);if(!nu||!sbmIsValidArticleUrl_(nu))return;(grouped[q]||(grouped[q]=[])).push({url:u,normalized_url:nu,clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)});});
+    ranked.forEach(function(item){var q=String(item.query||'').trim(),pages=grouped[q]||[],targetRows=pages.filter(function(p){return p.normalized_url===target;}),competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});if(competitors.length)rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});});
+    batchUsed=true;
+  }catch(batchError){
+    rows=[];
+    ranked.forEach(function(item){var q=String(item.query||'').trim();if(!q)return;try{var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['page'],rowLimit:pageLimit,dimensionFilterGroups:[{filters:[{dimension:'query',operator:'equals',expression:q}]}]});var pages=(data.rows||[]).map(function(r){var u=String(r.keys&&r.keys[0]||'');return {url:u,normalized_url:sbmNormalizeUrl_(u),clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)};}).filter(function(p){return !!p.normalized_url&&sbmIsValidArticleUrl_(p.normalized_url);});var targetRows=pages.filter(function(p){return p.normalized_url===target;}),competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});if(competitors.length)rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});}catch(e){errors.push({query:q,message:String(e&&e.message||e)});}});
+  }
   var competitorUrlSet={};rows.forEach(function(r){(r.competing_urls||[]).forEach(function(p){competitorUrlSet[p.normalized_url]=1;});});
-  return {available:true,period_days:days,start_date:full.startDate,end_date:full.endDate,queries_checked:ranked.length,queries_with_competition:rows.length,competing_url_count:Object.keys(competitorUrlSet).length,rows:rows,errors:errors,diagnostic_rule:'同じ検索クエリで対象記事以外の自サイトURLにも表示実績がある場合のみカニバリ候補とします。候補があるだけでカニバリ確定とはせず、検索意図・順位・クリック分散をaDoctorが総合評価してください。'};
+  return {available:true,period_days:days,start_date:full.startDate,end_date:full.endDate,queries_checked:ranked.length,queries_with_competition:rows.length,competing_url_count:Object.keys(competitorUrlSet).length,rows:rows,errors:errors,collection_mode:batchUsed?'BATCH_QUERY_PAGE':'PER_QUERY_FALLBACK',diagnostic_rule:'同じ検索クエリで対象記事以外の自サイトURLにも表示実績がある場合のみカニバリ候補とします。候補があるだけでカニバリ確定とはせず、検索意図・順位・クリック分散をaDoctorが総合評価してください。'};
 }
 
 function sbmDoctorLatestHealthSnapshot_(articleId,url){
@@ -17663,7 +17681,8 @@ function sbmDoctorWorkflowWriteMeta_(caseId,patch){
 }
 function sbmDoctorWorkflowSaveRequest_(payload,meta){
   if(!payload)return;var caseId=String(payload.case_id||payload.request&&payload.request.case_id||'').trim();if(!caseId)return;
-  sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',JSON.stringify(payload));
+  var requestText=JSON.stringify(payload);
+  sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',requestText);
   var patch={workflow_type:String(meta&&meta.workflow_type||'DOCTOR_SINGLE_CASE'),current_stage:'WAITING_RESPONSE',registration_status:'WAITING',request_id:String(payload.request&&payload.request.request_id||''),article_id:String(payload.article&&payload.article.article_id||''),history_id:String(meta&&meta.history_id||payload.improvement_context&&payload.improvement_context.improvement_history_id||''),source_sheet:String(meta&&meta.source_sheet||payload.request&&payload.request.source_sheet||''),source_row:Number(meta&&meta.source_row||payload.request&&payload.request.source_row||0),last_error:''};
   sbmDoctorWorkflowWriteMeta_(caseId,patch);
 }

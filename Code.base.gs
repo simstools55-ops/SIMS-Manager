@@ -2006,6 +2006,16 @@ function sbmPersonalKnowledgeLog_(status, detail) {
   } catch (e2) {}
 }
 
+function sbmPersonalKnowledgeGetContextFast_(hint) {
+  // v6.6.34: 通常運用ではDocumentPropertiesに確定済みsite_idがあるため、
+  // aDoctor依頼作成のたびにDriveフォルダ／PROFILEを再検証しない。未設定時だけ従来処理へフォールバックする。
+  try {
+    var cached=String(PropertiesService.getDocumentProperties().getProperty(SBM_PERSONAL_KNOWLEDGE_DOC_PROP_SITE)||'').trim();
+    if(cached) return {available:true,schema_version:SBM_PERSONAL_KNOWLEDGE_SCHEMA_VERSION,site_id:cached,cached:true};
+  } catch(ignorePkFast) {}
+  return sbmPersonalKnowledgeGetContext_(hint);
+}
+
 function sbmPersonalKnowledgeGetContext_(hint) {
   try {
     var siteId = sbmPersonalKnowledgeEnsureSite_(hint);
@@ -16111,9 +16121,12 @@ function sbmDoctorEscapeHtml_(value) {
 }
 
 function sbmDoctorRememberLastRequest_(payload) {
-  sbmSetSetting_('DoctorLastRequestId',payload.request.request_id,'最後に生成したDoctor外来診療RequestID');
-  sbmSetSetting_('DoctorLastRequestArticleId',payload.article.article_id,'最後にaDoctor診断を依頼したArticleID');
-  sbmSetSetting_('DoctorLastRequestAt',payload.generated_at,'最後にDoctor外来診療依頼を生成した日時');
+  // v6.6.34: 3回の個別Settings走査・書込を1回のバッチ更新へ統合する。
+  sbmSetSettingsBatch_([
+    {key:'DoctorLastRequestId',value:payload.request.request_id,desc:'最後に生成したDoctor外来診療RequestID'},
+    {key:'DoctorLastRequestArticleId',value:payload.article.article_id,desc:'最後にaDoctor診断を依頼したArticleID'},
+    {key:'DoctorLastRequestAt',value:payload.generated_at,desc:'最後にDoctor外来診療依頼を生成した日時'}
+  ]);
 }
 
 function sbmDoctorCaseNextAction_(code){
@@ -16606,21 +16619,26 @@ function sbmDoctorFetchSiteImpactSummary_(){
  * 対象記事の上位クエリから最大15件を抽出し、同じクエリで表示された自サイト内URLを取得します。
  */
 function sbmDoctorFetchCannibalizationEvidence_(queryRows,days,targetUrl){
+  // v6.6.34: 上位クエリごとのGSC API逐次照会（最大15回）を、query+pageのサイト横断1回取得へ集約する。
+  // 25,000行上限に達した場合や一括取得に失敗した場合だけ、精度保護のため従来の個別照会へフォールバックする。
   var full=sbmDoctorEvidenceRange_(days),property=sbmGetSetting_('SearchConsoleProperty',''),target=sbmNormalizeUrl_(targetUrl),maxQueries=15,pageLimit=50;
   var ranked=(queryRows||[]).slice().sort(function(a,b){var aa=a.full_180_days||{},bb=b.full_180_days||{};return (Number(bb.clicks||0)-Number(aa.clicks||0))||(Number(bb.impressions||0)-Number(aa.impressions||0));}).slice(0,maxQueries);
-  var rows=[],errors=[];
-  ranked.forEach(function(item){
-    var q=String(item.query||'').trim();if(!q)return;
-    try{
-      var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['page'],rowLimit:pageLimit,dimensionFilterGroups:[{filters:[{dimension:'query',operator:'equals',expression:q}]}]});
-      var pages=(data.rows||[]).map(function(r){var u=String(r.keys&&r.keys[0]||'');return {url:u,normalized_url:sbmNormalizeUrl_(u),clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)};}).filter(function(p){return !!p.normalized_url&&sbmIsValidArticleUrl_(p.normalized_url);});
-      var targetRows=pages.filter(function(p){return p.normalized_url===target;});
-      var competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});
-      if(competitors.length){rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});}
-    }catch(e){errors.push({query:q,message:String(e&&e.message||e)});}
-  });
+  var wanted={};ranked.forEach(function(item){var q=String(item.query||'').trim();if(q)wanted[q]=item;});
+  var rows=[],errors=[],batchLimit=25000,batchUsed=false;
+  try{
+    var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['query','page'],rowLimit:batchLimit})||{};
+    var raw=data.rows||[];
+    if(raw.length>=batchLimit)throw new Error('BATCH_TRUNCATED');
+    var grouped={};
+    raw.forEach(function(r){var q=String(r.keys&&r.keys[0]||'').trim();if(!wanted[q])return;var u=String(r.keys&&r.keys[1]||''),nu=sbmNormalizeUrl_(u);if(!nu||!sbmIsValidArticleUrl_(nu))return;(grouped[q]||(grouped[q]=[])).push({url:u,normalized_url:nu,clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)});});
+    ranked.forEach(function(item){var q=String(item.query||'').trim(),pages=grouped[q]||[],targetRows=pages.filter(function(p){return p.normalized_url===target;}),competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});if(competitors.length)rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});});
+    batchUsed=true;
+  }catch(batchError){
+    rows=[];
+    ranked.forEach(function(item){var q=String(item.query||'').trim();if(!q)return;try{var data=sbmSearchConsoleApiRequest_(property,{startDate:full.startDate,endDate:full.endDate,dimensions:['page'],rowLimit:pageLimit,dimensionFilterGroups:[{filters:[{dimension:'query',operator:'equals',expression:q}]}]});var pages=(data.rows||[]).map(function(r){var u=String(r.keys&&r.keys[0]||'');return {url:u,normalized_url:sbmNormalizeUrl_(u),clicks:Number(r.clicks||0),impressions:Number(r.impressions||0),ctr:Number(r.ctr||0),position:Number(r.position||0)};}).filter(function(p){return !!p.normalized_url&&sbmIsValidArticleUrl_(p.normalized_url);});var targetRows=pages.filter(function(p){return p.normalized_url===target;}),competitors=pages.filter(function(p){return p.normalized_url!==target&&Number(p.impressions||0)>0;}).sort(function(a,b){return (b.clicks-a.clicks)||(b.impressions-a.impressions);});if(competitors.length)rows.push({query:q,target:{url:targetUrl,clicks:targetRows.reduce(function(n,p){return n+p.clicks;},0),impressions:targetRows.reduce(function(n,p){return n+p.impressions;},0),position:(item.full_180_days||{}).position||0},competing_urls:competitors.slice(0,10)});}catch(e){errors.push({query:q,message:String(e&&e.message||e)});}});
+  }
   var competitorUrlSet={};rows.forEach(function(r){(r.competing_urls||[]).forEach(function(p){competitorUrlSet[p.normalized_url]=1;});});
-  return {available:true,period_days:days,start_date:full.startDate,end_date:full.endDate,queries_checked:ranked.length,queries_with_competition:rows.length,competing_url_count:Object.keys(competitorUrlSet).length,rows:rows,errors:errors,diagnostic_rule:'同じ検索クエリで対象記事以外の自サイトURLにも表示実績がある場合のみカニバリ候補とします。候補があるだけでカニバリ確定とはせず、検索意図・順位・クリック分散をaDoctorが総合評価してください。'};
+  return {available:true,period_days:days,start_date:full.startDate,end_date:full.endDate,queries_checked:ranked.length,queries_with_competition:rows.length,competing_url_count:Object.keys(competitorUrlSet).length,rows:rows,errors:errors,collection_mode:batchUsed?'BATCH_QUERY_PAGE':'PER_QUERY_FALLBACK',diagnostic_rule:'同じ検索クエリで対象記事以外の自サイトURLにも表示実績がある場合のみカニバリ候補とします。候補があるだけでカニバリ確定とはせず、検索意図・順位・クリック分散をaDoctorが総合評価してください。'};
 }
 
 function sbmDoctorLatestHealthSnapshot_(articleId,url){

@@ -1,11 +1,28 @@
+## v6.6.36
+- aDoctor精密診断ダイアログ高速化の効果確認を完了し、一時性能診断コードを撤去。
+- v6.6.35で確認した高速化ロジックは維持。
+- 実測最終値: DoctorDialogPerf TOTAL 17秒、buildRequestEvidence 9秒（診断コード撤去前）。
+
 # Changelog
 
-## v6.6.28
-- aDoctor精密診断候補の誤診断防止キーをArticleID＋正規化URLへ統一。
-- 候補・健康診断スナップショット・記事管理でタイトル表記が異なっても、ArticleID＋URLが一致すれば診断依頼を継続。
-- aDoctor依頼の記事タイトルは記事管理に保存された最新タイトルを正本として使用。
-- v6.6.27以前に作成済みの旧候補キー（ArticleID＋URL＋タイトル）も互換受理。
-- ArticleIDまたはURLが不一致の場合は従来どおり誤診断防止で停止。
+## v6.6.35
+- aDoctor精密診断の依頼生成でSettingsシートを1回だけ読み込み、SiteID / SiteName / BlogName / BlogUrl / SearchConsoleProperty / SearchDaysを同一スナップショットから再利用。
+- Personal Knowledgeの初回site_id解決にも同じ設定値を渡し、Identity解決時のSettings再走査を削減。
+- v6.6.34のカニバリGSC一括取得を維持。診断Evidence・判定基準は変更なし。
+- `[DoctorBuildPerf]` / `[DoctorEvidencePerf]` / `[DoctorDialogPerf]` は効果確認のため継続。
+
+
+## v6.6.33
+- aDoctor精密診断のEvidence構築内部を `[DoctorEvidencePerf]` で区間計測。
+- v6.6.31で19秒を要した `buildRequestEvidence` のボトルネック特定用。
+- 機能・診断結果・Evidence内容は変更なし。
+
+## v6.6.29
+
+- `[EffectViewPerf]` の一時診断コードを撤去し、改善の推移の確定済み軽量表示経路を維持。
+- `sbmOpenImprovementHistory()` に `[HistoryViewPerf]` 区間ログを追加。
+- 基準値 7.433秒を `sheetLookup / schema / viewLight / filter / style / showSheet / activate` に分解してボトルネックを特定する。
+- 本版は診断版であり、改善履歴の表示仕様・データ・判定ロジックは変更しない。
 
 ## v6.6.27
 - 改善の推移表示の残存時間をApps Script実行ログへ区間計測し、migrateName / sheetLookup / schema / repairOnce / style / showSheet / activate を可視化。
@@ -638,6 +655,19 @@
 
 # CHANGELOG
 
+## v6.6.34
+- aDoctor精密診断ダイアログの表示高速化。
+- Personal Knowledge site_idは確定済みDocumentPropertiesを高速参照し、毎回のDrive再検証を省略。
+- カニバリEvidenceはGSC query+pageを原則1回取得し、上位15クエリをローカル抽出。25,000行到達時は従来方式へ自動フォールバック。
+- DoctorLastRequestの3設定をバッチ更新。
+
+
+## v6.6.31
+- 改善履歴の `viewLight` が毎回全行書式を再適用していた原因を修正。
+- STANDARD用ヘッダー色 `#0b8043` をキャッシュ有効性判定に使っていたため、MONOテーマ適用後に毎回キャッシュ破棄される問題を解消。
+- `SBM_HISTORY_VIEW_STYLE_V6_1_26_*` の完了フラグを正本とし、通常表示では即時終了する。
+- `[HistoryViewPerf]` は高速化効果の実測確認のため一時的に維持。
+
 ## v6.2.8 - 2026-09-09
 - Promote normal-improvement Writer `follow_up_referrals: MERGE` into the formal Doctor_Cases/aMerge workflow.
 - Recover previously saved Merge follow-ups, including A000068/H000050-style cases, when unfinished work is resumed.
@@ -660,6 +690,13 @@
 - 復元中・復元完了・復元失敗をダイアログ内で明示。
 
 # CHANGELOG
+
+## v6.6.34
+- aDoctor精密診断ダイアログの表示高速化。
+- Personal Knowledge site_idは確定済みDocumentPropertiesを高速参照し、毎回のDrive再検証を省略。
+- カニバリEvidenceはGSC query+pageを原則1回取得し、上位15クエリをローカル抽出。25,000行到達時は従来方式へ自動フォールバック。
+- DoctorLastRequestの3設定をバッチ更新。
+
 
 ## v6.2.5 - 2026-09-09
 
@@ -890,6 +927,13 @@
 
 # CHANGELOG
 
+## v6.6.34
+- aDoctor精密診断ダイアログの表示高速化。
+- Personal Knowledge site_idは確定済みDocumentPropertiesを高速参照し、毎回のDrive再検証を省略。
+- カニバリEvidenceはGSC query+pageを原則1回取得し、上位15クエリをローカル抽出。25,000行到達時は従来方式へ自動フォールバック。
+- DoctorLastRequestの3設定をバッチ更新。
+
+
 ## v5.24.0 - 2026-09-07
 
 - v5.23.1の検証済み実運用Code.gsを正式Repository正本へ昇格。
@@ -964,6 +1008,13 @@
 - ダイアログのボタン領域を固定し、長いCreator回答を貼り付けても登録ボタンが見失われにくいレイアウトへ改善。
 
 # CHANGELOG
+
+## v6.6.34
+- aDoctor精密診断ダイアログの表示高速化。
+- Personal Knowledge site_idは確定済みDocumentPropertiesを高速参照し、毎回のDrive再検証を省略。
+- カニバリEvidenceはGSC query+pageを原則1回取得し、上位15クエリをローカル抽出。25,000行到達時は従来方式へ自動フォールバック。
+- DoctorLastRequestの3設定をバッチ更新。
+
 
 ## v5.12.0
 
