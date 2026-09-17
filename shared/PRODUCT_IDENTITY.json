@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "3.5.0",
+  "current_version": "6.6.37",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "SIMS Shared Editorial Knowledge version is managed independently from SIMS Manager.",
-  "version": "3.5.0",
-  "starter_display_version": "3.5.0"
+  "notes": "v6.6.37: aDoctorのWriter治療範囲欠落を安全に検出し、治療範囲確認の追加依頼へ自動誘導。",
+  "version": "6.6.37",
+  "starter_display_version": "v6.6.37-ST"
 }
