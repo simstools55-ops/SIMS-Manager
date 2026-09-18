@@ -1,6 +1,6 @@
-v6.6.42: 改善ナビ中断時のWorkflow自動保存を追加
+v6.6.43: 未完了の通常改善Workflowを全件再開候補へ表示
 
-- 改善ナビ表示直後に通常改善WorkflowをCheckpoint保存
-- 改善ナビの「閉じる」で未完了状態を再保存
-- ArticleID / URL / workflowIdを維持して未完了作業から同一ナビを復元
-- ナビ閉鎖時の状態をWorkflow METAへ記録
+- 改善ナビ表示前に通常改善Workflowを確定保存
+- 通常改善Workflowの最新1件限定を廃止して全件列挙
+- Doctor系Workflowと同一の再開リストから選択可能に変更
+- 選択したworkflowType / workflowIdを維持して再開

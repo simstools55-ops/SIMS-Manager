@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.42';
+const SBM_VERSION = '6.6.43';
+// v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
 // Current release: v6.6.41 - 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択Identityどおりに再開。
@@ -9581,17 +9582,26 @@ function sbmNormalImprovementWorkflowComplete_(articleId,url){
     sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});
   }catch(ignoreNormalWorkflowComplete){}
 }
-function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
+function sbmFindAllNormalImprovementWorkflows_(wfIndex){
+  var out=[];
   if(wfIndex&&wfIndex.meta){
-    var latest=null;
     Object.keys(wfIndex.meta).forEach(function(id){
       if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
       var m=wfIndex.meta[id]||{};
       if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
       var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
-      if(!latest||ts>latest.ts)latest={id:id,meta:m,ts:ts};
+      out.push({id:id,meta:m,ts:ts});
     });
-    return latest;
+    out.sort(function(a,b){return b.ts-a.ts;});
+    return out;
+  }
+  var latest=sbmFindLatestNormalImprovementWorkflow_();
+  return latest?[latest]:[];
+}
+function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
+  if(wfIndex&&wfIndex.meta){
+    var all=sbmFindAllNormalImprovementWorkflows_(wfIndex);
+    return all.length?all[0]:null;
   }
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
   if(!sh||sh.getLastRow()<2)return null;
@@ -9632,10 +9642,12 @@ function sbmStartNormalImprovementAndShow_(record,sourceSheet,kind,reason){
   record=record||{};
   var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
   if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
-  // ダイアログ表示前にWorkflowState全件を読んでCheckpoint保存すると、表示そのものが待たされる。
-  // 先にHTMLを表示し、Checkpointはダイアログ描画後のgoogle.script.runで非同期保存する。
+  // v6.6.43: 改善ナビが表示された時点を正式な未完了Workflow開始点とするため、
+  // ダイアログ表示前に同期保存する。HTML側のCheckpointは閉じる時点の状態更新用として残す。
+  var workflowId=sbmNormalImprovementWorkflowStart_(record,String(sourceSheet||''),String(kind||'改善候補'),String(reason||''));
+  if(!workflowId)return sbmAlert_('改善ナビ','未完了Workflowを保存できなかったため、改善ナビを開きません。');
   sbmShowImprovementNaviDialog_(record,kind,reason,sourceSheet);
-  return {ok:true,articleId:articleId,url:url};
+  return {ok:true,articleId:articleId,url:url,workflowId:workflowId};
 }
 
 function sbmCheckpointImprovementNaviOpen(seed){
@@ -19747,8 +19759,10 @@ function sbmResumeUnfinishedWorkflowCore_(){
     // 「再開」は候補抽出と表示だけを行う。旧履歴の移行・自動整理などの書込処理はここでは実行しない。
     // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
-    var normal=sbmFindLatestNormalImprovementWorkflow_(wfIndex);
+    var normals=sbmFindAllNormalImprovementWorkflows_(wfIndex);
+    var normal=normals.length?normals[0]:null;
     if(!sbmIsADoctorEnabled_()){
+      if(normals.length>1){var starterItems=normals.map(sbmNormalImprovementResumeChooserItem_).filter(function(x){return !!x;});sbmDoctorShowResumeCaseChooser_(starterItems);return;}
       if(normal)return sbmResumeNormalImprovementWorkflow_(normal);
       return sbmAlert_('未完了の作業を再開','再開できる通常改善の作業はありません。\n\nStarter Editionでは、旧版のaDoctor関連Caseは再開対象に表示しません。モニター中の記事は「改善の推移・履歴」から確認してください。');
     }
@@ -19774,8 +19788,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
     var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex);
     // 通常改善もDoctor系Caseと同じ候補集合へ入れる。更新時刻だけで別系統へ自動分岐しない。
     // これにより、利用者が「未完了の作業を再開」で選んだWorkflow Identityと実際に開く画面を一致させる。
-    var normalItem=sbmNormalImprovementResumeChooserItem_(normal);
-    if(normalItem)resumeItems.push(normalItem);
+    normals.forEach(function(n){var normalItem=sbmNormalImprovementResumeChooserItem_(n);if(normalItem)resumeItems.push(normalItem);});
     resumeItems.sort(function(a,b){return Number(b.updatedTs||0)-Number(a.updatedTs||0);});
     for(var i=vals.length-1;i>=0;i--){
       var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
