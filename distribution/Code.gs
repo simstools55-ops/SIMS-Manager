@@ -4,9 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.40';
-// v6.6.40: 「0．HOME画面を開く」を画面遷移専用にし、既存Homeの再描画を停止。モノクロ表示から標準配色へ一時的に戻るちらつきを解消。
-// Current release: v6.6.40 - HOME画面を開く操作の再描画を停止し、表示テーマのちらつきを解消。
+const SBM_VERSION = '6.6.41';
+// v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
+// Current release: v6.6.41 - 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択Identityどおりに再開。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -19663,6 +19663,34 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 
+function sbmNormalImprovementResumeChooserItem_(entry){
+  if(!entry||!entry.id||!entry.meta)return null;
+  var m=entry.meta||{},d=sbmParseDate_(m.updated_at),ts=d&&!isNaN(d.getTime())?d.getTime():Number(entry.ts||0);
+  return {
+    workflowType:'NORMAL_IMPROVEMENT',workflowId:String(entry.id||''),caseId:'',virtualFollowUp:false,
+    articleId:String(m.article_id||''),articleUrl:String(m.article_url||''),articleTitle:String(m.article_title||m.article_id||'記事'),
+    state:String(m.current_stage||'NAVI_OPEN'),updatedTs:ts,updatedAt:String(m.updated_at||''),
+    workSummary:'通常の記事改善',currentLabel:String(m.current_stage||'')==='WRITER_IN_PROGRESS'?'aWriter作業中':'改善ナビからの通常改善',
+    nextAction:String(m.current_stage||'')==='WRITER_IN_PROGRESS'?'この通常改善の改善ナビを開き、aWriter作業の続きから進めます。':'この通常改善の改善ナビを開き、保存した記事から作業を続けます。',
+    cleanupCandidate:false,cleanupReason:''
+  };
+}
+function sbmResumeSelectedWorkflow(workflowType,workflowId,virtualFollowUp){
+  try{
+    workflowType=String(workflowType||'DOCTOR').trim().toUpperCase();
+    workflowId=String(workflowId||'').trim();
+    if(workflowType==='NORMAL_IMPROVEMENT'){
+      var wfIndex=sbmDoctorWorkflowResumeIndex_(),m=wfIndex&&wfIndex.meta?wfIndex.meta[workflowId]:null;
+      if(!m||String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT')throw new Error('選択した通常改善Workflowが見つかりません。');
+      if(m.active===false||String(m.current_stage||'')==='COMPLETED')throw new Error('選択した通常改善Workflowはすでに完了しています。');
+      // 一覧で選んだWorkflow IDそのものを再開し、最新Workflowへの再検索は行わない。
+      sbmResumeNormalImprovementWorkflow_({id:workflowId,meta:m,ts:(sbmParseDate_(m.updated_at)||new Date(0)).getTime()});
+      return {ok:true};
+    }
+    return sbmResumeSelectedWorkflowCase(workflowId,virtualFollowUp===true);
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
 function sbmDoctorShowResumeCaseChooser_(items){
   var enc=Utilities.base64EncodeWebSafe(JSON.stringify(items||[]),Utilities.Charset.UTF_8);
   function escServer_(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -19679,7 +19707,7 @@ function sbmDoctorShowResumeCaseChooser_(items){
     '<h2>未完了の作業を選ぶ</h2><div class="sub">続けたい作業を1件選んでください。Case番号ではなく、何をしていた案件かを中心に表示しています。整理候補は履歴を消さず、未完了一覧から外せます。</div><div id="root">'+fallbackHtml+'</div><div id="status" class="status"></div><script>'+
     'var enc='+JSON.stringify(enc)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";var b=atob(v),s="";for(var i=0;i<b.length;i++)s+="%"+("00"+b.charCodeAt(i).toString(16)).slice(-2);return decodeURIComponent(s)}var items=JSON.parse(dec(enc));'+
     'function e(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";return "&quot;"})}function render(){var h="";items.forEach(function(x,i){h+="<div class=\\"item "+(x.cleanupCandidate?"recommend":"")+"\\"><div class=title>"+e(x.articleTitle||x.articleId||"記事")+" <span class=small>"+e(x.articleId||"")+"</span></div><div class=work>"+e(x.workSummary)+"</div><div class=meta><b>現在地：</b>"+e(x.currentLabel)+"<br><b>最終更新：</b>"+e(x.updatedAt||"ー")+"</div><div class=next><b>次にすること：</b>"+e(x.nextAction)+"</div>"+(x.cleanupCandidate?"<div class=cleanup><b>整理候補</b><br>"+e(x.cleanupReason)+"</div>":"")+"<div class=actions><button class=primary onclick=\\"resume("+i+",this)\\">この作業を再開</button>"+(x.cleanupCandidate?"<button class=warn onclick=\\"cleanup("+i+",this)\\">この旧案件を整理</button>":"")+"</div><details class=small><summary>管理情報</summary>CaseID："+e(x.caseId)+"<br>状態："+e(x.state)+"</details></div>"});document.getElementById("root").innerHTML=h}'+
-    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflowCase(x.caseId,!!x.virtualFollowUp)}'+
+    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflow(x.workflowType||"DOCTOR",x.workflowId||x.caseId,!!x.virtualFollowUp)}'+
     'function cleanup(i,b){var x=items[i];if(!confirm("この旧案件を未完了一覧から整理しますか？\\n\\n"+x.workSummary+"\\n\\n履歴データは削除しません。"))return;var s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="整理しています…"}s.className="status";s.textContent="旧案件を整理しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=r&&r.message?r.message:"整理できませんでした。";return}s.className="status ok";s.textContent=r.message;items.splice(i,1);render()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmDoctorArchiveResumeCase(x.caseId)}render();</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'未完了の作業を再開');
 }
@@ -19726,6 +19754,11 @@ function sbmResumeUnfinishedWorkflowCore_(){
     Object.keys(treatment).forEach(function(k){activeMap[k]=1;});
     Object.keys(newArticle).forEach(function(k){activeMap[k]=1;});
     var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex);
+    // 通常改善もDoctor系Caseと同じ候補集合へ入れる。更新時刻だけで別系統へ自動分岐しない。
+    // これにより、利用者が「未完了の作業を再開」で選んだWorkflow Identityと実際に開く画面を一致させる。
+    var normalItem=sbmNormalImprovementResumeChooserItem_(normal);
+    if(normalItem)resumeItems.push(normalItem);
+    resumeItems.sort(function(a,b){return Number(b.updatedTs||0)-Number(a.updatedTs||0);});
     for(var i=vals.length-1;i>=0;i--){
       var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
       if(!state||state==='MONITORING'||state.indexOf('SUPERSEDED_')===0||state==='CANCELLED_BY_USER')continue;
@@ -19738,10 +19771,14 @@ function sbmResumeUnfinishedWorkflowCore_(){
       var dcCaseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
       if(!doctorCandidate||ts>doctorCandidate.ts)doctorCandidate={row:row,state:state,ts:ts,caseId:dcCaseId};
     }
-    // Doctor/Writer/Merge等の未完了Caseが複数なら、最新1件へ自動直行せず既存の複数案件運用を選択画面から開始する。
+    // 系統をまたいで候補が複数ある場合は必ず選択画面へ。更新日時だけで通常改善/Doctor系を自動選択しない。
     if(resumeItems.length>1){sbmDoctorShowResumeCaseChooser_(resumeItems);return;}
-    // 1件だけなら従来どおり直接再開。通常改善との競合も従来の最終更新優先を維持。
-    if(normal&&(!doctorCandidate||normal.ts>=doctorCandidate.ts))return sbmResumeNormalImprovementWorkflow_(normal);
+    // 候補が1件だけなら、その候補のWorkflow Identityをそのまま再開する。
+    if(resumeItems.length===1){
+      var only=resumeItems[0];
+      if(String(only.workflowType||'DOCTOR')==='NORMAL_IMPROVEMENT')return sbmResumeSelectedWorkflow('NORMAL_IMPROVEMENT',only.workflowId,false);
+      return sbmResumeSelectedWorkflowCase(only.caseId,!!only.virtualFollowUp);
+    }
     if(doctorCandidate){
       if(newArticle[doctorCandidate.state]){sbmShowNewArticleCreationDialog_(doctorCandidate.caseId);return;}
       if(doctorOrConfirm[doctorCandidate.state]){
@@ -19750,13 +19787,12 @@ function sbmResumeUnfinishedWorkflowCore_(){
       }
       if(treatment[doctorCandidate.state])return sbmDoctorRegisterSiteDiagnosisResult(true,doctorCandidate.caseId);
     }
-    if(normal)return sbmResumeNormalImprovementWorkflow_(normal);
     if(failed.length){
       return sbmAlert_('未完了の作業を再開',
         '正常再開できる作業はありません。\n\n処理失敗状態のCaseが'+failed.length+'件あります。\n'+
         'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
     }
-    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。'+(staleMergeCleanup&&staleMergeCleanup.count?'\n\n後続Merge完了済みの重複aDoctor Caseを'+staleMergeCleanup.count+'件、再開対象外に整理しました。':'')+'\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
+    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
   }catch(e){
     sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
   }

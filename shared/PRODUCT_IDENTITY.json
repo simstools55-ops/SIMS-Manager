@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.6.40",
+  "current_version": "6.6.41",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.40: HOME画面を開く操作の再描画を停止し、モノクロ表示のちらつきを解消。",
-  "version": "6.6.40",
-  "starter_display_version": "v6.6.40-ST"
+  "notes": "v6.6.41: 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択したWorkflow Identityどおりに再開。",
+  "version": "6.6.41",
+  "starter_display_version": "v6.6.41-ST"
 }

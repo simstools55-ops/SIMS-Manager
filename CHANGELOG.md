@@ -1,3 +1,9 @@
+## v6.6.41
+- 「未完了の作業を再開」で通常改善WorkflowとaDoctor/Writer/Merge/Creator系Caseを同一候補集合として扱うよう修正。
+- 通常改善とDoctor系が同時に未完了の場合、更新日時だけで一方へ自動分岐せず、選択画面から対象Workflowを明示選択。
+- 選択画面からWorkflow種別＋Workflow IDを渡し、選択した通常改善WorkflowそのものをIdentity検証して再開。別Workflowの記事改善ナビが開く誤選択を防止。
+- 未完了0件時に参照され得た未定義 `staleMergeCleanup` を除去。
+
 ## v6.6.40
 - 「0．HOME画面を開く」を画面遷移専用化し、既存Homeが正常な場合の `sbmRefreshHome_()` を停止。
 - モノクロ表示時に標準配色へ一時的に戻ってからモノクロへ戻るちらつきを解消。
