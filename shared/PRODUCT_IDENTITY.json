@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.6.43",
+  "current_version": "6.6.44",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.43: 改善ナビ表示前に通常改善Workflowを確定保存し、未完了の通常改善Workflowを全件一覧表示。",
-  "version": "6.6.43",
-  "starter_display_version": "v6.6.43-ST"
+  "notes": "v6.6.44: 改善ナビ表示前に通常改善Workflowを確定保存し、未完了の通常改善Workflowを全件一覧表示。",
+  "version": "6.6.44",
+  "starter_display_version": "v6.6.44-ST"
 }

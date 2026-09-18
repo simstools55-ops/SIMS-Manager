@@ -4,11 +4,12 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.43';
+const SBM_VERSION = '6.6.44';
+// v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.41 - 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択Identityどおりに再開。
+// Current release: v6.6.44 - 通常改善Workflowの同一記事重複を防止し、完了済み案件が未完了一覧へ残る問題を修正。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -9555,11 +9556,32 @@ function sbmNormalImprovementWorkflowKey_(articleId,url){
   for(var i=0;i<bytes.length;i++)hex+=('0'+((bytes[i]+256)%256).toString(16)).slice(-2);
   return 'NORMAL-IMPROVEMENT-URL-'+hex.slice(0,20);
 }
+// v6.6.44: 同一記事の通常改善WorkflowをArticleID/URLのどちらでも同定する。
+// 旧版で「ArticleIDなし→URLキー」「ArticleID取得後→IDキー」と二重化したWorkflowも同一案件として扱う。
+function sbmNormalImprovementSameArticle_(meta,articleId,url){
+  meta=meta||{};articleId=String(articleId||'').trim();url=sbmNormalizeUrl_(String(url||''));
+  var mid=String(meta.article_id||'').trim(),mu=sbmNormalizeUrl_(String(meta.article_url||''));
+  return !!((articleId&&mid&&articleId===mid)||(url&&mu&&url===mu));
+}
+function sbmNormalImprovementActiveEntries_(wfIndex){
+  wfIndex=wfIndex||sbmDoctorWorkflowResumeIndex_();var out=[];
+  Object.keys(wfIndex.meta||{}).forEach(function(id){
+    if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;var m=wfIndex.meta[id]||{};
+    if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
+    var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;out.push({id:id,meta:m,ts:ts});
+  });
+  out.sort(function(a,b){return b.ts-a.ts;});return out;
+}
 function sbmNormalImprovementWorkflowStart_(record,sourceSheet,kind,reason){
   record=record||{};
   var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
   if(!url)return '';
-  var key=sbmNormalImprovementWorkflowKey_(articleId,url);
+  var key=sbmNormalImprovementWorkflowKey_(articleId,url),index=sbmDoctorWorkflowResumeIndex_(),active=sbmNormalImprovementActiveEntries_(index);
+  // 同一記事の旧キーWorkflowは新規案件として残さず、canonical keyへ一本化する。
+  active.forEach(function(e){
+    if(e.id===key||!sbmNormalImprovementSameArticle_(e.meta,articleId,url))return;
+    sbmDoctorWorkflowWriteMeta_(e.id,{current_stage:'SUPERSEDED_DUPLICATE',registration_status:'SUPERSEDED',active:false,superseded_by:key,superseded_at:sbmNowText_(),last_error:''});
+  });
   sbmDoctorWorkflowWriteMeta_(key,{
     workflow_type:'NORMAL_IMPROVEMENT',current_stage:'NAVI_OPEN',registration_status:'WAITING',active:true,
     article_id:articleId,article_url:url,article_title:String(record['記事タイトル']||record['H1タイトル']||'').trim(),
@@ -9577,45 +9599,30 @@ function sbmMarkNormalImprovementWriterReady(articleId,url){
 }
 function sbmNormalImprovementWorkflowComplete_(articleId,url){
   try{
-    var key=sbmNormalImprovementWorkflowKey_(articleId,url),meta=sbmDoctorWorkflowReadMeta_(key);
-    if(String(meta.workflow_type||'')!=='NORMAL_IMPROVEMENT')return;
-    sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});
+    // 選択中のkeyだけでなく、同一ArticleIDまたは同一URLの残存Workflowをすべて完了する。
+    var index=sbmDoctorWorkflowResumeIndex_(),matched=0;
+    Object.keys(index.meta||{}).forEach(function(id){
+      if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;var m=index.meta[id]||{};
+      if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||!sbmNormalImprovementSameArticle_(m,articleId,url))return;
+      if(m.active===false&&String(m.current_stage||'')==='COMPLETED')return;
+      sbmDoctorWorkflowWriteMeta_(id,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});matched++;
+    });
+    // 索引にまだ存在しないcanonical keyでも従来互換で完了できるようにする。
+    if(!matched){var key=sbmNormalImprovementWorkflowKey_(articleId,url),meta=sbmDoctorWorkflowReadMeta_(key);if(String(meta.workflow_type||'')==='NORMAL_IMPROVEMENT')sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});}
   }catch(ignoreNormalWorkflowComplete){}
 }
 function sbmFindAllNormalImprovementWorkflows_(wfIndex){
-  var out=[];
-  if(wfIndex&&wfIndex.meta){
-    Object.keys(wfIndex.meta).forEach(function(id){
-      if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
-      var m=wfIndex.meta[id]||{};
-      if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
-      var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
-      out.push({id:id,meta:m,ts:ts});
-    });
-    out.sort(function(a,b){return b.ts-a.ts;});
-    return out;
-  }
-  var latest=sbmFindLatestNormalImprovementWorkflow_();
-  return latest?[latest]:[];
+  var all=sbmNormalImprovementActiveEntries_(wfIndex),out=[],seen=[];
+  // 一覧では同一ArticleID/URLを1件だけ表示する。allは更新日時降順なので最新Workflowを代表にする。
+  all.forEach(function(e){
+    var duplicate=seen.some(function(m){return sbmNormalImprovementSameArticle_(m,e.meta.article_id,e.meta.article_url);});
+    if(duplicate)return;out.push(e);seen.push(e.meta||{});
+  });
+  return out;
 }
 function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
-  if(wfIndex&&wfIndex.meta){
-    var all=sbmFindAllNormalImprovementWorkflows_(wfIndex);
-    return all.length?all[0]:null;
-  }
-  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
-  if(!sh||sh.getLastRow()<2)return null;
-  var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(),ids={};
-  vals.forEach(function(r){if(String(r[hm['種別']-1]||'')==='META')ids[String(r[hm['CaseID']-1]||'').trim()]=1;});
-  var latest=null;
-  Object.keys(ids).forEach(function(id){
-    if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
-    var m=sbmDoctorWorkflowReadMeta_(id)||{};
-    if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
-    var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
-    if(!latest||ts>latest.ts)latest={id:id,meta:m,ts:ts};
-  });
-  return latest;
+  var all=sbmFindAllNormalImprovementWorkflows_(wfIndex||sbmDoctorWorkflowResumeIndex_());
+  return all.length?all[0]:null;
 }
 function sbmResumeNormalImprovementWorkflow_(entry){
   var m=entry&&entry.meta?entry.meta:entry||{},article=sbmFindArticleDbByIdentity_(String(m.article_id||''),String(m.article_url||''));
