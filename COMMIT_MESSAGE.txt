@@ -1,7 +1,6 @@
-v6.6.41: 未完了作業のWorkflow誤選択を修正
+v6.6.42: 改善ナビ中断時のWorkflow自動保存を追加
 
-- 通常改善とDoctor系Workflowを未完了候補へ統合
-- 複数候補時の更新日時による別系統への自動分岐を廃止
-- workflowType / workflowIdで選択Identityを維持して再開
-- 選択した通常改善WorkflowのMETAを再検証して改善ナビを表示
-- 未完了0件時の未定義staleMergeCleanup参照を除去
+- 改善ナビ表示直後に通常改善WorkflowをCheckpoint保存
+- 改善ナビの「閉じる」で未完了状態を再保存
+- ArticleID / URL / workflowIdを維持して未完了作業から同一ナビを復元
+- ナビ閉鎖時の状態をWorkflow METAへ記録

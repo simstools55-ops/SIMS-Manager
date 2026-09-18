@@ -1,3 +1,7 @@
+## v6.6.42
+- 改善ナビ表示直後に通常改善Workflowを自動Checkpoint保存。
+- 「閉じる」操作で未完了状態を再保存し、同一Workflowを復元可能にした。
+
 ## v6.6.41
 - 「未完了の作業を再開」で通常改善WorkflowとaDoctor/Writer/Merge/Creator系Caseを同一候補集合として扱うよう修正。
 - 通常改善とDoctor系が同時に未完了の場合、更新日時だけで一方へ自動分岐せず、選択画面から対象Workflowを明示選択。

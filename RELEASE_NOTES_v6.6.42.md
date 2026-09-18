@@ -1,0 +1,3 @@
+# SIMS Manager v6.6.42
+
+今日の改善から改善ナビを開いた時点で通常改善Workflowを保存し、途中でナビを閉じた場合も未完了状態をCheckpoint保存します。未完了の作業では保存済みWorkflow Identityから同じ記事の改善ナビへ復帰します。

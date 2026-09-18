@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.41",
+  "current_version": "6.6.42",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.41: 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択したWorkflow Identityどおりに再開。",
-  "version": "6.6.41",
+  "notes": "v6.6.42: 未完了作業の通常改善/Doctor系Workflow選択を統合し、選択したWorkflow Identityどおりに再開。",
+  "version": "6.6.42",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.41-ST"
+  "starter_display_version": "v6.6.42-ST"
 }
