@@ -4,7 +4,7 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.44';
+const SBM_VERSION = '6.6.45';
 // v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
@@ -9611,10 +9611,29 @@ function sbmNormalImprovementWorkflowComplete_(articleId,url){
     if(!matched){var key=sbmNormalImprovementWorkflowKey_(articleId,url),meta=sbmDoctorWorkflowReadMeta_(key);if(String(meta.workflow_type||'')==='NORMAL_IMPROVEMENT')sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});}
   }catch(ignoreNormalWorkflowComplete){}
 }
+// v6.6.45: 改善の推移に正式登録済みの通常改善は、Workflow METAが旧状態のままでも未完了扱いしない。
+// ArticleIDを第一キー、URLを補助キーとして照合する。
+function sbmNormalImprovementRegisteredEffectIndex_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],idx={ids:{},urls:{}};
+  rows.forEach(function(r){
+    var id=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(String(r['記事URL']||''));
+    // 改善・治療開始日がある行だけを正式な改善サイクルとして扱う。
+    if(!r['改善・治療開始日'])return;
+    if(id)idx.ids[id]=true;if(url)idx.urls[url]=true;
+  });
+  return idx;
+}
+function sbmNormalImprovementAlreadyRegistered_(meta,effectIndex){
+  meta=meta||{};effectIndex=effectIndex||{ids:{},urls:{}};
+  var id=String(meta.article_id||'').trim(),url=sbmNormalizeUrl_(String(meta.article_url||''));
+  return !!((id&&effectIndex.ids&&effectIndex.ids[id])||(url&&effectIndex.urls&&effectIndex.urls[url]));
+}
 function sbmFindAllNormalImprovementWorkflows_(wfIndex){
-  var all=sbmNormalImprovementActiveEntries_(wfIndex),out=[],seen=[];
+  var all=sbmNormalImprovementActiveEntries_(wfIndex),out=[],seen=[],effectIndex=sbmNormalImprovementRegisteredEffectIndex_();
+  // v6.6.45: 改善の推移へ登録済みならWorkflow METAが残存していても未完了一覧から除外する。
   // 一覧では同一ArticleID/URLを1件だけ表示する。allは更新日時降順なので最新Workflowを代表にする。
   all.forEach(function(e){
+    if(sbmNormalImprovementAlreadyRegistered_(e.meta,effectIndex))return;
     var duplicate=seen.some(function(m){return sbmNormalImprovementSameArticle_(m,e.meta.article_id,e.meta.article_url);});
     if(duplicate)return;out.push(e);seen.push(e.meta||{});
   });
