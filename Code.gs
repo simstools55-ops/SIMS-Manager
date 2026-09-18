@@ -4,12 +4,13 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.45';
+const SBM_VERSION = '6.6.46';
+// v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
 // v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.44 - 通常改善Workflowの同一記事重複を防止し、完了済み案件が未完了一覧へ残る問題を修正。
+// Current release: v6.6.46 - 日次処理ダイアログを即時表示し、重い事前確認を表示後へ移動。Settings反復I/Oも一括読込へ統合。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -497,18 +498,10 @@ function sbmDailyFetchStageStatus_() {
  * 定期ポーリングは使用せず、各STEPの成功後に次のSTEPを一度だけ呼び出します。
  */
 function sbmOpenDailyUpdateDialog() {
-  var activeHealth = sbmDoctorGetHealthRun_();
-  if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
-    return sbmAlert_('日次処理を実行できません', 'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。');
-  }
-  if (!sbmIsSetupComplete_() || String(sbmGetSetting_('ConnectionStatus','')) !== 'OK') {
-    return sbmAlert_('日次処理を実行できません', '初回セットアップとSearch Console接続テストを完了してください。');
-  }
-
-  var state = sbmDailyUpdateStatus_();
-  var initial = state.completedToday
-    ? '本日の日次処理は完了しています。\n\n再実行する場合は「実行する」を押してください。'
-    : '本日の日次処理は未実施です。\n\n「実行する」を押すと処理を開始します。';
+  // v6.6.46: メニュークリック後の体感待ち時間を最小化するため、
+  // Settings・健康診断Run・当日状態はダイアログ表示前に読まない。
+  // 先に軽量UIを表示し、必要な事前確認は表示後に1回だけ非同期取得する。
+  var initial = '起動準備中です。\n\n日次処理の実行条件を確認しています。';
 
   var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
     + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{color:#0b8043;margin:0 0 12px}'
@@ -523,9 +516,10 @@ function sbmOpenDailyUpdateDialog() {
     + '<div id="message" class="box">' + sbmEscapeHtml_(initial) + '</div>'
     + '<div id="spinner" class="spinner"></div>'
     + '<p id="note" class="note">Search Consoleデータ取得後、分析・記事DB更新、改善の推移更新へ自動的に進みます。</p>'
-    + '<div class="buttons"><button id="cancelBtn" class="close" onclick="closeDialog()">キャンセル</button><button id="runBtn" class="run" onclick="startDaily()">実行する</button></div>'
+    + '<div class="buttons"><button id="cancelBtn" class="close" onclick="closeDialog()">キャンセル</button><button id="runBtn" class="run" onclick="startDaily()" disabled>準備中</button></div>'
     + '<script>'
     + 'var terminal=false;function el(id){return document.getElementById(id);}function closeDialog(){terminal=true;google.script.host.close();}'
+    + 'function loadPreflight(){google.script.run.withFailureHandler(function(e){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent="日次処理の準備確認に失敗しました。"+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(!r.ok){el("message").className="box error";el("message").textContent=r.message||"日次処理を実行できません。";el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";return;}el("message").className="box";el("message").textContent=r.completedToday?("本日の日次処理は完了しています。"+String.fromCharCode(10,10)+"再実行する場合は「実行する」を押してください。"):("本日の日次処理は未実施です。"+String.fromCharCode(10,10)+"「実行する」を押すと処理を開始します。");el("runBtn").textContent="実行する";el("runBtn").disabled=false;}).sbmGetDailyDialogPreflight();}setTimeout(loadPreflight,0);'
     + 'function formatTime(sec){sec=Math.max(0,Number(sec||0));var m=Math.floor(sec/60),s=Math.round(sec%60);return (m?m+"分":"")+s+"秒";}'
     + 'function showRunning(title,text){if(terminal)return;el("spinner").style.display="block";el("message").className="box";el("message").innerHTML="<div class=stage>"+title+"</div>"+text;el("note").textContent="処理中です。完了までこの画面を閉じずにお待ちください。";}'
     + 'function showFailure(prefix,e,retry,retryStage){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent=prefix+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";if(retry){el("runBtn").textContent=retryStage===3?"STEP 3を再実行":"再実行する";el("runBtn").onclick=retryStage===3?retryFinalize:startDaily;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";}}'
@@ -535,6 +529,30 @@ function sbmOpenDailyUpdateDialog() {
     + 'function retryFinalize(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 3 / 3　改善の推移・完了処理を再実行中","STEP 1・2の取得結果は保持したまま、STEP 3だけを再実行しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に再度失敗しました。",e,true,3);}).withSuccessHandler(function(r){showComplete(r||{});}).sbmRunDailyFinalizeStageFromDialog();}function showComplete(r){if(terminal)return;terminal=true;var updated=Math.max(0,Number(r.updated||0)),added=Math.max(0,Number(r.added||0)),total=Math.max(0,Number(r.total||0)),outside=Math.max(0,total-updated-added);el("spinner").style.display="none";el("message").className="box done";el("message").innerHTML="✓ 日次処理が完了しました。<div class=result><div class=group><div class=groupTitle>Search Console</div><div class=resultGrid><span>取得行</span><b>"+Number(r.rawRows||0).toLocaleString()+"件</b><span>有効な記事URL</span><b>"+Number(r.validRows||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>記事DB</div><div class=resultGrid><span>更新記事</span><b>"+updated.toLocaleString()+"件</b><span>更新対象外</span><b>"+outside.toLocaleString()+"件</b><span>新規記事</span><b>"+added.toLocaleString()+"件</b><span>総記事数</span><b>"+total.toLocaleString()+"件</b></div><div class=groupNote>※更新対象外：今回のSearch Consoleデータ取得で対象とならなかった記事です。</div></div><div class=group><div class=groupTitle>改善効果</div><div class=resultGrid><span>モニタ中</span><b>"+Number(r.monitoringCount||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>処理時間</div><div class=resultGrid><span>Search Console取得</span><b>"+formatTime(r.fetchElapsedSeconds)+"</b><span>分析・処理</span><b>"+formatTime(r.analysisElapsedSeconds)+"</b><span>全体所要時間</span><b>"+formatTime(r.totalElapsedSeconds)+"</b></div></div></div>";el("note").textContent="結果を確認して「閉じる」を押してください。";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";}'
     + '</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(790), '日次処理');
+}
+
+/** v6.6.46: 日次処理ダイアログ表示後の軽量事前確認。Settingsは1回だけ読みます。 */
+function sbmGetDailyDialogPreflight() {
+  var totalStarted = Date.now();
+  var settingsStarted = Date.now();
+  var settings = sbmGetSettingsMap_();
+  var settingsMs = Date.now() - settingsStarted;
+
+  if (String(settings['SetupBlogInfo'] || 'NO') !== 'YES' || String(settings['ConnectionStatus'] || '') !== 'OK') {
+    return {ok:false, message:'初回セットアップとSearch Console接続テストを完了してください。', timings:{settingsMs:settingsMs,totalMs:Date.now()-totalStarted}};
+  }
+
+  var healthStarted = Date.now();
+  var activeHealth = sbmDoctorGetHealthRun_(settings);
+  var healthMs = Date.now() - healthStarted;
+  if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
+    return {ok:false, message:'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。', timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+  }
+
+  var state = sbmDailyUpdateStatus_(settings);
+  var result = {ok:true, completedToday:state.completedToday, displayText:state.displayText, timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+  try { sbmLog_('DailyDialog','Preflight','settings='+settingsMs+'ms health='+healthMs+'ms total='+result.timings.totalMs+'ms'); } catch(ignore) {}
+  return result;
 }
 
 function sbmGetDailyUpdateClientStatus() {
@@ -15012,8 +15030,8 @@ function sbmDoctorSaveHealthRun_(run) {
   // active health-check idだけを保存。Doctor全シート再装飾は行わない。
   sbmSetSetting_('DoctorActiveHealthCheckId',run.healthCheckId,'現在のサイト健康診断ID');
 }
-function sbmDoctorGetHealthRun_() {
-  var id=String(sbmGetSetting_('DoctorActiveHealthCheckId','')||''); if(!id)return null;
+function sbmDoctorGetHealthRun_(settingsMap) {
+  var id=String((settingsMap && Object.prototype.hasOwnProperty.call(settingsMap,'DoctorActiveHealthCheckId') ? settingsMap['DoctorActiveHealthCheckId'] : sbmGetSetting_('DoctorActiveHealthCheckId',''))||''); if(!id)return null;
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.DOCTOR_HEALTH_RUN);
   if (sh.getLastRow() < 2) return null;
   var hm=sbmHeaderMap_(sh), vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();

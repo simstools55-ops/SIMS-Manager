@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.6.45",
+  "current_version": "6.6.46",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.45: 改善の推移へ登録済みの通常改善Workflowを未完了一覧から除外。",
-  "version": "6.6.45",
-  "starter_display_version": "v6.6.45-ST"
+  "notes": "v6.6.46: 日次処理ダイアログを先に表示し、事前確認を表示後の非同期一括読込へ移動。",
+  "version": "6.6.46",
+  "starter_display_version": "v6.6.46-ST"
 }
