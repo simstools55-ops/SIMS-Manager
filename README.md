@@ -1,18 +1,18 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.6.46
+> **Current product:** SIMS Manager v6.6.47
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.6.46`
+- Product Version: `6.6.47`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
 - Edition model: Full canonical / Starter derived
 
-> Current release: SIMS Manager Product v6.6.46
+> Current release: SIMS Manager Product v6.6.47
 
 ## v6.5.20 — 記事固有の改善指示を画面とaWriterで共通化
 

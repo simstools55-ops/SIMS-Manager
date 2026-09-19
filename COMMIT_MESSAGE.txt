@@ -1,7 +1,1 @@
-v6.6.46: 日次処理ダイアログの起動待ちを短縮
-
-- ダイアログ表示前のSettings/健康診断/当日状態確認を撤去
-- 表示後の非同期preflightへ移動
-- Settingsを1回のMap読込へ統合
-- preflight区間時間ログを追加
-- 日次処理STEP1〜3本体は変更なし
+feat(manager): add SIMS Request Protocol for aDoctor v6.6.47

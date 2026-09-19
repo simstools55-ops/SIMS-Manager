@@ -16108,8 +16108,33 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
   return html;
 }
 
+function sbmDoctorBuildSimsRequestEnvelope_(payload, jsonText) {
+  payload=payload||{};
+  var request=payload.request||{};
+  var site=payload.site||{};
+  var article=payload.article||{};
+  var requestId=String(request.request_id||'').trim();
+  var caseId=String(payload.case_id||request.case_id||'').trim();
+  var siteId=String(site.site_id||'').trim();
+  var articleId=String(article.article_id||'').trim();
+  if(!requestId||!caseId||!siteId||!articleId)throw new Error('SIMS Request Protocolを生成できません。RequestID / CaseID / SiteID / ArticleIDを確認してください。');
+  var body=String(jsonText||JSON.stringify(payload,null,2)).trim();
+  return '[SIMS_REQUEST]\n'+
+    'PROTOCOL=SIMS-A/1\n'+
+    'SOURCE=SIMS_MANAGER\n'+
+    'EDITION=FULL\n'+
+    'TARGET=ADOCTOR\n'+
+    'REQUEST_TYPE=ARTICLE_DIAGNOSIS\n'+
+    'REQUEST_ID='+requestId+'\n'+
+    'CASE_ID='+caseId+'\n'+
+    'SITE_ID='+siteId+'\n'+
+    'ARTICLE_ID='+articleId+'\n'+
+    '[/SIMS_REQUEST]\n\n'+body;
+}
+
 function sbmDoctorShowCopyDialog_(payload, jsonText) {
-  var html=sbmDoctorBuildCopyDialogHtml_(payload,jsonText);
+  var exportText=sbmDoctorBuildSimsRequestEnvelope_(payload,jsonText);
+  var html=sbmDoctorBuildCopyDialogHtml_(payload,exportText);
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(720), 'aDoctor 精密診断');
 }
 
@@ -18627,7 +18652,7 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
     if(n.mergeReady){var mreq=sbmDoctorBuildMergeTreatmentRequest_(source,doctor,n),mtext=JSON.stringify(mreq,null,2);sbmDoctorSaveGeneratedMergeRequest_(n.caseId,mreq);return {ok:true,message:'aDoctor診断結果を登録し、aMerge紹介状／aMerge Packageを作成しました。',route:'MERGE',nextTitle:'③ 次はSIMS Mergeです',nextMessage:'下のaMerge Packageをすべてコピーし、SIMS Mergeへそのまま貼り付けてください。統合対象記事の本文・GSC Evidence・aDoctorの統合方向をSIMSが同梱しています。',nextRequest:mtext};}
     if(n.writerReady){var req=sbmDoctorBuildWriterTreatmentRequest_(source,doctor,n),text=JSON.stringify(req,null,2);sbmDoctorSaveGeneratedWriterRequest_(n.caseId,req);return {ok:true,message:'aDoctor診断結果を登録し、aWriter紹介状を作成しました。',route:'WRITER',nextTitle:'③ 次はaWriterです',nextMessage:'下の紹介状をすべてコピーし、aWriterへそのまま貼り付けてください。記事本文・クエリ・内部リンク候補・aDoctorの治療方針を含んでいます。',nextRequest:text};}
     if(n.additionalDiagnosis){
-      var addReq=sbmDoctorBuildAdditionalDiagnosisRequest_(source,doctor,n),addText=JSON.stringify(addReq,null,2);
+      var addReq=sbmDoctorBuildAdditionalDiagnosisRequest_(source,doctor,n),addJson=JSON.stringify(addReq,null,2),addText=sbmDoctorBuildSimsRequestEnvelope_(addReq,addJson);
       try{sbmDoctorWorkflowWritePayload_(n.caseId,'FOLLOW_UP_REQUEST',addText);sbmDoctorWorkflowWriteMeta_(n.caseId,{workflow_type:'CANNIBALIZATION_PRECISION_DIAGNOSIS',current_stage:'FOLLOW_UP_REQUEST_READY',registration_status:'WAITING'});}catch(eAddSave){try{sbmLog_('DoctorAdditionalDiagnosisSave','Warning',String(eAddSave));}catch(ignoreAddSave){}}
       return {ok:true,message:'aDoctor診断結果を登録し、追加診断の準備をしました。',route:'ADDITIONAL_DIAGNOSIS',nextTitle:'③ aDoctor判定：追加診断が必要です',nextMessage:'記事はまだ変更しません。カニバリの可能性が高いため、類似記事の本文・GSC Evidenceを含めた追加診断を先に行います。下の依頼JSONをaDoctorへ渡してください。',nextRequest:addText,followUpRequest:addText};
     }
@@ -18752,7 +18777,7 @@ function sbmDoctorRegisterUserConfirmationAndBuildFollowUp(caseId,resultCode,raw
     function put(k,v){if(rec.hm[k])rec.values[rec.hm[k]-1]=v===undefined||v===null?'':v;}
     var spec=sbmDoctorUserConfirmationSpec_(doctor,n),now=sbmNowText_();
     put('確認種別',spec.type);put('確認結果',sbmDoctorConfirmationLabel_(resultCode));put('確認詳細',String(rawText||'').substring(0,45000));put('確認日時',now);put('状態コード','FOLLOW_UP_REQUEST_READY');put('状態','Doctor再診依頼作成済み');put('更新日時',now);
-    var follow=sbmDoctorBuildFollowUpRequest_(caseId,resultCode,rawText),text=JSON.stringify(follow,null,2),compact=JSON.stringify(follow);
+    var follow=sbmDoctorBuildFollowUpRequest_(caseId,resultCode,rawText),followJson=JSON.stringify(follow,null,2),text=sbmDoctorBuildSimsRequestEnvelope_(follow,followJson),compact=JSON.stringify(follow);
     put('再診依頼JSON',compact.length<=49000?compact:JSON.stringify({format:follow.format,case_id:follow.case_id,follow_up_context:follow.follow_up_context,note:'再診依頼はダイアログへ表示済み。Evidenceを含むためセル保存上限を超えました。'}));
     rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
     return {ok:true,message:'確認結果を登録し、Doctor再診依頼を作成しました。\n結果：'+sbmDoctorConfirmationLabel_(resultCode)+'\n新CaseID：'+follow.case_id,followUpRequest:text,followUpCaseId:follow.case_id};
