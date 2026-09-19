@@ -1,3 +1,9 @@
+# v6.6.48
+- aDoctor v1.5.3に合わせ、ManagerのaDoctor依頼を既存 `SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2` 契約へ一本化。
+- v6.6.47のSIMS-A/1外部エンベロープを新規出力から廃止。
+- 旧未完了aDoctor案件は再開時に現行V2へ正規化／再生成し、保存済みCaseIDを維持して処置を継続可能にした。
+- Starter Edition制御、診断ロジック、License Center認証は変更なし。
+
 # v6.6.47
 - aDoctor向け依頼文にSIMS Request Protocol v1エンベロープを自動付与。
 - 初回診断、カニバリ追加診断、利用者確認後の再診依頼を同一方式へ統一。

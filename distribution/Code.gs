@@ -4,14 +4,15 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.47';
+const SBM_VERSION = '6.6.48';
+// v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
 // v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
 // v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
 // v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.47 - aDoctor依頼へSIMS Request Protocol v1を付与。診断ロジック・Edition制御は変更なし。
+// Current release: v6.6.48 - aDoctor V2契約へ一本化し、旧未完了依頼を再開時に現行V2へ救済。診断ロジック・Edition制御は変更なし。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -16352,27 +16353,33 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
 }
 
 function sbmDoctorBuildSimsRequestEnvelope_(payload, jsonText) {
+  // v6.6.48: aDoctor v1.5.3以降は既存V2契約そのものを受付正本とする。
+  // 旧SIMS-A/1外部エンベロープは二重プロトコルになるため廃止。
   payload=payload||{};
-  var request=payload.request||{};
-  var site=payload.site||{};
-  var article=payload.article||{};
-  var requestId=String(request.request_id||'').trim();
-  var caseId=String(payload.case_id||request.case_id||'').trim();
-  var siteId=String(site.site_id||'').trim();
-  var articleId=String(article.article_id||'').trim();
-  if(!requestId||!caseId||!siteId||!articleId)throw new Error('SIMS Request Protocolを生成できません。RequestID / CaseID / SiteID / ArticleIDを確認してください。');
   var body=String(jsonText||JSON.stringify(payload,null,2)).trim();
-  return '[SIMS_REQUEST]\n'+
-    'PROTOCOL=SIMS-A/1\n'+
-    'SOURCE=SIMS_MANAGER\n'+
-    'EDITION=FULL\n'+
-    'TARGET=ADOCTOR\n'+
-    'REQUEST_TYPE=ARTICLE_DIAGNOSIS\n'+
-    'REQUEST_ID='+requestId+'\n'+
-    'CASE_ID='+caseId+'\n'+
-    'SITE_ID='+siteId+'\n'+
-    'ARTICLE_ID='+articleId+'\n'+
-    '[/SIMS_REQUEST]\n\n'+body;
+  var p=payload;
+  if(!p||String(p.format||'')!==SBM_DOCTOR_SINGLE_CASE_FORMAT){
+    try{p=JSON.parse(body);}catch(ignoreV2ExportParse){}
+  }
+  if(!p||String(p.format||'')!==SBM_DOCTOR_SINGLE_CASE_FORMAT)throw new Error('aDoctor V2依頼形式を確認できません。');
+  if(String(p.contract_version||'')!==SBM_DOCTOR_CONTRACT_VERSION||String(p.schema_version||'')!==SBM_DOCTOR_SCHEMA_VERSION)throw new Error('aDoctor V2契約バージョンが一致しません。');
+  if(String(p.source_system||'')!=='SIMS_BLOG_MANAGER'||String(p.target_system||'')!=='SIMS_DOCTOR')throw new Error('aDoctor V2依頼の送受信元を確認できません。');
+  var request=p.request||{},site=p.site||{},article=p.article||{};
+  if(!String(request.request_id||'').trim()||!String(p.case_id||request.case_id||'').trim()||!String(site.site_id||'').trim()||!String(article.article_id||'').trim())throw new Error('aDoctor V2依頼のRequestID / CaseID / SiteID / ArticleIDを確認してください。');
+  return body;
+}
+
+function sbmDoctorNormalizeV2RequestText_(text){
+  var raw=String(text||'').trim();
+  if(!raw)return '';
+  // v6.6.47で保存された旧SIMS-A/1エンベロープは、後段のV2 JSONだけを救済する。
+  var close='[/SIMS_REQUEST]';
+  var pos=raw.indexOf(close);
+  if(pos>=0)raw=raw.substring(pos+close.length).trim();
+  // コードフェンスだけ付いた保存値も安全に除去。
+  raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  var p;try{p=JSON.parse(raw);}catch(e){throw new Error('保存済みaDoctor依頼をV2形式へ復元できません。');}
+  return sbmDoctorBuildSimsRequestEnvelope_(p,JSON.stringify(p,null,2));
 }
 
 function sbmDoctorShowCopyDialog_(payload, jsonText) {
@@ -19280,6 +19287,7 @@ function sbmDoctorSingleCaseResumePayload_(row,hm){
   if(state==='FOLLOW_UP_REQUEST_READY'){
     var followRaw=String(v('再診依頼JSON')||'').trim();
     if(!followRaw)throw new Error('保存済みの再診依頼JSONがありません。');
+    followRaw=sbmDoctorNormalizeV2RequestText_(followRaw);
     var follow=JSON.parse(followRaw);
     if(!follow.article||!follow.request)throw new Error('再診依頼が省略保存されているため、この画面だけでは全文を復元できません。元のaDoctor回答を再登録してください。');
     return follow;
@@ -19740,6 +19748,9 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
         follow=String(rebuilt.request||'');
       }
       if(!follow)throw new Error('追加診断依頼を復元できませんでした。');
+      follow=sbmDoctorNormalizeV2RequestText_(follow);
+      // 旧v6.6.47保存値は、次回以降もそのまま再開できるようV2本文へ更新する。
+      try{sbmDoctorWorkflowWritePayload_(caseId,'FOLLOW_UP_REQUEST',follow);}catch(ignoreResumeV2Save){}
       var info={
         caseId:caseId,state:'FOLLOW_UP_REQUEST_READY',
         articleId:String(rec.hm['記事ID']?rec.values[rec.hm['記事ID']-1]||'':''),

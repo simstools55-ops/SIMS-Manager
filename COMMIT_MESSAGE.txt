@@ -1,1 +1,1 @@
-feat(manager): add SIMS Request Protocol for aDoctor v6.6.47
+fix(manager): restore legacy aDoctor unfinished workflows with V2 requests v6.6.48

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.47",
+  "current_version": "6.6.48",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.47: aDoctor依頼へSIMS Request Protocol v1エンベロープを自動付与。",
-  "version": "6.6.47",
+  "notes": "v6.6.48: aDoctor V2契約へ一本化し、旧未完了aDoctor依頼を再開時に現行V2へ自動救済。",
+  "version": "6.6.48",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.47-ST"
+  "starter_display_version": "v6.6.48-ST"
 }

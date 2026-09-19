@@ -16109,27 +16109,33 @@ function sbmDoctorBuildCopyDialogHtml_(payload, jsonText, resumeState) {
 }
 
 function sbmDoctorBuildSimsRequestEnvelope_(payload, jsonText) {
+  // v6.6.48: aDoctor v1.5.3以降は既存V2契約そのものを受付正本とする。
+  // 旧SIMS-A/1外部エンベロープは二重プロトコルになるため廃止。
   payload=payload||{};
-  var request=payload.request||{};
-  var site=payload.site||{};
-  var article=payload.article||{};
-  var requestId=String(request.request_id||'').trim();
-  var caseId=String(payload.case_id||request.case_id||'').trim();
-  var siteId=String(site.site_id||'').trim();
-  var articleId=String(article.article_id||'').trim();
-  if(!requestId||!caseId||!siteId||!articleId)throw new Error('SIMS Request Protocolを生成できません。RequestID / CaseID / SiteID / ArticleIDを確認してください。');
   var body=String(jsonText||JSON.stringify(payload,null,2)).trim();
-  return '[SIMS_REQUEST]\n'+
-    'PROTOCOL=SIMS-A/1\n'+
-    'SOURCE=SIMS_MANAGER\n'+
-    'EDITION=FULL\n'+
-    'TARGET=ADOCTOR\n'+
-    'REQUEST_TYPE=ARTICLE_DIAGNOSIS\n'+
-    'REQUEST_ID='+requestId+'\n'+
-    'CASE_ID='+caseId+'\n'+
-    'SITE_ID='+siteId+'\n'+
-    'ARTICLE_ID='+articleId+'\n'+
-    '[/SIMS_REQUEST]\n\n'+body;
+  var p=payload;
+  if(!p||String(p.format||'')!==SBM_DOCTOR_SINGLE_CASE_FORMAT){
+    try{p=JSON.parse(body);}catch(ignoreV2ExportParse){}
+  }
+  if(!p||String(p.format||'')!==SBM_DOCTOR_SINGLE_CASE_FORMAT)throw new Error('aDoctor V2依頼形式を確認できません。');
+  if(String(p.contract_version||'')!==SBM_DOCTOR_CONTRACT_VERSION||String(p.schema_version||'')!==SBM_DOCTOR_SCHEMA_VERSION)throw new Error('aDoctor V2契約バージョンが一致しません。');
+  if(String(p.source_system||'')!=='SIMS_BLOG_MANAGER'||String(p.target_system||'')!=='SIMS_DOCTOR')throw new Error('aDoctor V2依頼の送受信元を確認できません。');
+  var request=p.request||{},site=p.site||{},article=p.article||{};
+  if(!String(request.request_id||'').trim()||!String(p.case_id||request.case_id||'').trim()||!String(site.site_id||'').trim()||!String(article.article_id||'').trim())throw new Error('aDoctor V2依頼のRequestID / CaseID / SiteID / ArticleIDを確認してください。');
+  return body;
+}
+
+function sbmDoctorNormalizeV2RequestText_(text){
+  var raw=String(text||'').trim();
+  if(!raw)return '';
+  // v6.6.47で保存された旧SIMS-A/1エンベロープは、後段のV2 JSONだけを救済する。
+  var close='[/SIMS_REQUEST]';
+  var pos=raw.indexOf(close);
+  if(pos>=0)raw=raw.substring(pos+close.length).trim();
+  // コードフェンスだけ付いた保存値も安全に除去。
+  raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  var p;try{p=JSON.parse(raw);}catch(e){throw new Error('保存済みaDoctor依頼をV2形式へ復元できません。');}
+  return sbmDoctorBuildSimsRequestEnvelope_(p,JSON.stringify(p,null,2));
 }
 
 function sbmDoctorShowCopyDialog_(payload, jsonText) {
@@ -19034,6 +19040,7 @@ function sbmDoctorSingleCaseResumePayload_(row,hm){
   if(state==='FOLLOW_UP_REQUEST_READY'){
     var followRaw=String(v('再診依頼JSON')||'').trim();
     if(!followRaw)throw new Error('保存済みの再診依頼JSONがありません。');
+    followRaw=sbmDoctorNormalizeV2RequestText_(followRaw);
     var follow=JSON.parse(followRaw);
     if(!follow.article||!follow.request)throw new Error('再診依頼が省略保存されているため、この画面だけでは全文を復元できません。元のaDoctor回答を再登録してください。');
     return follow;
@@ -19494,6 +19501,9 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
         follow=String(rebuilt.request||'');
       }
       if(!follow)throw new Error('追加診断依頼を復元できませんでした。');
+      follow=sbmDoctorNormalizeV2RequestText_(follow);
+      // 旧v6.6.47保存値は、次回以降もそのまま再開できるようV2本文へ更新する。
+      try{sbmDoctorWorkflowWritePayload_(caseId,'FOLLOW_UP_REQUEST',follow);}catch(ignoreResumeV2Save){}
       var info={
         caseId:caseId,state:'FOLLOW_UP_REQUEST_READY',
         articleId:String(rec.hm['記事ID']?rec.values[rec.hm['記事ID']-1]||'':''),
