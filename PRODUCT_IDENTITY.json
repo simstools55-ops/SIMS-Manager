@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.57",
+  "current_version": "6.6.58",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.57: 「改善の推移」への移管を未完了Workflowの完了境界とし、残存する旧Case/WorkflowStateを物理削除。明示的新規再診は保持。",
-  "version": "6.6.57",
+  "notes": "v6.6.58: 経過観察終了・要再診案件を「今日の改善」へ移管し、改善内容を見るから観察終了後処置を開始。ArticleID基準でURLを解決。",
+  "version": "6.6.58",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.57-ST"
+  "starter_display_version": "v6.6.58-ST"
 }

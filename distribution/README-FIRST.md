@@ -1,35 +1,12 @@
-# SIMS Manager v6.5.20 Repository Baseline
+# SIMS Manager v6.6.58
 
-## v6.5.20
+## v6.6.58 変更点
 
-- Fullの改善ガイドとaWriter依頼文に、同一の記事固有改善指示を使用します。
-- 記事本文とSearch Consoleデータを根拠に、今回実施する修正箇所を具体化します。
-- Starterの自己修正向け改善ガイドは現状維持です。
+- 4回の経過観察が終了し再確認が必要な記事は「改善の推移」から外し、「今日の改善」へ追加表示します。
+- 「今日の改善」で経過観察終了記事を選び「選択記事の改善内容を見る」を実行すると、従来の経過観察終了後処置を開始します。
+- 「改善の推移・履歴」メニューから「観察終了後の処置を進める」を削除し、入口を「今日の改善」に一本化しました。
+- aDoctor再診用の記事URLは選択行のURLだけに依存せず、ArticleIDから記事管理を照合して解決します。
+- 経過観察終了後の処置開始時に新しい `EFFECT_AFTER_OBSERVATION` Workflowを保存し、中断時は未完了作業として再開できます。
+- 改善履歴と7・14・21・28日目の測定記録は保持します。
 
-## v6.5.19
-
-- Full Editionの改善ガイドをaWriter依頼文由来の説明へ統一しました。
-- Starter Editionの自己修正向け改善ガイドは維持します。
-- CTR改善余地を平易に説明し、「今回の方針」の定型表示を削除しました。
-
-## v6.5.18
-
-- Starter EditionからaDoctor精密診断・追加診断・再診の利用者導線を除外しました。
-- Starterの要見直し記事は改善ナビへ接続します。
-- サイト健康診断は維持し、Full EditionのaDoctor連携動作は変更していません。
-
-v6.5.1 triage: 記事詳細で未発芽・発芽をaDoctor優先へ自動分岐し、任意診断を抑制します。
-
-## v6.2.81の位置付け
-
-v6.2.80の機能を維持したまま、Repository内の版管理情報を再監査・同期した整合修正版です。
-
-- Full v6.5.20 / Starter v6.5.20-ST
-- Repository root `Code.gs` がFull Editionの機能正本
-- Fullは `SBM_EDITION = 'FULL'`
-- Starter派生コードは `SBM_EDITION = 'STARTER'`
-- Shared Editorial KnowledgeはManagerとは独立して v3.5.0
-- Spreadsheetスキーマと共通ロジックはFull / Starterで共有
-- 日次GSC取得、14日ゲート、未発芽判定、記事情報更新の共通ロジックは変更なし
-
-ZIP生成前に `tests/check_version_consistency.py` を実行し、版番号不一致が0件であることを確認します。
+詳細は `RELEASE_NOTES_v6.6.58.md` を参照してください。

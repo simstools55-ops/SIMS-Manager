@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.57';
+const SBM_VERSION = '6.6.58';
+// v6.6.58: 経過観察終了・要再診案件を「改善の推移」から「今日の改善」へ移管し、改善内容を見るから観察終了後処置を起動。ArticleID基準のURL解決も追加。
 // v6.6.57: 未完了処理開始時に『改善の推移』へ移管済みArticleIDを正本照合し、旧Case/WorkflowStateを物理削除してから候補表示する。
 // v6.6.55: 未完了データを一時データとして整理。モニター移管時にDoctor/Writer再開データを削除し、観察終了後の再診は旧Caseを昇格せず新規Caseで開始する。
 // v6.6.54: 未完了判定を共通候補抽出へ一本化。精密診断再開・共通処置UIも同じ完了境界を使用し、モニター移管済み旧Caseの別画面再出現を防止。
@@ -16,7 +17,7 @@ const SBM_VERSION = '6.6.57';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.57 - 『改善の推移』への移管を完了境界として、残存する旧未完了データを自動削除する。
+// Current release: v6.6.58 - 経過観察終了案件を今日の改善へ戻し、そこから新しい処置Workflowを開始する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -6338,9 +6339,10 @@ function sbmRefreshTodayPresentationOnly_(){
   var savedChanged=false;
   for(var i=0;i<n;i++){
     var c=byUrl[sbmNormalizeUrl_(urls[i][0]||'')];if(!c)continue;
+    var isObservationEnd=String(c.candidateId||'').indexOf('OBS_END:')===0||c.workflowType==='EFFECT_AFTER_OBSERVATION';
     c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-    var kind=c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善\n（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))));
-    var reason=sbmTodayReason_(c,kind),estimate=sbmTodayEstimate_(c,kind);
+    var kind=isObservationEnd?'🔄 経過観察終了':(c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善\n（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||'')))));
+    var reason=isObservationEnd?String(c.reason||'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。'):sbmTodayReason_(c,kind),estimate=isObservationEnd?String(c.estimate||'約10分'):sbmTodayEstimate_(c,kind);
     if(String(kinds[i][0]||'')!==kind){kinds[i][0]=kind;changed++;}
     if(String(reasons[i][0]||'')!==reason){reasons[i][0]=reason;changed++;}
     if(String(times[i][0]||'')!==estimate){times[i][0]=estimate;changed++;}
@@ -6380,6 +6382,7 @@ function sbmOpenTodayImprovement() {
   var sh = ss.getSheetByName(SBM_SHEETS.TODAY);
   if (!sh) { sbmBuildTodayImprovementSheet_(); sh = ss.getSheetByName(SBM_SHEETS.TODAY); }
 
+  try { sbmSyncObservationEndedToToday_(); } catch(eObservationToday) { try{sbmLog_('ObservationEndedTodaySync','Warning',String(eObservationToday));}catch(ignoreObservationTodayLog){} }
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
   try { sbmRefreshTodayPresentationOnly_(); } catch(eTodayPresentation) { try{sbmLog_('TodayPresentation','Warning',String(eTodayPresentation));}catch(ignoreTodayPresentationLog){} }
 
@@ -6759,6 +6762,49 @@ function sbmTodayEstimate_(c, kind) {
 
 function sbmGetTodayCandidates_() {
   try { return JSON.parse(String(sbmGetSetting_('TodayRecommendationJson','[]')) || '[]'); } catch(e) { return []; }
+}
+
+
+/** v6.6.58: 4回の経過観察が終了し再確認が必要な記事を「今日の改善」へ追加する。 */
+function sbmObservationEndedTodayCandidates_(){
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
+  var latest=sbmLatestMonitoringHistories_(histories.filter(function(h){
+    return sbmMonitoringLifecycleFromHistory_(h)==='REVIEW_REQUIRED' && sbmHistoryMeasurementState_(h).complete;
+  }));
+  return latest.map(function(h){
+    var articleId=String(h['ArticleID']||'').trim(),url=String(h['記事URL']||'').trim();
+    var a=sbmFindArticleDbByIdentity_(articleId,url)||{};
+    url=String(a['記事URL']||url).trim();
+    if(!url)return null;
+    return {
+      workflowType:'EFFECT_AFTER_OBSERVATION',
+      candidateId:'OBS_END:'+String(h['改善履歴ID']||articleId||url),
+      historyId:String(h['改善履歴ID']||'').trim(),
+      articleId:articleId||String(a['ArticleID']||'').trim(),
+      kind:'🔄 経過観察終了',
+      title:String(a['記事タイトル']||h['記事タイトル']||'').trim(),
+      reason:'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。',
+      estimate:'約10分',
+      rank:String(a['記事ランク']||''),
+      query:String(a['メインクエリ']||h['メインクエリ']||''),
+      clicks:sbmNumber_(a['クリック数']),impressions:sbmNumber_(a['表示回数']),ctr:sbmNormalizeCtrNumber_(a['CTR']),position:sbmNumber_(a['掲載順位']),
+      url:url
+    };
+  }).filter(function(x){return !!x;});
+}
+
+/** v6.6.58: 通常候補を維持したまま、観察終了案件を追加表示する。 */
+function sbmSyncObservationEndedToToday_(){
+  var base=sbmGetTodayCandidates_().filter(function(c){return String(c&&c.candidateId||'').indexOf('OBS_END:')!==0;});
+  var obs=sbmObservationEndedTodayCandidates_(),seen={};
+  base.forEach(function(c){var k=String(c&&c.articleId||'')||sbmNormalizeUrl_(c&&c.url||'');if(k)seen[k]=true;});
+  obs=obs.filter(function(c){var k=String(c.articleId||'')||sbmNormalizeUrl_(c.url||'');if(!k||seen[k])return false;seen[k]=true;return true;});
+  var merged=base.concat(obs);
+  sbmSetSetting_('TodayRecommendationJson',JSON.stringify(merged),'通常候補＋経過観察終了案件');
+  sbmSetSetting_('DisplayedImprovementCount',String(merged.length),'今日の改善に表示している件数');
+  sbmWriteTodayRecommendations_(merged,merged.length);
+  sbmApplyTodayWorkState_(merged,merged.length);
+  return obs.length;
 }
 
 /** 今日の改善シートに実際に表示されている記事行数を返します。 */
@@ -9743,6 +9789,9 @@ function sbmOpenSelectedImprovementNavi(){
     if(!row)return sbmAlert_('対象を選択してください','一覧で対象記事の行を選択してから、もう一度実行してください。');
     props.deleteProperty(pendingKey);
     record=sbmRowRecord_(sh,row);
+    if(sh.getName()===SBM_SHEETS.TODAY && String(record['候補ID']||'').indexOf('OBS_END:')===0){
+      return sbmStartEffectAfterObservationFromToday_(record);
+    }
     url=String(record['記事URL']||'').trim();
     if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
     // 通常改善のCheckpointはダイアログ描画後にHTML側から非同期保存する。
@@ -10080,6 +10129,12 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
         sbmMarkArticleMeasurementComplete_(h['ArticleID']);
         return;
       }
+      if(resolvedLife==='REVIEW_REQUIRED'){
+        // v6.6.58: 4回観察終了後は現役モニターではない。今日の改善へ戻し、
+        // そこから「改善内容を見る」で観察終了後処置を新規Workflowとして開始する。
+        try{sbmSetArticleWorkStateByIdentity_(String(h['ArticleID']||''),String(h['記事URL']||''),'🔥 今日の改善');}catch(ignoreTodayState){}
+        return;
+      }
     }
 
     rows.push([false,improveDate,elapsed,due||'【経過観察終了】',state.count+'週／'+state.target+'週',h['記事タイトル'],h['ArticleID'],h['改善経路']||h['改善方法']||'通常改善',beforeClicks,currentClicks,beforeImp,currentImp,judgment,h['記事URL'],h['改善概要'],h['変更箇所'],clickDelta,impDelta,beforeCtr,currentCtr,ctrDelta,beforePos,currentPos,posDelta,h['期待CTR効果'],h['期待クリック効果'],rating,next,comment,state.latestDate||'',measurementLabel,h['改善履歴ID']||'']);
@@ -10115,6 +10170,7 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
       if(rows.length&&hmFast['経過日数'])sh.getRange(2,hmFast['経過日数'],rows.length,1).setNumberFormat('0');
     }catch(ignoreFastFormat){}
   }
+  try{sbmSyncObservationEndedToToday_();}catch(eObservationSync){try{sbmLog_('ObservationEndedTodaySync','Warning',String(eObservationSync));}catch(ignoreObservationSyncLog){}}
   perfWrite=sbmSecondsSince_(perfT);
   var perfTotal=sbmSecondsSince_(perfStart);
   if(showAlert)sbmAlert_('改善の推移','改善の推移を更新しました。対象 '+rows.length+'件'+(recordedCount?'\n今回の測定記録 '+recordedCount+'件':'') );
@@ -13366,13 +13422,20 @@ function sbmWriteTodayRecommendations_(candidates, count) {
   if (shown.length) {
     var values = shown.map(function(c) {
       c=c||{};
+      var isObservationEnd=String(c.candidateId||'').indexOf('OBS_END:')===0||c.workflowType==='EFFECT_AFTER_OBSERVATION';
       c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-      if(c.rankCode==='GROWTH')c.kind='📈 エース化';
-      else if(c.rankCode==='ACE')c.kind='💰 収益改善';
-      else if(c.rankCode==='NURTURE')c.kind='🌱 育成改善';
-      else if(c.rankCode==='STABLE')c.kind='✅ 安全改善';
-      c.reason=sbmTodayReason_(c,c.kind||'');
-      c.estimate=sbmTodayEstimate_(c,c.kind||'');
+      if(isObservationEnd){
+        c.kind='🔄 経過観察終了';
+        c.reason=c.reason||'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。';
+        c.estimate=c.estimate||'約10分';
+      }else{
+        if(c.rankCode==='GROWTH')c.kind='📈 エース化';
+        else if(c.rankCode==='ACE')c.kind='💰 収益改善';
+        else if(c.rankCode==='NURTURE')c.kind='🌱 育成改善';
+        else if(c.rankCode==='STABLE')c.kind='✅ 安全改善';
+        c.reason=sbmTodayReason_(c,c.kind||'');
+        c.estimate=sbmTodayEstimate_(c,c.kind||'');
+      }
       return [
         false,
         c.kind,
@@ -13411,7 +13474,7 @@ function sbmWriteTodayRecommendations_(candidates, count) {
 
   var guideRow = shown.length + 3;
   sh.getRange(guideRow, 1).setValue(
-    '今日の改善は4区分から最大2件ずつ表示します。該当候補がない区分は0件です。'
+    '今日の改善は通常候補に加え、経過観察終了後に再確認が必要な記事を追加表示します。'
   ).setFontColor('#5f6368');
 
   // 念のため選択列を最終正規化
@@ -14276,7 +14339,6 @@ function onOpen() {
   ui.createMenu('改善の推移・履歴')
     .addItem('1．改善の推移を開く','sbmOpenImprovementStatus')
     .addItem('2．選択記事の改善効果を見る','sbmShowSelectedEffectDetail')
-    .addItem(isFullEdition?'3．観察終了後の処置を進める':'3．観察終了後の結果を確認','sbmProcessSelectedEffectAfterObservation')
     .addSeparator()
     .addItem('改善履歴を開く','sbmOpenImprovementHistory')
     .addItem('選択した改善履歴の詳細を見る','sbmOpenSelectedHistoryDetail')
@@ -15372,6 +15434,55 @@ function sbmEffectLifecycleState_(effectRow){
   return {code:'REVIEW_REQUIRED',label:'aDoctor再診が必要',finalOutcome:finalOutcome||'経過観察中',reviewDate:'',doctor:linked?doctor:{},history:history};
 }
 
+/** v6.6.58: 「今日の改善」の経過観察終了行から従来の観察終了後処置を開始する。 */
+function sbmStartEffectAfterObservationFromToday_(record){
+  record=record||{};
+  var articleId=String(record['ArticleID']||'').trim();
+  var candidateId=String(record['候補ID']||'').trim();
+  var historyId=candidateId.indexOf('OBS_END:')===0?candidateId.substring(8):'';
+  var history=historyId?sbmDoctorFindHistoryByIdForSelectedEffect_(historyId):null;
+  if(!articleId&&history)articleId=String(history['ArticleID']||'').trim();
+  var article=sbmFindArticleDbByIdentity_(articleId,String(record['記事URL']||history&&history['記事URL']||''))||{};
+  var url=String(article['記事URL']||record['記事URL']||'').trim();
+  articleId=articleId||String(article['ArticleID']||'').trim();
+  if(!articleId)return sbmAlert_('経過観察終了後の処置','ArticleIDを取得できません。記事管理を確認してください。');
+  if(!url)return sbmAlert_('経過観察終了後の処置','ArticleID '+articleId+' から記事URLを取得できません。記事管理を確認してください。');
+  var props=PropertiesService.getDocumentProperties();
+  props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_TARGET',JSON.stringify({
+    articleId:articleId,url:url,historyId:historyId,title:String(article['記事タイトル']||record['記事タイトル']||'').trim(),
+    sourceSheet:SBM_SHEETS.TODAY,fromToday:true,requestedAt:sbmNowText_()
+  }));
+  props.setProperty('SBM_EFFECT_AFTER_OBSERVATION_SHEET',SBM_SHEETS.TODAY);
+  props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW');
+  return sbmShowEffectAfterObservationProgressDialog_();
+}
+
+function sbmProcessEffectAfterObservationFromToday_(target){
+  target=target||{};
+  var article=sbmFindArticleDbByIdentity_(String(target.articleId||''),String(target.url||''));
+  if(!article)throw new Error('記事管理に対応する記事が見つかりません。');
+  var articleId=String(article['ArticleID']||target.articleId||'').trim(),url=String(article['記事URL']||target.url||'').trim();
+  if(!url)throw new Error('ArticleIDから記事URLを解決できません。記事管理の記事URLを確認してください。');
+  var history=target.historyId?sbmDoctorFindHistoryByIdForSelectedEffect_(target.historyId):null;
+  if(!history)history=sbmDoctorFindLatestHistory_(articleId,url);
+  if(!history)throw new Error('経過観察終了の改善履歴を確認できません。');
+  if(!sbmHistoryMeasurementState_(history).complete)throw new Error('この案件はまだ経過観察終了ではありません。');
+  if(!sbmIsADoctorEnabled_()){
+    sbmOpenImprovementNaviFromArticleDetail(url);
+    return {ok:true,message:'経過観察終了後の改善ナビを開きました。'};
+  }
+  sbmDoctorAssertSafeToExport_();
+  var context={sourceType:'IMPROVEMENT_EFFECT',article:article,effect:{'ArticleID':articleId,'記事URL':url,'記事タイトル':String(article['記事タイトル']||history['記事タイトル']||''),'改善履歴ID':String(history['改善履歴ID']||'')},history:history,sourceSheet:SBM_SHEETS.TODAY,sourceRow:0};
+  var payload=sbmDoctorBuildSingleCaseRequest_(context);
+  var validation=sbmDoctorValidateSingleCaseRequest_(payload);
+  if(!validation.valid)throw new Error(validation.errors.join('\n'));
+  var jsonText=JSON.stringify(payload,null,2);
+  sbmDoctorRememberLastRequest_(payload);
+  sbmDoctorUpsertCaseFromRequest_(payload);
+  sbmDoctorWorkflowSaveRequest_(payload,{workflow_type:'EFFECT_AFTER_OBSERVATION',history_id:String(history['改善履歴ID']||''),source_sheet:SBM_SHEETS.TODAY,source_row:0,explicit_new_cycle:true});
+  return {ok:true,message:'aDoctor再診依頼を作成しました。',requestId:payload.request.request_id,caseId:payload.case_id,dialogHtml:sbmDoctorBuildCopyDialogHtml_(payload,jsonText,{resume:false})};
+}
+
 function sbmProcessSelectedEffectAfterObservation(){
   var sh=SpreadsheetApp.getActiveSheet();
   if(!sh||sh.getName()!==SBM_SHEETS.EFFECT){
@@ -15415,6 +15526,9 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
   props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_SHEET');
   props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_ROW');
   props.deleteProperty('SBM_EFFECT_AFTER_OBSERVATION_TARGET');
+  if(target&&target.fromToday===true){
+    return sbmProcessEffectAfterObservationFromToday_(target);
+  }
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if(!sh||sh.getName()!==SBM_SHEETS.EFFECT)throw new Error('改善の推移を確認できません。');
   var row=sbmFindEffectRowByTarget_(sh,target);
@@ -15966,11 +16080,13 @@ function sbmDoctorAssertSafeToExport_() {
 
 function sbmDoctorResolveContext_(sourceType, sourceSheet, sourceRow) {
   var sourceRecord = sbmRowRecord_(sourceSheet, sourceRow);
+  var articleIdFromSource=String(sourceRecord['ArticleID']||sourceRecord['記事ID']||'').trim();
   var url = String(sourceRecord['記事URL'] || sourceRecord['URL'] || '').trim();
-  if (!url) throw new Error('選択行から記事URLを取得できません。');
-  var article = sourceType === 'ARTICLE_LIST' ? sourceRecord : sbmFindArticleDbByUrl_(url);
+  var article = sourceType === 'ARTICLE_LIST' ? sourceRecord : sbmFindArticleDbByIdentity_(articleIdFromSource,url);
   if (!article) throw new Error('記事管理に対応する記事が見つかりません。');
-  var articleId = String(article['ArticleID'] || '').trim();
+  if(!url)url=String(article['記事URL']||'').trim();
+  if (!url) throw new Error('ArticleIDから記事URLを解決できません。記事管理の記事URLを確認してください。');
+  var articleId = String(article['ArticleID'] || articleIdFromSource || '').trim();
   if (!articleId) throw new Error('対象記事にArticleIDがありません。先に記事情報を取得してください。');
   var effect = sourceType === 'IMPROVEMENT_EFFECT' ? sourceRecord : sbmDoctorFindEffectByUrl_(url);
   var history = sbmDoctorFindLatestHistory_(articleId, url);
