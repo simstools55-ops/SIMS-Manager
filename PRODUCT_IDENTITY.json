@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.60",
+  "current_version": "6.6.63",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.60: 経過観察終了案件を4回測定完了履歴から復元し、メインクエリ未取得でも「今日の改善」へ確実に表示。",
-  "version": "6.6.60",
+  "notes": "v6.6.63: 記事管理を記事状態の唯一の正本に統一し、作業理由・状態更新日・最終改善完了日・再評価予定日と90日再評価サイクルを導入。",
+  "version": "6.6.63",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.60-ST"
+  "starter_display_version": "v6.6.63-ST"
 }
