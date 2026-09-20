@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.59';
+const SBM_VERSION = '6.6.60';
+// v6.6.60: 経過観察終了候補をモニター状態文字列ではなく4回測定完了＋最終結果から復元し、メインクエリ未取得でも今日の改善へ必ず表示。
 // v6.6.59: 経過観察終了案件を「改善の推移」表示から即時除外し「今日の改善」へ移管。未完了掃除も観察終了案件を削除対象外に修正。
 // v6.6.58: 経過観察終了・要再診案件を「改善の推移」から「今日の改善」へ移管し、改善内容を見るから観察終了後処置を起動。ArticleID基準のURL解決も追加。
 // v6.6.57: 未完了処理開始時に『改善の推移』へ移管済みArticleIDを正本照合し、旧Case/WorkflowStateを物理削除してから候補表示する。
@@ -18,7 +19,7 @@ const SBM_VERSION = '6.6.59';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.59 - 経過観察終了案件を改善の推移から即時除外し、今日の改善へ一本化する。
+// Current release: v6.6.60 - 経過観察終了案件を4回測定完了履歴から確実に今日の改善へ復元する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -6390,7 +6391,12 @@ function sbmOpenTodayImprovement() {
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
   try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){}
   sh.showSheet(); ss.setActiveSheet(sh); sh.activate();
-  var current = sbmGetTodayCandidates_().filter(function(c){return !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);});
+  var current = sbmGetTodayCandidates_().filter(function(c){
+    // v6.6.60: 経過観察終了案件は既存記事の再確認であり、メインクエリ未取得を理由に
+    // 今日の改善から除外しない。ArticleID/URLで対象記事を確定できれば表示する。
+    var isObservationEnd=String(c&&c.candidateId||'').indexOf('OBS_END:')===0||String(c&&c.workflowType||'')==='EFFECT_AFTER_OBSERVATION';
+    return isObservationEnd || !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);
+  });
   if (!current.length) {
     // 候補0件なら旧表示を残さず、今日の改善シートを空状態へ正規化する。
     try { sbmWriteTodayRecommendations_([],0); } catch(eClearToday) { sbmLog_('TodayZeroClear','Warning',String(eClearToday)); }
@@ -6770,7 +6776,13 @@ function sbmGetTodayCandidates_() {
 function sbmObservationEndedTodayCandidates_(){
   var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
   var latest=sbmLatestMonitoringHistories_(histories.filter(function(h){
-    return sbmMonitoringLifecycleFromHistory_(h)==='REVIEW_REQUIRED' && sbmHistoryMeasurementState_(h).complete;
+    // v6.6.60: 「モニター状態」は旧データや作業状態同期の影響を受けるため、
+    // 今日の改善への復帰判定には使わない。4回測定完了という永続事実と
+    // 最終結果だけで判定する。改善完了だけは次作業不要なので除外する。
+    var ms=sbmHistoryMeasurementState_(h);
+    if(!ms.complete)return false;
+    var finalOutcome=sbmFinalImprovementOutcome_(String(ms.latestJudgment||''),true);
+    return finalOutcome!=='改善完了';
   }));
   return latest.map(function(h){
     var articleId=String(h['ArticleID']||'').trim(),url=String(h['記事URL']||'').trim();

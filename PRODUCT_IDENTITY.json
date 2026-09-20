@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.59",
+  "current_version": "6.6.60",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.59: 経過観察終了・要再診案件を「今日の改善」へ移管し、改善内容を見るから観察終了後処置を開始。ArticleID基準でURLを解決。",
-  "version": "6.6.59",
+  "notes": "v6.6.60: 経過観察終了案件を4回測定完了履歴から復元し、メインクエリ未取得でも「今日の改善」へ確実に表示。",
+  "version": "6.6.60",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.59-ST"
+  "starter_display_version": "v6.6.60-ST"
 }

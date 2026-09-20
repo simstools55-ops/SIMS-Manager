@@ -588,6 +588,7 @@ RELEASE_NOTES_v6.6.56.md
 RELEASE_NOTES_v6.6.57.md
 RELEASE_NOTES_v6.6.58.md
 RELEASE_NOTES_v6.6.59.md
+RELEASE_NOTES_v6.6.60.md
 REVENUE_FIRST_IMPROVEMENT_POLICY.md
 SECURITY.md
 SHA256-v5.14.4.txt
@@ -596,6 +597,7 @@ SHA256-v5.23.0.txt
 SHA256SUMS-v5.18.3.txt
 SHA256SUMS-v5.18.4.txt
 SHA256SUMS-v6.1.26.txt
+SHA256SUMS.txt
 SHARED_VERSION
 STATIC-AUDIT-v6.6.0-FINAL.txt
 STATIC-AUDIT-v6.6.0-RC12.txt
@@ -1010,6 +1012,7 @@ shared/RELEASE_NOTES_v3.2.0.md
 shared/RELEASE_NOTES_v3.3.0.md
 shared/RELEASE_NOTES_v3.4.0.md
 shared/RELEASE_NOTES_v3.5.0.md
+shared/SHA256SUMS.txt
 shared/SNAPSHOT_MANIFEST.json
 shared/VERSION
 shared/architecture/CLAUDE_OPERATIONS.md
@@ -1611,6 +1614,7 @@ tests/product6656_monitoring_entry_cleanup_test.js
 tests/product6657_effect_transfer_cleanup_test.js
 tests/product6658_observation_end_today_flow_test.js
 tests/product6659_observation_end_move_test.js
+tests/product6660_observation_today_restore_test.js
 tests/release/test_release_candidate_integrity.py
 tests/site_daily_static_test.js
 tests/test_catalog_importer.py
