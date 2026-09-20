@@ -1,3 +1,8 @@
+# v6.6.56
+- 未完了処理開始時にACTIVEモニター中ArticleIDを照合し、該当するDoctor_Cases / Doctor_Workflow_State / 通常改善Workflowを物理削除してから候補表示。
+- Case日時・legacy・SUPERSEDED等による推測を完了境界の主判定から外し、「モニター中=作業完了」を正本化。
+- aDoctor精密診断再開、共通処置再開でも同じ事前クリーンアップを実行。
+
 # v6.6.55
 
 - モニター開始を未完了Workflowの終了境界として、Doctor/Writer系の再開用CaseとWorkflowState Payloadを削除。

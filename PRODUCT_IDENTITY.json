@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.55",
+  "current_version": "6.6.56",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.55: モニター移管時に再開用Case/Payloadを削除し、観察終了後再診のlegacy Case昇格を廃止。",
-  "version": "6.6.55",
+  "notes": "v6.6.56: 未完了処理開始時にACTIVEモニター中ArticleIDを照合し、残存Case/WorkflowStateを物理削除してから未完了一覧を生成。",
+  "version": "6.6.56",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.55-ST"
+  "starter_display_version": "v6.6.56-ST"
 }
