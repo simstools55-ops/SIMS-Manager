@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.52';
-// v6.6.52: 未完了一覧をCase単位から記事ごとの現在Workflow単位へ変更。同一記事の残存Doctor/Writer Caseは最も進んだ1件だけ表示する。
+const SBM_VERSION = '6.6.53';
+// v6.6.53: 改善の推移への移管を旧Doctor/Writer Workflowの完了境界とし、移管済み旧Caseを未完了一覧から除外。正式な経過観察後再診は保持。
 // v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
 // v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
 // v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
@@ -13,7 +13,7 @@ const SBM_VERSION = '6.6.52';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.52 - 同一記事のDoctor/Writer残存Caseを集約し、未完了一覧には現在地点を1件だけ表示する。
+// Current release: v6.6.53 - 改善の推移へ移管済みの旧Doctor/Writer Caseを未完了一覧から除外し、正式な経過観察後再診のみ保持する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -19705,6 +19705,30 @@ function sbmDoctorActiveMonitoringCutoffMap_(){
   });
   return out;
 }
+// v6.6.53: 「改善の推移」へ移管済みの記事は、旧Doctor/Writer Caseを未完了作業として扱わない。
+// ただし経過観察終了後に正式開始した EFFECT_AFTER_OBSERVATION 再診Workflowは別サイクルなので残す。
+function sbmDoctorEffectTransferMap_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],out={};
+  rows.forEach(function(r){
+    var hid=String(r['改善履歴ID']||'').trim();
+    sbmMonitoringAliasesFrom_(r).forEach(function(k){out[k]={historyId:hid,state:String(r['測定状態']||'').trim(),judgment:String(r['判定']||'').trim()};});
+  });
+  return out;
+}
+function sbmDoctorCaseBelongsToTransferredImprovement_(row,hm,effectMap,wfIndex){
+  var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+  if(['DOCTOR_DIAGNOSIS_PENDING','FOLLOW_UP_REQUEST_READY','USER_ACTION_REQUIRED','USER_DECISION_REQUIRED','WRITER_REQUEST_READY','WRITER_IN_PROGRESS'].indexOf(state)<0)return false;
+  var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
+  var probe={'ArticleID':hm['記事ID']?row[hm['記事ID']-1]:'','記事URL':hm['記事URL']?row[hm['記事URL']-1]:'','記事タイトル':hm['記事タイトル']?row[hm['記事タイトル']-1]:''};
+  var ev=null;sbmMonitoringAliasesFrom_(probe).some(function(k){if(effectMap[k]){ev=effectMap[k];return true;}return false;});
+  if(!ev)return false;
+  var meta=wfIndex&&wfIndex.meta?wfIndex.meta[caseId]||{}:{};
+  var wt=String(meta.workflow_type||'').trim(),mh=String(meta.history_id||'').trim(),eh=String(ev.historyId||'').trim();
+  // 改善の推移から明示的に開始された再診だけは、旧改善処置とは別の現役Workflow。
+  if(wt==='EFFECT_AFTER_OBSERVATION'&&(!eh||!mh||mh===eh))return false;
+  return true;
+}
+
 function sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap){
   var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
   // Merge / Creator / 新しい再診は別Workflowとして扱う。ここでは旧Doctor/Writer残骸だけを対象にする。
@@ -19717,12 +19741,15 @@ function sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap){
   return !!cts&&cts<=Number(ev.ts||0);
 }
 function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex){
-  var items=[],byArticle={},monitorMap=sbmDoctorActiveMonitoringCutoffMap_();
+  var items=[],byArticle={},monitorMap=sbmDoctorActiveMonitoringCutoffMap_(),effectMap=sbmDoctorEffectTransferMap_();
   for(var i=0;i<vals.length;i++){
     var row=vals[i],rowState=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
     var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
     if(!caseId)continue;
-    // v6.6.51: モニター開始以前の旧Doctor/Writer Caseは『未完了作業』ではないため候補化しない。
+    // v6.6.53: 改善登録済みで「改善の推移」へ移管された旧Doctor/Writer Caseは未完了一覧から除外する。
+    // Case作成日時には依存しない。経過観察終了後に改善の推移から正式開始した再診Workflowだけは残す。
+    if(sbmDoctorCaseBelongsToTransferredImprovement_(row,hm,effectMap,wfIndex))continue;
+    // 旧データ互換: ACTIVEモニター開始以前と時刻比較できるCaseも引き続き除外する。
     if(sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap))continue;
     var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
     var url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';

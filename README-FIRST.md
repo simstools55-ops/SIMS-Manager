@@ -1,11 +1,11 @@
-# SIMS Manager v6.6.52
+# SIMS Manager v6.6.53
 
-## v6.6.52 変更点
+## v6.6.53 変更点
 
-- 「未完了の作業を再開」は、利用者が次の操作を行う必要があるWorkflowだけを表示します。
-- モニター中の記事は未完了一覧に含めず、「改善の推移・履歴」で確認します。
-- モニター開始以前に残った旧aDoctor/aWriter Caseは、監査履歴を保持したまま未完了一覧から除外します。
-- モニター開始後に新しく開始したCase、Merge/Creator系Caseは維持します。
-- GSC取得、記事ページアクセス、診断処理は行いません。
+- 「改善の推移」へ移管済みの記事は、その改善処置に属する旧aDoctor/aWriter Caseを「未完了の作業を再開」に表示しません。
+- Case作成日時ではなく、「改善の推移」への移管をDoctor→Writer処置の完了境界として判定します。
+- 経過観察終了後に「改善の推移」から正式開始した再診（`EFFECT_AFTER_OBSERVATION`）は、新しいWorkflowとして再開対象に残します。
+- Merge / Creator系Workflowは従来どおり別処置として保持します。
+- Doctor_Casesの履歴自体は削除しません。
 
-詳細は `RELEASE_NOTES_v6.6.52.md` を参照してください。
+詳細は `RELEASE_NOTES_v6.6.53.md` を参照してください。
