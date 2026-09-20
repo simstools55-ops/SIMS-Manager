@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.54",
+  "current_version": "6.6.55",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.54: 未完了判定を共通候補抽出へ一本化し、精密診断再開・共通処置UIでもモニター移管済み旧Caseを除外。",
-  "version": "6.6.54",
+  "notes": "v6.6.55: モニター移管時に再開用Case/Payloadを削除し、観察終了後再診のlegacy Case昇格を廃止。",
+  "version": "6.6.55",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.54-ST"
+  "starter_display_version": "v6.6.55-ST"
 }

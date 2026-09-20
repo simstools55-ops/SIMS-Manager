@@ -1,3 +1,11 @@
+# v6.6.55
+
+- モニター開始を未完了Workflowの終了境界として、Doctor/Writer系の再開用CaseとWorkflowState Payloadを削除。
+- 改善履歴・改善の推移は確定履歴として保持。
+- 観察終了後の再診でcheckpointのない旧CaseをEFFECT_AFTER_OBSERVATIONへ昇格するlegacy rescueを廃止。
+- 観察終了後の正式な再診は explicit_new_cycle を持つ新規Caseだけを再開対象とする。
+- aCreator公開登録後も再開用一時データを削除。
+
 # v6.6.54
 
 - 未完了Workflow判定を `sbmDoctorResumeChooserItems_` に一本化。
