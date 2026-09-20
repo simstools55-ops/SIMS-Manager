@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.56';
-// v6.6.56: 未完了処理開始時にACTIVEモニター中ArticleIDを正本照合し、該当する旧Case/WorkflowStateを物理削除してから候補表示する。
+const SBM_VERSION = '6.6.57';
+// v6.6.57: 未完了処理開始時に『改善の推移』へ移管済みArticleIDを正本照合し、旧Case/WorkflowStateを物理削除してから候補表示する。
 // v6.6.55: 未完了データを一時データとして整理。モニター移管時にDoctor/Writer再開データを削除し、観察終了後の再診は旧Caseを昇格せず新規Caseで開始する。
 // v6.6.54: 未完了判定を共通候補抽出へ一本化。精密診断再開・共通処置UIも同じ完了境界を使用し、モニター移管済み旧Caseの別画面再出現を防止。
 // v6.6.53: 改善の推移への移管を旧Doctor/Writer Workflowの完了境界とし、移管済み旧Caseを未完了一覧から除外。正式な経過観察後再診は保持。
@@ -16,7 +16,7 @@ const SBM_VERSION = '6.6.56';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.56 - 未完了処理開始時にモニター中ArticleIDを照合し、残存再開データを自動削除する。
+// Current release: v6.6.57 - 『改善の推移』への移管を完了境界として、残存する旧未完了データを自動削除する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -18826,57 +18826,67 @@ function sbmDoctorMarkContinuationSuperseded_(priorCaseId,currentCaseId,reason){
   try{sbmLog_('DoctorCaseContinuationSupersede','Info','prior='+priorCaseId+' / current='+currentCaseId+' / article='+(ca||pa));}catch(ignoreLog){}
   return true;
 }
-// v6.6.55: モニターへ移管した処置の再開用データを物理削除する。
-// 確定情報は改善履歴/改善の推移へ残るため、Doctor_Cases / Doctor_Workflow_State は未完了作業の一時領域として扱う。
-function sbmDoctorPurgeResumeDataAfterMonitoring_(articleId,articleUrl,caseIds){
+// v6.6.57: 「改善の推移」へ移管済みの処置について、再開用データを物理削除する。
+// Doctor_Cases / Doctor_Workflow_State は未完了作業の一時領域。確定情報は改善履歴/改善の推移へ残す。
+// ただし、観察終了後に明示的に新規開始した EFFECT_AFTER_OBSERVATION は別サイクルなので保持する。
+function sbmDoctorPurgeResumeDataAfterEffectTransfer_(articleId,articleUrl,caseIds){
   articleId=String(articleId||'').trim();articleUrl=sbmNormalizeUrl_(articleUrl||'');
   var explicit={};(caseIds||[]).forEach(function(x){x=String(x||'').trim();if(x)explicit[x]=1;});
+  var wfIndex={meta:{}};try{wfIndex=sbmDoctorWorkflowResumeIndex_()||{meta:{}};}catch(ignoreIndex){}
+  var preserve={};Object.keys(wfIndex.meta||{}).forEach(function(cid){
+    var m=wfIndex.meta[cid]||{},aid=String(m.article_id||'').trim(),url=sbmNormalizeUrl_(m.article_url||'');
+    var same=(articleId&&aid===articleId)||(articleUrl&&url===articleUrl);
+    if(!same)return;
+    if(String(m.workflow_type||'').trim()==='EFFECT_AFTER_OBSERVATION'&&m.explicit_new_cycle===true)preserve[cid]=1;
+  });
   var removedCases=[];
   try{
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_CASES);
     if(sh&&sh.getLastRow()>1){
       var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();
-      // v6.6.56: モニター中ArticleIDに紐づくDoctor_Casesは再開用一時データとして全削除する。
-      // 状態コードで残す/消すを推測しない。モニター中であること自体を完了境界とする。
       for(var i=vals.length-1;i>=0;i--){
-        var r=vals[i],cid=hm['CaseID']?String(r[hm['CaseID']-1]||'').trim():'',aid=hm['記事ID']?String(r[hm['記事ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(r[hm['記事URL']-1]||''):'',state=hm['状態コード']?String(r[hm['状態コード']-1]||'').trim():'';
+        var r=vals[i],cid=hm['CaseID']?String(r[hm['CaseID']-1]||'').trim():'',aid=hm['記事ID']?String(r[hm['記事ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(r[hm['記事URL']-1]||''):'';
         var same=(articleId&&aid===articleId)||(articleUrl&&url===articleUrl);
         if(!same&&!explicit[cid])continue;
+        if(preserve[cid])continue;
         if(cid)removedCases.push(cid);sh.deleteRow(i+2);
       }
     }
-  }catch(eCases){try{sbmLog_('PurgeMonitoringCases','Warning',String(eCases));}catch(ignoreCasesLog){}}
+  }catch(eCases){try{sbmLog_('PurgeEffectTransferredCases','Warning',String(eCases));}catch(ignoreCasesLog){}}
   try{
     var wsh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
     if(wsh&&wsh.getLastRow()>1){
       var wh=sbmHeaderMap_(wsh),wvals=wsh.getRange(2,1,wsh.getLastRow()-1,wsh.getLastColumn()).getValues(),remove={};
-      removedCases.forEach(function(x){remove[x]=1;});Object.keys(explicit).forEach(function(x){remove[x]=1;});
-      var wi=sbmDoctorWorkflowResumeIndex_();Object.keys(wi.meta||{}).forEach(function(cid){var m=wi.meta[cid]||{},aid=String(m.article_id||'').trim(),url=sbmNormalizeUrl_(m.article_url||'');if((articleId&&aid===articleId)||(articleUrl&&url===articleUrl))remove[cid]=1;});
+      removedCases.forEach(function(x){remove[x]=1;});Object.keys(explicit).forEach(function(x){if(!preserve[x])remove[x]=1;});
+      Object.keys(wfIndex.meta||{}).forEach(function(cid){
+        if(preserve[cid])return;
+        var m=wfIndex.meta[cid]||{},aid=String(m.article_id||'').trim(),url=sbmNormalizeUrl_(m.article_url||'');
+        if((articleId&&aid===articleId)||(articleUrl&&url===articleUrl))remove[cid]=1;
+      });
       for(var j=wvals.length-1;j>=0;j--){var wc=wh['CaseID']?String(wvals[j][wh['CaseID']-1]||'').trim():'';if(remove[wc])wsh.deleteRow(j+2);}
     }
-  }catch(eWorkflow){try{sbmLog_('PurgeMonitoringWorkflow','Warning',String(eWorkflow));}catch(ignoreWorkflowLog){}}
-  try{sbmLog_('PurgeMonitoringResumeData','Info','article='+articleId+' / cases='+removedCases.join(','));}catch(ignoreLog){}
+  }catch(eWorkflow){try{sbmLog_('PurgeEffectTransferredWorkflow','Warning',String(eWorkflow));}catch(ignoreWorkflowLog){}}
+  try{sbmLog_('PurgeEffectTransferredResumeData','Info','article='+articleId+' / cases='+removedCases.join(','));}catch(ignoreLog){}
   return {count:removedCases.length,caseIds:removedCases};
 }
 
-// v6.6.56: 未完了処理の入口で実行する単純な整合処理。
-// ACTIVEモニター中の記事は作業完了済みなので、ArticleID/URLに紐づく再開用一時データを物理削除する。
-// Case日時・legacy・SUPERSEDED・workflow_type等の推測は行わない。
-function sbmPurgeUnfinishedDataForActiveMonitoring_(){
-  var rows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],targets={},purgedArticles=0,purgedCases=0;
-  rows.forEach(function(h){
-    if(sbmMonitoringLifecycleFromHistory_(h)!=='ACTIVE')return;
-    var aid=String(h['ArticleID']||'').trim(),url=sbmNormalizeUrl_(h['記事URL']||'');
+// v6.6.57: 未完了処理の入口で行う唯一の事前整合処理。
+// 「改善の推移」に存在するArticleID/URLは、すでに前回処置が完了して効果測定側へ移管済みとみなす。
+// ACTIVE/要再診/経過観察終了などの細かな測定状態は未完了側では判定しない。
+function sbmPurgeUnfinishedDataForEffectTransferred_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],targets={},purgedArticles=0,purgedCases=0;
+  rows.forEach(function(r){
+    var aid=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(r['記事URL']||'');
     if(!aid&&!url)return;
     var key=aid?'ID:'+aid:'URL:'+url;
     targets[key]={articleId:aid,articleUrl:url};
   });
   Object.keys(targets).forEach(function(k){
-    var t=targets[k],r=sbmDoctorPurgeResumeDataAfterMonitoring_(t.articleId,t.articleUrl,[]);
+    var t=targets[k],r=sbmDoctorPurgeResumeDataAfterEffectTransfer_(t.articleId,t.articleUrl,[]);
     try{sbmNormalImprovementWorkflowComplete_(t.articleId,t.articleUrl);}catch(ignoreNormal){}
     purgedArticles++;purgedCases+=Number(r&&r.count||0);
   });
-  if(purgedCases){try{sbmLog_('V6656MonitoringResumePurge','Info','articles='+purgedArticles+' / cases='+purgedCases);}catch(ignoreLog){}}
+  if(purgedCases){try{sbmLog_('V6657EffectTransferResumePurge','Info','articles='+purgedArticles+' / cases='+purgedCases);}catch(ignoreLog){}}
   return {articles:purgedArticles,cases:purgedCases};
 }
 
@@ -19650,8 +19660,8 @@ function sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals){
 
 function sbmDoctorResumePrecisionDiagnosis(){
   try{
-    // v6.6.56: モニター中の記事に残る旧再開データを先に削除する。
-    sbmPurgeUnfinishedDataForActiveMonitoring_();
+    // v6.6.57: 『改善の推移』へ移管済みの記事に残る旧再開データを先に削除する。
+    sbmPurgeUnfinishedDataForEffectTransferred_();
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
     if(last<2)return sbmAlert_('aDoctor精密診断','途中から再開できる個別精密診断はありません。');
     var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
@@ -20062,9 +20072,9 @@ function sbmDoctorReconcileStaleCasesFromImprovementHistory_(){
 
 function sbmResumeUnfinishedWorkflowCore_(){
   try{
-    // v6.6.56: 未完了候補を作る前に、ACTIVEモニター中ArticleIDの再開用一時データを削除する。
+    // v6.6.57: 未完了候補を作る前に、『改善の推移』へ移管済みArticleIDの旧再開データを削除する。
     // モニター中=作業完了を正本とし、Case日時やlegacy状態から完了を推測しない。
-    try{sbmPurgeUnfinishedDataForActiveMonitoring_();}catch(ePurge){try{sbmLog_('V6656MonitoringResumePurge','Warning',String(ePurge));}catch(ignorePurgeLog){}}
+    try{sbmPurgeUnfinishedDataForEffectTransferred_();}catch(ePurge){try{sbmLog_('V6657EffectTransferResumePurge','Warning',String(ePurge));}catch(ignorePurgeLog){}}
     // ローカルシート照合のみ。GSC取得・記事ページアクセス・診断処理は行わない。
     // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
@@ -20144,8 +20154,8 @@ function sbmDoctorResumePendingTreatments(){return sbmResumeUnfinishedWorkflow()
 
 function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
   try{
-    // v6.6.56: 共通処置画面も同じ完了境界を使用する。
-    sbmPurgeUnfinishedDataForActiveMonitoring_();
+    // v6.6.57: 共通処置画面も『改善の推移』への移管を同じ完了境界として使用する。
+    sbmPurgeUnfinishedDataForEffectTransferred_();
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
     if(last<2)return {ok:true,actions:[],message:'再開できるSite Doctor処置はありません。'};
     preferredCaseId=String(preferredCaseId||'').trim();
@@ -20908,7 +20918,7 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
   // sbmDoctorEnsureMonitoringSync_ は全件の改善経路同期・改善の推移再生成・Home更新まで
   // 実行するため、Creator登録トランザクション内では呼ばない。
   try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}
-  try{sbmDoctorPurgeResumeDataAfterMonitoring_(articleId,url,[caseId]);}catch(eCreatorPurge){sbmLog_('CreatorMonitoringPurge','Warning',String(eCreatorPurge));}
+  try{sbmDoctorPurgeResumeDataAfterEffectTransfer_(articleId,url,[caseId]);}catch(eCreatorPurge){sbmLog_('CreatorMonitoringPurge','Warning',String(eCreatorPurge));}
   try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true});}catch(ignoreCreatorPresentation){}
   return {ok:true,caseId:caseId,articleId:articleId,articleUrl:url,monitorDays:monitorDays,reviewDate:reviewText,message:'aCreator新記事の公開を登録しました。\nArticleID：'+articleId+'\n記事管理：モニター中\n再診予定：'+monitorDays+'日後（'+reviewText+'）'};
 }
@@ -22040,7 +22050,7 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
     try{writerFollowUp=sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec);}catch(eWriterFollow){sbmLog_('DoctorWriterFollowUpPrepare','Warning',String(eWriterFollow));writerFollowUp={required:true,ready:false,label:'カニバリ精密診断',reason:String(eWriterFollow)};}
     if(!writerFollowUp.required){
-      try{sbmDoctorPurgeResumeDataAfterMonitoring_(String(o.article_id||''),o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''),[String(o.case_id||'')]);}catch(ePurge){sbmLog_('DoctorWriterMonitoringPurge','Warning',String(ePurge));}
+      try{sbmDoctorPurgeResumeDataAfterEffectTransfer_(String(o.article_id||''),o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''),[String(o.case_id||'')]);}catch(ePurge){sbmLog_('DoctorWriterMonitoringPurge','Warning',String(ePurge));}
     }
   }
   return {caseId:String(o.case_id||''),status:String(rec.values[rec.hm['状態']-1]||''),personalKnowledge:pkWriterResult,followUp:writerFollowUp};

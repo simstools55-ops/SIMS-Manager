@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.56",
+  "current_version": "6.6.57",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.56: 未完了処理開始時にACTIVEモニター中ArticleIDを照合し、残存Case/WorkflowStateを物理削除してから未完了一覧を生成。",
-  "version": "6.6.56",
+  "notes": "v6.6.57: 「改善の推移」への移管を未完了Workflowの完了境界とし、残存する旧Case/WorkflowStateを物理削除。明示的新規再診は保持。",
+  "version": "6.6.57",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.56-ST"
+  "starter_display_version": "v6.6.57-ST"
 }

@@ -1,11 +1,11 @@
-# SIMS Manager v6.6.56
+# SIMS Manager v6.6.57
 
-## v6.6.56 変更点
+## v6.6.57 変更点
 
-- 「改善の推移」へ移管済みの記事は、その改善処置に属する旧aDoctor/aWriter Caseを「未完了の作業を再開」に表示しません。
-- Case作成日時ではなく、「改善の推移」への移管をDoctor→Writer処置の完了境界として判定します。
-- 経過観察終了後に「改善の推移」から正式開始した再診（`EFFECT_AFTER_OBSERVATION`）は、新しいWorkflowとして再開対象に残します。
-- Merge / Creator系Workflowは従来どおり別処置として保持します。
-- Doctor_Casesの履歴自体は削除しません。
+- 未完了処理の開始時に「改善の推移」のArticleID / URLを正本として照合します。
+- 「改善の推移」へ移管済みの記事に残る旧 `Doctor_Cases` / `Doctor_Workflow_State` / 通常改善Workflowを物理削除してから未完了一覧を生成します。
+- ACTIVE・要再診・経過観察終了などの測定状態を、未完了側では判定しません。
+- 観察終了後に明示的に新規開始した `EFFECT_AFTER_OBSERVATION`（`explicit_new_cycle=true`）だけは別サイクルとして保持します。
+- 再診は旧Caseを復活させず、新しいWorkflowとして開始します。
 
-詳細は `RELEASE_NOTES_v6.6.56.md` を参照してください。
+詳細は `RELEASE_NOTES_v6.6.57.md` を参照してください。

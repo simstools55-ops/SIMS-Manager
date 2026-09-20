@@ -1,3 +1,9 @@
+# v6.6.57
+- 未完了処理の正本照合先をACTIVEモニター判定から「改善の推移」への移管有無へ変更。
+- 改善の推移に存在するArticleID / URLの旧Doctor_Cases / Doctor_Workflow_State / 通常改善Workflowを物理削除してから候補表示。
+- ACTIVE・要再診・経過観察終了等の状態分岐を未完了クリーンアップから撤去。
+- 観察終了後に明示的に新規開始した再診（explicit_new_cycle=true）は別サイクルとして保持。
+
 # v6.6.56
 - 未完了処理開始時にACTIVEモニター中ArticleIDを照合し、該当するDoctor_Cases / Doctor_Workflow_State / 通常改善Workflowを物理削除してから候補表示。
 - Case日時・legacy・SUPERSEDED等による推測を完了境界の主判定から外し、「モニター中=作業完了」を正本化。
