@@ -1,1 +1,1 @@
-fix(manager): sync stale Doctor Writer cases after treatment completion v6.6.49
+fix(manager): reconcile stale Doctor Writer cases from improvement history v6.6.50

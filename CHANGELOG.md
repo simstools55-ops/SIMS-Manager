@@ -1,3 +1,8 @@
+# v6.6.50
+- 改善履歴の aDoctor→aWriter 正式登録を完了根拠として、登録以前の旧Doctor/Writer未完了Caseを毎回軽量照合して終了同期。
+- v6.6.49のMONITORING+Writer結果依存と一回限り修復フラグを廃止。
+- 改善登録後の新規Case、Merge/Creator系Case、監査Payloadは維持。
+
 # v6.6.49
 - aWriter処置の正式登録でMONITORINGへ移行した際、同一記事に残る旧aDoctor/aWriter未完了Caseを `SUPERSEDED_TREATMENT_COMPLETED` へ終了同期。
 - 既存v6.6.48以前の残存Caseは「未完了の作業を再開」初回実行時に一度だけ修復。

@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.49';
-// v6.6.49: aWriter処置のモニタリング登録完了時、同一記事に残る旧aDoctor/aWriter未完了Caseを監査保持のままSUPERSEDED化し、未完了一覧から自動除外する。Merge/Creator系は対象外。
+const SBM_VERSION = '6.6.50';
+// v6.6.50: 改善履歴を正本に未完了Doctor/Writer Caseを毎回軽量整合。登録済みaDoctor→aWriter処置より古い残存Caseを監査保持のままSUPERSEDED化する。
 // v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
 // v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
 // v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
@@ -13,7 +13,7 @@ const SBM_VERSION = '6.6.49';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.49 - aWriter処置完了時の同一記事旧Doctor/Writer Case終了同期を追加。履歴は保持し、Merge/Creator系は変更しない。
+// Current release: v6.6.50 - 改善履歴ベースの旧Doctor/Writer Case整合を追加。一回限りフラグを廃止し、未完了一覧表示前に軽量修復する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -19883,33 +19883,67 @@ function sbmResumeUnfinishedWorkflow(){
 function sbmResumeUnfinishedWorkflowCore(){
   return sbmResumeUnfinishedWorkflowCore_();
 }
-function sbmDoctorRepairStaleCasesAfterCompletedWriterOnce_(){
-  var props=PropertiesService.getDocumentProperties(),key='SBM_V6_6_49_WRITER_COMPLETION_STALE_CASE_REPAIR_DONE';
-  if(props.getProperty(key)==='1')return {count:0,alreadyDone:true};
-  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
-  if(last<2){props.setProperty(key,'1');return {count:0};}
-  var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),total=0;
-  // Writer結果が正式保存されMONITORINGへ到達済みのCaseだけを完了根拠にする。
-  vals.forEach(function(row){
-    var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
-    var writer=hm['Writer結果JSON']?String(row[hm['Writer結果JSON']-1]||'').trim():'';
-    if(state!=='MONITORING'||!writer)return;
-    var cid=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
-    var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
-    var url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';
-    if(!cid||(!aid&&!url))return;
-    try{var r=sbmDoctorSupersedeStaleArticleCasesAfterWriterCompletion_(cid,aid,url);total+=Number(r&&r.count||0);}catch(e){try{sbmLog_('V6649StaleCaseRepair','Warning',String(e));}catch(ignoreLog){}}
+// v6.6.50: 未完了一覧を開くたびに、改善履歴を正本として旧Doctor/Writer Caseとの整合を軽量確認する。
+// v6.6.49の「Doctor_CasesにMONITORING+Writer結果が残っている場合だけ」「一度だけ」という条件を廃止。
+// aDoctor→aWriterで正式登録されたACTIVEな改善履歴があれば、その改善開始以前の旧Doctor/Writer CaseだけをSUPERSEDED化する。
+function sbmDoctorReconcileStaleCasesFromImprovementHistory_(){
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
+  if(!histories.length)return {count:0,evidence:0};
+  var evidence=[];
+  histories.forEach(function(h,idx){
+    var route=String(h['改善経路']||'').trim(),ai=String(h['使用AI']||'').trim();
+    if(route.indexOf('aDoctor')<0||route.indexOf('aWriter')<0){
+      if(!(ai==='SIMS Writer'&&route.indexOf('aWriter')>=0))return;
+    }
+    var lifecycle=sbmMonitoringLifecycleFromHistory_(h);
+    if(lifecycle!=='ACTIVE'&&lifecycle!=='COMPLETED')return;
+    var aid=String(h['ArticleID']||'').trim(),url=sbmNormalizeUrl_(h['記事URL']||'');
+    if(!aid&&!url)return;
+    var rawDate=h['改善日'],d=sbmParseDate_(rawDate),ts=d&&!isNaN(d.getTime())?d.getTime():0;
+    // 改善日は日付だけで保存されることがある。その場合は同日中に作られた旧Caseも処置前Caseとして照合できるよう日末をcutoffにする。
+    var rawDateText=String(rawDate||'');if(ts&&rawDateText.indexOf(':')<0&&rawDateText.indexOf('T')<0)ts+=86400000-1;
+    if(!ts)return;
+    evidence.push({articleId:aid,url:url,historyId:String(h['改善履歴ID']||''),ts:ts,index:idx});
   });
-  props.setProperty(key,'1');
-  try{sbmLog_('V6649StaleCaseRepair','Info','superseded='+total);}catch(ignoreLog2){}
-  return {count:total};
+  if(!evidence.length)return {count:0,evidence:0};
+  // 同一記事に複数履歴がある場合は最新の正式登録だけを完了根拠にする。
+  var latest={};
+  evidence.forEach(function(e){var k=e.articleId?'ID:'+e.articleId:'URL:'+e.url,prev=latest[k];if(!prev||e.ts>prev.ts||(e.ts===prev.ts&&e.index>prev.index))latest[k]=e;});
+  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+  if(last<2)return {count:0,evidence:Object.keys(latest).length};
+  var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),now=sbmNowText_(),changed=0,ids=[];
+  var stale={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1};
+  vals.forEach(function(row,idx){
+    var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+    if(!stale[state]||sbmDoctorIsSupersededCaseCode_(state))return;
+    var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(row[hm['記事URL']-1]||''):'';
+    var ev=(aid&&latest['ID:'+aid])||(url&&latest['URL:'+url]);if(!ev)return;
+    // 記事ID/URLの両方がある場合は食い違う別記事を誤整理しない。
+    if(ev.articleId&&aid&&ev.articleId!==aid)return;
+    if(ev.url&&url&&ev.url!==url)return;
+    var created=hm['作成日時']?sbmParseDate_(row[hm['作成日時']-1]):null,createdTs=created&&!isNaN(created.getTime())?created.getTime():0;
+    // 改善登録後に新しく開始されたCaseは別作業なので残す。日時不明Caseも安全側で残す。
+    if(!createdTs||createdTs>ev.ts)return;
+    var cid=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';if(!cid)return;
+    row[hm['状態コード']-1]='SUPERSEDED_TREATMENT_COMPLETED';
+    if(hm['状態'])row[hm['状態']-1]='登録済みaWriter処置により再開不要';
+    if(hm['確認種別'])row[hm['確認種別']-1]='HISTORY_COMPLETION_RECONCILIATION';
+    if(hm['確認結果'])row[hm['確認結果']-1]='SUPERSEDED';
+    if(hm['確認詳細'])row[hm['確認詳細']-1]='改善履歴 '+ev.historyId+' にaDoctor→aWriter処置の正式登録が確認されたため、登録以前の旧未完了Caseを終了同期しました。履歴は保持します。';
+    if(hm['確認日時'])row[hm['確認日時']-1]=now;if(hm['更新日時'])row[hm['更新日時']-1]=now;
+    sh.getRange(idx+2,1,1,row.length).setValues([row]);
+    try{sbmDoctorWorkflowWriteMeta_(cid,{current_stage:'SUPERSEDED',registration_status:'SUPERSEDED',active_case:false,superseded_at:now,supersede_reason:'IMPROVEMENT_HISTORY_COMPLETED',history_id:ev.historyId});}catch(ignoreMeta){}
+    changed++;ids.push(cid);
+  });
+  if(changed){try{sbmLog_('V6650HistoryCaseReconcile','Info','superseded='+changed+' / cases='+ids.join(','));}catch(ignoreLog){}}
+  return {count:changed,evidence:Object.keys(latest).length,caseIds:ids};
 }
 
 function sbmResumeUnfinishedWorkflowCore_(){
   try{
-    // v6.6.49: 既にaWriter登録済みなのに旧Caseが残る過去データを一度だけ終了同期してから候補抽出する。
-    try{sbmDoctorRepairStaleCasesAfterCompletedWriterOnce_();}catch(eRepair){try{sbmLog_('V6649StaleCaseRepair','Warning',String(eRepair));}catch(ignoreRepairLog){}}
-    // 通常時は候補抽出と表示だけを行う。v6.6.49では旧不整合データの一回限りの終了同期だけを先に実行する。
+    // v6.6.50: 改善履歴と旧Doctor/Writer Caseを毎回軽量照合し、登録済み処置より古い残存Caseを終了同期してから候補抽出する。
+    try{sbmDoctorReconcileStaleCasesFromImprovementHistory_();}catch(eRepair){try{sbmLog_('V6650HistoryCaseReconcile','Warning',String(eRepair));}catch(ignoreRepairLog){}}
+    // 修復は改善履歴とDoctor_Casesのローカル照合のみ。GSC取得・記事ページアクセス・診断処理は行わない。
     // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
     var normals=sbmFindAllNormalImprovementWorkflows_(wfIndex);

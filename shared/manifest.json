@@ -10,8 +10,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "1652340a2e8a8ccb667e9d8d42a33927e73dcbce0ebcece852cec70fc0bc2e43",
-      "size": 10205
+      "sha256": "6b1e92c5879e80aaf2ffdf2c8c7a2769dbf7ef59d3289ed58acdc6df12479b98",
+      "size": 10586
     },
     {
       "path": "COMPATIBILITY_MATRIX.md",
@@ -30,8 +30,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "sha256": "6b73f65d3842df1f63dc110d02babe07b8bfdf1c13b3250fec444dc245d37c79",
-      "size": 277
+      "sha256": "53cd1380e2122c60169b057314cf5d571042ef4233b22c9a9f06808833f61f01",
+      "size": 395
     },
     {
       "path": "README.md",
@@ -185,7 +185,7 @@
     },
     {
       "path": "RELEASE_NOTES_v3.1.0.md",
-      "sha256": "0a0a70b63d075891f44fc246c1ad260f42e9cdc85e42d1dda9fa186d7ce4a1e8",
+      "sha256": "ce08042c7f2aaae1bd3f909f08beb684a3dd019890c800ee94b4ecfb04e2b6c6",
       "size": 420
     },
     {
@@ -360,7 +360,7 @@
     },
     {
       "path": "doctor/CASE_LIFECYCLE_V1.md",
-      "sha256": "be09bfb476247a2c4fbf703d687eec3a74fa25e24477aefcb308689cfe0e968f",
+      "sha256": "49b2b2ac6bf66b939845c10df5daeea8873ed4d28f9099818cedd9d8f1d4d9f8",
       "size": 1798
     },
     {
@@ -770,8 +770,8 @@
     },
     {
       "path": "learning/LEARNING_REGISTRY.json",
-      "sha256": "c76d6d85f4244c24507bdc7b3dc99298c88d96d83530bcf37c7104f1574f1867",
-      "size": 5585
+      "sha256": "6075b6111fb29408948d1b5a1e4ee2808a900358b68acd6f7d44c154c753c9b7",
+      "size": 1088
     },
     {
       "path": "learning/LEARNING_SPRINT_PLAYBOOK.md",
@@ -825,8 +825,8 @@
     },
     {
       "path": "patterns/intent-drift-cross-link-pattern.md",
-      "sha256": "ef037c0ace6598a568f4f34362870863599d2d535cb074322d1b5a9a2941b6d7",
-      "size": 1579
+      "sha256": "46d04d2188334edeb7c0d5d81034fff853676fd8b2de6db447ff6064ac175ee9",
+      "size": 1636
     },
     {
       "path": "patterns/internal-link-role-separation-pattern.md",

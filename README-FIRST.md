@@ -1,10 +1,11 @@
-# SIMS Manager v6.6.46
+# SIMS Manager v6.6.50
 
-## v6.6.46 変更点
+## v6.6.50 変更点
 
-- 日次処理メニュー実行時、Settings・サイト健康診断Run・当日実施状態をダイアログ表示前に読み込まないよう変更。
-- 先に「日次処理」ダイアログを表示し、その後に実行条件を非同期確認する方式へ変更。
-- 事前確認ではSettingsを1回だけ一括取得し、SetupBlogInfo / ConnectionStatus / LastSuccessfulDailyUpdateEpoch / DoctorActiveHealthCheckIdを同じMapから参照。
-- 事前確認の Settings / 健康診断 / 合計時間をログ計測し、今後の遅延調査を可能化。
-- 日次処理STEP1〜3本体の処理内容・判定ロジックは変更なし。
+- 「未完了の作業を再開」の候補抽出前に、改善履歴とDoctor_Casesをローカル照合します。
+- aDoctor→aWriterで正式登録済みの改善履歴を根拠に、改善登録以前の旧aDoctor/aWriter未完了Caseを監査保持のまま終了同期します。
+- v6.6.49の一回限り修復フラグを廃止し、0件修復だった環境でも次回以降に再照合します。
+- 改善登録後に開始されたCase、Merge/Creator系Caseは整理しません。
+- GSC取得、記事ページアクセス、診断処理は行いません。
 
+詳細は `RELEASE_NOTES_v6.6.50.md` を参照してください。
