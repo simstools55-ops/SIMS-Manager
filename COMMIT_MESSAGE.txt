@@ -1,1 +1,1 @@
-fix(manager): restore legacy aDoctor unfinished workflows with V2 requests v6.6.48
+fix(manager): sync stale Doctor Writer cases after treatment completion v6.6.49

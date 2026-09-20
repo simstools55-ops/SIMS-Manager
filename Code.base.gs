@@ -4,8 +4,23 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.2';
-// Current release: v6.6.2 — 今日の改善は4区分×最大2件。旧保存候補は初回表示時に一度だけ再選定します。
+const SBM_VERSION = '6.6.49';
+// v6.6.49: aWriter処置のモニタリング登録完了時、同一記事に残る旧aDoctor/aWriter未完了Caseを監査保持のままSUPERSEDED化し、未完了一覧から自動除外する。Merge/Creator系は対象外。
+// v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
+// v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
+// v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
+// v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
+// v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
+// v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
+// v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
+// Current release: v6.6.49 - aWriter処置完了時の同一記事旧Doctor/Writer Case終了同期を追加。履歴は保持し、Merge/Creator系は変更しない。
+// v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
+// v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
+// v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
+// v6.6.20: 日次STEP3の旧日付修復全件走査を初回限定化。v6.6.19で日次STEP2候補選定のSettings反復I/Oを除去。
+// 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
+// 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
+// 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
 // License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
 // Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
 // Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成する方式へ統一。Starter Editionは従来の自己修正向け改善ガイドを維持。「CTR機会値」を平易な説明へ変更し、「今回の方針」表示を削除。
@@ -64,7 +79,7 @@ const SBM_VERSION = '6.6.2';
 // Writer follow_up由来のカニバリ精密診断でFOLLOW_UP_REQUESTが未保存でも、Doctor_CasesのWriter結果・記事DB・元Caseから追加診断依頼をオンデマンド再生成する。既存Caseをそのまま復旧し、機能ロジック本体は変更しない。
 // Repository版管理を再監査し、VERSION/README/Distribution/Shared版情報の同期漏れを修正。版整合チェックを追加し、ZIP生成前の必須検証とする。機能ロジックは変更しない。
 // カニバリ精密診断を開いた直後に親ダイアログのsuccess handlerがhost.close()して新ダイアログまで閉じる競合を修正。追加診断では成功時にcloseせず、失敗時は元画面にエラーを残す。Writer登録直後の追加診断導線も同様に修正。
-// aWriter結果のfollow_up_referrals(MERGE)を自動Mergeせず「カニバリ精密診断候補」として同一Caseに保存。Writer本処置はモニターへ正常完了させ、記事詳細・未完了再開から追加診断へ進める。\n// v6.2.78: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
+// aWriter結果のfollow_up_referrals(MERGE)を自動Mergeせず「カニバリ精密診断候補」として同一Caseに保存。Writer本処置はモニターへ正常完了させ、記事詳細・未完了再開から追加診断へ進める。\n// 旧版: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
 // 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
 // Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
 // 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
@@ -135,9 +150,9 @@ function sbmIsADoctorEnabled_(){return sbmEffectiveEdition_()==='FULL';}
 // aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
 // aDoctor未完了処置のメニュー入口を統一。通常aDoctorのWRITER_IN_PROGRESS等は専用再開ダイアログを表示し、該当がなければSite Doctor経由の共通処置UIへフォールバック。
 // 共通aDoctor処置ダイアログのWriter登録を経路自動判定化。通常aDoctor案件をSite Doctor専用登録へ誤送信していた回帰を修正し、共通UI名称もaDoctor基準へ統一。
-// onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。v6.1.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
+// onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。旧版.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
 // 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
-// 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。v6.1.35の一度限りフラグ依存を廃止。
+// 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。旧版.35の一度限りフラグ依存を廃止。
 // SpreadsheetのタイムゾーンをAsia/Tokyoへ統一し、AI改善結果JSON.completed_atを正本として旧履歴の日付ずれを補正。日付シリアルと表示TZの境界で1日前化する再発を防止。
 // 改善履歴の改善日とAI改善結果JSON.completed_atの暦日不一致を軽量検出し、TZ変更済み後でも自己修復を確実に起動。
 // aDoctor回答抽出で依頼JSON内のreturn_contractを診断結果と誤認しないよう、結果JSONのCaseIDを必須化。依頼JSON誤貼付は明示エラーにし、正しいDoctor回答全文から対象CaseのRESULTのみを抽出。
@@ -171,13 +186,13 @@ function sbmIsADoctorEnabled_(){return sbmEffectiveEdition_()==='FULL';}
 // aDoctor精密診断結果登録を高速化。WAIT/MONITOR登録時の全体再計算を同期処理から外し、登録ボタンに処理中スピナーを追加。
 // Creator新規記事登録で公開URLを最上部の必須項目へ変更し、公開済みURLがない記事は登録不可と明示。あわせて「SIMS Managerについて」を情報ダイアログ化し、SIMS = SEO Improvement Master System、製品概要、効果測定基準を表示。
 // aDoctorのWAIT/MONITORを、既存の改善履歴がない記事でも新規モニターとして開始可能に修正。Doctorの約30日指定は目安として保持し、SBMの効果測定は7日目・14日目・21日目・28日目の4回を標準とする。
-// 実運用試験の管理番号更新。v5.21.63で確認済みのaDoctor精密診断同期処理とDoctor Case保存軽量化を新しい管理基準版へ繰り上げ。機能ロジックの追加変更は行わない。
-// aDoctor精密診断はv5.21.60の同期処理構造を維持し、Doctor Case保存時に全Doctor管理シートを毎回再装飾していた不要処理だけを廃止。v5.21.61のダイアログ先行非同期化および保留中v5.21.62のEvidence取得方式変更は取り込まない。
+// 実運用試験の管理番号更新。旧版.63で確認済みのaDoctor精密診断同期処理とDoctor Case保存軽量化を新しい管理基準版へ繰り上げ。機能ロジックの追加変更は行わない。
+// aDoctor精密診断はv5.21.60の同期処理構造を維持し、Doctor Case保存時に全Doctor管理シートを毎回再装飾していた不要処理だけを廃止。旧版.61のダイアログ先行非同期化および保留中v5.21.62のEvidence取得方式変更は取り込まない。
 // 改善履歴の旧データ互換修復。改善日列に残るISO日時文字列だけをDate型へ軽量変換し、yyyy/M/d表示へ統一。既存Date型・空欄・解釈不能値は変更せず、全体再計算や並べ替えは行わない。
 // Creator Directの登録品質ゲートを追加。新規記事タイトルまたはメインクエリを取得できない場合は改善履歴・モニターを開始しない。改善履歴詳細はCreator Directを新記事公開用表示へ切替。既存の不完全Creator Direct履歴を選択行だけバックアップ後に除外できる専用メンテナンス処理を追加。
 // 改善履歴の詳細表示で「改善の推移」全体再計算を実行していた処理を廃止。選択履歴の詳細は既存の改善の推移データを読むだけにし、詳細表示を即時化。
 // 改善履歴の表示を軽量整形方式へ変更。「改善履歴を開く」時に全データ再計算はせず、利用者向け列の表示・ヘッダー/幅/行高の整形と選択列のチェックボックス復元だけを少数のRange操作で行う。
-// バージョン表記整合修正。ファイル先頭の製品コメント、SBM_VERSION、成果物名をv5.21.56へ同期。v5.21.55の機能修正内容は変更なし。
+// バージョン表記整合修正。ファイル先頭の製品コメント、SBM_VERSION、成果物名をv5.21.56へ同期。旧版.55の機能修正内容は変更なし。
 // 「改善履歴を開く」を表示専用の軽量処理へ変更。履歴表示時の全体再計算・全行書式再設定・Creator Direct重複自動整理を廃止し、既存重複整理は明示的な専用メンテナンス処理へ分離。
 // 「改善の進捗」を「改善の推移・履歴」へ統合。履歴3操作を同メニュー末尾へ復活。改善履歴の新規行へチェックボックスを即時設定し、Creator Directの同一記事重複登録を防止。既存Creator Direct重複履歴はバックアップ後に安全整理。
 // aWriter処置結果登録を単一記事の軽量更新へ変更。改善の推移全体再生成と同期Personal Knowledge書込を登録経路から外し、起動時に内部管理シートを再非表示化。経過観察ダイアログの重複「この記事を開く」導線を削除。
@@ -486,18 +501,10 @@ function sbmDailyFetchStageStatus_() {
  * 定期ポーリングは使用せず、各STEPの成功後に次のSTEPを一度だけ呼び出します。
  */
 function sbmOpenDailyUpdateDialog() {
-  var activeHealth = sbmDoctorGetHealthRun_();
-  if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
-    return sbmAlert_('日次処理を実行できません', 'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。');
-  }
-  if (!sbmIsSetupComplete_() || String(sbmGetSetting_('ConnectionStatus','')) !== 'OK') {
-    return sbmAlert_('日次処理を実行できません', '初回セットアップとSearch Console接続テストを完了してください。');
-  }
-
-  var state = sbmDailyUpdateStatus_();
-  var initial = state.completedToday
-    ? '本日の日次処理は完了しています。\n\n再実行する場合は「実行する」を押してください。'
-    : '本日の日次処理は未実施です。\n\n「実行する」を押すと処理を開始します。';
+  // v6.6.46: メニュークリック後の体感待ち時間を最小化するため、
+  // Settings・健康診断Run・当日状態はダイアログ表示前に読まない。
+  // 先に軽量UIを表示し、必要な事前確認は表示後に1回だけ非同期取得する。
+  var initial = '起動準備中です。\n\n日次処理の実行条件を確認しています。';
 
   var html = '<!DOCTYPE html><html><head><base target="_top"><style>'
     + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{color:#0b8043;margin:0 0 12px}'
@@ -512,9 +519,10 @@ function sbmOpenDailyUpdateDialog() {
     + '<div id="message" class="box">' + sbmEscapeHtml_(initial) + '</div>'
     + '<div id="spinner" class="spinner"></div>'
     + '<p id="note" class="note">Search Consoleデータ取得後、分析・記事DB更新、改善の推移更新へ自動的に進みます。</p>'
-    + '<div class="buttons"><button id="cancelBtn" class="close" onclick="closeDialog()">キャンセル</button><button id="runBtn" class="run" onclick="startDaily()">実行する</button></div>'
+    + '<div class="buttons"><button id="cancelBtn" class="close" onclick="closeDialog()">キャンセル</button><button id="runBtn" class="run" onclick="startDaily()" disabled>準備中</button></div>'
     + '<script>'
     + 'var terminal=false;function el(id){return document.getElementById(id);}function closeDialog(){terminal=true;google.script.host.close();}'
+    + 'function loadPreflight(){google.script.run.withFailureHandler(function(e){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent="日次処理の準備確認に失敗しました。"+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(!r.ok){el("message").className="box error";el("message").textContent=r.message||"日次処理を実行できません。";el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";return;}el("message").className="box";el("message").textContent=r.completedToday?("本日の日次処理は完了しています。"+String.fromCharCode(10,10)+"再実行する場合は「実行する」を押してください。"):("本日の日次処理は未実施です。"+String.fromCharCode(10,10)+"「実行する」を押すと処理を開始します。");el("runBtn").textContent="実行する";el("runBtn").disabled=false;}).sbmGetDailyDialogPreflight();}setTimeout(loadPreflight,0);'
     + 'function formatTime(sec){sec=Math.max(0,Number(sec||0));var m=Math.floor(sec/60),s=Math.round(sec%60);return (m?m+"分":"")+s+"秒";}'
     + 'function showRunning(title,text){if(terminal)return;el("spinner").style.display="block";el("message").className="box";el("message").innerHTML="<div class=stage>"+title+"</div>"+text;el("note").textContent="処理中です。完了までこの画面を閉じずにお待ちください。";}'
     + 'function showFailure(prefix,e,retry,retryStage){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent=prefix+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";if(retry){el("runBtn").textContent=retryStage===3?"STEP 3を再実行":"再実行する";el("runBtn").onclick=retryStage===3?retryFinalize:startDaily;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";}}'
@@ -524,6 +532,30 @@ function sbmOpenDailyUpdateDialog() {
     + 'function retryFinalize(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 3 / 3　改善の推移・完了処理を再実行中","STEP 1・2の取得結果は保持したまま、STEP 3だけを再実行しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に再度失敗しました。",e,true,3);}).withSuccessHandler(function(r){showComplete(r||{});}).sbmRunDailyFinalizeStageFromDialog();}function showComplete(r){if(terminal)return;terminal=true;var updated=Math.max(0,Number(r.updated||0)),added=Math.max(0,Number(r.added||0)),total=Math.max(0,Number(r.total||0)),outside=Math.max(0,total-updated-added);el("spinner").style.display="none";el("message").className="box done";el("message").innerHTML="✓ 日次処理が完了しました。<div class=result><div class=group><div class=groupTitle>Search Console</div><div class=resultGrid><span>取得行</span><b>"+Number(r.rawRows||0).toLocaleString()+"件</b><span>有効な記事URL</span><b>"+Number(r.validRows||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>記事DB</div><div class=resultGrid><span>更新記事</span><b>"+updated.toLocaleString()+"件</b><span>更新対象外</span><b>"+outside.toLocaleString()+"件</b><span>新規記事</span><b>"+added.toLocaleString()+"件</b><span>総記事数</span><b>"+total.toLocaleString()+"件</b></div><div class=groupNote>※更新対象外：今回のSearch Consoleデータ取得で対象とならなかった記事です。</div></div><div class=group><div class=groupTitle>改善効果</div><div class=resultGrid><span>モニタ中</span><b>"+Number(r.monitoringCount||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>処理時間</div><div class=resultGrid><span>Search Console取得</span><b>"+formatTime(r.fetchElapsedSeconds)+"</b><span>分析・処理</span><b>"+formatTime(r.analysisElapsedSeconds)+"</b><span>全体所要時間</span><b>"+formatTime(r.totalElapsedSeconds)+"</b></div></div></div>";el("note").textContent="結果を確認して「閉じる」を押してください。";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";}'
     + '</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(790), '日次処理');
+}
+
+/** v6.6.46: 日次処理ダイアログ表示後の軽量事前確認。Settingsは1回だけ読みます。 */
+function sbmGetDailyDialogPreflight() {
+  var totalStarted = Date.now();
+  var settingsStarted = Date.now();
+  var settings = sbmGetSettingsMap_();
+  var settingsMs = Date.now() - settingsStarted;
+
+  if (String(settings['SetupBlogInfo'] || 'NO') !== 'YES' || String(settings['ConnectionStatus'] || '') !== 'OK') {
+    return {ok:false, message:'初回セットアップとSearch Console接続テストを完了してください。', timings:{settingsMs:settingsMs,totalMs:Date.now()-totalStarted}};
+  }
+
+  var healthStarted = Date.now();
+  var activeHealth = sbmDoctorGetHealthRun_(settings);
+  var healthMs = Date.now() - healthStarted;
+  if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
+    return {ok:false, message:'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。', timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+  }
+
+  var state = sbmDailyUpdateStatus_(settings);
+  var result = {ok:true, completedToday:state.completedToday, displayText:state.displayText, timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+  try { sbmLog_('DailyDialog','Preflight','settings='+settingsMs+'ms health='+healthMs+'ms total='+result.timings.totalMs+'ms'); } catch(ignore) {}
+  return result;
 }
 
 function sbmGetDailyUpdateClientStatus() {
@@ -686,8 +718,11 @@ function sbmRunDailyAnalysisStageFromDialog() {
     sbmSetSetting_('DailyAnalysisStageElapsedSeconds', String(analysisElapsed), '日次処理STEP2の所要時間（秒）');
     sbmSetSetting_('DailyTotalElapsedSeconds', String(totalElapsed), '日次処理全体の所要時間（秒）');
     sbmSetSetting_('DailyAnalysisContinuationPhase','','日次STEP2継続位置');
+    var selectTiming = candidates && candidates._timing ? candidates._timing : {};
     var step2TimingSummary = 'DB差分反映 ' + Number(step2MergeSec||0) + '秒 / 候補選定 ' + Number(step2SelectSec||0) +
-      '秒 / 今日シート ' + Number(step2TodayWriteSec||0) + '秒 / 作業状態 ' + Number(step2WorkStateSec||0) + '秒';
+      '秒（記事DB読込 ' + Number(selectTiming.articleDbReadSec||0) + '秒 / 設定取得 ' + Number(selectTiming.settingsReadSec||0) +
+      '秒 / 走査・採点 ' + Number(selectTiming.scanAndScoreSec||0) + '秒 / 元記事 ' + Number(selectTiming.sourceRows||0) + '件 / 適格 ' + Number(selectTiming.eligibleRows||0) +
+      '件） / 今日シート ' + Number(step2TodayWriteSec||0) + '秒 / 作業状態 ' + Number(step2WorkStateSec||0) + '秒';
     sbmProcessLog_('日次処理 STEP2 分析・記事DB更新', '完了', validRows, mergeResult.total, analysisElapsed,
       '既存更新 ' + Number(mergeResult.updated||0) + '件 / 実セル変更 ' + Number(mergeResult.changedCells||0) + '件 / 新規追加 ' + Number(mergeResult.added||0) + '件 / 改善候補 ' + candidateCount + '件 / 今日の改善 ' + displayedCount + '件 / ' + step2TimingSummary + ' / 全体 ' + totalElapsed + '秒', startedText, sbmNowText_());
     var stage2Summary = {
@@ -775,6 +810,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
     var effectRows = Number(effectResult.rows || 0);
     var measurementRecorded = Number(effectResult.recordedCount || 0);
     var step3EffectSec = sbmSecondsSince_(tEffect3);
+    var effectTiming = effectResult.timing || {};
 
     // STEP3前後に改善履歴を全件2回読む処理を廃止。
     // モニター件数は生成済み「改善の推移」の件数を正本として利用。
@@ -783,6 +819,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
     var summary = {};
     try { summary = JSON.parse(String(sbmGetSetting_('DailyStage2SummaryJson','{}') || '{}')); } catch(ignoreSummary) {}
 
+    var tComplete3 = new Date();
     var completedAt = new Date();
     sbmMarkDailyUpdateCompleted_(completedAt);
     sbmPersistDailyRuntime_({
@@ -794,37 +831,70 @@ function sbmRunDailyFinalizeStageFromDialog() {
       DailyUpdateHeartbeatEpoch:String(Date.now()),
       DailyUpdateLastError:''
     });
+    var step3CompleteSec = sbmSecondsSince_(tComplete3);
 
     // Home全体を再集計すると改善の推移更新が再実行され得るため、
     // 日次処理完了時は状態表示と記事ランク件数だけを軽量更新する。
+    var step3HomeSnapshotSec=0, step3HomeVersionSec=0, step3HomeRankSec=0, step3HomeStatusSec=0;
     try {
+      var tHomeSnapshot3=new Date();
       var homeSnapshot = sbmBuildHomeSnapshot_();
+      step3HomeSnapshotSec=sbmSecondsSince_(tHomeSnapshot3);
+      var tHomeVersion3=new Date();
       sbmSyncHomeVersionOnly_();
+      step3HomeVersionSec=sbmSecondsSince_(tHomeVersion3);
+      var tHomeRank3=new Date();
       sbmRefreshHomeRankSummaryOnly_(homeSnapshot);
+      step3HomeRankSec=sbmSecondsSince_(tHomeRank3);
+      var tHomeStatus3=new Date();
       sbmRefreshHomeDailyStatusOnly_();
+      step3HomeStatusSec=sbmSecondsSince_(tHomeStatus3);
     } catch(eHome) {
       sbmLog_('DailyHomeStatusRefresh','Warning',String(eHome));
     }
 
-    var finalizeElapsed = sbmSecondsSince_(started);
+    var tFlowRead3=new Date();
     var flowStarted = Number(sbmGetSetting_('DailyStepFlowStartedEpoch', started.getTime()) || started.getTime());
+    var step3FlowReadSec=sbmSecondsSince_(tFlowRead3);
     var totalElapsed = Math.max(0, Math.round((Date.now() - flowStarted) / 1000));
 
+    var tTimingSave3=new Date();
+    var finalizeBeforeTimingSave = sbmSecondsSince_(started);
     sbmSetSettingsBatch_([
-      {key:'DailyFinalizeStageElapsedSeconds',value:String(finalizeElapsed),desc:'日次処理STEP3の所要時間（秒）'},
+      {key:'DailyFinalizeStageElapsedSeconds',value:String(finalizeBeforeTimingSave),desc:'日次処理STEP3の所要時間（秒）'},
       {key:'DailyTotalElapsedSeconds',value:String(totalElapsed),desc:'日次処理全体の所要時間（秒）'},
       {key:'DailyStep3TimingEffectSec',value:String(step3EffectSec),desc:'STEP3 改善の推移更新秒'}
     ]);
+    var step3TimingSaveSec=sbmSecondsSince_(tTimingSave3);
+    var finalizeElapsed = sbmSecondsSince_(started);
 
+    var tProcessLog3=new Date();
     sbmProcessLog_(
       '日次処理 STEP3 改善の推移・完了処理','完了',
       effectRows,measurementRecorded,finalizeElapsed,
-      '改善の推移 '+effectRows+'件 / 今回測定 '+measurementRecorded+'件 / 推移更新 '+step3EffectSec+'秒 / 全体 '+totalElapsed+'秒',
+      '改善の推移 '+effectRows+'件 / 今回測定 '+measurementRecorded+'件 / 推移更新 '+step3EffectSec+'秒'+
+      '（Schema '+Number(effectTiming.schema||0)+'秒 / 日付修復 '+Number(effectTiming.dateRepair||0)+'秒 / データ読込 '+Number(effectTiming.load||0)+'秒 / 判定計算 '+Number(effectTiming.compute||0)+'秒 / シート反映 '+Number(effectTiming.write||0)+'秒）'+
+      ' / 完了保存 '+step3CompleteSec+'秒 / HomeSnapshot '+step3HomeSnapshotSec+'秒 / Home版 '+step3HomeVersionSec+'秒 / Homeランク '+step3HomeRankSec+'秒 / Home状態 '+step3HomeStatusSec+'秒 / Flow読込 '+step3FlowReadSec+'秒 / 計測保存 '+step3TimingSaveSec+'秒'+
+      ' / STEP3実行 '+finalizeElapsed+'秒 / 日次全体 '+totalElapsed+'秒',
       startedText,sbmNowText_()
     );
+    var step3ProcessLogSec=sbmSecondsSince_(tProcessLog3);
 
     // 作業シート後処理は最後に1回だけ。
+    var tCleanup3=new Date();
     try{sbmClearDailyWork_();}catch(eCleanup){sbmLog_('DailyCleanup','Warning',String(eCleanup));}
+    var step3CleanupSec=sbmSecondsSince_(tCleanup3);
+    try{sbmSetSettingsBatch_([
+      {key:'DailyStep3TimingCompleteSec',value:String(step3CompleteSec),desc:'STEP3 完了状態保存秒'},
+      {key:'DailyStep3TimingHomeSnapshotSec',value:String(step3HomeSnapshotSec),desc:'STEP3 Home Snapshot再構築秒'},
+      {key:'DailyStep3TimingHomeVersionSec',value:String(step3HomeVersionSec),desc:'STEP3 Home版表示同期秒'},
+      {key:'DailyStep3TimingHomeRankSec',value:String(step3HomeRankSec),desc:'STEP3 Homeランク表示更新秒'},
+      {key:'DailyStep3TimingHomeStatusSec',value:String(step3HomeStatusSec),desc:'STEP3 Home日次状態更新秒'},
+      {key:'DailyStep3TimingFlowReadSec',value:String(step3FlowReadSec),desc:'STEP3 日次開始時刻読込秒'},
+      {key:'DailyStep3TimingSettingsSaveSec',value:String(step3TimingSaveSec),desc:'STEP3 計測値保存秒'},
+      {key:'DailyStep3TimingProcessLogSec',value:String(step3ProcessLogSec),desc:'STEP3 処理ログ保存秒'},
+      {key:'DailyStep3TimingCleanupSec',value:String(step3CleanupSec),desc:'STEP3 作業シート後処理秒'}
+    ]);}catch(ignoreStep3TimingPersist){}
 
     summary.ok = true;
     summary.effectRows = effectRows;
@@ -1197,7 +1267,7 @@ function sbmArticleInfoUpdateDetailBridge(articleId, url) {
 // 旧公開名は互換用に残す。新UIからは使用しない。
 function sbmArticleInfoUpdateWorkerBridge() { return {deprecated:true,message:'v6.2.30では1記事ずつ処理します。'}; }
 
-/** v6.2.41: 保存済み4項目だけで不足記事キューを作成する。外部通信は行わない。 */
+/** 旧版: 保存済み4項目だけで不足記事キューを作成する。外部通信は行わない。 */
 function sbmArticleInfoUpdatePrepare_() {
   var stored = sbmArticleInfoStoredRows_();
   var items=[];
@@ -1209,7 +1279,7 @@ function sbmArticleInfoUpdatePrepare_() {
 }
 
 /**
- * v6.2.30: 1記事だけ処理する短時間Worker。
+ * 旧版: 1記事だけ処理する短時間Worker。
  * 書込は ArticleID + 正規化URL + 更新前値 の安全ゲートを通過した場合だけ行う。
  */
 function sbmVerifyArticleInfoWrite_(articleId, url, updates) {
@@ -1244,7 +1314,7 @@ function sbmVerifyArticleInfoWrite_(articleId, url, updates) {
 }
 
 /**
- * v6.2.41: 1記事Worker。
+ * 旧版: 1記事Worker。
  * 対象判定は記事タイトル/メインクエリの保存値だけ。
  * 書込前はv6.2.37のArticleID＋URL＋更新前値照合、書込後は同一ID＋URL＋保存値を再確認する。
  */
@@ -1429,9 +1499,13 @@ function sbmHandleRepairNextAction_(action) { return sbmHandleRepairNextAction(a
 /** 日常画面へ移動した際、必要時だけ開く管理シートを再び隠します。 */
 function sbmHideOptionalAdminSheets_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var activeName='';
+  try{activeName=ss.getActiveSheet().getName();}catch(ignoreActive){}
   [SBM_SHEETS.USER_SETTINGS, SBM_SHEETS.PROCESS_LOG, SBM_SHEETS.PROFILE_LOG].forEach(function(name){
     var sh = ss.getSheetByName(name);
-    if (sh && ss.getActiveSheet().getName() !== name) { try { sh.hideSheet(); } catch(e) {} }
+    // v6.6.24: 既に非表示の管理シートへ hideSheet() を再発行しない。
+    // 通常画面を開くたびの不要なSpreadsheet書込みを避ける。
+    if (sh && activeName !== name && !sh.isSheetHidden()) { try { sh.hideSheet(); } catch(e) {} }
   });
 }
 
@@ -3186,19 +3260,48 @@ function sbmEnsureArticleListFilter_(sh) {
   }
 }
 
+function sbmEnsureViewStyleCached_(sh, cacheKey, styleFn) {
+  if (!sh || typeof styleFn !== 'function') return false;
+  var props=PropertiesService.getDocumentProperties();
+  var theme='STANDARD';
+  try{theme=sbmIsMonochromeTheme_()?'MONO':'STANDARD';}catch(ignoreTheme){}
+  var rows=String(sh.getLastRow()), cols=String(sh.getLastColumn());
+  // v6.6.26: 表示書式キャッシュを製品バージョンから分離する。
+  // コード更新だけで記事管理の全書式を再適用しない。テーマ・行列構造が変わった場合だけ再装飾する。
+  var sig='ARTICLE_VIEW_STYLE_V1|'+theme+'|'+rows+'|'+cols;
+  var saved=String(props.getProperty(cacheKey)||'');
+  if(saved===sig)return false;
+  // v6.6.25以前の「version|theme|rows|cols」形式も、見た目条件が同一なら有効として移行する。
+  var legacy=saved.split('|');
+  if(legacy.length===4 && legacy[1]===theme && legacy[2]===rows && legacy[3]===cols){
+    props.setProperty(cacheKey,sig);
+    return false;
+  }
+  styleFn(sh);
+  props.setProperty(cacheKey,sig);
+  return true;
+}
+
+function sbmRunArticleViewRepairOnce_(sh){
+  var props=PropertiesService.getDocumentProperties(),key='SBM_ARTICLE_VIEW_REPAIR_664_'+String(sh.getSheetId());
+  if(props.getProperty(key)==='1')return false;
+  try{sbmRepairArticleTitleCells_(SBM_SHEETS.ARTICLE_DB);}catch(e1){try{sbmLog_('ArticleTitleRepair','Warning',String(e1));}catch(ignore1){}}
+  try{sbmRepairArticleDisplayTitlesLight_(sh);}catch(e2){try{sbmLog_('ArticleDisplayTitleRepair','Warning',String(e2));}catch(ignore2){}}
+  props.setProperty(key,'1');
+  return true;
+}
+
 function sbmOpenArticleDb() {
-  // 記事一覧は見出しフィルターで並べ替え・絞り込み。専用並べ替えメニューは廃止。
-  // タイトル・メインクエリ補完は明示的な記事情報取得処理へ分離する。
+  // v6.6.27: v6.6.25の一時性能ログを整理。v6.6.26の書式キャッシュ高速化は維持する。
   sbmHideOptionalAdminSheets_();
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
-  if(!sh) sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
-  try { sbmRepairArticleTitleCells_(SBM_SHEETS.ARTICLE_DB); } catch(eTitleRepair) { sbmLog_('ArticleTitleRepair','Warning',String(eTitleRepair)); }
-  try { sbmRepairArticleDisplayTitlesLight_(sh); } catch(eDisplayTitle) { sbmLog_('ArticleDisplayTitleRepair','Warning',String(eDisplayTitle)); }
-  sbmEnsureArticleListFilter_(sh);
-  try { sbmStyleArticleDbSheet_(sh); } catch(eStyle) { sbmLog_('ArticleListStyle','Warning',String(eStyle)); }
-  try { sbmApplyArticleDbDisplayTheme_(sh); } catch(eThemeArticle) { sbmLog_('ArticleTheme','Warning',String(eThemeArticle)); }
-  sh.showSheet();ss.setActiveSheet(sh);sh.activate();
-  try { ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。', '記事一覧', 8); } catch(e) {}
+  if(!sh)sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
+  try{sbmRunArticleViewRepairOnce_(sh);}catch(ignoreArticleRepair){}
+  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
+  try{sbmEnsureViewStyleCached_(sh,'SBM_ARTICLE_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleArticleDbSheet_(x);});}catch(eStyle){try{sbmLog_('ArticleListStyle','Warning',String(eStyle));}catch(ignoreStyleLog){}}
+  if(sh.isSheetHidden())sh.showSheet();
+  if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
+  try{ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。','記事一覧',5);}catch(e){}
 }
 
 /**
@@ -3650,7 +3753,7 @@ function sbmReplaceRawQueriesForUrl_(url, range, capturedAt, queries) {
 }
 
 /**
- * v6.2.36: 診断・実更新で共用する「未取得メインクエリ」専用取得。
+ * 旧版: 診断・実更新で共用する「未取得メインクエリ」専用取得。
  * 過去6か月のGSCを page完全一致で検索し、代表クエリと取得行を返す。
  * エラーは握り潰さない。呼び出し側で明示的に処理する。
  */
@@ -4031,7 +4134,7 @@ function sbmCleanDataListText_(value, url, blogNameOverride) {
 }
 
 /**
- * v6.5.17: 保存済みのタイトル系文字列をネットワークアクセスなしで正規化する。
+ * 旧版: 保存済みのタイトル系文字列をネットワークアクセスなしで正規化する。
  * 正常なタイトルはそのまま返し、SettingsのBlogNameと完全一致する末尾サフィックスだけを除去する。
  */
 function sbmNormalizeStoredTitle_(value, url, blogNameOverride) {
@@ -4067,7 +4170,7 @@ function sbmCleanDisplayTitle_(title, url) {
 }
 
 
-/** v6.1.10: 記事管理／今日の改善に残ったHTMLタイトルを、Settingsを1回だけ読んで軽量補正する。 */
+/** 旧版: 記事管理／今日の改善に残ったHTMLタイトルを、Settingsを1回だけ読んで軽量補正する。 */
 function sbmRepairArticleTitleCells_(sheetName) {
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if(!sh||sh.getLastRow()<2)return 0;
@@ -4089,7 +4192,7 @@ function sbmRepairArticleTitleCells_(sheetName) {
 }
 
 /**
- * v6.1.10: 記事管理の利用者向けタイトル列をネットワークアクセスなしで整える。
+ * 旧版: 記事管理の利用者向けタイトル列をネットワークアクセスなしで整える。
  * H1が「取得待ち」でも、既に取得済みの記事タイトル/SEOタイトルがあれば即時利用する。
  */
 function sbmRepairArticleDisplayTitlesLight_(sh){
@@ -5106,7 +5209,7 @@ function sbmStripSiteNameFromTitle_(title, url) {
   return title;
 }
 
-/** v6.5.16: はてな等のtitleタグに付くブログ名を、記事タイトル診断へ持ち込まない。 */
+/** 旧版: はてな等のtitleタグに付くブログ名を、記事タイトル診断へ持ち込まない。 */
 function sbmNormalizeFetchedTitleTag_(titleTag, html, url, blogNameOverride) {
   var title = sbmCleanHtmlText_(titleTag || '');
   if (!title) return '';
@@ -5465,32 +5568,39 @@ function sbmLegacyOnEdit_(e) {
     if (sheetName === SBM_SHEETS.EFFECT && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowEffectDetailForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。改善の推移・履歴メニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.IN_PROGRESS && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowInProgressDetailForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.QUERY_DATA && map['詳細表示'] && col === map['詳細表示'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowSelectedDataListDetail();
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName === SBM_SHEETS.QUERY_DATA && map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowSelectedDataListDetail();
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('行を選択しました。対応するメニューから詳細を開いてください。','SIMS Manager',5);}catch(ignoreToast){}
       return;
     }
     if (sheetName !== SBM_SHEETS.TODAY) return;
     if (map['詳細'] && col === map['詳細'] && String(e.value).toUpperCase() === 'TRUE') {
+      // simple onEditトリガーからUi.showModalDialog()は呼ばない。
+      // 対象行だけを記録し、利用者のメニュー操作（同期UIコンテキスト）で改善ナビを開く。
       sh.getRange(row, col).setValue(false);
       sh.setActiveRange(sh.getRange(row, 1));
-      sbmShowBriefForRow_(row);
+      PropertiesService.getDocumentProperties().setProperty('SBM_LAST_NAVI_ROW_'+sh.getSheetId(),String(row));
+      try{SpreadsheetApp.getActiveSpreadsheet().toast('記事を選択しました。SIMS今日の作業 → 3．選択記事の改善内容を見る を実行してください。','改善ナビ',5);}catch(ignoreToast){}
       return;
     }
     if (map['完了'] && col === map['完了'] && String(e.value).toUpperCase() === 'TRUE') {
@@ -5639,7 +5749,7 @@ function sbmEnsureHeaders_(sh, headers) {
 }
 
 /**
- * Product v5.21.8 Home高速化:
+ * Product 旧版 Home高速化:
  * Home表示用にシートを1回だけ読み、同じ配列を複数集計で再利用する。
  */
 function sbmHomeReadRowsOnce_(sheetName){
@@ -6112,20 +6222,29 @@ function sbmUpdateArticleRankManual() {
  * メニューと現行機能の呼び出し先を一元化し、リファクタリング途中の未定義参照を防ぎます。
  */
 function sbmOpenHome() {
+  // 「HOME画面を開く」は画面遷移だけを行う。既存Homeを標準配色で再描画しない。
+  // データ更新は日次処理・各結果登録側で行い、選択中の表示テーマをそのまま維持する。
   sbmHideOptionalAdminSheets_();
-  try { sbmEnsureTodayPolicyMigration_(); } catch(eTodayPolicy) { try{sbmLog_('TodayPolicyMigration','Warning',String(eTodayPolicy));}catch(ignoreTodayPolicy){} }
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SBM_SHEETS.HOME);
-  if (!sh) {
-    sbmInitializeSheets();
-    sh = ss.getSheetByName(SBM_SHEETS.HOME);
+  var needsBuild = !sh;
+  if (!needsBuild) {
+    try {
+      needsBuild = String(sh.getRange('J1').getValue()) !== ('v'+SBM_DISPLAY_VERSION) || sbmHomeLayoutNeedsRebuild_(sh);
+    } catch (eCheckHome) {
+      needsBuild = true;
+    }
   }
-  // Homeを開くだけの操作では、Doctor再照合・効果測定再計算を実行しない。
-  // 日次処理や結果登録で保存済みのデータから表示だけを更新する。
-  try { sbmRefreshHome_({light:true,liveArticle:false}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
-  // sbmRefreshHome_内で現在テーマまで仕上げるため、ここでの重複テーマ適用は行わない。
-  sh=ss.getSheetByName(SBM_SHEETS.HOME) || sh;
-  if (sh) { sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); }
+  if (needsBuild) {
+    // Home自体が無い／レイアウト更新が必要な場合だけ再構築する。
+    // 再構築後は現在テーマを完成させてからHomeを表示する。
+    try { sbmRefreshHome_({light:true,liveArticle:false,applyTheme:true}); } catch (e) { sbmLog_('sbmOpenHome', 'Warning', String(e)); }
+    sh = ss.getSheetByName(SBM_SHEETS.HOME) || sh;
+  }
+  if (sh) {
+    if (sh.isSheetHidden()) sh.showSheet();
+    if (ss.getActiveSheet().getSheetId() !== sh.getSheetId()) ss.setActiveSheet(sh);
+  }
 }
 
 function sbmOpenToday() {
@@ -6203,7 +6322,7 @@ function sbmBuildTodayImprovementSheet_() {
   sh.hideColumns(12,2); // URL・候補IDは内部利用
 }
 
-/** v6.5.0: 保存済み候補の順位や選択状態を変えず、表示文言だけを現行ルールへ同期する。 */
+/** 旧版: 保存済み候補の順位や選択状態を変えず、表示文言だけを現行ルールへ同期する。 */
 function sbmRefreshTodayPresentationOnly_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.TODAY);
   if(!sh||sh.getLastRow()<2)return 0;
@@ -6273,7 +6392,7 @@ function sbmOpenTodayImprovement() {
 }
 
 /**
- * Product v6.3.4: 今日の改善候補0件時は新記事探索を自動実行せず、
+ * Product 旧版: 今日の改善候補0件時は新記事探索を自動実行せず、
  * 健康診断→精密診断へ案内する。
  */
 function sbmShowTodayZeroAdviceDialog_(){
@@ -6516,11 +6635,17 @@ function sbmBuildTodayRecommendationsManual() {
 }
 
 function sbmSelectTodayRecommendations_() {
+  // v6.6.19: 候補選定の全記事ループ内でSettingsを再読込しない。
+  // BlogName/MinImpressionsは開始時に1回だけ取得し、タイトル正規化へ渡す。
+  var tStart = Date.now();
   var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || [];
+  var tRows = Date.now();
   var minImps = Math.max(20, sbmNumber_(sbmGetSetting_('MinImpressions', 50)) || 50);
+  var blogName = String(sbmGetSetting_('BlogName', '') || '').trim();
+  var tSettings = Date.now();
   var pool = rows.map(function(r){
     var url = String(r['記事URL'] || '').trim();
-    var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', r['記事URL'] || '');
+    var title = sbmCleanDataListText_(r['記事タイトル'] || r['H1タイトル'] || '', r['記事URL'] || '', blogName);
     var query = sbmRealMainQuery_(r['メインクエリ']);
     if (sbmIsPendingArticleIdentity_(title, query)) return null;
     var clicks = sbmNumber_(r['クリック数']) || 0;
@@ -6585,7 +6710,16 @@ function sbmSelectTodayRecommendations_() {
   var ace=take(ordered.filter(function(c){return c.rankCode==='ACE';}),'💰 収益改善\n（流入）',2);
   var nurture=take(ordered.filter(function(c){return c.rankCode==='NURTURE';}),'🌱 育成改善',2);
   var stable=take(ordered.filter(function(c){return c.rankCode==='STABLE';}),'✅ 安全改善',2);
-  return growth.concat(ace,nurture,stable);
+  var result = growth.concat(ace,nurture,stable);
+  // Spreadsheetへの追加書込みなしで、呼出元の処理ログへ内訳を渡す。
+  result._timing = {
+    articleDbReadSec: Math.max(0, Math.round((tRows - tStart) / 1000)),
+    settingsReadSec: Math.max(0, Math.round((tSettings - tRows) / 1000)),
+    scanAndScoreSec: Math.max(0, Math.round((Date.now() - tSettings) / 1000)),
+    sourceRows: rows.length,
+    eligibleRows: pool.length
+  };
+  return result;
 }
 
 function sbmExpectedCtrTarget_(pos) {
@@ -6726,7 +6860,7 @@ function sbmExtractBalancedElementInnerHtml_(html, startInfo) {
   return '';
 }
 
-/** v6.5.16: 共通ページ全体ではなく記事本文コンテナを優先して抽出する。 */
+/** 旧版: 共通ページ全体ではなく記事本文コンテナを優先して抽出する。 */
 function sbmArticleBodyHtmlFromPage_(html, url) {
   html=String(html||''); if(!html)return '';
   var patterns=[
@@ -7045,7 +7179,7 @@ function sbmInternalLinkCandidatesHtml_(candidates){
   return candidates.map(function(c,i){return '<div class="link-candidate"><b>'+(i+1)+'. '+sbmEscapeHtml_(c.title)+'</b><br><a href="'+sbmEscapeHtml_(c.url)+'" target="_blank">'+sbmEscapeHtml_(c.url)+'</a><br><span>推奨アンカー：'+sbmEscapeHtml_(c.anchor)+'</span><br><span>関連クエリ：'+sbmEscapeHtml_(c.relatedQuery||'－')+'</span><br><span>関連度：'+sbmEscapeHtml_(c.stars)+'</span></div>';}).join('');
 }
 
-/** v6.5.1: 今日の改善種別に応じた収益改善スコープ。 */
+/** 旧版: 今日の改善種別に応じた収益改善スコープ。 */
 function sbmRevenueImprovementPromptText_(meta){
   meta=meta||{};
   var kind=String(meta.kind||''),rank=String(meta.rank||''),isAce=(kind.indexOf('収益改善')>=0)||sbmDoctorRankCode_(rank)==='ACE';
@@ -7169,7 +7303,7 @@ function sbmImprovementMissingStructuralTerms_(query,text){
   return sbmImprovementStructuralTerms_(query).filter(function(t){var n=sbmInternalLinkNormalizeText_(t);if(!n||seen[n])return false;seen[n]=true;return hay.indexOf(n)<0;});
 }
 
-/** v6.5.19: Full用。aWriter依頼文を正本として、同じ依頼内容だけを利用者向けに言い換えます。 */
+/** 旧版: Full用。aWriter依頼文を正本として、同じ依頼内容だけを利用者向けに言い換えます。 */
 function sbmBuildWriterRequestAlignedGuide_(meta,writerPrompt){
   meta=meta||{};writerPrompt=String(writerPrompt||'');
   if(!writerPrompt)return [];
@@ -7210,7 +7344,7 @@ function sbmBuildWriterRequestAlignedGuide_(meta,writerPrompt){
   return out;
 }
 
-/** v6.5.20: 画面に表示する記事固有の改善ガイドを、同じ文面のままaWriter依頼文へ追加します。 */
+/** 旧版: 画面に表示する記事固有の改善ガイドを、同じ文面のままaWriter依頼文へ追加します。 */
 function sbmAppendConcreteImprovementInstructions_(writerPrompt,advice){
   writerPrompt=String(writerPrompt||'');advice=Array.isArray(advice)?advice.filter(function(x){return String(x||'').trim();}):[];
   if(!writerPrompt)return '';
@@ -7459,7 +7593,7 @@ function sbmRegisterStarterImprovementComplete(articleId,articleUrl,summary,advi
   return r;
 }
 
-/** v6.1.9: SearchConsole_Data全体のオブジェクト化を避け、対象URLに必要な列だけを読む。 */
+/** 旧版: SearchConsole_Data全体のオブジェクト化を避け、対象URLに必要な列だけを読む。 */
 function sbmTopQueriesForUrlLocal_(url,limit){
   var norm=sbmNormalizeUrl_(url||''); if(!norm)return [];
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.RAW_DATA);
@@ -7497,7 +7631,7 @@ function sbmTopQueriesForUrlLocal_(url,limit){
   return dedup.slice(0,Math.max(1,Number(limit||QUERY_ROW_LIMIT)));
 }
 
-/** v6.1.9: クエリ取得だけを独立実行。本文取得と並列に呼び出す。 */
+/** 旧版: クエリ取得だけを独立実行。本文取得と並列に呼び出す。 */
 function sbmLoadImprovementNaviQueries(seed){
   seed=seed||{}; var url=String(seed.url||'').trim(); if(!url)return {ok:false,message:'記事URLを取得できません。',queries:[]};
   var a=sbmFindArticleDbByUrlFast_(url)||{},query=sbmRealMainQuery_(a['メインクエリ']||seed.query||'');
@@ -7508,14 +7642,14 @@ function sbmLoadImprovementNaviQueries(seed){
   return {ok:true,queryResult:qr||{},topQueries:top,query:query,articleSnapshot:snap};
 }
 
-/** v6.1.9: 記事本文取得だけを独立実行。GSC取得と並列に呼び出す。 */
+/** 旧版: 記事本文取得だけを独立実行。GSC取得と並列に呼び出す。 */
 function sbmLoadImprovementNaviSource(seed){
   seed=seed||{}; var url=String(seed.url||'').trim(); if(!url)return {ok:false,message:'記事URLを取得できません。'};
   var f=sbmFetchArticleSource_(url);
   return {ok:true,fetchedOk:!!f.ok,fetchedMessage:String(f.message||''),source:f.ok?f.data:null,characterCount:f.ok?Number(f.data.character_count||0):0,sectionCount:f.ok?(f.data.sections||[]).length:0};
 }
 
-/** v6.1.9: クエリと本文の両結果が揃ってからだけ改善案・内部リンクを生成。 */
+/** 旧版: クエリと本文の両結果が揃ってからだけ改善案・内部リンクを生成。 */
 function sbmFinalizeImprovementNaviData(seed,queryPayload,sourcePayload){
   seed=seed||{};queryPayload=queryPayload||{};sourcePayload=sourcePayload||{};
   var url=String(seed.url||'').trim(); if(!url)return {ok:false,message:'記事URLを取得できません。'};
@@ -7585,19 +7719,18 @@ function sbmImprovementNaviQueries_(url, limit) {
   return fresh||{ok:false,queries:[],source:'none',message:'Search Consoleクエリを取得できませんでした。'};
 }
 
-function sbmShowImprovementNaviDialog_(a,kind,reason){
-  var ss=SpreadsheetApp.getActiveSpreadsheet();
+function sbmShowImprovementNaviDialog_(a,kind,reason,sourceSheet){
   var isFullEdition=sbmEffectiveEdition_()==='FULL';
   var url=String(a['記事URL']||''),blogName=String(sbmGetSetting_('BlogName','')||'').trim(),title=sbmNormalizeStoredTitle_(a['記事タイトル']||a['H1タイトル']||'（タイトル未取得）',url,blogName)||'（タイトル未取得）';
   var query=sbmRealMainQuery_(a['メインクエリ']),rank=String(a['記事ランク']||''),work=String(a['作業状態']||'未着手');
   var clicks=sbmNumber_(a['クリック数'])||0,imps=sbmNumber_(a['表示回数'])||0,ctr=sbmNormalizeCtrNumber_(a['CTR']),pos=sbmNumber_(a['掲載順位'])||0;
   var target=sbmExpectedCtrTarget_(pos),expected=Math.max(0,Math.round(imps*Math.max(0,target-ctr)));
   var advice=[];
-  var seed={articleId:String(a['ArticleID']||'').trim(),url:url,title:title,seoTitle:sbmNormalizeStoredTitle_(a['SEOタイトル']||'',url,blogName),description:String(a['メタディスクリプション']||'').trim(),query:query,rank:rank,clicks:clicks,imps:imps,ctr:ctr,pos:pos,kind:kind};
+  var seed={articleId:String(a['ArticleID']||'').trim(),url:url,title:title,seoTitle:sbmNormalizeStoredTitle_(a['SEOタイトル']||'',url,blogName),description:String(a['メタディスクリプション']||'').trim(),query:query,rank:rank,clicks:clicks,imps:imps,ctr:ctr,pos:pos,kind:kind,reason:String(reason||''),sourceSheet:String(sourceSheet||'')};
   function esc(x){return String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   var html='<!doctype html><html><head><base target="_top"><style>'+ 
     'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124;line-height:1.65}h2{margin:0 0 8px;color:#0b8043}.tag{display:inline-block;padding:4px 10px;border-radius:14px;background:#e6f4ea;color:#137333;font-weight:700}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;text-align:center}.sec{margin-top:16px;border-top:1px solid #dadce0;padding-top:12px}.p{background:#fff8e1;border-left:4px solid #fbbc04;padding:12px;margin:10px 0}.guide-part{margin-top:9px}.guide-text{display:block;margin-top:2px}.reason{white-space:pre-wrap;background:#eef5ff;padding:12px;border-radius:8px}.prompt{white-space:pre-wrap;background:#f1f3f4;padding:12px;border-radius:8px;font-size:12px;max-height:300px;overflow:auto}.btn{display:inline-block;background:#1a73e8;color:#fff;text-decoration:none;padding:9px 14px;border-radius:6px;font-weight:700;margin-right:8px;border:0;cursor:pointer}.source-ok{background:#e6f4ea;color:#137333;padding:10px;border-radius:8px}.source-ng{background:#fef7e0;color:#7a4d00;padding:10px;border-radius:8px}.source-loading{background:#eef5ff;color:#174ea6;padding:10px;border-radius:8px}.link-candidate{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:10px;margin:8px 0;font-size:13px}.link-candidate a{color:#1a73e8;word-break:break-all}.query-details{margin-top:10px;border:1px solid #dadce0;border-radius:8px;background:#fff}.query-details summary{cursor:pointer;padding:10px 12px;font-weight:700;color:#1a73e8}.query-table-wrap{max-height:260px;overflow:auto;border-top:1px solid #dadce0}.query-table{width:100%;border-collapse:collapse;font-size:12px}.query-table th,.query-table td{padding:7px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap}.query-table th:first-child,.query-table td:first-child{text-align:left;white-space:normal;min-width:220px}.query-table thead th{position:sticky;top:0;background:#f8f9fa}textarea{width:100%;height:150px;box-sizing:border-box;padding:10px;margin-top:8px;font-family:monospace}.writerBox{background:#e6f4ea;border:1px solid #b7dfc2;border-radius:8px;padding:14px}.writerBox textarea{height:220px;background:#fff;border:1px solid #c8d5cb;border-radius:6px;resize:vertical}.inlineStatus{min-height:20px;margin-top:7px;font-size:13px;font-weight:700}.inlineStatus.ok{color:#137333}.inlineStatus.error{color:#b3261e}.registerStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:7px;font-weight:700;white-space:pre-wrap}.registerStatus.busy{display:block;background:#eef5ff;color:#174ea6}.registerStatus.ok{display:block;background:#e6f4ea;color:#137333}.registerStatus.error{display:block;background:#fce8e6;color:#b3261e}.miniSpinner{display:inline-block;width:14px;height:14px;margin-right:8px;border:2px solid #c7d7f7;border-top-color:#1a73e8;border-radius:50%;vertical-align:-2px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}button:disabled{opacity:.65;cursor:default}</style></head><body>'+ 
-    '<h2>改善ナビ</h2><span class="tag">'+esc(kind)+'</span><h3>'+esc(title)+'</h3><div>'+esc(rank)+' ／ '+esc(work)+'</div>'+ 
+    '<span class="tag">'+esc(kind)+'</span><h3>'+esc(title)+'</h3><div>'+esc(rank)+' ／ '+esc(work)+'</div>'+ 
     '<div class="grid"><div class="card"><b>クリック</b><br>'+clicks.toLocaleString()+'</div><div class="card"><b>表示回数</b><br>'+imps.toLocaleString()+'</div><div class="card"><b>CTR</b><br>'+(ctr*100).toFixed(1)+'%</div><div class="card"><b>順位</b><br>'+pos.toFixed(1)+'</div></div>'+ 
     '<div class="sec"><b>Search Console最新クエリ</b><div id="queryStatus" class="source-loading"><span class="miniSpinner"></span>最新クエリを取得しています…</div><div id="queryList"></div></div>'+ 
     '<div class="sec"><b>記事本文データ</b><div id="sourceStatus" class="source-loading"><span class="miniSpinner"></span>記事本文を取得しています…</div><div id="pastedTools" style="display:none"><textarea id="pasted" placeholder="記事タイトル、見出し、本文を貼り付けてください。"></textarea><br><button class="btn" onclick="analyzePasted()">貼り付け本文を解析</button><span id="analyzeMsg"></span></div></div>'+ 
@@ -7623,8 +7756,12 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
     'function copyPrompt(){var b=document.getElementById("copyPromptBtn"),t=document.getElementById("prompt").innerText;if(b.disabled){setInline("copyStatus","依頼文の準備完了後にコピーできます。","error");return}var done=function(){setInline("copyStatus","✓ aWriter依頼文をコピーしました。","ok")},fail=function(){setInline("copyStatus","コピーできませんでした。もう一度お試しください。","error")};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(fail);else fail()}'+
     'function analyzePasted(){var el=document.getElementById("pasted"),msg=document.getElementById("analyzeMsg");msg.textContent="解析中…";google.script.run.withFailureHandler(function(e){msg.textContent=(e&&e.message)||String(e)}).withSuccessHandler(function(r){if(!r.ok){msg.textContent=r.message;return}if(r.improvementReady){renderImprovementAdvice(r.improvementAdvice||[],false);var pe=document.getElementById("prompt");if(pe)pe.innerText=r.prompt||"";var cb=document.getElementById("copyPromptBtn");if(cb)cb.disabled=false;msg.textContent="解析完了（"+r.characterCount+"文字・"+r.sectionCount+"セクション）"}else{msg.textContent=r.message||"本文情報を確認できないため改善ガイドは保留です。"}}).sbmAnalyzePastedArticleSource(el.value,meta)}'+
     'function registerStarterComplete(){var b=document.getElementById("starterCompleteBtn"),st=document.getElementById("starterCompleteStatus");if(!b||!st)return;if(!confirm("ブログ側で記事の修正を公開済みですか？\\n公開後に登録すると、今日を起点に効果測定を開始します。"))return;b.disabled=true;b.textContent="登録中…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>改善履歴と効果測定を登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}b.style.display="none";st.className="registerStatus ok";st.textContent=r.effectSynced?"✓ 改善を登録し、改善の推移へ反映しました。7日目・14日目・21日目・28日目の効果測定へ進みます。":"改善履歴は登録しましたが、改善の推移への反映を確認できませんでした。設定・メンテナンスからシート修復を実行してください。"}).withFailureHandler(function(e){b.disabled=false;b.textContent="改善完了を登録";st.className="registerStatus error";st.textContent=e&&e.message?e.message:String(e)}).sbmRegisterStarterImprovementComplete(meta.articleId,meta.url,"Starter改善ナビに基づく記事改善を公開",JSON.stringify(finalAdvice||[]))}function validFeedbackFormat(f){f=String(f||"");if(f.indexOf("SIMS_FEEDBACK_V")!==0)return false;var n=f.substring("SIMS_FEEDBACK_V".length);return n!==""&&String(parseInt(n,10))===n}function extractFeedbackJson(raw){raw=String(raw||"").trim();if(!raw)return null;try{var direct=JSON.parse(raw);if(direct&&validFeedbackFormat(direct.format))return JSON.stringify(direct)}catch(ignore){}var marker=raw.lastIndexOf("SIMS_FEEDBACK_V");if(marker<0)return null;var starts=[],pos=marker;while(pos>=0&&starts.length<80){pos=raw.lastIndexOf("{",pos-1);if(pos>=0)starts.push(pos)}function blockAt(start){var depth=0,inStr=false,esc=false;for(var i=start;i<raw.length;i++){var ch=raw.charAt(i),cc=ch.charCodeAt(0);if(inStr){if(esc){esc=false;continue}if(cc===92){esc=true;continue}if(cc===34)inStr=false;continue}if(cc===34){inStr=true;continue}if(ch==="{")depth++;else if(ch==="}"){depth--;if(depth===0)return raw.substring(start,i+1);if(depth<0)return null}}return null}for(var j=0;j<starts.length;j++){var txt=blockAt(starts[j]);if(!txt)continue;try{var obj=JSON.parse(txt);if(obj&&validFeedbackFormat(obj.format))return JSON.stringify(obj)}catch(ignore2){}}return null}'+
-    'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}var detailLoadStarted=false;function startImprovementDetailLoad(){if(detailLoadStarted)return;detailLoadStarted=true;loadDetail()}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",startImprovementDetailLoad)}else{startImprovementDetailLoad()}setTimeout(startImprovementDetailLoad,0);</script></body></html>';
-  sbmShowThemedModalDialog_(sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760)),'改善ナビ');
+    'function registerFeedback(){var raw=document.getElementById("writerResponse").value||"",b=document.getElementById("registerFeedbackBtn"),st=document.getElementById("registerStatus");if(!raw.trim()){st.className="registerStatus error";st.textContent="aWriterの回答を貼り付けてください。";return}b.disabled=true;b.textContent="登録しています…";st.className="registerStatus busy";st.innerHTML="<span class=miniSpinner></span>aWriter回答からSIMS JSONを抽出しています…";var jsonText=extractFeedbackJson(raw);if(!jsonText){st.className="registerStatus error";st.textContent="SIMS_FEEDBACK_V形式のJSONを抽出できませんでした。回答末尾のSIMS向けJSONを確認してください。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.innerHTML="<span class=miniSpinner></span>SIMS JSONを抽出しました（"+jsonText.length.toLocaleString()+"文字）。サーバーへ送信しています…";setTimeout(function(){google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="registerStatus error";st.textContent=(r&&r.message)||"登録できませんでした。";b.disabled=false;b.textContent="✅ 改善結果を登録";return}st.className="registerStatus ok";st.textContent="✓ 改善結果を登録しました。";b.style.display="none";document.getElementById("writerResponse").disabled=true}).withFailureHandler(function(e){st.className="registerStatus error";st.textContent=(e&&e.message)||String(e);b.disabled=false;b.textContent="✅ 改善結果を登録"}).sbmRegisterImprovementFeedbackJson(jsonText,meta.articleId,meta.url)},0)}var naviClosing=false;function improvementNaviState(){var gw=document.getElementById("improvementGuideWrap"),iw=document.getElementById("internalLinksWrap"),pe=document.getElementById("prompt");return {currentStage:"NAVI_OPEN",detailLoaded:!!window.sbmDetailLoaded,promptReady:!!(pe&&String(pe.innerText||"").trim()&&String(pe.innerText||"").indexOf("準備しています")<0),guideOpen:!!(gw&&gw.style.display!=="none"),internalLinksOpen:!!(iw&&iw.style.display!=="none")}}function closeImprovementNavi(){if(naviClosing)return;naviClosing=true;google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(){google.script.host.close()}).sbmCheckpointImprovementNaviClose(seed,improvementNaviState())}var checkpointStarted=false;function checkpointNaviOpen(){if(checkpointStarted)return;checkpointStarted=true;google.script.run.withFailureHandler(function(){}).sbmCheckpointImprovementNaviOpen(seed)}var detailLoadStarted=false;function startImprovementDetailLoad(){if(detailLoadStarted)return;detailLoadStarted=true;loadDetail()}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){checkpointNaviOpen();startImprovementDetailLoad()})}else{checkpointNaviOpen();startImprovementDetailLoad()}setTimeout(function(){checkpointNaviOpen();startImprovementDetailLoad()},0);</script></body></html>';
+  // UI表示はユーザー操作の同期コンテキストで、既存の共通モーダル経路から実行する。
+  // Checkpoint/GSC/本文取得はHTML描画後のgoogle.script.runに限定する。
+  var naviOutput=sbmEnsureCloseButton_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(760));
+  var naviContent=naviOutput.getContent().replace('onclick="google.script.host.close()"','onclick="closeImprovementNavi()"');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(naviContent).setWidth(820).setHeight(760),'改善ナビ');
 }
 
 /** Homeを記事DBと設定だけから更新する現行版。 */
@@ -7636,13 +7773,13 @@ function sbmShowImprovementNaviDialog_(a,kind,reason){
  */
 
 /**
- * Product v5.21.8
+ * Product 旧版
  * 改善ナビ内の貼付欄からaWriter回答を直接登録する。
  * 解析・正規化・対象記事照合は内部で行い、利用者へ中間確認を要求しない。
  */
 
 /**
- * Product v5.21.13 public bridge for aWriter feedback registration.
+ * Product 旧版 public bridge for aWriter feedback registration.
  * Writes coarse checkpoints to 処理ログ so a stalled server call can be located
  * even when the dialog never receives a success/failure callback.
  */
@@ -7791,7 +7928,7 @@ function sbmFindExistingImprovementFeedback_(data) {
   return {found:false,historyId:'',rowNumber:0};
 }
 
-/** v6.2.7: Writer feedback の follow_up_referrals: MERGE を正式なDoctor_Cases Workflowへ昇格します。 */
+/** 旧版: Writer feedback の follow_up_referrals: MERGE を正式なDoctor_Cases Workflowへ昇格します。 */
 function sbmFeedbackMergeReferral_(data){
   var raw=data&&data.raw_json||'',o={};try{o=JSON.parse(String(raw||'{}'));}catch(ignore){}
   var ext=o&&o.analysis_extensions||{},refs=Array.isArray(ext.follow_up_referrals)?ext.follow_up_referrals:[];
@@ -8044,17 +8181,19 @@ const SBM_EFFECT_HEADERS_V2 = [
 
 function sbmApplyProductVisibleTabs_(options) {
   options=options||{};
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var visible = {};
-  [SBM_SHEETS.HOME, SBM_SHEETS.TODAY, SBM_SHEETS.EFFECT, SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.FEEDBACK_HISTORY].forEach(function(n){ visible[n] = true; });
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),visible={};
+  [SBM_SHEETS.HOME,SBM_SHEETS.TODAY,SBM_SHEETS.EFFECT,SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.FEEDBACK_HISTORY]
+    .forEach(function(n){visible[n]=true;});
   ss.getSheets().forEach(function(sh){
-    try { if (visible[sh.getName()]) sh.showSheet(); else sh.hideSheet(); } catch(e) {}
+    var shouldShow=!!visible[sh.getName()],hidden=sh.isSheetHidden();
+    try{
+      if(shouldShow&&hidden)sh.showSheet();
+      else if(!shouldShow&&!hidden)sh.hideSheet();
+    }catch(e){}
   });
-  var home = ss.getSheetByName(SBM_SHEETS.HOME);
-  if (home) ss.setActiveSheet(home);
-  // onOpenでは5シート全体のテーマ再描画をしない。
-  // テーマ変更時・初期構築時など、明示された場合だけ全体テーマを適用する。
-  if(options.applyTheme!==false){try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}}
+  if(options.applyTheme===true){
+    try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
+  }
 }
 
 /**
@@ -8146,7 +8285,7 @@ function sbmMigrateSheetByHeaderNames_(sheetName, newHeaders, aliases) {
 
 
 /**
- * Product v5.21.9: 改善結果の1件登録では、履歴/効果シートを毎回全消去・全再構築しない。
+ * Product 旧版: 改善結果の1件登録では、履歴/効果シートを毎回全消去・全再構築しない。
  * ヘッダーが正しい場合は読み取りだけで終了し、互換性修復が必要な場合だけ従来migrationを実行する。
  */
 function sbmEnsureHistoryAndEffectSchemasFast_() {
@@ -8393,19 +8532,19 @@ function sbmStripConfiguredBlogSuffix_(v){
   return sbmNormalizeStoredTitle_(v,'');
 }
 
-function sbmMonitoringTitleKey_(v){
-  return sbmStripConfiguredBlogSuffix_(v).toLowerCase()
+function sbmMonitoringTitleKey_(v,blogNameOverride){
+  return sbmNormalizeStoredTitle_(v,'',blogNameOverride).toLowerCase()
     .replace(/[\s　]+/g,'')
     .replace(/[‐‑‒–—―ー－]/g,'-')
     .trim();
 }
 
-function sbmMonitoringAliasesFrom_(o){
+function sbmMonitoringAliasesFrom_(o,blogNameOverride){
   o=o||{};
   var out=[];
   var id=String(o['ArticleID']||o.article_id||'').trim();
   var url=sbmNormalizeUrl_(o['記事URL']||o.article_url||'');
-  var title=sbmMonitoringTitleKey_(o['記事タイトル']||o.article_title||'');
+  var title=sbmMonitoringTitleKey_(o['記事タイトル']||o.article_title||'',blogNameOverride);
   if(id)out.push('ID:'+id);
   if(url)out.push('URL:'+url);
   if(title)out.push('TITLE:'+title);
@@ -8536,7 +8675,7 @@ function sbmSetMonitoringLifecycleByHistoryId_(historyId,lifecycle){
 
 
 /**
- * v5.21.13: single feedback registration fast path.
+ * 旧版: single feedback registration fast path.
  * Avoids whole-sheet object hydration and per-row writes while superseding old cycles.
  */
 function sbmSupersedePreviousMonitoringCyclesFast_(articleId,url,title,exceptHistoryId){
@@ -8799,7 +8938,7 @@ function sbmNextWeeklyDueDate_(historyRow) {
 
 
 /**
- * v6.1.24: 次回測定予定日の到来・期限超過を日本時間の日付でも再確認する。
+ * 旧版: 次回測定予定日の到来・期限超過を日本時間の日付でも再確認する。
  * Apps Script実行時刻や旧データの時刻成分に左右されず、予定日翌日以降は必ず期限超過と判定する。
  */
 function sbmMeasurementDueStatus_(historyRow, now) {
@@ -9092,7 +9231,7 @@ function sbmParseImprovementHistoryDate_(value){
 
 
 /**
- * v5.13.4:
+ * 旧版:
  * 旧版の「改善履歴を開く」処理で、Doctor経路の過去履歴の改善日が
  * 最新Doctor Caseの完了日に上書きされる不具合がありました。
  *
@@ -9393,8 +9532,13 @@ function sbmGetCheckedRow_(sh, silent) {
   if (!col) { var ar=sh.getActiveRange(); return ar && ar.getRow()>1 ? ar.getRow() : 0; }
   var vals=sh.getRange(2,col,sh.getLastRow()-1,1).getValues(), found=[];
   vals.forEach(function(v,i){ if(v[0]===true) found.push(i+2); });
-  if(found.length!==1){ if(!silent) sbmAlert_('対象を1件選択してください', found.length>1?'チェックは1件だけにしてください。':'左端のチェックボックスで対象を1件選択してください。'); return 0; }
-  return found[0];
+  if(found.length===1)return found[0];
+  if(found.length===0){
+    var saved=Number(PropertiesService.getDocumentProperties().getProperty('SBM_LAST_CHECKED_'+sh.getSheetId())||0);
+    if(saved>1&&saved<=sh.getLastRow())return saved;
+  }
+  if(!silent) sbmAlert_('対象を1件選択してください', found.length>1?'チェックは1件だけにしてください。':'左端のチェックボックスで対象を1件選択してください。');
+  return 0;
 }
 
 
@@ -9422,7 +9566,7 @@ function sbmOpenSelectedHistoryArticleAll(){
 
 
 /* ========================================================================== *
- * v6.2.2: normal improvement workflow checkpoint / resume
+ * 旧版: normal improvement workflow checkpoint / resume
  * 「今日の改善」「記事管理」から開始する通常改善をDoctor Caseに混在させず、
  * Doctor_Workflow_Stateへ軽量Workflowとして保存する。
  * ========================================================================== */
@@ -9433,11 +9577,32 @@ function sbmNormalImprovementWorkflowKey_(articleId,url){
   for(var i=0;i<bytes.length;i++)hex+=('0'+((bytes[i]+256)%256).toString(16)).slice(-2);
   return 'NORMAL-IMPROVEMENT-URL-'+hex.slice(0,20);
 }
+// v6.6.44: 同一記事の通常改善WorkflowをArticleID/URLのどちらでも同定する。
+// 旧版で「ArticleIDなし→URLキー」「ArticleID取得後→IDキー」と二重化したWorkflowも同一案件として扱う。
+function sbmNormalImprovementSameArticle_(meta,articleId,url){
+  meta=meta||{};articleId=String(articleId||'').trim();url=sbmNormalizeUrl_(String(url||''));
+  var mid=String(meta.article_id||'').trim(),mu=sbmNormalizeUrl_(String(meta.article_url||''));
+  return !!((articleId&&mid&&articleId===mid)||(url&&mu&&url===mu));
+}
+function sbmNormalImprovementActiveEntries_(wfIndex){
+  wfIndex=wfIndex||sbmDoctorWorkflowResumeIndex_();var out=[];
+  Object.keys(wfIndex.meta||{}).forEach(function(id){
+    if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;var m=wfIndex.meta[id]||{};
+    if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
+    var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;out.push({id:id,meta:m,ts:ts});
+  });
+  out.sort(function(a,b){return b.ts-a.ts;});return out;
+}
 function sbmNormalImprovementWorkflowStart_(record,sourceSheet,kind,reason){
   record=record||{};
   var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
   if(!url)return '';
-  var key=sbmNormalImprovementWorkflowKey_(articleId,url);
+  var key=sbmNormalImprovementWorkflowKey_(articleId,url),index=sbmDoctorWorkflowResumeIndex_(),active=sbmNormalImprovementActiveEntries_(index);
+  // 同一記事の旧キーWorkflowは新規案件として残さず、canonical keyへ一本化する。
+  active.forEach(function(e){
+    if(e.id===key||!sbmNormalImprovementSameArticle_(e.meta,articleId,url))return;
+    sbmDoctorWorkflowWriteMeta_(e.id,{current_stage:'SUPERSEDED_DUPLICATE',registration_status:'SUPERSEDED',active:false,superseded_by:key,superseded_at:sbmNowText_(),last_error:''});
+  });
   sbmDoctorWorkflowWriteMeta_(key,{
     workflow_type:'NORMAL_IMPROVEMENT',current_stage:'NAVI_OPEN',registration_status:'WAITING',active:true,
     article_id:articleId,article_url:url,article_title:String(record['記事タイトル']||record['H1タイトル']||'').trim(),
@@ -9455,36 +9620,49 @@ function sbmMarkNormalImprovementWriterReady(articleId,url){
 }
 function sbmNormalImprovementWorkflowComplete_(articleId,url){
   try{
-    var key=sbmNormalImprovementWorkflowKey_(articleId,url),meta=sbmDoctorWorkflowReadMeta_(key);
-    if(String(meta.workflow_type||'')!=='NORMAL_IMPROVEMENT')return;
-    sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});
+    // 選択中のkeyだけでなく、同一ArticleIDまたは同一URLの残存Workflowをすべて完了する。
+    var index=sbmDoctorWorkflowResumeIndex_(),matched=0;
+    Object.keys(index.meta||{}).forEach(function(id){
+      if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;var m=index.meta[id]||{};
+      if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||!sbmNormalImprovementSameArticle_(m,articleId,url))return;
+      if(m.active===false&&String(m.current_stage||'')==='COMPLETED')return;
+      sbmDoctorWorkflowWriteMeta_(id,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});matched++;
+    });
+    // 索引にまだ存在しないcanonical keyでも従来互換で完了できるようにする。
+    if(!matched){var key=sbmNormalImprovementWorkflowKey_(articleId,url),meta=sbmDoctorWorkflowReadMeta_(key);if(String(meta.workflow_type||'')==='NORMAL_IMPROVEMENT')sbmDoctorWorkflowWriteMeta_(key,{current_stage:'COMPLETED',registration_status:'COMPLETED',active:false,completed_at:sbmNowText_(),last_error:''});}
   }catch(ignoreNormalWorkflowComplete){}
 }
-function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
-  if(wfIndex&&wfIndex.meta){
-    var latest=null;
-    Object.keys(wfIndex.meta).forEach(function(id){
-      if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
-      var m=wfIndex.meta[id]||{};
-      if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
-      var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
-      if(!latest||ts>latest.ts)latest={id:id,meta:m,ts:ts};
-    });
-    return latest;
-  }
-  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
-  if(!sh||sh.getLastRow()<2)return null;
-  var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues(),ids={};
-  vals.forEach(function(r){if(String(r[hm['種別']-1]||'')==='META')ids[String(r[hm['CaseID']-1]||'').trim()]=1;});
-  var latest=null;
-  Object.keys(ids).forEach(function(id){
-    if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;
-    var m=sbmDoctorWorkflowReadMeta_(id)||{};
-    if(String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT'||m.active===false||String(m.current_stage||'')==='COMPLETED')return;
-    var d=sbmParseDate_(m.updated_at),ts=d?d.getTime():0;
-    if(!latest||ts>latest.ts)latest={id:id,meta:m,ts:ts};
+// v6.6.45: 改善の推移に正式登録済みの通常改善は、Workflow METAが旧状態のままでも未完了扱いしない。
+// ArticleIDを第一キー、URLを補助キーとして照合する。
+function sbmNormalImprovementRegisteredEffectIndex_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],idx={ids:{},urls:{}};
+  rows.forEach(function(r){
+    var id=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(String(r['記事URL']||''));
+    // 改善・治療開始日がある行だけを正式な改善サイクルとして扱う。
+    if(!r['改善・治療開始日'])return;
+    if(id)idx.ids[id]=true;if(url)idx.urls[url]=true;
   });
-  return latest;
+  return idx;
+}
+function sbmNormalImprovementAlreadyRegistered_(meta,effectIndex){
+  meta=meta||{};effectIndex=effectIndex||{ids:{},urls:{}};
+  var id=String(meta.article_id||'').trim(),url=sbmNormalizeUrl_(String(meta.article_url||''));
+  return !!((id&&effectIndex.ids&&effectIndex.ids[id])||(url&&effectIndex.urls&&effectIndex.urls[url]));
+}
+function sbmFindAllNormalImprovementWorkflows_(wfIndex){
+  var all=sbmNormalImprovementActiveEntries_(wfIndex),out=[],seen=[],effectIndex=sbmNormalImprovementRegisteredEffectIndex_();
+  // v6.6.45: 改善の推移へ登録済みならWorkflow METAが残存していても未完了一覧から除外する。
+  // 一覧では同一ArticleID/URLを1件だけ表示する。allは更新日時降順なので最新Workflowを代表にする。
+  all.forEach(function(e){
+    if(sbmNormalImprovementAlreadyRegistered_(e.meta,effectIndex))return;
+    var duplicate=seen.some(function(m){return sbmNormalImprovementSameArticle_(m,e.meta.article_id,e.meta.article_url);});
+    if(duplicate)return;out.push(e);seen.push(e.meta||{});
+  });
+  return out;
+}
+function sbmFindLatestNormalImprovementWorkflow_(wfIndex){
+  var all=sbmFindAllNormalImprovementWorkflows_(wfIndex||sbmDoctorWorkflowResumeIndex_());
+  return all.length?all[0]:null;
 }
 function sbmResumeNormalImprovementWorkflow_(entry){
   var m=entry&&entry.meta?entry.meta:entry||{},article=sbmFindArticleDbByIdentity_(String(m.article_id||''),String(m.article_url||''));
@@ -9506,14 +9684,40 @@ function sbmResumeNormalImprovementWorkflow_(entry){
 }
 
 // 通常改善の入口を共通化する。どの画面から開いても
-// ArticleID/URLを確定 → Checkpoint保存 → 改善ナビ表示、の順を必ず通す。
+// ArticleID/URLを確定 → 改善ナビ表示 → 表示後にCheckpoint保存、の順を通す。
 function sbmStartNormalImprovementAndShow_(record,sourceSheet,kind,reason){
   record=record||{};
   var articleId=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
   if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
-  sbmNormalImprovementWorkflowStart_(record,sourceSheet,kind,reason);
-  sbmShowImprovementNaviDialog_(record,kind,reason);
-  return {ok:true,articleId:articleId,url:url};
+  // v6.6.43: 改善ナビが表示された時点を正式な未完了Workflow開始点とするため、
+  // ダイアログ表示前に同期保存する。HTML側のCheckpointは閉じる時点の状態更新用として残す。
+  var workflowId=sbmNormalImprovementWorkflowStart_(record,String(sourceSheet||''),String(kind||'改善候補'),String(reason||''));
+  if(!workflowId)return sbmAlert_('改善ナビ','未完了Workflowを保存できなかったため、改善ナビを開きません。');
+  sbmShowImprovementNaviDialog_(record,kind,reason,sourceSheet);
+  return {ok:true,articleId:articleId,url:url,workflowId:workflowId};
+}
+
+function sbmCheckpointImprovementNaviOpen(seed){
+  seed=seed||{};
+  var record={'ArticleID':String(seed.articleId||''),'記事URL':String(seed.url||''),'記事タイトル':String(seed.title||'')};
+  if(!record['記事URL'])return {ok:false,message:'記事URLを取得できません。'};
+  sbmNormalImprovementWorkflowStart_(record,String(seed.sourceSheet||''),String(seed.kind||'改善候補'),String(seed.reason||''));
+  return {ok:true};
+}
+
+function sbmCheckpointImprovementNaviClose(seed,state){
+  seed=seed||{}; state=state||{};
+  var record={'ArticleID':String(seed.articleId||''),'記事URL':String(seed.url||''),'記事タイトル':String(seed.title||'')};
+  if(!record['記事URL'])return {ok:false,message:'記事URLを取得できません。'};
+  var key=sbmNormalImprovementWorkflowStart_(record,String(seed.sourceSheet||''),String(seed.kind||'改善候補'),String(seed.reason||''));
+  if(!key)return {ok:false,message:'Workflowを保存できませんでした。'};
+  sbmDoctorWorkflowWriteMeta_(key,{
+    current_stage:String(state.currentStage||'NAVI_OPEN'),registration_status:'WAITING',active:true,
+    navi_checkpoint:'CLOSED_UNFINISHED',navi_closed_at:sbmNowText_(),
+    detail_loaded:state.detailLoaded===true,prompt_ready:state.promptReady===true,
+    guide_open:state.guideOpen===true,internal_links_open:state.internalLinksOpen===true,last_error:''
+  });
+  return {ok:true,workflowId:key};
 }
 
 function sbmOpenSelectedImprovementNavi(){
@@ -9523,20 +9727,29 @@ function sbmOpenSelectedImprovementNavi(){
     if(!sh||(sh.getName()!==SBM_SHEETS.TODAY&&sh.getName()!==SBM_SHEETS.ARTICLE_DB)){
       return sbmAlert_('改善ナビ','今日の改善または記事管理を開いてください。');
     }
-    row=sbmGetCheckedRow_(sh);if(!row)return;
+    var props=PropertiesService.getDocumentProperties();
+    var pendingKey='SBM_LAST_NAVI_ROW_'+sh.getSheetId();
+    var pendingRow=Number(props.getProperty(pendingKey)||0);
+    if(pendingRow>1&&pendingRow<=sh.getLastRow()) row=pendingRow;
+    else row=sbmGetCheckedRow_(sh,true);
+    if(!row){
+      var ar=sh.getActiveRange();
+      if(ar&&ar.getRow()>1)row=ar.getRow();
+    }
+    if(!row)return sbmAlert_('対象を選択してください','一覧で対象記事の行を選択してから、もう一度実行してください。');
+    props.deleteProperty(pendingKey);
     record=sbmRowRecord_(sh,row);
     url=String(record['記事URL']||'').trim();
     if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
-    try{sbmLog_('ImprovementNaviLaunch','Info','stage=selected / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogStart){}
-
-    // 通常改善も「未完了の作業を再開」で復元できるよう、表示前に軽量Checkpointを保存する。
+    // 通常改善のCheckpointはダイアログ描画後にHTML側から非同期保存する。
     // 今日の改善／記事管理のどちらからでも同じ通常改善開始処理を通す。
     sbmStartNormalImprovementAndShow_(record,sh.getName(),record['区分']||'改善候補',record['改善理由・期待効果']||'');
-    try{sbmLog_('ImprovementNaviLaunch','Done','stage=dialog_shown / elapsed='+(((new Date()).getTime()-started.getTime())/1000).toFixed(2)+'s / sheet='+sh.getName()+' / row='+row+' / url='+url);}catch(ignoreLogDone){}
   }catch(e){
-    var msg=String(e&&e.message||e);
-    try{sbmLog_('ImprovementNaviLaunch','Error','stage=launch / sheet='+(sh?sh.getName():'')+' / row='+row+' / url='+url+' / error='+msg);}catch(ignoreLogError){}
-    return sbmAlert_('改善ナビを起動できませんでした','改善ナビの起動中にエラーが発生しました。\n\n'+msg+'\n\n設定・メンテナンスのシステムログに ImprovementNaviLaunch として記録しました。');
+    var msg=String(e&&e.message||e),name=String(e&&e.name||''),stack=String(e&&e.stack||'');
+    var detail='stage=launch / sheet='+(sh?sh.getName():'')+' / row='+row+' / url='+url+' / name='+name+' / message='+msg+' / stack='+stack;
+    console.error('[ImprovementNaviLaunch] '+detail);
+    try{sbmLog_('ImprovementNaviLaunch','Error',detail);}catch(ignoreLogError){}
+    return sbmAlert_('改善ナビを起動できませんでした','改善ナビの起動中にエラーが発生しました。\n\n'+msg+'\n\n完全な例外情報はApps Scriptの実行ログとシステムログへ記録しました。');
   }
 }
 
@@ -9554,7 +9767,7 @@ function sbmElapsedDaysFromImprovementDate_(value) {
 
 
 /**
- * v5.13.1:
+ * 旧版:
  * 同一記事に複数の改善履歴（モニタリングサイクル）がある場合、
  * 「改善の推移」には最新サイクルだけを表示します。
  * 旧サイクルは改善履歴/Treatment_Performanceから削除しません。
@@ -9588,7 +9801,7 @@ function sbmIsLatestEffectHistory_(h,idx,latestMap){
 
 
 /**
- * v5.13.2:
+ * 旧版:
  * 「改善の推移」へ実際に表示する行を最終段で正規化します。
  *
  * 目的:
@@ -9683,9 +9896,9 @@ function sbmFilterActiveEffectRows_(rows){
 
 
 /**
- * v5.13.3:
+ * 旧版:
  * 改善履歴を「記事単位」で先に1件へ絞ってから、改善の推移を生成します。
- * v5.13.1/5.13.2の表示後フィルタに依存せず、旧サイクルを生成段階で除外します。
+ * 旧版/5.13.2の表示後フィルタに依存せず、旧サイクルを生成段階で除外します。
  */
 function sbmHistoryArticleIdentity_(h){
   h=h||{};
@@ -9748,8 +9961,22 @@ function sbmLatestMonitoringHistories_(history){
 function sbmUpdateEffectivenessCore_(showAlert,options){
   options=options||{};
   var dailyFast=options.dailyFast===true;
+  var perfStart=new Date(),perfSchema=0,perfDateRepair=0,perfLoad=0,perfCompute=0,perfWrite=0;
+  var perfT=new Date();
   sbmEnsureHistoryAndEffectSchemas_();
-  try{sbmRepairHistoryDateValuesV6137_();}catch(eDateRepair){try{sbmLog_('HistoryDateRepairV6137','Warning',String(eDateRepair));}catch(ignoreDateRepairLog){}}
+  perfSchema=sbmSecondsSince_(perfT);
+  // v6.6.20: 旧版の日付修復は移行処理。日次ごとに履歴全件+AI JSONを再走査しない。
+  // 初回dailyFastだけ実施して完了マーカーを保存。手動更新では従来どおり毎回安全確認する。
+  perfT=new Date();
+  try{
+    var repairProps=PropertiesService.getDocumentProperties();
+    var repairDone=String(repairProps.getProperty('SBM_HISTORY_DATE_REPAIR_V6137_DONE')||'')==='YES';
+    if(!dailyFast || !repairDone){
+      sbmRepairHistoryDateValuesV6137_();
+      if(dailyFast)repairProps.setProperty('SBM_HISTORY_DATE_REPAIR_V6137_DONE','YES');
+    }
+  }catch(eDateRepair){try{sbmLog_('HistoryDateRepairV6137','Warning',String(eDateRepair));}catch(ignoreDateRepairLog){}}
+  perfDateRepair=sbmSecondsSince_(perfT);
   // 旧データ修復・Doctor整合・経路補正は日次の表示更新で毎回行わない。
   // Doctor登録時やメンテナンス処理で整合する。手動の「改善の推移更新」では従来どおり実施。
   if(!dailyFast){
@@ -9757,8 +9984,11 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     try{sbmNormalizeMonitoringLifecycle_();}catch(eLife){sbmLog_('MonitoringLifecycleNormalize','Warning',String(eLife));}
     try{sbmDoctorSyncImprovementRoutesFromCases_();}catch(eRouteSync){sbmLog_('DoctorRouteSync','Warning',String(eRouteSync));}
   }
+  perfT=new Date();
   var allHistory=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],articles=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],byId={},byUrl={};
   var doctorCaseIndex=sbmBuildLatestDoctorCaseIndex_();
+  perfLoad=sbmSecondsSince_(perfT);
+  perfT=new Date();
   var historySheet=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY),historyHeaderMap=sbmHeaderMap_(historySheet),historyRowById={};
   if(historySheet.getLastRow()>=2&&historyHeaderMap['改善履歴ID']){
     var historyIds=historySheet.getRange(2,historyHeaderMap['改善履歴ID'],historySheet.getLastRow()-1,1).getDisplayValues();
@@ -9859,6 +10089,8 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     if(ta!==tb)return ta-tb;
     return String(a[5]||'').localeCompare(String(b[5]||''),'ja');
   });
+  perfCompute=sbmSecondsSince_(perfT);
+  perfT=new Date();
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
   sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);
   var oldBody=Math.max(0,sh.getLastRow()-1);
@@ -9879,8 +10111,10 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
       if(rows.length&&hmFast['経過日数'])sh.getRange(2,hmFast['経過日数'],rows.length,1).setNumberFormat('0');
     }catch(ignoreFastFormat){}
   }
+  perfWrite=sbmSecondsSince_(perfT);
+  var perfTotal=sbmSecondsSince_(perfStart);
   if(showAlert)sbmAlert_('改善の推移','改善の推移を更新しました。対象 '+rows.length+'件'+(recordedCount?'\n今回の測定記録 '+recordedCount+'件':'') );
-  if(options.returnStats===true)return {rows:rows.length,recordedCount:recordedCount};
+  if(options.returnStats===true)return {rows:rows.length,recordedCount:recordedCount,timing:{schema:perfSchema,dateRepair:perfDateRepair,load:perfLoad,compute:perfCompute,write:perfWrite,total:perfTotal}};
   return rows.length;
 }
 
@@ -9914,7 +10148,7 @@ function sbmOpenSelectedArticleDbDetail(){var sh=SpreadsheetApp.getActiveSheet()
 
 
 /**
- * v6.2.65: 14日以上GSCページデータを取得できていない「要確認」記事を、
+ * 旧版: 14日以上GSCページデータを取得できていない「要確認」記事を、
  * 利用者が1件ずつ公開状態・index・URL変更等を確認して処置する。
  */
 function sbmNeedsReviewArticleList_(){
@@ -10130,7 +10364,7 @@ function onEdit(e){
 }
 
 /**
- * v5.21.37: 旧表示が残っているときだけ、軽量な表示データ再生成で一度自己修復します。
+ * 旧版: 旧表示が残っているときだけ、軽量な表示データ再生成で一度自己修復します。
  * 通常閲覧では再計算せず、旧表示検出時も重い修復・全書式更新・測定記録は行いません。
  */
 function sbmEffectViewNeedsOneTimeRefresh_(sh){
@@ -10163,48 +10397,25 @@ function sbmEffectViewNeedsOneTimeRefresh_(sh){
 }
 
 function sbmOpenEffectiveness(){
-  // ArticleIDを記事タイトル直後へ固定し、旧表示列順を一度だけ安全に移行。
-  try{sbmEnsureVisibleMeasurementSchemasV623_('effect');}catch(eSchema){try{sbmLog_('EffectVisibleSchema','Warning',String(eSchema));}catch(ignoreSchemaLog){}}
-  // 通常は表示だけ。v5.21.37では旧ラベルが残る既存シートに限り軽量再生成し、
-  // 導入前に登録済みのaDoctor追加経過観察も新ACTIVEサイクルへ切り替えます。
+  // v6.6.29: [EffectViewPerf] 一時診断コードを撤去。v6.6.27までに確定した軽量表示経路は維持する。
   sbmMigrateEffectSheetName_();
-  var ss=SpreadsheetApp.getActiveSpreadsheet();
-  var sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
-  if(!sh){
-    sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
-    try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}
-  }
-  // 日付破損がある場合だけ、履歴を修復して表示データを軽量再生成する。
-  // 通常閲覧ではこの再生成経路に入らないため、表示速度を維持する。
-  var tzRepair={changed:false};
-  try{tzRepair=sbmEnsureSpreadsheetTimeZoneV6137_();}catch(eTz){try{sbmLog_('SpreadsheetTimeZoneV6137','Warning',String(eTz));}catch(ignoreTzLog){}}
-  var dateRepairNeeded=!!(tzRepair&&tzRepair.changed);
-  try{dateRepairNeeded=sbmEffectDateRepairNeededV6138_()||dateRepairNeeded;}catch(eDateDetect){try{sbmLog_('EffectDateRepairDetectV6138','Warning',String(eDateDetect));}catch(ignoreDateDetectLog){}}
-  if(dateRepairNeeded){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
+  if(!sh){sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}}
+  try{sbmEnsureVisibleMeasurementSchemasV623_('effect');sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(ignoreVisibleSchema){}
+  var props=PropertiesService.getDocumentProperties(),repairKey='SBM_EFFECT_VIEW_REPAIR_664_'+String(sh.getSheetId());
+  if(props.getProperty(repairKey)!=='1'){
     try{
-      sbmRepairHistoryDateValuesV6137_();
-      sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});
-      sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;
-      try{sbmLog_('EffectDateRepairV6138','Info','日付破損を検出したため改善の推移を再生成しました。');}catch(ignoreRepairLog){}
-    }catch(eDateRefresh){
-      try{sbmLog_('EffectDateRepairV6138','Warning',String(eDateRefresh));}catch(ignoreDateRefreshLog){}
-    }
+      var tzRepair=sbmEnsureSpreadsheetTimeZoneV6137_(),need=!!(tzRepair&&tzRepair.changed);
+      try{need=sbmEffectDateRepairNeededV6138_()||need;}catch(ignoreDetect){}
+      if(need){sbmRepairHistoryDateValuesV6137_();sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}
+      else if(sbmEffectViewNeedsOneTimeRefresh_(sh)){sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}
+      try{sbmRepairEffectTitleCells_(sh);}catch(ignoreTitle){}
+    }catch(eRepair){try{sbmLog_('EffectViewRepair','Warning',String(eRepair));}catch(ignoreLog){}}
+    props.setProperty(repairKey,'1');
   }
-  if(!dateRepairNeeded && sbmEffectViewNeedsOneTimeRefresh_(sh)){
-    try{
-      // 閲覧時の自己修復は「表示データの再生成」だけに限定する。
-      // Doctor整合・ライフサイクル全件修復・全書式再設定・autoResizeRows・flushは実行しない。
-      // また、閲覧操作で週次測定を記録しない。
-      sbmUpdateEffectivenessCore_(false,{dailyFast:true,viewOnly:true});
-      sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;
-    }catch(eRefresh){
-      sbmLog_('EffectViewOneTimeRefresh','Warning',String(eRefresh));
-    }
-  }
-  try{sbmRepairEffectTitleCells_(sh);}catch(ignoreEffectTitleRepair){}
-  try{sbmStyleEffectSheetViewOnly_(sh);}catch(ignoreViewStyle){}
-  try{sbmApplyEffectDisplayTheme_(sh);}catch(ignoreEffectTheme){}
-  sh.showSheet();ss.setActiveSheet(sh);sh.activate();
+  try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
+  if(sh.isSheetHidden())sh.showSheet();
+  if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
 
 /** 改善の推移：閲覧専用の軽量表示整形。データ更新・autoResizeRows・flushは行わない。 */
@@ -10646,6 +10857,35 @@ function sbmRemoveDuplicateDialogHeading_(output,title){
 function sbmShowThemedModalDialog_(output,title){
   var cleaned=sbmRemoveDuplicateDialogHeading_(output,title);
   SpreadsheetApp.getUi().showModalDialog(sbmApplyThemeToHtmlOutput_(cleaned),title);
+}
+
+
+/** v6.6.18: 外部通信権限を直接確認・有効化する正式な入口。
+ * メニューまたはApps Scriptエディタから直接実行する。権限例外は握りつぶさず、
+ * Google標準のOAuth再承認を発生させる。
+ */
+function sbmAuthorizeExternalAccess(){
+  var res=UrlFetchApp.fetch('https://www.googleapis.com/generate_204',{muteHttpExceptions:true,followRedirects:true});
+  var code=res.getResponseCode();
+  sbmSetupSetSettingsBulk_([{key:'ExternalAccessStatus',value:'OK',desc:'外部通信権限確認済み'},{key:'LastExternalAccessCheckAt',value:sbmNowText_(),desc:'外部通信権限の最終確認日時'}]);
+  SpreadsheetApp.getActiveSpreadsheet().toast('外部通信権限は有効です（HTTP '+code+'）。','SIMS Manager',6);
+  return code;
+}
+
+/** 初回セットアップ用。非同期実行で権限不足なら、直接メニュー実行を案内する。 */
+function sbmVerifyExternalAccessForSetup_(){
+  try{
+    var res=UrlFetchApp.fetch('https://www.googleapis.com/generate_204',{muteHttpExceptions:true,followRedirects:true});
+    var code=res.getResponseCode();
+    sbmSetupSetSettingsBulk_([{key:'ExternalAccessStatus',value:'OK',desc:'外部通信権限確認済み'},{key:'LastExternalAccessCheckAt',value:sbmNowText_(),desc:'外部通信権限の最終確認日時'}]);
+    return {ok:true,code:code};
+  }catch(e){
+    var msg=String(e&&e.message||e);
+    if(msg.indexOf('script.external_request')>=0 || msg.indexOf('UrlFetchApp.fetch')>=0){
+      throw new Error('外部通信権限の承認が必要です。いったん初回セットアップを終了し、「設定・メンテナンス → 外部通信権限を確認・有効化」を1回実行してGoogleの権限を承認してください。その後、初回セットアップSTEP3を再開してください。');
+    }
+    throw e;
+  }
 }
 
 function sbmCommonDialogCss_(){
@@ -11669,7 +11909,7 @@ function sbmRepairHistoryDateValuesV6137_(){
   return {checked:n,repaired:repaired,formatRepaired:formatNeeds};
 }
 
-/** v6.1.37: 改善の推移を開く前に、既知の日付破損とTZ不一致を軽量検出する。 */
+/** 旧版: 改善の推移を開く前に、既知の日付破損とTZ不一致を軽量検出する。 */
 function sbmEffectDateRepairNeededV6138_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   try{
@@ -11783,7 +12023,7 @@ function sbmHomeCurrentTreatmentStats_(preloadedRows){
   return {total:rows.length,counts:counts};
 }
 
-function sbmHomeTreatmentHistoryStats_(preloadedRows){
+function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
   var rows=Array.isArray(preloadedRows)?preloadedRows:[];
   if(!Array.isArray(preloadedRows)){
     try{rows=sbmHomeReadRowsOnce_(SBM_SHEETS.FEEDBACK_HISTORY)||[];}catch(e){rows=[];}
@@ -11801,7 +12041,7 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows){
     delete groups[sourceKey];
   }
   rows.forEach(function(r){
-    var aliases=sbmMonitoringAliasesFrom_(r),existing=[];
+    var aliases=sbmMonitoringAliasesFrom_(r,blogNameOverride),existing=[];
     aliases.forEach(function(a){var k=aliasToKey[a];if(k&&existing.indexOf(k)<0)existing.push(k);});
     var key=existing.length?existing[0]:('G:'+(++seq));
     ensureGroup(key);
@@ -11920,7 +12160,7 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
 
 
 /**
- * Product v5.21.8 Home Snapshot
+ * Product 旧版 Home Snapshot
  * Home表示に必要な集計だけをDocumentPropertiesへ保存し、
  * Homeを開く操作では記事管理・改善履歴・改善の推移を再読込しない。
  */
@@ -11955,9 +12195,12 @@ function sbmBuildHomeSnapshot_(){
   try{effectRows=sbmHomeReadRowsOnce_(SBM_SHEETS.EFFECT)||[];}catch(eEffect){}
   try{historyRows=sbmHomeReadRowsOnce_(SBM_SHEETS.FEEDBACK_HISTORY)||[];}catch(eHistory){}
 
+  // v6.6.22: 改善履歴の各行でSettingsを読み直さない。BlogNameはSnapshot生成時に1回だけ取得する。
+  var homeBlogName='';
+  try{homeBlogName=String(sbmGetSetting_('BlogName','')||'').trim();}catch(eBlogName){}
   var articleStats=sbmHomeArticleStatsFromRows_(rows);
   var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
-  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows);
+  var historyStats=sbmHomeTreatmentHistoryStats_(historyRows,homeBlogName);
   var weekly=sbmHomeWeeklyActivity_(historyRows);
 
   var snapshot={
@@ -12130,7 +12373,10 @@ function sbmRefreshHome_(options) {
     sh.getRange('A4:J4').setBackground(runtimeState.running?'#dbeafe':(runtimeState.completedToday?'#e6f4ea':(runtimeState.continuationRequired?'#fef7e0':(runtimeState.label==='エラー'?'#fce8e6':'#fff2cc'))));
   }
   sh.getRange('B4').setFontColor(runtimeState.running?'#174ea6':(runtimeState.completedToday?'#0b8043':'#b3261e')).setFontWeight(runtimeState.completedToday?'normal':'bold');
-  try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
+  // 通常の数値更新ではHome全体の書式を再描画しない。
+  if(options.applyTheme===true){
+    try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
+  }
 }
 
 function sbmRefreshHomeRankSummaryOnly_(snapshot) {
@@ -12157,7 +12403,7 @@ function sbmRefreshHomeRankSummaryOnly_(snapshot) {
 }
 
 /**
- * v6.4.0: 記事1件の作業状態やモニター終了など、Home全再構築が不要な更新用。
+ * 旧版: 記事1件の作業状態やモニター終了など、Home全再構築が不要な更新用。
  * 記事DBと改善の推移だけを読み、改善履歴・GSC・Doctor全体整合には触れない。
  * 背景色やテーマも再描画せず、数値セルだけ更新する。
  */
@@ -12423,12 +12669,12 @@ function sbmRefreshHistoryAndEffectAfterRepair_() {
  */
 
 /**
- * v5.21.57: 改善履歴を「見るためだけ」の軽量整形。
+ * 旧版: 改善履歴を「見るためだけ」の軽量整形。
  * データ再計算、並べ替え、モニタリング状態更新、重複修復は行わない。
  */
 
 /**
- * v5.21.60: 旧履歴で文字列保存された改善日だけをDate型へ直す。
+ * 旧版: 旧履歴で文字列保存された改善日だけをDate型へ直す。
  * Date型・空欄・解釈不能値には触れない。変更セルだけ個別に書き戻す。
  */
 function sbmNormalizeImprovementHistoryDatesLight_(sh,improvedDateCol,lastRow){
@@ -12463,12 +12709,10 @@ function sbmEnsureImprovementHistoryViewLight_(){
   var props=PropertiesService.getDocumentProperties();
   var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_26_'+String(sh.getSheetId());
   if(props.getProperty(styleKey)==='1'){
-    // a schema migration may have cleared formatting while leaving an old ready flag.
-    // Trust the cache only when the visible header formatting is still intact.
-    var styleIntact=false;
-    try{styleIntact=String(sh.getRange(1,1).getBackground()||'').toLowerCase()==='#0b8043';}catch(ignoreStyleCheck){}
-    if(styleIntact)return;
-    try{props.deleteProperty(styleKey);}catch(ignoreStyleKey){}
+    // v6.6.31: テーマ適用後はヘッダー色が #0b8043 とは限らない。
+    // 色でキャッシュ有効性を判定すると、通常表示のたびに全行書式を再適用してしまうため、
+    // 完了フラグを正本として即時終了する。ヘッダー構造の整合は直前の schema 処理が担当する。
+    return;
   }
 
   var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
@@ -12553,22 +12797,15 @@ function sbmEnsureVisibleMeasurementSchemasV623_(target){
 }
 
 function sbmOpenImprovementHistory() {
-  var ss=SpreadsheetApp.getActiveSpreadsheet();
-  var sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
-  if(!sh){
-    SpreadsheetApp.getUi().alert('改善履歴シートが見つかりません。');
-    return;
-  }
-  // ArticleIDを利用者向け4列目に固定する表示スキーマを一度だけ整合。
-  try{sbmEnsureVisibleMeasurementSchemasV623_('history');sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY)||sh;}catch(eSchema){try{sbmLog_('HistoryVisibleSchema','Warning',String(eSchema));}catch(ignoreSchemaLog){}}
-  // 表示に必要な軽量整形だけを行い、全データ再計算はしない。
-  try{sbmEnsureImprovementHistoryViewLight_();}catch(eView){
-    try{sbmLog_('OpenImprovementHistoryView','Warning',String(eView));}catch(ignoreLog){}
-  }
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(!sh){SpreadsheetApp.getUi().alert('改善履歴シートが見つかりません。');return;}
+  // ヘッダー整合だけ確認し、通常閲覧では全行テーマ再描画を行わない。
+  try{sbmEnsureVisibleMeasurementSchemasV623_('history');sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY)||sh;}catch(ignoreSchema){}
+  try{sbmEnsureImprovementHistoryViewLight_();}catch(ignoreView){}
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
-  try{sbmApplyHistoryDisplayTheme_(sh);}catch(ignoreHistoryTheme){}
-  try{sh.showSheet();}catch(ignoreShow){}
-  ss.setActiveSheet(sh);
+  try{sbmEnsureViewStyleCached_(sh,'SBM_HISTORY_THEME_664_'+String(sh.getSheetId()),function(x){sbmApplyHistoryDisplayTheme_(x);});}catch(ignoreTheme){}
+  if(sh.isSheetHidden())sh.showSheet();
+  if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
 
 /**
@@ -13366,7 +13603,7 @@ function sbmShowRelease1SetupStep_(step) {
   var descriptions = {
     1:'サイト名、サイトURL、Search Consoleプロパティを登録します。',
     2:'Google Search Console APIの有効化と認証手順だけを確認します。',
-    3:'登録済みプロパティへの接続だけを確認します。',
+    3:'外部通信権限を確認したうえで、登録済みSearch Consoleプロパティへの接続を確認します。',
     4:'Search ConsoleからページURLと指標を取得し、記事管理を作成します。',
     5:'未補完記事のタイトル、SEOタイトル、ディスクリプション等を取得します。',
     6:'記事管理の登録件数と記事情報の補完状況を確認し、Homeへ移動します。'
@@ -13483,6 +13720,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
     var settings3=sbmGetSettingsMap_();
     if(String(settings3['SetupBlogInfo']||'NO')!=='YES')throw new Error('先にSTEP1を実行してください。');
     if(!String(settings3['GoogleCloudProjectNumber']||'').trim())throw new Error('先にSTEP2でGoogle Cloudのプロジェクト番号を確認・入力し、Search Console APIを有効化してください。');
+    sbmVerifyExternalAccessForSetup_();
     var result=sbmTestSearchConsoleConnection_();
     if(!result.ok){
       sbmSetupSetSettingsBulk_([{key:'ConnectionStatus',value:'ERROR',desc:'Search Console接続失敗'}]);
@@ -13646,11 +13884,10 @@ function sbmRepairStaleCreatorDirectEffectLabels_(){
 }
 
 function sbmOpenImprovementStatus() {
-  // 旧キャッシュに残るCreator Directの誤った『追加経過観察』表示だけを軽量補正する。
-  try{sbmRepairStaleCreatorDirectEffectLabels_();}catch(eCreatorLabel){try{sbmLog_('CreatorDirectEffectLabelRepair','Warning',String(eCreatorLabel));}catch(ignoreCreatorLabelLog){}}
-  // Full/Starter共通。ACTIVE/REVIEW_REQUIRED履歴があるのに推移行だけ欠ける場合、
-  // 対象履歴だけ軽量補完する。全件効果再計算・Doctor全体整合は行わない。
-  try{sbmRepairMissingActiveEffectRows_();}catch(eRepair){try{sbmLog_('ActiveEffectOpenRepair','Warning',String(eRepair));}catch(ignoreLog){}}
+  // v6.6.23: 「改善の推移を開く」は閲覧専用とする。
+  // 旧Creator Directラベル補正と欠落推移行の自己修復は全履歴・全推移を読み込むため、
+  // 表示のたびには実行しない。通常の登録経路では改善履歴と推移行を同時同期する。
+  // 既存の互換性修復関数自体はメンテナンス用途のため残す。
   return sbmOpenEffectiveness();
 }
 
@@ -13701,7 +13938,7 @@ function sbmSortArticlesByUpdated(){ return sbmSortArticleDbBy_('updated','最�
 
 
 /**
- * Product v5.21.8
+ * Product 旧版
  * スクリプト差替え直後でもHomeの版表示だけを軽量同期する。
  * Home全体の再集計は行わない。
  */
@@ -13720,7 +13957,7 @@ function sbmSyncHomeVersionOnly_(){
 
 
 /* ========================================================================== *
- * v6.2.92 Display Theme
+ * 旧版 Display Theme
  * STANDARD keeps the current product colors.
  * MONOCHROME uses the Home top bar as the common heading language.
  * ========================================================================== */
@@ -13902,7 +14139,7 @@ function sbmApplyHistoryDisplayTheme_(sh){
 
 
 /**
- * v6.4.4: Workflow完了後に、変更された利用者向けシートだけを表示仕上げする。
+ * 旧版: Workflow完了後に、変更された利用者向けシートだけを表示仕上げする。
  * データ再計算・GSC取得・Doctor整合は行わず、既存の閲覧用書式と現在テーマだけを適用する。
  */
 function sbmFinishUserSheetPresentation_(targets){
@@ -14024,10 +14261,10 @@ function onOpen() {
   // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
   ui.createMenu('SIMS今日の作業')
-    .addItem('1．Homeを開く','sbmOpenHome')
-    .addItem('2．日次処理を実行','sbmRunDailyUpdateManual')
-    .addItem('3．今日の改善を開く','sbmOpenTodayImprovement')
-    .addItem('4．選択記事の改善内容を見る','sbmOpenSelectedImprovementNavi')
+    .addItem('0．HOME画面を開く','sbmOpenHome')
+    .addItem('1．日次処理を実行','sbmRunDailyUpdateManual')
+    .addItem('2．今日の改善を開く','sbmOpenTodayImprovement')
+    .addItem('3．選択記事の改善内容を見る','sbmOpenSelectedImprovementNavi')
     .addSeparator()
     .addItem('記事情報を更新','sbmOpenArticleInfoUpdate')
     .addToUi();
@@ -14088,11 +14325,11 @@ function onOpen() {
 
   maintenanceMenu
     .addSeparator()
+    .addItem('外部通信権限を確認・有効化','sbmAuthorizeExternalAccess')
+    .addSeparator()
     .addItem('ライセンス認証','sbmLicenseActivate')
     .addItem('ライセンス状態を確認','sbmLicenseRc4StatusDialog')
     .addSeparator()
-    .addItem('通信障害テスト（RC6）','sbmLicenseCommunicationTest')
-    .addItem('テスト状態を解除（RC6）','sbmLicenseCommunicationTestReset')
     .addItem('ライセンスを再確認','sbmLicenseRevalidate')
     .addSeparator()
     .addItem('シートの作成・修復','sbmInitializeSheets')
@@ -14110,24 +14347,15 @@ function onOpen() {
     if (home) {
       try { sbmSyncHomeVersionOnly_(); } catch (eVersionHome) {}
       try { sbmRefreshHomeDailyStatusOnly_(); } catch (eDailyHome) { try { sbmLog_('OnOpenDailyStatus','Warning',String(eDailyHome)); } catch(ignoreDailyHome) {} }
-      home.showSheet();
-      ss.setActiveSheet(home);
-      home.activate();
-      try{SpreadsheetApp.flush();}catch(ignoreFastHomeFlush){}
+      if(home.isSheetHidden())home.showSheet();
+      if(ss.getActiveSheet().getSheetId()!==home.getSheetId())ss.setActiveSheet(home);
     }
   } catch (eHome) {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
   }
 
-  // SIMS標準TZへ軽量統一。Home初期表示後に実行する。
-  try{sbmEnsureSpreadsheetTimeZoneV6137_();}catch(ignoreTimeZoneRepair){}
-
-  // 一度限りの互換修復。Homeの初期表示をブロックしない順序へ移動。
-  try{sbmRunV621StateRepairOnce_();}catch(ignoreV621Repair){}
-  try{sbmRunV6133DoctorContinuationRepairOnce_();}catch(ignoreV6133Repair){}
-
-  // 起動時は表示/非表示だけを整える。5シート全体のテーマ再描画はしない。
-  try { sbmApplyProductVisibleTabs_({applyTheme:false}); } catch (eTabs) { try { sbmLog_('OnOpenVisibleTabs','Warning',String(eTabs)); } catch(ignoreTabs) {} }
+  // F5/onOpenでは、ここから先の保守処理・全シート走査を行わない。
+  // 旧版互換修復やTZ補正は初期設定/メンテナンス/業務処理側へ委譲する。
 }
 
 
@@ -14805,8 +15033,8 @@ function sbmDoctorSaveHealthRun_(run) {
   // active health-check idだけを保存。Doctor全シート再装飾は行わない。
   sbmSetSetting_('DoctorActiveHealthCheckId',run.healthCheckId,'現在のサイト健康診断ID');
 }
-function sbmDoctorGetHealthRun_() {
-  var id=String(sbmGetSetting_('DoctorActiveHealthCheckId','')||''); if(!id)return null;
+function sbmDoctorGetHealthRun_(settingsMap) {
+  var id=String((settingsMap && Object.prototype.hasOwnProperty.call(settingsMap,'DoctorActiveHealthCheckId') ? settingsMap['DoctorActiveHealthCheckId'] : sbmGetSetting_('DoctorActiveHealthCheckId',''))||''); if(!id)return null;
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.DOCTOR_HEALTH_RUN);
   if (sh.getLastRow() < 2) return null;
   var hm=sbmHeaderMap_(sh), vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();
@@ -14939,7 +15167,7 @@ function sbmDoctorCreateRequestFromArticleList() {
 
 
 /**
- * v5.13.0: 改善後モニタリングの出口。
+ * 旧版: 改善後モニタリングの出口。
  * 4回測定完了後は、改善完了なら現役一覧から卒業し、
  * 再改善必要/判断保留ならDoctor再診へ進めます。
  */
@@ -14993,7 +15221,7 @@ function sbmEffectFinalOutcomeForRow_(effectRow){
 
 
 /**
- * Product v5.21.8
+ * Product 旧版
  * STEP 3高速化用。Doctor_Cases を1回だけ読み、ArticleID / URL から最新Caseを引ける索引を作る。
  * 改善の推移更新で記事ごとに Doctor_Cases 全体を再読込しない。
  */
@@ -15037,7 +15265,7 @@ function sbmLatestDoctorCaseForArticle_(articleId,url){
 
 
 /**
- * v6.1.29: 「改善の推移」の現在サイクルとDoctor Caseを厳密に結び付ける。
+ * 旧版: 「改善の推移」の現在サイクルとDoctor Caseを厳密に結び付ける。
  * ArticleIDだけで過去Caseを拾うと、別サイクルのNORMAL_CLOSE/MONITORINGが
  * 現在の4週完了案件へ誤適用されるため、改善履歴IDを主キーとして扱う。
  */
@@ -15307,7 +15535,7 @@ function sbmProcessSelectedEffectAfterObservationWorker(){
 
 
 /**
- * v5.21.51: 経過観察終了後の処置専用の最小更新。
+ * 旧版: 経過観察終了後の処置専用の最小更新。
  * 選択済みの「改善の推移」1行と、その記事のDoctor Case / 改善履歴1行だけを扱う。
  * 全件再生成・全Case横断修復・記事DB全件読込は行わない。
  */
@@ -15396,7 +15624,7 @@ function sbmDoctorApplyExtendedMonitoringToSelectedEffect_(effectSheet,effectRow
 
 
 /**
- * v5.21.52: 経過観察終了後の処置専用の軽量表示仕上げ。
+ * 旧版: 経過観察終了後の処置専用の軽量表示仕上げ。
  * 対象行と先頭見出しだけを整え、全体再生成・全行autoResize・SpreadsheetApp.flushは行わない。
  */
 function sbmFinishEffectOperationView_(sh,row){
@@ -15766,7 +15994,7 @@ function sbmDoctorFindLatestHistory_(articleId, url) {
 }
 
 
-/** v6.5.2: 改善前スナップショットを28日後の再診Evidenceへ渡す。 */
+/** 旧版: 改善前スナップショットを28日後の再診Evidenceへ渡す。 */
 function sbmDoctorRestorationSafetyContext_(history){
   history=history||{};
   var plan={};try{plan=JSON.parse(String(history['改善計画JSON']||'{}'));}catch(ignorePlan){}
@@ -15805,7 +16033,7 @@ function sbmDoctorBuildRestorePackage_(source,doctor,n){
   };
 }
 
-/** v6.5.2: 利用者がブログ側で原状復帰した後、新しい4週再観察を開始する。 */
+/** 旧版: 利用者がブログ側で原状復帰した後、新しい4週再観察を開始する。 */
 function sbmDoctorCompleteRestore(caseId,articleId,articleUrl,historyId){
   try{
     caseId=String(caseId||'').trim();articleId=String(articleId||'').trim();articleUrl=String(articleUrl||'').trim();historyId=String(historyId||'').trim();
@@ -15835,8 +16063,22 @@ function sbmDoctorCompleteRestore(caseId,articleId,articleUrl,historyId){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 
+function sbmDoctorSettingsSnapshot_() {
+  // v6.6.35: aDoctor依頼作成中にsbmGetSetting_を繰り返すと、その都度Settings全体を読み直す。
+  // 必要設定を1回のgetValuesで取得し、同一依頼内ではこのスナップショットを正本として再利用する。
+  var out={};
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.SETTINGS);
+  for(var i=0;i<rows.length;i++){
+    var k=String(rows[i].Key||'').trim();
+    if(k)out[k]=rows[i].Value;
+  }
+  return out;
+}
+
 function sbmDoctorBuildSingleCaseRequest_(ctx) {
   var article=ctx.article, effect=ctx.effect || {}, history=ctx.history || {};
+  var doctorSettings=sbmDoctorSettingsSnapshot_();
+  function doctorSetting_(key,def){return Object.prototype.hasOwnProperty.call(doctorSettings,key)?doctorSettings[key]:def;}
   var now=new Date();
   var articleId=String(article['ArticleID']||'').trim();
   var url=String(article['記事URL']||'').trim();
@@ -15877,12 +16119,15 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
     generated_at:sbmDoctorIso_(now),
     timezone:SBM_DEFAULTS.TIMEZONE,
     site:{
-      site_id:String(sbmGetSetting_('SiteID','')).trim(),
-      personal_knowledge_site_id:String(sbmPersonalKnowledgeGetContext_().site_id||'').trim(),
+      site_id:String(doctorSetting_('SiteID','')).trim(),
+      personal_knowledge_site_id:(function(){
+        var pkHint={site:{site_id:String(doctorSetting_('SiteID','')).trim(),site_name:String(doctorSetting_('SiteName','')||doctorSetting_('BlogName','')).trim(),blog_url:String(doctorSetting_('BlogUrl','')).trim()},article:{url:url}};
+        var c=sbmPersonalKnowledgeGetContextFast_(pkHint);return String(c.site_id||'').trim();
+      })(),
       personal_knowledge_schema_version:SBM_PERSONAL_KNOWLEDGE_SCHEMA_VERSION,
-      site_name:String(sbmGetSetting_('SiteName','')||sbmGetSetting_('BlogName','')).trim(),
-      blog_url:String(sbmGetSetting_('BlogUrl','')).trim(),
-      search_console_property:String(sbmGetSetting_('SearchConsoleProperty','')).trim()
+      site_name:String(doctorSetting_('SiteName','')||doctorSetting_('BlogName','')).trim(),
+      blog_url:String(doctorSetting_('BlogUrl','')).trim(),
+      search_console_property:String(doctorSetting_('SearchConsoleProperty','')).trim()
     },
     request:{
       request_id:requestId,
@@ -15916,7 +16161,7 @@ function sbmDoctorBuildSingleCaseRequest_(ctx) {
       article_status:String(article['記事ステータス']||'ACTIVE').trim()||'ACTIVE'
     },
     current_performance:{
-      period_days:Number(sbmGetSetting_('SearchDays',SBM_DEFAULTS.SEARCH_DAYS)||SBM_DEFAULTS.SEARCH_DAYS),
+      period_days:Number(doctorSetting_('SearchDays',SBM_DEFAULTS.SEARCH_DAYS)||SBM_DEFAULTS.SEARCH_DAYS),
       clicks:current.clicks,
       impressions:current.impressions,
       ctr:current.ctr,
@@ -17264,7 +17509,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   cand.getRange('A1:K1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
   cand.getRange('A2:K2').merge().setValue('サイト健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はサイト健康診断、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
-  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl+'|'+title;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
+  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');
   cand.setFrozenRows(6);
   var widths=[62,92,300,105,260,95,145,125,135,120,115,110,220,260];for(var wi=0;wi<widths.length;wi++)cand.setColumnWidth(wi+1,widths[wi]);
@@ -17398,8 +17643,9 @@ function sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,url,title,se
   for(var i=0;i<rows.length;i++){
     var r=rows[i];
     if(latestId&&String(r[hm['健康診断ID']-1]||'')!==latestId)continue;
-    var rid=String(r[hm['記事ID']-1]||'').trim(), ru=sbmNormalizeUrl_(r[hm['記事URL']-1]||''), rt=String(r[hm['記事タイトル']-1]||'').trim();
-    if(rid===String(articleId||'').trim() && ru===norm && rt===String(title||'').trim()){match=r;break;}
+    var rid=String(r[hm['記事ID']-1]||'').trim(), ru=sbmNormalizeUrl_(r[hm['記事URL']-1]||'');
+    // v6.6.28: 記事同一性はArticleID＋正規化URLで確認する。タイトルは正規化・更新で変化し得るため本人確認キーにしない。
+    if(rid===String(articleId||'').trim() && ru===norm){match=r;break;}
   }
   if(!match)throw new Error('選択した候補の表示内容と最新健康診断スナップショットが一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
   var code=String(match[hm['一次検査コード']-1]||''), expected=sbmDoctorSeverityForRow_(code,String(match[hm['優先度']-1]||''),match,hm);
@@ -17438,8 +17684,9 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     function val(name){return col[name]?String(rowValues[col[name]-1]||'').trim():'';}
     var articleId=val('記事ID')||val('ArticleID'), articleUrl=val('記事URL')||val('URL'), visibleTitle=val('記事タイトル'), severity=val('重症度'), candidateKey=val('候補キー');
     if(!articleId||!articleUrl||!visibleTitle)throw new Error('選択行の記事ID・URL・タイトルを取得できません。候補シートを開き直してください。');
-    var expectedKey=String(articleId)+'|'+sbmNormalizeUrl_(articleUrl)+'|'+visibleTitle;
-    if(candidateKey&&candidateKey!==expectedKey)throw new Error('選択行の候補識別情報が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
+    var expectedKey=String(articleId)+'|'+sbmNormalizeUrl_(articleUrl);
+    // v6.6.28: 旧候補キー（ArticleID|URL|title）も移行互換として許容する。ArticleID＋URLが一致すれば同一記事と判定する。
+    if(candidateKey&&candidateKey!==expectedKey&&candidateKey.indexOf(expectedKey+'|')!==0)throw new Error('選択行の候補識別情報（ArticleID＋URL）が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
     var health=sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,articleUrl,visibleTitle,severity);
     var db=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(!db)throw new Error('記事管理シートがありません。');
     var hm=sbmHeaderMap_(db), vals=db.getLastRow()>1?db.getRange(2,1,db.getLastRow()-1,db.getLastColumn()).getValues():[], dbRow=0;
@@ -17450,7 +17697,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     }
     if(!dbRow)throw new Error('選択した候補と記事管理のArticleID＋URLが一致しません。誤診断防止のため依頼を作成しません。');
     var dbTitle=dbTitleCol?String(db.getRange(dbRow,dbTitleCol).getDisplayValue()||'').trim():'';
-    if(dbTitle&&dbTitle!==visibleTitle)throw new Error('選択した候補の記事タイトルと記事管理のタイトルが一致しません。誤診断防止のため停止しました。');
+    // v6.6.28: タイトル差分では停止しない。aDoctor依頼は記事管理側の最新タイトルを正本としてsbmDoctorResolveContext_から取得する。
     var context=sbmDoctorResolveContext_('ARTICLE_LIST',db,dbRow);
     context.sourceType='DETAILED_CANDIDATE';context.sourceSheet=sh.getName();context.sourceRow=row;context.candidateSeverity=severity;context.candidateUrgency=sbmDoctorUrgencyFromCandidateSeverity_(severity);context.healthScreeningCode=health.code;context.healthCheckId=health.healthCheckId;
     var result=sbmDoctorCreateAndSaveResolvedRequest_(context);
@@ -17484,7 +17731,7 @@ function sbmDoctorCreateWriterTreatmentRequestFromGuide(){
 
 
 /* ========================================================================== *
- * v6.1.17: Doctor workflow checkpoint / resume standard
+ * 旧版: Doctor workflow checkpoint / resume standard
  * ========================================================================== */
 function sbmDoctorWorkflowStateSheet_(){
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
@@ -17549,7 +17796,8 @@ function sbmDoctorWorkflowWriteMeta_(caseId,patch){
 }
 function sbmDoctorWorkflowSaveRequest_(payload,meta){
   if(!payload)return;var caseId=String(payload.case_id||payload.request&&payload.request.case_id||'').trim();if(!caseId)return;
-  sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',JSON.stringify(payload));
+  var requestText=JSON.stringify(payload);
+  sbmDoctorWorkflowWritePayload_(caseId,'REQUEST',requestText);
   var patch={workflow_type:String(meta&&meta.workflow_type||'DOCTOR_SINGLE_CASE'),current_stage:'WAITING_RESPONSE',registration_status:'WAITING',request_id:String(payload.request&&payload.request.request_id||''),article_id:String(payload.article&&payload.article.article_id||''),history_id:String(meta&&meta.history_id||payload.improvement_context&&payload.improvement_context.improvement_history_id||''),source_sheet:String(meta&&meta.source_sheet||payload.request&&payload.request.source_sheet||''),source_row:Number(meta&&meta.source_row||payload.request&&payload.request.source_row||0),last_error:''};
   sbmDoctorWorkflowWriteMeta_(caseId,patch);
 }
@@ -17730,7 +17978,7 @@ function sbmDoctorBalancedJsonFrom_(text,start){
 }
 
 /**
- * v5.22.6
+ * 旧版
  * aDoctorの回答全文から「診断結果JSON」を抽出します。
  * 旧実装 sbmDoctorExtractJsonText_ は最初のMarkdownコードフェンスだけを採用するため、
  * 回答の前半に別のコードブロックがあると、本来のSIMS_DOCTOR_*結果JSONまで到達できませんでした。
@@ -17743,7 +17991,7 @@ function sbmDoctorBalancedJsonFrom_(text,start){
  */
 
 /**
- * v5.22.7
+ * 旧版
  * LLM応答に混入し得る「軽微で機械的に一意なJSON構文崩れ」だけを補正します。
  * 意味を推測する修復は行いません。
  *
@@ -17829,7 +18077,7 @@ function sbmDoctorExtractResultJsonText_(text,expectedCaseId){
   throw new Error('DOCTOR_RESULT_JSON_EXTRACT_NOT_FOUND');
 }
 
-/** v6.1.39: 回答欄にaDoctor依頼JSONそのものが貼られた場合を判別する。 */
+/** 旧版: 回答欄にaDoctor依頼JSONそのものが貼られた場合を判別する。 */
 function sbmDoctorLooksLikeRequestPayload_(text){
   var t=String(text||'');
   if(!t)return false;
@@ -18550,7 +18798,7 @@ function sbmDoctorAdoptPriorResultForRequest_(source,doctor){
 
 
 /**
- * v6.1.33: 継続採用された旧aDoctor Caseを監査履歴として残しつつ、
+ * 旧版: 継続採用された旧aDoctor Caseを監査履歴として残しつつ、
  * 現役Case選択から確実に除外する。Doctor_Cases / Doctor_Workflow_State の
  * 両方へ後続Caseを記録し、REQUEST/RESPONSE payload自体は監査用に保持する。
  */
@@ -18585,6 +18833,53 @@ function sbmDoctorMarkContinuationSuperseded_(priorCaseId,currentCaseId,reason){
 function sbmDoctorFinalizeWorkflowAfterWriter_(caseId,historyId){
   caseId=String(caseId||'').trim();if(!caseId)return;
   try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'TREATMENT_COMPLETED_MONITORING',registration_status:'DONE',active_case:true,history_id:String(historyId||''),treatment_route:'WRITER',monitoring_started_at:sbmNowText_(),last_error:''});}catch(e){try{sbmLog_('DoctorWorkflowFinalizeWriter','Warning',String(e));}catch(ignoreLog){}}
+}
+
+// v6.6.49: aWriter処置を正式登録してモニタリングへ移行した時点で、
+// 同一記事に残存する旧Doctor/Writer系Caseを終了同期する。
+// Case/Workflow payloadは削除せず監査履歴として保持し、Merge/Creator系の独立処置は触らない。
+function sbmDoctorSupersedeStaleArticleCasesAfterWriterCompletion_(currentCaseId,articleId,articleUrl){
+  currentCaseId=String(currentCaseId||'').trim();articleId=String(articleId||'').trim();articleUrl=sbmNormalizeUrl_(articleUrl||'');
+  if(!currentCaseId||(!articleId&&!articleUrl))return {count:0,caseIds:[]};
+  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+  if(last<2)return {count:0,caseIds:[]};
+  var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),now=sbmNowText_();
+  var current=sbmDoctorFindCaseRow_(currentCaseId),cs=current&&current.hm['サイトID']?String(current.values[current.hm['サイトID']-1]||'').trim():'';
+  var completedDate=current&&current.hm['更新日時']?sbmParseDate_(current.values[current.hm['更新日時']-1]):null,completedTs=completedDate&&!isNaN(completedDate.getTime())?completedDate.getTime():0;
+  var stale={
+    'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,
+    'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
+    'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1
+  };
+  var changed=0,ids=[];
+  vals.forEach(function(row,idx){
+    var cid=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
+    if(!cid||cid===currentCaseId)return;
+    var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+    if(!stale[state]||sbmDoctorIsSupersededCaseCode_(state))return;
+    var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
+    var url=hm['記事URL']?sbmNormalizeUrl_(row[hm['記事URL']-1]||''):'';
+    var same=(articleId&&aid&&articleId===aid)||(articleUrl&&url&&articleUrl===url);
+    if(!same)return;
+    // 完了後に新たに開始されたCaseは別作業なので自動整理しない。作成日時を比較できない旧Caseも安全側で残す。
+    var created=hm['作成日時']?sbmParseDate_(row[hm['作成日時']-1]):null,createdTs=created&&!isNaN(created.getTime())?created.getTime():0;
+    if(!completedTs||!createdTs||createdTs>completedTs)return;
+    // SiteIDが双方にある場合は別サイトの同名/同URL誤整理を防ぐ。
+    var rs=hm['サイトID']?String(row[hm['サイトID']-1]||'').trim():'';
+    if(cs&&rs&&cs!==rs)return;
+    row[hm['状態コード']-1]='SUPERSEDED_TREATMENT_COMPLETED';
+    if(hm['状態'])row[hm['状態']-1]='後続aWriter処置完了により再開不要';
+    if(hm['確認種別'])row[hm['確認種別']-1]='TREATMENT_COMPLETION_SYNC';
+    if(hm['確認結果'])row[hm['確認結果']-1]='SUPERSEDED';
+    if(hm['確認詳細'])row[hm['確認詳細']-1]='同一記事のaWriter処置がCase '+currentCaseId+' で正式登録され、モニタリングへ移行したため旧未完了Caseを終了同期しました。履歴は保持します。';
+    if(hm['確認日時'])row[hm['確認日時']-1]=now;
+    if(hm['更新日時'])row[hm['更新日時']-1]=now;
+    sh.getRange(idx+2,1,1,row.length).setValues([row]);
+    try{sbmDoctorWorkflowWriteMeta_(cid,{current_stage:'SUPERSEDED',registration_status:'SUPERSEDED',active_case:false,superseded_by_case_id:currentCaseId,superseded_at:now,supersede_reason:'WRITER_TREATMENT_COMPLETED'});}catch(ignoreMeta){}
+    changed++;ids.push(cid);
+  });
+  if(changed){try{sbmLog_('DoctorWriterCompletionSupersede','Info','current='+currentCaseId+' / stale='+ids.join(','));}catch(ignoreLog){}}
+  return {count:changed,caseIds:ids};
 }
 function sbmRunV6133DoctorContinuationRepairOnce_(){
   var props=PropertiesService.getDocumentProperties(),key='SBM_V6_1_33_DOCTOR_CONTINUATION_REPAIR_DONE';
@@ -19011,7 +19306,7 @@ function sbmDoctorResumeMergeRoleInfo_(row,hm){
 }
 
 /**
- * v5.22.5
+ * 旧版
  * Doctor_Casesの1行が「Site Doctor一括診断由来」かを厳密に判定します。
  * 個別aDoctor精密診断（健康診断候補・記事一覧・改善の推移）はSite Doctor再開へ混ぜません。
  */
@@ -19527,6 +19822,34 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 
+function sbmNormalImprovementResumeChooserItem_(entry){
+  if(!entry||!entry.id||!entry.meta)return null;
+  var m=entry.meta||{},d=sbmParseDate_(m.updated_at),ts=d&&!isNaN(d.getTime())?d.getTime():Number(entry.ts||0);
+  return {
+    workflowType:'NORMAL_IMPROVEMENT',workflowId:String(entry.id||''),caseId:'',virtualFollowUp:false,
+    articleId:String(m.article_id||''),articleUrl:String(m.article_url||''),articleTitle:String(m.article_title||m.article_id||'記事'),
+    state:String(m.current_stage||'NAVI_OPEN'),updatedTs:ts,updatedAt:String(m.updated_at||''),
+    workSummary:'通常の記事改善',currentLabel:String(m.current_stage||'')==='WRITER_IN_PROGRESS'?'aWriter作業中':'改善ナビからの通常改善',
+    nextAction:String(m.current_stage||'')==='WRITER_IN_PROGRESS'?'この通常改善の改善ナビを開き、aWriter作業の続きから進めます。':'この通常改善の改善ナビを開き、保存した記事から作業を続けます。',
+    cleanupCandidate:false,cleanupReason:''
+  };
+}
+function sbmResumeSelectedWorkflow(workflowType,workflowId,virtualFollowUp){
+  try{
+    workflowType=String(workflowType||'DOCTOR').trim().toUpperCase();
+    workflowId=String(workflowId||'').trim();
+    if(workflowType==='NORMAL_IMPROVEMENT'){
+      var wfIndex=sbmDoctorWorkflowResumeIndex_(),m=wfIndex&&wfIndex.meta?wfIndex.meta[workflowId]:null;
+      if(!m||String(m.workflow_type||'')!=='NORMAL_IMPROVEMENT')throw new Error('選択した通常改善Workflowが見つかりません。');
+      if(m.active===false||String(m.current_stage||'')==='COMPLETED')throw new Error('選択した通常改善Workflowはすでに完了しています。');
+      // 一覧で選んだWorkflow IDそのものを再開し、最新Workflowへの再検索は行わない。
+      sbmResumeNormalImprovementWorkflow_({id:workflowId,meta:m,ts:(sbmParseDate_(m.updated_at)||new Date(0)).getTime()});
+      return {ok:true};
+    }
+    return sbmResumeSelectedWorkflowCase(workflowId,virtualFollowUp===true);
+  }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
 function sbmDoctorShowResumeCaseChooser_(items){
   var enc=Utilities.base64EncodeWebSafe(JSON.stringify(items||[]),Utilities.Charset.UTF_8);
   function escServer_(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -19543,7 +19866,7 @@ function sbmDoctorShowResumeCaseChooser_(items){
     '<h2>未完了の作業を選ぶ</h2><div class="sub">続けたい作業を1件選んでください。Case番号ではなく、何をしていた案件かを中心に表示しています。整理候補は履歴を消さず、未完了一覧から外せます。</div><div id="root">'+fallbackHtml+'</div><div id="status" class="status"></div><script>'+
     'var enc='+JSON.stringify(enc)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";var b=atob(v),s="";for(var i=0;i<b.length;i++)s+="%"+("00"+b.charCodeAt(i).toString(16)).slice(-2);return decodeURIComponent(s)}var items=JSON.parse(dec(enc));'+
     'function e(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";return "&quot;"})}function render(){var h="";items.forEach(function(x,i){h+="<div class=\\"item "+(x.cleanupCandidate?"recommend":"")+"\\"><div class=title>"+e(x.articleTitle||x.articleId||"記事")+" <span class=small>"+e(x.articleId||"")+"</span></div><div class=work>"+e(x.workSummary)+"</div><div class=meta><b>現在地：</b>"+e(x.currentLabel)+"<br><b>最終更新：</b>"+e(x.updatedAt||"ー")+"</div><div class=next><b>次にすること：</b>"+e(x.nextAction)+"</div>"+(x.cleanupCandidate?"<div class=cleanup><b>整理候補</b><br>"+e(x.cleanupReason)+"</div>":"")+"<div class=actions><button class=primary onclick=\\"resume("+i+",this)\\">この作業を再開</button>"+(x.cleanupCandidate?"<button class=warn onclick=\\"cleanup("+i+",this)\\">この旧案件を整理</button>":"")+"</div><details class=small><summary>管理情報</summary>CaseID："+e(x.caseId)+"<br>状態："+e(x.state)+"</details></div>"});document.getElementById("root").innerHTML=h}'+
-    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflowCase(x.caseId,!!x.virtualFollowUp)}'+
+    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflow(x.workflowType||"DOCTOR",x.workflowId||x.caseId,!!x.virtualFollowUp)}'+
     'function cleanup(i,b){var x=items[i];if(!confirm("この旧案件を未完了一覧から整理しますか？\\n\\n"+x.workSummary+"\\n\\n履歴データは削除しません。"))return;var s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="整理しています…"}s.className="status";s.textContent="旧案件を整理しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=r&&r.message?r.message:"整理できませんでした。";return}s.className="status ok";s.textContent=r.message;items.splice(i,1);render()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmDoctorArchiveResumeCase(x.caseId)}render();</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'未完了の作業を再開');
 }
@@ -19560,13 +19883,39 @@ function sbmResumeUnfinishedWorkflow(){
 function sbmResumeUnfinishedWorkflowCore(){
   return sbmResumeUnfinishedWorkflowCore_();
 }
+function sbmDoctorRepairStaleCasesAfterCompletedWriterOnce_(){
+  var props=PropertiesService.getDocumentProperties(),key='SBM_V6_6_49_WRITER_COMPLETION_STALE_CASE_REPAIR_DONE';
+  if(props.getProperty(key)==='1')return {count:0,alreadyDone:true};
+  var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+  if(last<2){props.setProperty(key,'1');return {count:0};}
+  var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),total=0;
+  // Writer結果が正式保存されMONITORINGへ到達済みのCaseだけを完了根拠にする。
+  vals.forEach(function(row){
+    var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+    var writer=hm['Writer結果JSON']?String(row[hm['Writer結果JSON']-1]||'').trim():'';
+    if(state!=='MONITORING'||!writer)return;
+    var cid=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
+    var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
+    var url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';
+    if(!cid||(!aid&&!url))return;
+    try{var r=sbmDoctorSupersedeStaleArticleCasesAfterWriterCompletion_(cid,aid,url);total+=Number(r&&r.count||0);}catch(e){try{sbmLog_('V6649StaleCaseRepair','Warning',String(e));}catch(ignoreLog){}}
+  });
+  props.setProperty(key,'1');
+  try{sbmLog_('V6649StaleCaseRepair','Info','superseded='+total);}catch(ignoreLog2){}
+  return {count:total};
+}
+
 function sbmResumeUnfinishedWorkflowCore_(){
   try{
-    // 「再開」は候補抽出と表示だけを行う。旧履歴の移行・自動整理などの書込処理はここでは実行しない。
+    // v6.6.49: 既にaWriter登録済みなのに旧Caseが残る過去データを一度だけ終了同期してから候補抽出する。
+    try{sbmDoctorRepairStaleCasesAfterCompletedWriterOnce_();}catch(eRepair){try{sbmLog_('V6649StaleCaseRepair','Warning',String(eRepair));}catch(ignoreRepairLog){}}
+    // 通常時は候補抽出と表示だけを行う。v6.6.49では旧不整合データの一回限りの終了同期だけを先に実行する。
     // WorkflowStateは1回だけ読み込み、META/Payloadをメモリ索引から参照する。
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
-    var normal=sbmFindLatestNormalImprovementWorkflow_(wfIndex);
+    var normals=sbmFindAllNormalImprovementWorkflows_(wfIndex);
+    var normal=normals.length?normals[0]:null;
     if(!sbmIsADoctorEnabled_()){
+      if(normals.length>1){var starterItems=normals.map(sbmNormalImprovementResumeChooserItem_).filter(function(x){return !!x;});sbmDoctorShowResumeCaseChooser_(starterItems);return;}
       if(normal)return sbmResumeNormalImprovementWorkflow_(normal);
       return sbmAlert_('未完了の作業を再開','再開できる通常改善の作業はありません。\n\nStarter Editionでは、旧版のaDoctor関連Caseは再開対象に表示しません。モニター中の記事は「改善の推移・履歴」から確認してください。');
     }
@@ -19590,6 +19939,10 @@ function sbmResumeUnfinishedWorkflowCore_(){
     Object.keys(treatment).forEach(function(k){activeMap[k]=1;});
     Object.keys(newArticle).forEach(function(k){activeMap[k]=1;});
     var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex);
+    // 通常改善もDoctor系Caseと同じ候補集合へ入れる。更新時刻だけで別系統へ自動分岐しない。
+    // これにより、利用者が「未完了の作業を再開」で選んだWorkflow Identityと実際に開く画面を一致させる。
+    normals.forEach(function(n){var normalItem=sbmNormalImprovementResumeChooserItem_(n);if(normalItem)resumeItems.push(normalItem);});
+    resumeItems.sort(function(a,b){return Number(b.updatedTs||0)-Number(a.updatedTs||0);});
     for(var i=vals.length-1;i>=0;i--){
       var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
       if(!state||state==='MONITORING'||state.indexOf('SUPERSEDED_')===0||state==='CANCELLED_BY_USER')continue;
@@ -19602,10 +19955,14 @@ function sbmResumeUnfinishedWorkflowCore_(){
       var dcCaseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
       if(!doctorCandidate||ts>doctorCandidate.ts)doctorCandidate={row:row,state:state,ts:ts,caseId:dcCaseId};
     }
-    // Doctor/Writer/Merge等の未完了Caseが複数なら、最新1件へ自動直行せず既存の複数案件運用を選択画面から開始する。
+    // 系統をまたいで候補が複数ある場合は必ず選択画面へ。更新日時だけで通常改善/Doctor系を自動選択しない。
     if(resumeItems.length>1){sbmDoctorShowResumeCaseChooser_(resumeItems);return;}
-    // 1件だけなら従来どおり直接再開。通常改善との競合も従来の最終更新優先を維持。
-    if(normal&&(!doctorCandidate||normal.ts>=doctorCandidate.ts))return sbmResumeNormalImprovementWorkflow_(normal);
+    // 候補が1件だけなら、その候補のWorkflow Identityをそのまま再開する。
+    if(resumeItems.length===1){
+      var only=resumeItems[0];
+      if(String(only.workflowType||'DOCTOR')==='NORMAL_IMPROVEMENT')return sbmResumeSelectedWorkflow('NORMAL_IMPROVEMENT',only.workflowId,false);
+      return sbmResumeSelectedWorkflowCase(only.caseId,!!only.virtualFollowUp);
+    }
     if(doctorCandidate){
       if(newArticle[doctorCandidate.state]){sbmShowNewArticleCreationDialog_(doctorCandidate.caseId);return;}
       if(doctorOrConfirm[doctorCandidate.state]){
@@ -19614,13 +19971,12 @@ function sbmResumeUnfinishedWorkflowCore_(){
       }
       if(treatment[doctorCandidate.state])return sbmDoctorRegisterSiteDiagnosisResult(true,doctorCandidate.caseId);
     }
-    if(normal)return sbmResumeNormalImprovementWorkflow_(normal);
     if(failed.length){
       return sbmAlert_('未完了の作業を再開',
         '正常再開できる作業はありません。\n\n処理失敗状態のCaseが'+failed.length+'件あります。\n'+
         'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
     }
-    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。'+(staleMergeCleanup&&staleMergeCleanup.count?'\n\n後続Merge完了済みの重複aDoctor Caseを'+staleMergeCleanup.count+'件、再開対象外に整理しました。':'')+'\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
+    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
   }catch(e){
     sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
   }
@@ -19844,7 +20200,7 @@ function sbmDoctorProcessSiteDiagnosisCreator_(o){
  */
 
 /* ========================================================================== *
- * v6.4.1: 新記事作成 Workflow
+ * 旧版: 新記事作成 Workflow
  * ========================================================================== */
 
 function sbmNewArticleFieldDefinitions_(){
@@ -20161,7 +20517,7 @@ function sbmCreatorActiveCaseByKeyword_(keyword){
 }
 
 /**
- * v5.21.54: Creator Directは「公開した新記事をSIMSへ初回登録する」イベントなので、
+ * 旧版: Creator Directは「公開した新記事をSIMSへ初回登録する」イベントなので、
  * 同一ArticleID/URLに既存Creator Direct履歴があれば再度改善履歴を作らない。
  */
 function sbmCreatorDirectExistingHistory_(articleId,url){
@@ -21322,7 +21678,7 @@ function sbmDoctorRegisterMergeTreatmentResult(){
 
 
 /**
- * v5.21.53: aWriter処置完了後の「改善の推移」を対象記事1件だけ同期します。
+ * 旧版: aWriter処置完了後の「改善の推移」を対象記事1件だけ同期します。
  * 改善履歴・記事DB・Doctor Case全体の再走査／再整合は行いません。
  */
 function sbmSyncSingleEffectRowAfterHistory_(historyId,articleId,articleUrl){
@@ -21391,7 +21747,7 @@ function sbmDoctorSyncSingleEffectRowAfterWriter_(historyId,articleId,articleUrl
 }
 
 
-/** v6.2.79: Writerのtop-level follow_up_referralsは「Merge決定」ではなく追加診断候補として扱う。 */
+/** 旧版: Writerのtop-level follow_up_referralsは「Merge決定」ではなく追加診断候補として扱う。 */
 function sbmDoctorWriterFollowUpReferralSpec_(o){
   var refs=Array.isArray(o&&o.follow_up_referrals)?o.follow_up_referrals:[];
   for(var i=0;i<refs.length;i++){
@@ -21505,6 +21861,7 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
     var workflowHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
     sbmDoctorFinalizeWorkflowAfterWriter_(String(o.case_id||''),workflowHistoryId);
+    try{sbmDoctorSupersedeStaleArticleCasesAfterWriterCompletion_(String(o.case_id||''),String(o.article_id||''),o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''));}catch(eSupersedeStale){sbmLog_('DoctorWriterCompletionSupersede','Warning',String(eSupersedeStale));}
     try{sbmDoctorRemoveCandidateArticle_(o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1]);}catch(eRemoveDone){}
     // 全体再生成は行わず、今回作成した改善履歴の1行だけを「改善の推移」へ反映する。
     var newHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
@@ -21585,7 +21942,7 @@ function sbmDoctorSubmitMergeResult(raw){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 function sbmDoctorSubmitSiteDiagnosisMergeResult(raw){
-  // Backward-compatible public entry point. v6.2.12以降は経路を問わず共通Merge receiverへ委譲する。
+  // Backward-compatible public entry point. 旧版.12以降は経路を問わず共通Merge receiverへ委譲する。
   return sbmDoctorSubmitMergeResult(raw);
 }
 
@@ -22072,7 +22429,7 @@ function sbmOpenNewArticleOpportunityDialog_(){
 
 
 /**
- * v6.2.37: Article DBへの安全書込。
+ * 旧版: Article DBへの安全書込。
  * ArticleID + 正規化URL + 更新前値がすべて一致した場合だけ、1記事単位でまとめて変更する。
  * grouped patches: [{articleId,url,updates:{field:newValue},expected:{field:oldValue}}]
  * legacy field patches: [{articleId,url,field,oldValue,newValue}] も互換受理する。
@@ -22196,7 +22553,7 @@ function sbmCommitArticleInfoPatchesSafely_(patches) {
 }
 
 /**
- * v6.2.32: 修復済み記事タイトルを関連表示シートへ安全同期。
+ * 旧版: 修復済み記事タイトルを関連表示シートへ安全同期。
  * ArticleID + 正規化URLの両方が一意一致し、現在タイトルが未取得/異常値の時だけ更新する。
  */
 function sbmSyncRepairedArticleTitle_(articleId, url, newTitle) {
@@ -22252,7 +22609,7 @@ function sbmSyncRepairedArticleTitle_(articleId, url, newTitle) {
 
 
 /* ========================================================================== *
- * v6.5.25 License Center site registration test module
+ * 旧版 License Center site registration test module
  * - Does not use Session.getActiveUser()/getEffectiveUser().
  * - Initial test activation asks for the registered Google account email and
  *   license key, then binds License + email + installationId + spreadsheetId.
@@ -22406,7 +22763,7 @@ function sbmLicenseValidateTest(){
 
 
 /* ========================================================================== *
- * v6.6.0-RC4 License validation cache / outage grace
+ * 旧版 License validation cache / outage grace
  * No business-function blocking is applied in RC4.
  * ========================================================================== */
 const SBM_LICENSE_CACHE_HOURS_RC4 = 24;
@@ -22494,7 +22851,7 @@ function sbmLicenseRc4StatusDialog(){
 
 
 /* ========================================================================== *
- * v6.6.0-RC5 License resilience test helpers
+ * 旧版 License resilience test helpers
  * TEST ONLY. Remove before final release.
  * ========================================================================== */
 function sbmLicenseCommunicationTest(){
@@ -22541,7 +22898,7 @@ function sbmLicenseRc5RestoreOnlineState_(){
 
 
 
-/* v6.6.0-RC9: first business-function license gate.
+/* 旧版: first business-function license gate.
  * Applies only to "今日の改善を開く" in RC9.
  */
 function sbmLicenseRc9RequireForToday_(){
@@ -22556,7 +22913,7 @@ function sbmLicenseRc9RequireForToday_(){
 
 
 
-/* v6.6.0-RC10: common license gate for processing/update/diagnosis/generation. */
+/* 旧版: common license gate for processing/update/diagnosis/generation. */
 function sbmLicenseRequireForProcessing_(){
   var ui=SpreadsheetApp.getUi();
   var r=sbmLicenseRc4Check_(false);

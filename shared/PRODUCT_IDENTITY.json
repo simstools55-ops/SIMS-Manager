@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.6.48",
+  "current_version": "6.6.49",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.48: aDoctor V2契約へ一本化し、旧未完了aDoctor依頼を再開時に現行V2へ自動救済。",
-  "version": "6.6.48",
-  "starter_display_version": "v6.6.48-ST"
+  "notes": "v6.6.49: aWriter処置完了時、同一記事に残る旧aDoctor/aWriter未完了Caseを監査保持のまま自動終了同期。",
+  "version": "6.6.49",
+  "starter_display_version": "v6.6.49-ST"
 }

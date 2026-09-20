@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.48",
+  "current_version": "6.6.49",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.48: aDoctor V2契約へ一本化し、旧未完了aDoctor依頼を再開時に現行V2へ自動救済。",
-  "version": "6.6.48",
+  "notes": "v6.6.49: aWriter処置完了時、同一記事に残る旧aDoctor/aWriter未完了Caseを監査保持のまま自動終了同期。",
+  "version": "6.6.49",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.48-ST"
+  "starter_display_version": "v6.6.49-ST"
 }

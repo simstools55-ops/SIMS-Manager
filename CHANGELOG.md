@@ -1,3 +1,8 @@
+# v6.6.49
+- aWriter処置の正式登録でMONITORINGへ移行した際、同一記事に残る旧aDoctor/aWriter未完了Caseを `SUPERSEDED_TREATMENT_COMPLETED` へ終了同期。
+- 既存v6.6.48以前の残存Caseは「未完了の作業を再開」初回実行時に一度だけ修復。
+- 完了後に開始されたCase、Merge/Creator系Case、履歴Payloadは変更しない。
+
 # v6.6.48
 - aDoctor v1.5.3に合わせ、ManagerのaDoctor依頼を既存 `SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2` 契約へ一本化。
 - v6.6.47のSIMS-A/1外部エンベロープを新規出力から廃止。

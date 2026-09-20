@@ -1,12 +1,12 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.6.48
+> **Current product:** SIMS Manager v6.6.49
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 
 ## Current release
 
-- Product Version: `6.6.48`
+- Product Version: `6.6.49`
 - Shared Version: `3.5.0`
 - Repository Type: `Product`
 - Release type: `REPOSITORY_BASELINE`
