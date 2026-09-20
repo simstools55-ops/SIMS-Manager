@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.51';
-// v6.6.51: 『未完了』を利用者操作待ちに限定。モニター中の記事では、モニター開始以前の旧aDoctor/aWriter Caseを未完了一覧から除外する。
+const SBM_VERSION = '6.6.52';
+// v6.6.52: 未完了一覧をCase単位から記事ごとの現在Workflow単位へ変更。同一記事の残存Doctor/Writer Caseは最も進んだ1件だけ表示する。
 // v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
 // v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
 // v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
@@ -13,7 +13,7 @@ const SBM_VERSION = '6.6.51';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.51 - モニター中は『改善の推移』で管理し、未完了一覧には利用者操作が必要な作業だけを表示する。
+// Current release: v6.6.52 - 同一記事のDoctor/Writer残存Caseを集約し、未完了一覧には現在地点を1件だけ表示する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -19756,21 +19756,37 @@ function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex){
     };
     items.push(x);if(!byArticle[key])byArticle[key]=[];byArticle[key].push(x);
   }
-  Object.keys(byArticle).forEach(function(key){
-    var a=byArticle[key].slice().sort(function(x,y){
-      if(Number(y.updatedTs||0)!==Number(x.updatedTs||0))return Number(y.updatedTs||0)-Number(x.updatedTs||0);
-      return (y.virtualFollowUp?1:0)-(x.virtualFollowUp?1:0);
-    });
-    if(a.length<2)return;
-    var newest=a[0];
-    for(var j=1;j<a.length;j++){
-      var old=a[j];
-      if(old.state==='DOCTOR_DIAGNOSIS_PENDING'||old.state==='FOLLOW_UP_REQUEST_READY'){
-        if(old.caseId===newest.caseId&&old.virtualFollowUp===newest.virtualFollowUp)continue;
-        old.cleanupCandidate=true;
-        old.cleanupReason='同じ記事で、より新しい未完了作業「'+newest.workSummary+'」が進行中です。この旧診断案件は再開不要の可能性があります。';
-      }
-    }
+  // v6.6.52: 未完了一覧はCase単位ではなく、記事ごとの現在Workflow単位で表示する。
+  // Doctor/Writerの途中Caseが同一記事に複数残っていても、最も進んだ現在地点を1件だけ残す。
+  // Merge/Creatorは別処置なので、この集約対象には含めない。
+  var doctorWriterStates={
+    'DOCTOR_DIAGNOSIS_PENDING':10,
+    'FOLLOW_UP_REQUEST_READY':20,
+    'USER_ACTION_REQUIRED':30,
+    'USER_DECISION_REQUIRED':30,
+    'WRITER_REQUEST_READY':40,
+    'WRITER_IN_PROGRESS':50
+  };
+  var keepByArticle={},hidden={};
+  items.forEach(function(x){
+    if(!doctorWriterStates[x.state])return;
+    var k=String(x.articleId||'').trim()||sbmNormalizeUrl_(x.articleUrl||'');
+    if(!k)return;
+    var prev=keepByArticle[k];
+    if(!prev){keepByArticle[k]=x;return;}
+    var xr=Number(doctorWriterStates[x.state]||0)+(x.virtualFollowUp?100:0);
+    var pr=Number(doctorWriterStates[prev.state]||0)+(prev.virtualFollowUp?100:0);
+    var chooseX=xr>pr||(xr===pr&&Number(x.updatedTs||0)>Number(prev.updatedTs||0));
+    var loser=chooseX?prev:x;
+    if(chooseX)keepByArticle[k]=x;
+    hidden[loser.caseId]=1;
+  });
+  items=items.filter(function(x){return !hidden[x.caseId];});
+  Object.keys(keepByArticle).forEach(function(k){
+    var x=keepByArticle[k],n=0;
+    var a=byArticle[k]||[];
+    a.forEach(function(y){if(doctorWriterStates[y.state]&&y.caseId!==x.caseId)n++;});
+    if(n>0)x.collapsedDuplicateCount=n;
   });
   items.sort(function(a,b){
     if(Number(b.updatedTs||0)!==Number(a.updatedTs||0))return Number(b.updatedTs||0)-Number(a.updatedTs||0);
