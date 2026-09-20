@@ -4,8 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.65';
+const SBM_VERSION = '6.6.66';
 // v6.6.65: 新規記事(Creator Direct)の4週観察終了を再診候補から除外。記事管理の内部列非表示と改善の推移の選択列非表示を毎回強制し、表示キャッシュに依存しないよう修正。
+// v6.6.66: 今日の改善の通常候補にも記事管理正本のArticleIDを必須継承。URL一致で補完し、ArticleID空欄候補を防止。
 // v6.6.64: 利用者向け表示を整理。記事管理の内部状態列を非表示化し、改善の推移の選択チェックボックスを廃止、今日の改善のArticleIDを可視列として固定。
 // v6.6.62: 記事管理を記事状態の唯一の正本へ統一。作業理由・状態更新日・最終改善完了日・再評価予定日を追加し、90日再評価サイクルを導入。表示シートは状態を変更しない。
 // v6.6.61: 4回測定完了時に記事管理の作業状態をモニター中→今日の改善へ遷移。今日の改善は現在状態を正本にし、過去の観察終了履歴を再表示しない。ArticleIDを今日の改善へ表示。
@@ -6699,8 +6700,10 @@ function sbmSelectTodayRecommendations_() {
     // 安定記事は通常放置。明確なCTR余地がある場合だけ候補化する。
     if (rankCode === 'STABLE' && !(imps >= 1000 && gap >= 0.008 && expected >= 10)) return null;
 
+    var articleId = String(r['ArticleID'] || '').trim();
+    if (!articleId) return null; // 記事管理を正本とするため、ArticleIDのない候補は作らない。
     return {
-      url:url,title:title,query:query,clicks:clicks,impressions:imps,ctr:ctr,position:pos,
+      articleId:articleId,url:url,title:title,query:query,clicks:clicks,impressions:imps,ctr:ctr,position:pos,
       rank:rank,rankCode:rankCode,work:work,targetCtr:target,expectedClicks:expected,
       instantScore:rankPriority + baseOpportunity,
       ctrScore:rankPriority + ctrOpportunity
@@ -13482,6 +13485,11 @@ function sbmWriteTodayRecommendations_(candidates, count) {
   if (shown.length) {
     var values = shown.map(function(c) {
       c=c||{};
+      // v6.6.66: 旧保存候補にArticleIDが無い場合も、記事管理(URL一致)から一度だけ補完する。
+      if(!String(c.articleId||'').trim() && c.url){
+        var dbArticle=sbmFindArticleDbByUrlFast_(c.url);
+        if(dbArticle) c.articleId=String(dbArticle['ArticleID']||'').trim();
+      }
       var isObservationEnd=String(c.candidateId||'').indexOf('OBS_END:')===0||c.workflowType==='EFFECT_AFTER_OBSERVATION';
       c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
       if(isObservationEnd){

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.65",
+  "current_version": "6.6.66",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.63: 記事管理を記事状態の唯一の正本に統一し、作業理由・状態更新日・最終改善完了日・再評価予定日と90日再評価サイクルを導入。",
-  "version": "6.6.65",
+  "notes": "v6.6.66: Today Improvement normal candidates now inherit ArticleID from Article Management; legacy saved candidates are repaired by URL lookup.",
+  "version": "6.6.66",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.65-ST"
+  "starter_display_version": "v6.6.66-ST"
 }
