@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.64';
+const SBM_VERSION = '6.6.65';
+// v6.6.65: 新規記事(Creator Direct)の4週観察終了を再診候補から除外。記事管理の内部列非表示と改善の推移の選択列非表示を毎回強制し、表示キャッシュに依存しないよう修正。
 // v6.6.64: 利用者向け表示を整理。記事管理の内部状態列を非表示化し、改善の推移の選択チェックボックスを廃止、今日の改善のArticleIDを可視列として固定。
 // v6.6.62: 記事管理を記事状態の唯一の正本へ統一。作業理由・状態更新日・最終改善完了日・再評価予定日を追加し、90日再評価サイクルを導入。表示シートは状態を変更しない。
 // v6.6.61: 4回測定完了時に記事管理の作業状態をモニター中→今日の改善へ遷移。今日の改善は現在状態を正本にし、過去の観察終了履歴を再表示しない。ArticleIDを今日の改善へ表示。
@@ -3308,7 +3309,8 @@ function sbmOpenArticleDb() {
   if(!sh)sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
   try{sbmRunArticleViewRepairOnce_(sh);}catch(ignoreArticleRepair){}
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
-  try{sbmEnsureViewStyleCached_(sh,'SBM_ARTICLE_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleArticleDbSheet_(x);});}catch(eStyle){try{sbmLog_('ArticleListStyle','Warning',String(eStyle));}catch(ignoreStyleLog){}}
+  try{sbmEnsureViewStyleCached_(sh,'SBM_ARTICLE_VIEW_STYLE_665_'+String(sh.getSheetId()),function(x){sbmStyleArticleDbSheet_(x);});}catch(eStyle){try{sbmLog_('ArticleListStyle','Warning',String(eStyle));}catch(ignoreStyleLog){}}
+  try{sbmApplyArticleDbUserVisibility_(sh);}catch(ignoreArticleVisibility){}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
   try{ss.toast('見出しのフィルターで並べ替え・絞り込みできます。記事行を選択すると上部メニューから詳細・診断改善・改善履歴を確認できます。','記事一覧',5);}catch(e){}
@@ -10149,6 +10151,15 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
       measurementLabel='追加経過観察中';
     }
 
+    // Creator Direct（新規記事）は公開後4週間の初期観察であり、既存記事の「経過観察終了後の再診」ではない。
+    // 4週終了時は初期モニターを完了し、記事管理を通常の未着手へ戻して次回の通常評価対象にする。
+    if(state.complete&&isCreatorDirect){
+      try{sbmSetMonitoringLifecycleByHistoryId_(h['改善履歴ID'],'COMPLETED');}catch(ignoreCreatorLife){}
+      h['モニター状態']='COMPLETED';
+      try{sbmSetArticleWorkStateByIdentity_(String(h['ArticleID']||''),String(h['記事URL']||''),'未着手','新規記事4週観察終了');}catch(ignoreCreatorState){}
+      return;
+    }
+
     // 旧データでも4回測定済みならライフサイクルを同期し、今回の表示判定に反映。
     if(state.complete){
       var resolvedLife=(finalOutcome==='改善完了')?'COMPLETED':'REVIEW_REQUIRED';
@@ -10191,6 +10202,7 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     // 改善の推移は閲覧専用。互換用の選択列にチェックボックスは生成しない。
     try{sh.getRange(2,1,rows.length,1).clearDataValidations().clearContent();}catch(ignoreSelectionClear){}
   }
+  try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
   if(!dailyFast){
     sbmStyleEffectSheetV2_();
   }else{
@@ -10506,7 +10518,8 @@ function sbmOpenEffectiveness(){
   }
   // v6.6.59: 観察終了案件は現役モニター一覧ではないため、今日の改善へ同期してから表示行を除外する。
   try{sbmSyncObservationEndedToToday_();sbmPruneObservationEndedFromEffectView_();sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(eObsMove){try{sbmLog_('ObservationEndedEffectPrune','Warning',String(eObsMove));}catch(ignoreObsMoveLog){}}
-  try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
+  try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_665_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
+  try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
@@ -10521,8 +10534,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
   var hm=sbmHeaderMap_(sh);
   var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
-  try{sh.showColumns(1,Math.min(13,sh.getMaxColumns()));}catch(e){}
-  if(sh.getMaxColumns()>=14){try{sh.hideColumns(14,sh.getMaxColumns()-13);}catch(e){}}
+  try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
   var n=Math.max(0,sh.getLastRow()-1);
   if(n){
     sh.getRange(2,1,n,lc).setVerticalAlignment('middle');
@@ -11573,6 +11585,32 @@ function sbmSelectionDataLastRow_(sh) {
 /**
  * 記事管理の見出しを紺色背景・白文字に統一します。
  */
+function sbmApplyArticleDbUserVisibility_(sh){
+  if(!sh)return;
+  var hm=sbmHeaderMap_(sh);
+  // 利用者向けの主要列だけを確実に表示し、状態管理の内部列は毎回非表示にする。
+  try{sh.showColumns(1,Math.min(10,sh.getMaxColumns()));}catch(ignoreShowMain){}
+  if(hm['ArticleID'])try{sh.showColumns(hm['ArticleID']);}catch(ignoreShowId){}
+  ['データ更新日','記事タイトル','SEOタイトル','メタディスクリプション','最終取得日時','元URL件数','除外理由','備考',
+   '記事情報補完済み','補完日時','補完エラー','記事ステータス','最終確認日','連続未取得日数','管理フラグ','詳細',
+   '作業理由','状態更新日','最終改善完了日','再評価予定日'].forEach(function(h){
+    if(hm[h])try{sh.hideColumns(hm[h]);}catch(ignoreHide){}
+  });
+}
+
+function sbmApplyEffectUserVisibility_(sh){
+  if(!sh)return;
+  var hm=sbmHeaderMap_(sh),sel=hm['選択'];
+  if(sel){
+    try{if(sh.getMaxRows()>1)sh.getRange(2,sel,sh.getMaxRows()-1,1).clearDataValidations().clearContent();}catch(ignoreClearSelection){}
+    try{sh.hideColumns(sel);}catch(ignoreHideSelection){}
+  }
+  // 利用者向けは開始日〜判定まで。内部列は非表示。
+  var start=hm['改善・治療開始日']||2,end=hm['判定']||13;
+  try{sh.showColumns(start,Math.max(1,end-start+1));}catch(ignoreShowVisible){}
+  if(end<sh.getMaxColumns())try{sh.hideColumns(end+1,sh.getMaxColumns()-end);}catch(ignoreHideInternal){}
+}
+
 function sbmStyleArticleDbSheet_(sh) {
   var lc = Math.max(sh.getLastColumn(), SBM_HEADERS.ARTICLE_DB.length);
   var lr = Math.max(sh.getLastRow(), 1);
@@ -11596,21 +11634,7 @@ function sbmStyleArticleDbSheet_(sh) {
     if (hm[h]) sh.setColumnWidth(hm[h], widths[h]);
   });
 
-  // 利用者向け一覧では、毎日ほぼ同値になる「データ更新日」より
-  // Doctor/改善管理で使うArticleIDをURL・タイトルと同じ一覧で確認できるようにする。
-  try { sh.showColumns(1, Math.min(10, sh.getMaxColumns())); } catch (e) {}
-  if (hm['ArticleID']) { try { sh.showColumns(hm['ArticleID']); } catch (eShowId) {} }
-
-  [
-    'データ更新日','記事タイトル','SEOタイトル','メタディスクリプション','最終取得日時','元URL件数','除外理由','備考',
-    '記事情報補完済み','補完日時','補完エラー','記事ステータス',
-    '最終確認日','連続未取得日数','管理フラグ','詳細',
-    '作業理由','状態更新日','最終改善完了日','再評価予定日'
-  ].forEach(function(h){
-    if (hm[h]) {
-      try { sh.hideColumns(hm[h]); } catch(e) {}
-    }
-  });
+  sbmApplyArticleDbUserVisibility_(sh);
 
   if (lr > 1) {
     var n = lr - 1;
@@ -13229,12 +13253,8 @@ function sbmStyleEffectSheetV2_() {
     if (hm[h]) sh.setColumnWidth(hm[h], widths[h]);
   });
 
-  // 改善の推移は閲覧専用ビュー。内部互換の「選択」列は保持するが利用者には表示しない。
-  try { sh.showColumns(2, Math.min(12, Math.max(0, sh.getMaxColumns()-1))); } catch (e) {}
-  try { sh.hideColumns(1); } catch (eHideSelection) {}
-  if (sh.getMaxColumns() >= 14) {
-    try { sh.hideColumns(14, sh.getMaxColumns() - 13); } catch (e) {}
-  }
+  // 改善の推移は閲覧専用。選択列と内部列は毎回非表示にする。
+  try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
 
   var n = Math.max(0, sh.getLastRow() - 1);
   if (n) {
