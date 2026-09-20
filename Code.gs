@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.50';
-// v6.6.50: 改善履歴を正本に未完了Doctor/Writer Caseを毎回軽量整合。登録済みaDoctor→aWriter処置より古い残存Caseを監査保持のままSUPERSEDED化する。
+const SBM_VERSION = '6.6.51';
+// v6.6.51: 『未完了』を利用者操作待ちに限定。モニター中の記事では、モニター開始以前の旧aDoctor/aWriter Caseを未完了一覧から除外する。
 // v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
 // v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
 // v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
@@ -13,7 +13,7 @@ const SBM_VERSION = '6.6.50';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.50 - 改善履歴ベースの旧Doctor/Writer Case整合を追加。一回限りフラグを廃止し、未完了一覧表示前に軽量修復する。
+// Current release: v6.6.51 - モニター中は『改善の推移』で管理し、未完了一覧には利用者操作が必要な作業だけを表示する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -19694,12 +19694,36 @@ function sbmDoctorResumeWorkSummary_(row,hm,wfIndex){
   if(state==='NEW_ARTICLE_SETUP'||state==='NEW_ARTICLE_CREATOR_IN_PROGRESS'||state==='NEW_ARTICLE_PUBLICATION_PENDING')return '新記事作成（aCreator）';
   return 'aDoctorによる記事の精密診断';
 }
+function sbmDoctorActiveMonitoringCutoffMap_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],out={};
+  rows.forEach(function(h,idx){
+    if(sbmMonitoringLifecycleFromHistory_(h)!=='ACTIVE')return;
+    var d=sbmParseDate_(h['改善日']),ts=d&&!isNaN(d.getTime())?d.getTime():0;
+    if(!ts)return;
+    var raw=String(h['改善日']||'');if(raw.indexOf(':')<0&&raw.indexOf('T')<0)ts+=86400000-1;
+    sbmMonitoringAliasesFrom_(h).forEach(function(k){var p=out[k];if(!p||ts>p.ts||(ts===p.ts&&idx>p.idx))out[k]={ts:ts,idx:idx};});
+  });
+  return out;
+}
+function sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap){
+  var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+  // Merge / Creator / 新しい再診は別Workflowとして扱う。ここでは旧Doctor/Writer残骸だけを対象にする。
+  if(['DOCTOR_DIAGNOSIS_PENDING','FOLLOW_UP_REQUEST_READY','USER_ACTION_REQUIRED','USER_DECISION_REQUIRED','WRITER_REQUEST_READY','WRITER_IN_PROGRESS'].indexOf(state)<0)return false;
+  var probe={'ArticleID':hm['記事ID']?row[hm['記事ID']-1]:'','記事URL':hm['記事URL']?row[hm['記事URL']-1]:'','記事タイトル':hm['記事タイトル']?row[hm['記事タイトル']-1]:''};
+  var ev=null;sbmMonitoringAliasesFrom_(probe).some(function(k){if(monitorMap[k]){ev=monitorMap[k];return true;}return false;});
+  if(!ev)return false;
+  var created=hm['作成日時']?sbmParseDate_(row[hm['作成日時']-1]):null,cts=created&&!isNaN(created.getTime())?created.getTime():0;
+  // 作成日時不明のCaseは誤除外を避ける。日時が確認でき、モニター開始以前なら未完了ではない。
+  return !!cts&&cts<=Number(ev.ts||0);
+}
 function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex){
-  var items=[],byArticle={};
+  var items=[],byArticle={},monitorMap=sbmDoctorActiveMonitoringCutoffMap_();
   for(var i=0;i<vals.length;i++){
     var row=vals[i],rowState=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
     var caseId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
     if(!caseId)continue;
+    // v6.6.51: モニター開始以前の旧Doctor/Writer Caseは『未完了作業』ではないため候補化しない。
+    if(sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap))continue;
     var aid=hm['記事ID']?String(row[hm['記事ID']-1]||'').trim():'';
     var url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'';
     var title=hm['記事タイトル']?String(row[hm['記事タイトル']-1]||'').trim():'';

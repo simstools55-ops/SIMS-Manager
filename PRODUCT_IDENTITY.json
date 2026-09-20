@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.50",
+  "current_version": "6.6.51",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.50: 改善履歴を正本に、登録済みaDoctor→aWriter処置より古い残存Doctor/Writer Caseを未完了一覧表示前に自動終了同期。",
-  "version": "6.6.50",
+  "notes": "v6.6.51: 未完了作業を利用者操作待ちに限定し、モニター開始以前の旧Doctor/Writer Caseを未完了一覧から除外。",
+  "version": "6.6.51",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.50-ST"
+  "starter_display_version": "v6.6.51-ST"
 }
