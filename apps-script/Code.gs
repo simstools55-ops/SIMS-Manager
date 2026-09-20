@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.58';
+const SBM_VERSION = '6.6.59';
+// v6.6.59: 経過観察終了案件を「改善の推移」表示から即時除外し「今日の改善」へ移管。未完了掃除も観察終了案件を削除対象外に修正。
 // v6.6.58: 経過観察終了・要再診案件を「改善の推移」から「今日の改善」へ移管し、改善内容を見るから観察終了後処置を起動。ArticleID基準のURL解決も追加。
 // v6.6.57: 未完了処理開始時に『改善の推移』へ移管済みArticleIDを正本照合し、旧Case/WorkflowStateを物理削除してから候補表示する。
 // v6.6.55: 未完了データを一時データとして整理。モニター移管時にDoctor/Writer再開データを削除し、観察終了後の再診は旧Caseを昇格せず新規Caseで開始する。
@@ -17,7 +18,7 @@ const SBM_VERSION = '6.6.58';
 // v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
 // v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
 // v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.58 - 経過観察終了案件を今日の改善へ戻し、そこから新しい処置Workflowを開始する。
+// Current release: v6.6.59 - 経過観察終了案件を改善の推移から即時除外し、今日の改善へ一本化する。
 // v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
 // v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
 // v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
@@ -6794,6 +6795,24 @@ function sbmObservationEndedTodayCandidates_(){
 }
 
 /** v6.6.58: 通常候補を維持したまま、観察終了案件を追加表示する。 */
+/** v6.6.59: 経過観察終了案件を「改善の推移」の現役一覧から物理的に除外する。履歴は削除しない。 */
+function sbmPruneObservationEndedFromEffectView_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var ended=sbmObservationEndedTodayCandidates_(),ids={},urls={};
+  ended.forEach(function(c){var id=String(c.articleId||'').trim(),u=sbmNormalizeUrl_(c.url||'');if(id)ids[id]=1;if(u)urls[u]=1;});
+  if(!Object.keys(ids).length&&!Object.keys(urls).length)return 0;
+  var hm=sbmHeaderMap_(sh),idCol=hm['ArticleID'],urlCol=hm['記事URL'];
+  if(!idCol&&!urlCol)return 0;
+  var n=sh.getLastRow()-1,vals=sh.getRange(2,1,n,sh.getLastColumn()).getDisplayValues(),remove=[];
+  for(var i=0;i<vals.length;i++){
+    var id=idCol?String(vals[i][idCol-1]||'').trim():'',u=urlCol?sbmNormalizeUrl_(vals[i][urlCol-1]||''):'';
+    if((id&&ids[id])||(u&&urls[u]))remove.push(i+2);
+  }
+  for(var j=remove.length-1;j>=0;j--)sh.deleteRow(remove[j]);
+  return remove.length;
+}
+
 function sbmSyncObservationEndedToToday_(){
   var base=sbmGetTodayCandidates_().filter(function(c){return String(c&&c.candidateId||'').indexOf('OBS_END:')!==0;});
   var obs=sbmObservationEndedTodayCandidates_(),seen={};
@@ -10473,6 +10492,8 @@ function sbmOpenEffectiveness(){
     }catch(eRepair){try{sbmLog_('EffectViewRepair','Warning',String(eRepair));}catch(ignoreLog){}}
     props.setProperty(repairKey,'1');
   }
+  // v6.6.59: 観察終了案件は現役モニター一覧ではないため、今日の改善へ同期してから表示行を除外する。
+  try{sbmSyncObservationEndedToToday_();sbmPruneObservationEndedFromEffectView_();sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(eObsMove){try{sbmLog_('ObservationEndedEffectPrune','Warning',String(eObsMove));}catch(ignoreObsMoveLog){}}
   try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_664_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
@@ -18991,9 +19012,13 @@ function sbmDoctorPurgeResumeDataAfterEffectTransfer_(articleId,articleUrl,caseI
 // ACTIVE/要再診/経過観察終了などの細かな測定状態は未完了側では判定しない。
 function sbmPurgeUnfinishedDataForEffectTransferred_(){
   var rows=sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[],targets={},purgedArticles=0,purgedCases=0;
+  // v6.6.59: 経過観察終了案件は「今日の改善」へ戻る次作業候補なので、未完了掃除の対象にしない。
+  var endedIds={},endedUrls={};
+  try{sbmObservationEndedTodayCandidates_().forEach(function(c){var id=String(c.articleId||'').trim(),u=sbmNormalizeUrl_(c.url||'');if(id)endedIds[id]=1;if(u)endedUrls[u]=1;});}catch(ignoreEnded){}
   rows.forEach(function(r){
     var aid=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(r['記事URL']||'');
     if(!aid&&!url)return;
+    if((aid&&endedIds[aid])||(url&&endedUrls[url]))return;
     var key=aid?'ID:'+aid:'URL:'+url;
     targets[key]={articleId:aid,articleUrl:url};
   });
