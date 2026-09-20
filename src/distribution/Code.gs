@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.63';
+const SBM_VERSION = '6.6.64';
+// v6.6.64: 利用者向け表示を整理。記事管理の内部状態列を非表示化し、改善の推移の選択チェックボックスを廃止、今日の改善のArticleIDを可視列として固定。
 // v6.6.62: 記事管理を記事状態の唯一の正本へ統一。作業理由・状態更新日・最終改善完了日・再評価予定日を追加し、90日再評価サイクルを導入。表示シートは状態を変更しない。
 // v6.6.61: 4回測定完了時に記事管理の作業状態をモニター中→今日の改善へ遷移。今日の改善は現在状態を正本にし、過去の観察終了履歴を再表示しない。ArticleIDを今日の改善へ表示。
 // v6.6.60: 経過観察終了候補をモニター状態文字列ではなく4回測定完了＋最終結果から復元し、メインクエリ未取得でも今日の改善へ必ず表示。
@@ -6329,7 +6330,9 @@ function sbmBuildTodayImprovementSheet_() {
   sh.getRange('C:C').setWrap(true);
   sh.getRange('D:D').setWrap(true);
   sh.getRange('G:G').setWrap(true);
-  sh.hideColumns(13,2); // URL・候補IDは内部利用。ArticleIDは利用者確認用に表示
+  var hmToday = sbmHeaderMap_(sh);
+  if (hmToday['ArticleID']) { try { sh.showColumns(hmToday['ArticleID']); sh.setColumnWidth(hmToday['ArticleID'],105); } catch(eShowArticleId) {} }
+  ['記事URL','候補ID'].forEach(function(h){ if(hmToday[h]) try{sh.hideColumns(hmToday[h]);}catch(ignoreHideInternal){} });
 }
 
 /** 旧版: 保存済み候補の順位や選択状態を変えず、表示文言だけを現行ルールへ同期する。 */
@@ -10185,8 +10188,8 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
   if(clearRows)sh.getRange(2,1,clearRows,SBM_EFFECT_HEADERS_V2.length).clearContent();
   if(rows.length){
     sh.getRange(2,1,rows.length,SBM_EFFECT_HEADERS_V2.length).setValues(rows);
-    // 選択列だけは1回の範囲操作で復元。
-    try{sh.getRange(2,1,rows.length,1).insertCheckboxes().setValue(false).setHorizontalAlignment('center');}catch(ignoreCheckbox){}
+    // 改善の推移は閲覧専用。互換用の選択列にチェックボックスは生成しない。
+    try{sh.getRange(2,1,rows.length,1).clearDataValidations().clearContent();}catch(ignoreSelectionClear){}
   }
   if(!dailyFast){
     sbmStyleEffectSheetV2_();
@@ -11601,7 +11604,8 @@ function sbmStyleArticleDbSheet_(sh) {
   [
     'データ更新日','記事タイトル','SEOタイトル','メタディスクリプション','最終取得日時','元URL件数','除外理由','備考',
     '記事情報補完済み','補完日時','補完エラー','記事ステータス',
-    '最終確認日','連続未取得日数','管理フラグ','詳細'
+    '最終確認日','連続未取得日数','管理フラグ','詳細',
+    '作業理由','状態更新日','最終改善完了日','再評価予定日'
   ].forEach(function(h){
     if (hm[h]) {
       try { sh.hideColumns(hm[h]); } catch(e) {}
@@ -13225,8 +13229,9 @@ function sbmStyleEffectSheetV2_() {
     if (hm[h]) sh.setColumnWidth(hm[h], widths[h]);
   });
 
-  // 旧版や利用者操作で非表示になった列も、一覧表示時に必ず復元します。
-  try { sh.showColumns(1, Math.min(13, sh.getMaxColumns())); } catch (e) {}
+  // 改善の推移は閲覧専用ビュー。内部互換の「選択」列は保持するが利用者には表示しない。
+  try { sh.showColumns(2, Math.min(12, Math.max(0, sh.getMaxColumns()-1))); } catch (e) {}
+  try { sh.hideColumns(1); } catch (eHideSelection) {}
   if (sh.getMaxColumns() >= 14) {
     try { sh.hideColumns(14, sh.getMaxColumns() - 13); } catch (e) {}
   }
@@ -13290,7 +13295,12 @@ function sbmStyleEffectSheetV2_() {
     try { sh.autoResizeRows(2, n); } catch (e) {}
   }
 
-  sbmApplySelectionUi_(sh);
+  // 閲覧専用のためチェックボックスは生成しない。旧チェックボックスも除去する。
+  try {
+    if (hm['選択'] && sh.getMaxRows() > 1) {
+      sh.getRange(2, hm['選択'], sh.getMaxRows()-1, 1).clearDataValidations().clearContent();
+    }
+  } catch (eClearSelection) {}
   SpreadsheetApp.flush();
 }
 
