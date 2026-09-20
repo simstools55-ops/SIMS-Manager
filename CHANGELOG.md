@@ -1,3 +1,9 @@
+# v6.6.54
+
+- 未完了Workflow判定を `sbmDoctorResumeChooserItems_` に一本化。
+- 「aDoctor精密診断を途中から再開」と共通処置UIの独自走査を廃止し、改善の推移へ移管済みの旧Doctor/Writer Caseが別画面から再出現する問題を修正。
+- 経過観察後の正式な再診、Merge、Creatorなど現役Workflowは共通候補判定に従って保持。
+
 # v6.6.53
 
 - 「改善の推移」へ移管済みの記事について、旧Doctor/Writer Caseを未完了一覧から除外。

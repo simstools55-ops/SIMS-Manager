@@ -19604,20 +19604,22 @@ function sbmDoctorResumePrecisionDiagnosis(){
     if(last<2)return sbmAlert_('aDoctor精密診断','途中から再開できる個別精密診断はありません。');
     var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
     sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals);
+    // v6.6.54: 専用再開画面でも「未完了の作業」と同じ共通候補抽出を使う。
+    // これにより改善の推移へ移管済みの旧Doctor/Writer Caseが、この入口だけ再出現する経路をなくす。
     var active={
       'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
       'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
       'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1
     };
-    var target=null;
-    for(var i=vals.length-1;i>=0;i--){
-      var row=vals[i],state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
-      if(!active[state])continue;
-      if(sbmDoctorCaseIsSiteDiagnosisRow_(row,hm))continue;
-      target=row;break;
-    }
-    if(!target)return sbmAlert_('aDoctor精密診断','途中から再開できる個別精密診断はありません。\n\nSite Doctor由来の未完了処置は「Site Doctor未完了の処置を再開」から再開してください。');
-    sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(target,hm));
+    var wfIndex=sbmDoctorWorkflowResumeIndex_();
+    var items=sbmDoctorResumeChooserItems_(vals,hm,active,wfIndex).filter(function(x){
+      var rec=sbmDoctorFindCaseRow_(x.caseId);
+      return rec&&!sbmDoctorCaseIsSiteDiagnosisRow_(rec.values,rec.hm);
+    });
+    if(!items.length)return sbmAlert_('aDoctor精密診断','途中から再開できる個別精密診断はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
+    var target=sbmDoctorFindCaseRow_(items[0].caseId);
+    if(!target)return sbmAlert_('aDoctor精密診断','再開対象Caseを確認できませんでした。');
+    sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(target.values,target.hm));
   }catch(e){
     sbmAlert_('aDoctor精密診断を再開できません',String(e&&e.message?e.message:e));
   }
@@ -20066,11 +20068,18 @@ function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
     if(last<2)return {ok:true,actions:[],message:'再開できるSite Doctor処置はありません。'};
     preferredCaseId=String(preferredCaseId||'').trim();
     var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),actions=[],pendingUser=0,pendingMergeCaseId='',pendingMergeContext=null,scanned=0,mergeRows=0,skippedNoSiteDiagnosis=0,recoveredWithoutSiteDiagnosis=0;
+    // v6.6.54: 共通処置UIも未完了一覧と同じ候補集合だけを処理する。
+    // 個別画面ごとの独自state走査をやめ、完了境界・重複集約・モニター除外を一か所へ集約する。
+    var resumeActive={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
+    var resumeIndex=sbmDoctorWorkflowResumeIndex_();
+    var resumeItems=sbmDoctorResumeChooserItems_(vals,hm,resumeActive,resumeIndex),resumeCaseMap={};
+    resumeItems.forEach(function(x){if(x&&x.caseId)resumeCaseMap[String(x.caseId)]=1;});
     vals.forEach(function(row){
       scanned++;
       var sd=hm['SiteDiagnosisCaseID']?String(row[hm['SiteDiagnosisCaseID']-1]||'').trim():'';
       var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
       var caseId=String(row[hm['CaseID']-1]||'').trim(),url=hm['記事URL']?String(row[hm['記事URL']-1]||'').trim():'',articleTitle=hm['記事タイトル']?String(row[hm['記事タイトル']-1]||'').trim():'';
+      if(!resumeCaseMap[caseId])return;
       var updatedDate=hm['更新日時']?sbmParseDate_(row[hm['更新日時']-1]):null,updatedTs=updatedDate&&!isNaN(updatedDate.getTime())?updatedDate.getTime():0;
       var route='',req='',label='',destination=hm['紹介先']?String(row[hm['紹介先']-1]||'').toUpperCase():'',mergeReqStored=hm['Merge依頼JSON']?String(row[hm['Merge依頼JSON']-1]||''):'',mergeResultStored=hm['Merge結果JSON']?String(row[hm['Merge結果JSON']-1]||''):'',confirmResult=hm['確認結果']?String(row[hm['確認結果']-1]||''):'';
       var isMergeRow=destination.indexOf('MERGE')>=0||!!mergeReqStored;

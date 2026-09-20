@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.53",
+  "current_version": "6.6.54",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.53: 改善の推移への移管を旧Doctor/Writer Workflowの完了境界とし、移管済み旧Caseを未完了一覧から除外。正式な経過観察後再診は保持。",
-  "version": "6.6.53",
+  "notes": "v6.6.54: 未完了判定を共通候補抽出へ一本化し、精密診断再開・共通処置UIでもモニター移管済み旧Caseを除外。",
+  "version": "6.6.54",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.53-ST"
+  "starter_display_version": "v6.6.54-ST"
 }
