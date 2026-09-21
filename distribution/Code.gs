@@ -4,8 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.97';
-// v6.6.97: aWriter正式完了状態 COMPLETED_PUBLIC_OK を正常完了として受理し、改善履歴登録・モニタリング開始へ接続する。
+const SBM_VERSION = '6.6.98';
+// v6.6.98: aWriter正式完了状態 COMPLETED_PUBLIC_OK を正常完了として受理し、改善履歴登録・モニタリング開始へ接続する。
 // v6.6.96: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
 // v6.6.96: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
 // v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
@@ -18823,6 +18823,9 @@ function sbmDoctorStoreCaseResult_(o,n){
 }
 function sbmDoctorReferralDetails_(doctor,n,evidence){
   var refs=n.writerReferrals||[],allowed=[],blocked=[],instructions=[],candidates=[],tasks=[],linkRecs=[];
+  // v6.6.98: legacy Case rescue. Persisted normalized scope is authoritative when old Doctor JSON no longer exposes the current referral shape.
+  allowed=allowed.concat(Array.isArray(n.allowed)?n.allowed:[]);
+  blocked=blocked.concat(Array.isArray(n.blocked)?n.blocked:[]);
   refs.forEach(function(x){
     allowed=allowed.concat(x.allowed_scope||[]);blocked=blocked.concat(x.blocked_scope||[]);
     if(x.instructions)instructions=instructions.concat(Array.isArray(x.instructions)?x.instructions:[x.instructions]);
@@ -20031,6 +20034,8 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
         if(rebuiltWriter&&rebuiltWriter.ok&&rebuiltWriter.request){
           info.request=String(rebuiltWriter.request);
           info.referralRecovered=true;
+        }else if(rebuiltWriter&&!rebuiltWriter.ok){
+          throw new Error(String(rebuiltWriter.message||'保存済みCaseからaWriter紹介状を再構築できませんでした。'));
         }
       }catch(writerResumeRebuildError){
         info.request='【紹介状の復元に失敗しました】\n'+String(writerResumeRebuildError&&writerResumeRebuildError.message?writerResumeRebuildError.message:writerResumeRebuildError);
