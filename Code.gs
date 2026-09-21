@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.92';
+const SBM_VERSION = '6.6.93';
+// v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
 // v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
 // v6.6.91: STEP2読込I/Oを詳細計測し、Settingsを1回読込で共有。記事DB・判定仕様は変更しない。
@@ -20499,6 +20500,13 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
     var newArticle={'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1};
     if(newArticle[state]){sbmShowNewArticleCreationDialog_(caseId);return {ok:true};}
     if(doctorOrConfirm[state]){sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));return {ok:true};}
+    // v6.6.93: 一覧で選択済みのaWriter Caseは再探索しない。
+    // WRITER_REQUEST_READYはSite Doctor共通処置側のaction再構築対象外だったため、
+    // 「一覧には出るが再開すると0件」になる経路があった。保存済みCaseを直接復元する。
+    if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
+      sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));
+      return {ok:true};
+    }
     if(treatment[state]){sbmDoctorRegisterSiteDiagnosisResult(true,caseId);return {ok:true};}
     throw new Error('現在の状態は再開対象ではありません：'+state);
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}

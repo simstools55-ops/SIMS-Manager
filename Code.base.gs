@@ -4,8 +4,11 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.90';
-// v6.6.90: STEP3監査ログ高速化。処理プロファイルと処理ログをメモリへ蓄積し、終了時に一括書込み。行ごとのシートアクセス・再装飾を廃止。
+const SBM_VERSION = '6.6.93';
+// v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
+// v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
+const SBM_DETAILED_PERFORMANCE_PROFILE = false;
+// v6.6.91: STEP2読込I/Oを詳細計測し、Settingsを1回読込で共有。記事DB・判定仕様は変更しない。
 // v6.6.88: STEP3完全区間計測。処理本体に加え、プロファイル記録・処理ログ記録の計測オーバーヘッドを集計し、STEP3全時間の内訳を可視化。
 // v6.6.88: STEP3高速化。完了済み記事の状態再書込を抑止し、今日の改善シート再描画で全書式クリアを廃止。
 // v6.6.86: STEP3深掘り計測。改善の推移の判定計算と今日の改善整合を内部区間へ分解し、仕様変更なしでボトルネックを特定。
@@ -679,14 +682,29 @@ function sbmRunDailyAnalysisStageFromDialog() {
   try {
     try { sbmProcessLog_('日次処理 ステージ遷移','STEP2_ENTER','','',0,'STEP2サーバー実行開始',startedText,sbmNowText_()); sbmDailyProfileCheckpoint_('STEP2_ENTER','','',0,'STEP2サーバー実行開始',startedText,sbmNowText_()); } catch(ignoreStageAudit2Enter) {}
     sbmSetDailyProgress_('MERGE',45,'取得したデータとの差分だけを記事DBへ反映しています。');
-    var rows = sbmReadDailyWorkRows_();
+    // v6.6.91: STEP2の読込I/Oを区間計測。Settingsはこの時点で1回だけ読み、後続判定でも共有する。
+    var tWorkMeta2 = new Date();
+    var ssStep2 = SpreadsheetApp.getActiveSpreadsheet();
+    var workSheet2 = ssStep2.getSheetByName('__Daily_Update_Work');
+    var workLastRow2 = workSheet2 ? workSheet2.getLastRow() : 0;
+    var workMetaSec2 = sbmSecondsSince_(tWorkMeta2);
+    var tWorkValues2 = new Date();
+    var rows = (!workSheet2 || workLastRow2 < 2) ? [] : workSheet2.getRange(2,1,workLastRow2-1,SBM_HEADERS.ARTICLE_DB.length).getValues();
+    var workValuesSec2 = sbmSecondsSince_(tWorkValues2);
+    try { sbmDailyProfileCheckpoint_('STEP2_WORK_META',workLastRow2,'',workMetaSec2,'作業シート参照・行数取得',startedText,sbmNowText_()); } catch(ignoreStep2WorkMeta) {}
+    try { sbmDailyProfileCheckpoint_('STEP2_WORK_VALUES',rows.length,'',workValuesSec2,'作業データgetValues',startedText,sbmNowText_()); } catch(ignoreStep2WorkValues) {}
     try { sbmProcessLog_('日次処理 ステージ遷移','STEP2_WORK_READ',rows.length,'',sbmSecondsSince_(started),'作業データ読込完了',startedText,sbmNowText_()); sbmDailyProfileCheckpoint_('STEP2_WORK_READ',rows.length,'',sbmSecondsSince_(started),'作業データ読込完了',startedText,sbmNowText_()); } catch(ignoreStageAudit2Read) {}
     if (!rows.length) throw new Error('Search Console取得データが見つかりません。日次処理を最初から再実行してください。');
 
+    var tSettingsMap2 = new Date();
+    var step2SettingsShared = sbmGetSettingsMap_();
+    var settingsReadSec2 = sbmSecondsSince_(tSettingsMap2);
+    try { sbmDailyProfileCheckpoint_('STEP2_SETTINGS_READ','','',settingsReadSec2,'Settingsを1回読込・STEP2内共有',startedText,sbmNowText_()); } catch(ignoreStep2SettingsRead) {}
+
     // 記事DBがない初回は、通常日次処理に混ぜず分割構築へ切り替える。
-    var dbSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+    var dbSheet = ssStep2.getSheetByName(SBM_SHEETS.ARTICLE_DB);
     var dbRows = dbSheet ? Math.max(0, dbSheet.getLastRow() - 1) : 0;
-    var initRunning = String(sbmGetSetting_('ArticleDbInitialBuildInProgress','NO')||'NO') === 'YES';
+    var initRunning = String(step2SettingsShared.ArticleDbInitialBuildInProgress || 'NO') === 'YES';
     if (dbRows === 0 || initRunning) {
       if (!initRunning) {
         sbmSetSetting_('ArticleDbInitialBuildInProgress','YES','記事DB初回分割構築中');
@@ -698,11 +716,11 @@ function sbmRunDailyAnalysisStageFromDialog() {
     try { sbmDailyProfileCheckpoint_('STEP2_DB_READY',dbRows,'',sbmSecondsSince_(started),'記事DB存在確認・初回構築判定完了',startedText,sbmNowText_()); } catch(ignoreStep2DbReady) {}
 
     // 実行時間上限を避けるため、MERGE後に必要なら別実行へ継続できる。
-    var continuationPhase = String(sbmGetSetting_('DailyAnalysisContinuationPhase','')||'');
+    var continuationPhase = String(step2SettingsShared.DailyAnalysisContinuationPhase || '');
     var mergeResult;
     var step2MergeSec = 0;
     if (continuationPhase === 'RECOMMEND') {
-      try { mergeResult = JSON.parse(String(sbmGetSetting_('DailyAnalysisMergeResultJson','{}')||'{}')); } catch(eJson) { mergeResult = {}; }
+      try { mergeResult = JSON.parse(String(step2SettingsShared.DailyAnalysisMergeResultJson || '{}')); } catch(eJson) { mergeResult = {}; }
     } else {
       var tMerge2 = new Date();
       mergeResult = sbmMergeArticleDbDaily_(rows);
@@ -847,7 +865,7 @@ function sbmRunDailyFinalizeStageFromDialog() {
   if (!lock.tryLock(3000)) throw new Error('前の処理がまだ終了していません。画面を閉じてもサーバー側の処理が続く場合があります。数分待ってから再実行してください。');
   var started = new Date();
   var startedText = sbmNowText_();
-  SBM_STEP3_PROFILE_ACTIVE=true;
+  SBM_STEP3_PROFILE_ACTIVE=SBM_DETAILED_PERFORMANCE_PROFILE;
   SBM_STEP3_PROFILE_OVERHEAD_MS=0;
   SBM_STEP3_PROCESSLOG_OVERHEAD_MS=0;
   SBM_STEP3_PROFILE_BUFFER=[];
@@ -5884,6 +5902,8 @@ function sbmFlushStep3LogBuffers_() {
 }
 
 function sbmDailyProfileCheckpoint_(step, targetCount, processedCount, seconds, detail, startedAt, endedAt) {
+  // v6.6.92: 通常運用は工程終了（STEP1/2/3_EXIT）のみ記録。詳細調査時は全区間を記録する。
+  if (!SBM_DETAILED_PERFORMANCE_PROFILE && !/^STEP[123]_EXIT$/.test(String(step || ''))) return;
   var __profileStarted=Date.now();
   try {
     var startText = startedAt || sbmNowText_();
@@ -20480,6 +20500,13 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
     var newArticle={'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1};
     if(newArticle[state]){sbmShowNewArticleCreationDialog_(caseId);return {ok:true};}
     if(doctorOrConfirm[state]){sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));return {ok:true};}
+    // v6.6.93: 一覧で選択済みのaWriter Caseは再探索しない。
+    // WRITER_REQUEST_READYはSite Doctor共通処置側のaction再構築対象外だったため、
+    // 「一覧には出るが再開すると0件」になる経路があった。保存済みCaseを直接復元する。
+    if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
+      sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));
+      return {ok:true};
+    }
     if(treatment[state]){sbmDoctorRegisterSiteDiagnosisResult(true,caseId);return {ok:true};}
     throw new Error('現在の状態は再開対象ではありません：'+state);
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
