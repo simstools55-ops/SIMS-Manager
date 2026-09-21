@@ -1,1 +1,1 @@
-fix: normalize Writer completion status and recover failed treatment workflow (v6.6.96)
+fix: accept COMPLETED_PUBLIC_OK Writer treatment status (v6.6.97)

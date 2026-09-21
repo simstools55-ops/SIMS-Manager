@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.96';
+const SBM_VERSION = '6.6.97';
+// v6.6.97: aWriter正式完了状態 COMPLETED_PUBLIC_OK を正常完了として受理し、改善履歴登録・モニタリング開始へ接続する。
 // v6.6.96: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
 // v6.6.96: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
 // v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
@@ -22591,7 +22592,7 @@ function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
 
 function sbmDoctorNormalizeWriterTreatmentStatus_(value){
   var raw=String(value||'').trim().toUpperCase();
-  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
+  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_PUBLIC_OK:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
   if(completed[raw])return {raw:raw,normalized:(raw==='COMPLETED_WITH_REPORTED_EXCEPTION'?'COMPLETED_WITH_REPORTED_EXCEPTION':'COMPLETED'),completed:true};
   return {raw:raw,normalized:raw,completed:false};
 }
