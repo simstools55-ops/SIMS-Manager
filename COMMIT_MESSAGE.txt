@@ -1,1 +1,1 @@
-perf(manager): share post-effect STEP3 snapshot across reconciliation v6.6.85
+fix: restore missing aWriter referral on unfinished resume (v6.6.94)

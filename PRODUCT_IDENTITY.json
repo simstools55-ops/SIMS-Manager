@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.93",
+  "current_version": "6.6.94",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.93: Fix unfinished-work resume for aWriter waiting states by restoring the selected Case directly.",
-  "version": "6.6.93",
+  "notes": "v6.6.94: Restore missing or summarized aWriter referral text for unfinished legacy Cases from saved Doctor result and Case context without rerunning diagnosis.",
+  "version": "6.6.94",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.93-ST"
+  "starter_display_version": "v6.6.94-ST"
 }

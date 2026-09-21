@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.93';
+const SBM_VERSION = '6.6.94';
+// v6.6.94: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
 // v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
 // v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -20011,6 +20012,17 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
   }else if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
     info.mode='WRITER';
     info.request=String(v('Writer依頼JSON')||'').trim();
+    // v6.6.94: 旧CaseでWriter依頼JSONが未保存／要約保存でも、保存済みDoctor結果とCase情報から再開画面内だけで完全版を復元する。
+    // 再診や新Case発行は行わず、既存CaseIDを維持する。
+    if(sbmDoctorStoredReferralNeedsRebuild_(info.request)){
+      try{
+        var rebuiltWriter=sbmDoctorRebuildSiteDiagnosisReferral(caseId,'WRITER');
+        if(rebuiltWriter&&rebuiltWriter.ok&&rebuiltWriter.request){
+          info.request=String(rebuiltWriter.request);
+          info.referralRecovered=true;
+        }
+      }catch(ignoreWriterResumeRebuild){}
+    }
   }else if(state==='MERGE_REQUEST_READY'||state==='MERGE_IN_PROGRESS'||state==='MERGE_RESULT_RECEIVED'){
     info.mode='MERGE';
     info.request=String(v('Merge依頼JSON')||'').trim();
