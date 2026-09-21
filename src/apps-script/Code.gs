@@ -4,9 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.95';
-// v6.6.95: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
-// v6.6.95: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
+const SBM_VERSION = '6.6.96';
+// v6.6.96: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
+// v6.6.96: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
 // v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
 // v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -19884,7 +19884,7 @@ function sbmDoctorRebuildSiteDiagnosisReferral(caseId,route){
       n={caseId:String(caseId),diagnosisId:'WRITER-FOLLOW-UP-'+String(rec.hm['改善履歴ID']?rec.values[rec.hm['改善履歴ID']-1]||'':''),diagnosisStatus:'Writer改善後の利用者判断で記事統合へ引継ぎ',primaryCode:'WRITER_FOLLOW_UP_MERGE',priority:'NORMAL',action:'TREATMENT_RECOMMENDED',treatmentLevel:'MERGE',destination:'SIMS_MERGE',allowed:['article_merge','canonical_selection','redirect_plan'],blocked:[],locked:false,mergeReady:true,nextAction:'MERGE'};
     }else{
       n=sbmDoctorNormalizeCaseResult_(doctor);
-      // v6.6.95: legacy Cases can have a Doctor JSON whose treatment scope is not in the current V2 shape.
+      // v6.6.96: legacy Cases can have a Doctor JSON whose treatment scope is not in the current V2 shape.
       // The normalized Case columns are already persisted as part of that diagnosis, so use them as the
       // compatibility source when rebuilding the saved referral. Never invent a treatment scope.
       if(route==='WRITER'&&(!n.allowed||!n.allowed.length)){
@@ -20019,10 +20019,10 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
     var closeBlockedText=closeBlocked.length?'不要：'+closeBlocked.map(function(x){var u=String(x).toUpperCase();if(u==='FULL_REWRITE')return '全面リライト';if(u==='TITLE_CHANGE')return 'タイトル変更';if(u==='URL_CHANGE')return 'URL変更';if(u==='NEW_SATELLITE_ARTICLE')return '新規サテライト記事作成';return String(x);}).join('、')+'。':'追加の大きな処置は不要です。';
     info.closeMessage=closeReason+'\n\n'+closeBlockedText+'\n'+closeOptional+'\n\n今回の改善・経過観察サイクルはここで終了できます。';
     try{var latestCloseHistory=sbmDoctorFindLatestHistory_(info.articleId,info.articleUrl);info.historyId=String(latestCloseHistory&&latestCloseHistory['改善履歴ID']||'').trim();}catch(ignoreCloseHistory){info.historyId='';}
-  }else if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
+  }else if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'||state==='TREATMENT_FAILED'){
     info.mode='WRITER';
     info.request=String(v('Writer依頼JSON')||'').trim();
-    // v6.6.95: 旧CaseでWriter依頼JSONが未保存／要約保存でも、保存済みDoctor結果とCase情報から再開画面内だけで完全版を復元する。
+    // v6.6.96: 旧CaseでWriter依頼JSONが未保存／要約保存でも、保存済みDoctor結果とCase情報から再開画面内だけで完全版を復元する。
     // 再診や新Case発行は行わず、既存CaseIDを維持する。
     if(sbmDoctorStoredReferralNeedsRebuild_(info.request)){
       try{
@@ -20249,7 +20249,7 @@ function sbmDoctorResumePrecisionDiagnosis(){
     // これにより改善の推移へ移管済みの旧Doctor/Writer Caseが、この入口だけ再出現する経路をなくす。
     var active={
       'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
-      'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
+      'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'TREATMENT_FAILED':1,
       'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1
     };
     var wfIndex=sbmDoctorWorkflowResumeIndex_();
@@ -20532,7 +20532,7 @@ function sbmResumeSelectedWorkflowCase(caseId,virtualFollowUp){
     // v6.6.93: 一覧で選択済みのaWriter Caseは再探索しない。
     // WRITER_REQUEST_READYはSite Doctor共通処置側のaction再構築対象外だったため、
     // 「一覧には出るが再開すると0件」になる経路があった。保存済みCaseを直接復元する。
-    if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
+    if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'||state==='TREATMENT_FAILED'){
       sbmDoctorShowSingleCaseResumeDialog_(sbmDoctorSingleCaseResumeInfo_(rec.values,rec.hm));
       return {ok:true};
     }
@@ -20685,7 +20685,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
       'DOCTOR_NORMAL_CLOSE':1
     };
     var treatment={
-      'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
+      'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'TREATMENT_FAILED':1,
       'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,
       'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,
       'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1
@@ -22002,7 +22002,7 @@ function sbmDoctorReconcileCompletedTreatments_(){
     var row=vals[i],raw=hm['Writer結果JSON']?String(row[hm['Writer結果JSON']-1]||'').trim():'',o=null;
     if(!raw)continue;
     try{o=JSON.parse(raw);}catch(eParse){continue;}
-    if(String(o.treatment_status||'').toUpperCase()!=='COMPLETED')continue;
+    if(!sbmDoctorNormalizeWriterTreatmentStatus_(o.treatment_status).completed)continue;
     var articleId=String(o.article_id|| (hm['記事ID']?row[hm['記事ID']-1]:'') ||'').trim();
     var articleUrl=String(o.article_url|| (hm['記事URL']?row[hm['記事URL']-1]:'') ||'').trim();
     var hid=hm['改善履歴ID']?String(row[hm['改善履歴ID']-1]||'').trim():'';
@@ -22589,14 +22589,20 @@ function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
 
+function sbmDoctorNormalizeWriterTreatmentStatus_(value){
+  var raw=String(value||'').trim().toUpperCase();
+  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
+  if(completed[raw])return {raw:raw,normalized:(raw==='COMPLETED_WITH_REPORTED_EXCEPTION'?'COMPLETED_WITH_REPORTED_EXCEPTION':'COMPLETED'),completed:true};
+  return {raw:raw,normalized:raw,completed:false};
+}
 function sbmDoctorStoreWriterTreatmentResult_(o){
   var format=String(o&&o.format||'');
   if(format.indexOf('SIMS_DOCTOR_')===0)throw new Error('これはaDoctorの診断JSONです。aWriter結果登録には使いません。精密診断ダイアログでaDoctor診断結果を登録し、そこで自動生成されたaWriter紹介状をaWriterへ渡してください。');
   if(format!=='SIMS_WRITER_TREATMENT_RESULT_V1')throw new Error('aWriter処置結果ではありません。必要なformatは SIMS_WRITER_TREATMENT_RESULT_V1 です。現在のformat：'+(format||'未記載'));
   var rec=sbmDoctorFindCaseRow_(o.case_id);if(!rec)throw new Error('対応するCaseIDがありません。');
   if(String(rec.values[rec.hm['記事ID']-1])!==String(o.article_id||''))throw new Error('ArticleIDがCaseと一致しません。');
-  var status=String(o.treatment_status||'').toUpperCase(),compliance=o.referral_compliance||{},existing=String(rec.values[rec.hm['Writer結果JSON']-1]||'');
-  var completedTreatment=(status==='COMPLETED'||status==='COMPLETED_WITH_REPORTED_EXCEPTION');
+  var statusInfo=sbmDoctorNormalizeWriterTreatmentStatus_(o.treatment_status),status=statusInfo.normalized,compliance=o.referral_compliance||{},existing=String(rec.values[rec.hm['Writer結果JSON']-1]||'');
+  var completedTreatment=!!statusInfo.completed;
   if(existing&&existing===JSON.stringify(o)&&String(rec.values[rec.hm['状態コード']-1])==='MONITORING')return {caseId:String(o.case_id||''),status:'モニター中',alreadyRegistered:true};
 
   rec.values[rec.hm['Writer結果JSON']-1]=JSON.stringify(o);
@@ -22626,7 +22632,11 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   }else if(status==='USER_DECISION_REQUIRED'||status==='PARTIAL'){
     rec.values[rec.hm['状態コード']-1]='USER_DECISION_REQUIRED';rec.values[rec.hm['状態']-1]='利用者判断待ち';
   }else{
-    rec.values[rec.hm['状態コード']-1]='TREATMENT_FAILED';rec.values[rec.hm['状態']-1]='治療結果受付失敗';
+    // 未知のtreatment_statusを成功扱いせず、再登録可能なWriter待ちへ戻す。
+    // 従来はTREATMENT_FAILEDのまま成功メッセージを返してWorkflowが行き止まりになっていた。
+    rec.values[rec.hm['状態コード']-1]='WRITER_IN_PROGRESS';rec.values[rec.hm['状態']-1]='aWriter結果再登録待ち';
+    rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
+    throw new Error('aWriter結果の treatment_status を完了状態として判定できません：'+(statusInfo.raw||'未記載')+'。aWriter回答の結果JSONを確認して再登録してください。');
   }
   // この登録経路ではPersonal KnowledgeのDrive書込を同期実行しない。
   // knowledge_candidatesはWriter結果JSONと改善履歴のAI改善結果JSONに保持される。

@@ -1,1 +1,1 @@
-fix: recover legacy aWriter referral scope on unfinished resume (v6.6.95)
+fix: normalize Writer completion status and recover failed treatment workflow (v6.6.96)

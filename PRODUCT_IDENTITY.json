@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.95",
+  "current_version": "6.6.96",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.95: Recover legacy aWriter referral scope from persisted Case columns and surface rebuild errors instead of showing an empty referral.",
-  "version": "6.6.95",
+  "notes": "v6.6.96: Recover legacy aWriter referral scope from persisted Case columns and surface rebuild errors instead of showing an empty referral.",
+  "version": "6.6.96",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.95-ST"
+  "starter_display_version": "v6.6.96-ST"
 }
