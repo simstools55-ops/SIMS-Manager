@@ -1,1 +1,1 @@
-fix(manager): collapse duplicate Doctor Writer resume cases by article workflow v6.6.52
+perf(manager): share post-effect STEP3 snapshot across reconciliation v6.6.85
