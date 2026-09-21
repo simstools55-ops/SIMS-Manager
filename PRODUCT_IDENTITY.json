@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.94",
+  "current_version": "6.6.95",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.94: Restore missing or summarized aWriter referral text for unfinished legacy Cases from saved Doctor result and Case context without rerunning diagnosis.",
-  "version": "6.6.94",
+  "notes": "v6.6.95: Recover legacy aWriter referral scope from persisted Case columns and surface rebuild errors instead of showing an empty referral.",
+  "version": "6.6.95",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.94-ST"
+  "starter_display_version": "v6.6.95-ST"
 }

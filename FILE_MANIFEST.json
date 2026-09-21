@@ -1,5 +1,5 @@
 {
-  "version": "6.6.94",
+  "version": "6.6.95",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -3117,7 +3117,7 @@
       "size": 831
     },
     {
-      "path": "RELEASE_NOTES_v6.6.94.md",
+      "path": "RELEASE_NOTES_v6.6.95.md",
       "sha256": "1001b51da48dc3e66fcab79f5bf7e72f89d9d5579a66e60737d524663934054d",
       "size": 828
     },

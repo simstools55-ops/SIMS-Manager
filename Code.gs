@@ -4,8 +4,9 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.6.94';
-// v6.6.94: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
+const SBM_VERSION = '6.6.95';
+// v6.6.95: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
+// v6.6.95: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
 // v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
 // v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -19883,6 +19884,15 @@ function sbmDoctorRebuildSiteDiagnosisReferral(caseId,route){
       n={caseId:String(caseId),diagnosisId:'WRITER-FOLLOW-UP-'+String(rec.hm['改善履歴ID']?rec.values[rec.hm['改善履歴ID']-1]||'':''),diagnosisStatus:'Writer改善後の利用者判断で記事統合へ引継ぎ',primaryCode:'WRITER_FOLLOW_UP_MERGE',priority:'NORMAL',action:'TREATMENT_RECOMMENDED',treatmentLevel:'MERGE',destination:'SIMS_MERGE',allowed:['article_merge','canonical_selection','redirect_plan'],blocked:[],locked:false,mergeReady:true,nextAction:'MERGE'};
     }else{
       n=sbmDoctorNormalizeCaseResult_(doctor);
+      // v6.6.95: legacy Cases can have a Doctor JSON whose treatment scope is not in the current V2 shape.
+      // The normalized Case columns are already persisted as part of that diagnosis, so use them as the
+      // compatibility source when rebuilding the saved referral. Never invent a treatment scope.
+      if(route==='WRITER'&&(!n.allowed||!n.allowed.length)){
+        var legacyAllowed=rec.hm['許可範囲']?sbmDoctorNormalizeScopeList_(rec.values[rec.hm['許可範囲']-1]):[];
+        var legacyBlocked=rec.hm['禁止範囲']?sbmDoctorNormalizeScopeList_(rec.values[rec.hm['禁止範囲']-1]):[];
+        if(legacyAllowed.length)n.allowed=legacyAllowed;
+        if((!n.blocked||!n.blocked.length)&&legacyBlocked.length)n.blocked=legacyBlocked;
+      }
     }
     if(route==='MERGE'){
       req=sbmDoctorBuildMergeTreatmentRequest_(source,doctor,n);
@@ -20012,7 +20022,7 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
   }else if(state==='WRITER_REQUEST_READY'||state==='WRITER_IN_PROGRESS'){
     info.mode='WRITER';
     info.request=String(v('Writer依頼JSON')||'').trim();
-    // v6.6.94: 旧CaseでWriter依頼JSONが未保存／要約保存でも、保存済みDoctor結果とCase情報から再開画面内だけで完全版を復元する。
+    // v6.6.95: 旧CaseでWriter依頼JSONが未保存／要約保存でも、保存済みDoctor結果とCase情報から再開画面内だけで完全版を復元する。
     // 再診や新Case発行は行わず、既存CaseIDを維持する。
     if(sbmDoctorStoredReferralNeedsRebuild_(info.request)){
       try{
@@ -20021,7 +20031,14 @@ function sbmDoctorSingleCaseResumeInfo_(row,hm){
           info.request=String(rebuiltWriter.request);
           info.referralRecovered=true;
         }
-      }catch(ignoreWriterResumeRebuild){}
+      }catch(writerResumeRebuildError){
+        info.request='【紹介状の復元に失敗しました】\n'+String(writerResumeRebuildError&&writerResumeRebuildError.message?writerResumeRebuildError.message:writerResumeRebuildError);
+        info.referralRecoveryError=true;
+      }
+      if(!info.request){
+        info.request='【紹介状の復元に失敗しました】\n保存済みCaseからaWriter紹介状を再構築できませんでした。CaseID: '+caseId;
+        info.referralRecoveryError=true;
+      }
     }
   }else if(state==='MERGE_REQUEST_READY'||state==='MERGE_IN_PROGRESS'||state==='MERGE_RESULT_RECEIVED'){
     info.mode='MERGE';

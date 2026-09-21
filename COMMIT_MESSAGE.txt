@@ -1,1 +1,1 @@
-fix: restore missing aWriter referral on unfinished resume (v6.6.94)
+fix: recover legacy aWriter referral scope on unfinished resume (v6.6.95)
