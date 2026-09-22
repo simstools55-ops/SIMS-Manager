@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.6.98",
+  "current_version": "6.7.1",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.6.98: Accept aWriter treatment_status COMPLETED_PUBLIC_OK as a normal completed treatment and continue into improvement history and monitoring.",
-  "version": "6.6.98",
+  "notes": "v6.7.1: Close Improvement Navi immediately. Remove redundant synchronous close checkpoint because the workflow is already persisted before the dialog opens; avoids close delay and stale unfinished-work recreation.",
+  "version": "6.7.1",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.6.98-ST"
+  "starter_display_version": "v6.7.1-ST"
 }
