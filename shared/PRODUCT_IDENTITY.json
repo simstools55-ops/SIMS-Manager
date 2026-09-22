@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.1",
+  "current_version": "6.7.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.1: Close Improvement Navi immediately. Remove redundant synchronous close checkpoint because the workflow is already persisted before the dialog opens; avoids close delay and stale unfinished-work recreation.",
-  "version": "6.7.1",
-  "starter_display_version": "v6.7.1-ST"
+  "notes": "v6.7.2: Fix normal-improvement completion cleanup and exclude formally registered improvement-history items from unfinished work.",
+  "version": "6.7.2",
+  "starter_display_version": "v6.7.2-ST"
 }

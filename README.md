@@ -1,6 +1,6 @@
 # SIMS Manager
 
-> **Current product:** SIMS Manager v6.7.1
+> **Current product:** SIMS Manager v6.7.2
 > **Version policy:** `vX.Y.Z` (major.minor.patch)  
 > **Shared Editorial Knowledge:** v3.5.0
 

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.1",
+  "current_version": "6.7.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.1: Close Improvement Navi immediately. Remove redundant synchronous close checkpoint because the workflow is already persisted before the dialog opens; avoids close delay and stale unfinished-work recreation.",
-  "version": "6.7.1",
+  "notes": "v6.7.2: Fix normal-improvement completion cleanup and exclude formally registered improvement-history items from unfinished work.",
+  "version": "6.7.2",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.1-ST"
+  "starter_display_version": "v6.7.2-ST"
 }

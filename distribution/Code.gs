@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.7.1';
+const SBM_VERSION = '6.7.2';
+// v6.7.2: 通常改善の完了処理に誤混入したprofiler参照を除去し、完了Workflow削除を復旧。改善履歴登録済み案件も未完了一覧から除外する。
 // v6.7.1: 改善ナビの閉じる操作から同期Checkpoint保存を除去。Workflowは表示前に保存済みのため、閉じる時の再保存待ち（約5秒）と完了済みWorkflow再生成リスクを解消。
 // v6.7.0: 完成済みaWriter回答(SIMS_FEEDBACK_V*)を旧未完了Caseから直接復旧登録できる経路を追加。改善履歴・改善の推移を確定後に同一記事の古いCase/Workflowを整理し、再診・再修正を不要化。
 // v6.6.99: aWriter結果登録を二段階コミット化。改善履歴作成前に失敗した場合は記事管理のモニター中更新をロールバックし、改善の推移1行同期を確認できるまでDoctor CaseをMONITORINGへ確定しない。途中失敗後の再登録は既存履歴を再利用して復旧する。
@@ -9962,7 +9963,8 @@ function sbmMarkNormalImprovementWriterReady(articleId,url){
 }
 function sbmNormalImprovementWorkflowComplete_(articleId,url){
   try{
-    // v6.6.55: 通常改善も改善登録完了後は再開用Workflowを保持しない。
+    // v6.7.2: 完了処理へ誤混入していた未完了一覧用profiler参照を除去。
+    // 改善登録完了後は同一記事の通常改善Workflowを確実に物理削除する。
     var index=sbmDoctorWorkflowResumeIndex_(),remove={};
     Object.keys(index.meta||{}).forEach(function(id){
       if(id.indexOf('NORMAL-IMPROVEMENT-')!==0)return;var m=index.meta[id]||{};
@@ -9971,11 +9973,14 @@ function sbmNormalImprovementWorkflowComplete_(articleId,url){
     var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
     if(sh&&sh.getLastRow()>1&&Object.keys(remove).length){
       var hm=sbmHeaderMap_(sh),vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getValues();
-      profiler.lap('通常改善候補統合・ソート','',resumeItems.length,sbmSecondsSince_(tMergeCandidates)+'秒');
-    var tFallbackScan=new Date();
-    for(var i=vals.length-1;i>=0;i--){var cid=hm['CaseID']?String(vals[i][hm['CaseID']-1]||'').trim():'';if(remove[cid])sh.deleteRow(i+2);}
+      for(var i=vals.length-1;i>=0;i--){
+        var cid=hm['CaseID']?String(vals[i][hm['CaseID']-1]||'').trim():'';
+        if(remove[cid])sh.deleteRow(i+2);
+      }
     }
-  }catch(ignoreNormalWorkflowComplete){}
+  }catch(eNormalWorkflowComplete){
+    try{sbmLog_('NormalImprovementWorkflowComplete','Error',String(eNormalWorkflowComplete));}catch(ignoreNormalWorkflowCompleteLog){}
+  }
 }
 // v6.6.45: 改善の推移に正式登録済みの通常改善は、Workflow METAが旧状態のままでも未完了扱いしない。
 // ArticleIDを第一キー、URLを補助キーとして照合する。
@@ -9985,6 +9990,15 @@ function sbmNormalImprovementRegisteredEffectIndex_(){
     var id=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(String(r['記事URL']||''));
     // 改善・治療開始日がある行だけを正式な改善サイクルとして扱う。
     if(!r['改善・治療開始日'])return;
+    if(id)idx.ids[id]=true;if(url)idx.urls[url]=true;
+  });
+  // v6.7.2: 改善履歴の正式登録も完了境界として扱う。
+  // 改善の推移への同期前後に旧Workflowが残った場合でも、完了済み案件を未完了一覧へ戻さない。
+  var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
+  histories.forEach(function(r){
+    var id=String(r['ArticleID']||'').trim(),url=sbmNormalizeUrl_(String(r['記事URL']||''));
+    var historyId=String(r['改善履歴ID']||'').trim(),improvedAt=r['改善日'];
+    if(!historyId&&!improvedAt)return;
     if(id)idx.ids[id]=true;if(url)idx.urls[url]=true;
   });
   return idx;
