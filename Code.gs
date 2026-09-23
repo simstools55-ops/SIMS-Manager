@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.7.11';
+const SBM_VERSION = '6.7.12';
+// v6.7.12: 未完了再開で同一記事の古いDOCTOR_NORMAL_CLOSEを現行Doctor/利用者確認Workflowより優先度を下げて重複表示から除外。『未完了の作業を再開』を設定・メンテナンスからSIMS今日の作業へ移動。
 // v6.7.11: Doctorのworkflow_handoff.user_confirmation_itemsを利用者確認UIへ表示し、確認結果をEvidence化して再診へ戻せるよう修正。
 // v6.7.10: aWriter登録高速化試験を終了。利用者向け計測表示と専用プロファイラを撤去し、登録ロジックは維持。
 // v6.7.9: 実測済み03ボトルネックを限定改善。旧モニター検索I/O集約、新規履歴行の同期装飾を省略。v6.7.8の外側03x計測は撤去。
@@ -14710,12 +14711,16 @@ function onOpen() {
   var isFullEdition = sbmEffectiveEdition_()==='FULL';
   // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
-  ui.createMenu('SIMS今日の作業')
+  var todayMenu = ui.createMenu('SIMS今日の作業')
     .addItem('0．HOME画面を開く','sbmOpenHome')
     .addItem('1．日次処理を実行','sbmRunDailyUpdateManual')
     .addItem('2．今日の改善を開く','sbmOpenTodayImprovement')
     .addItem('3．選択記事の改善内容を見る','sbmOpenSelectedImprovementNavi')
-    .addSeparator()
+    .addSeparator();
+  if (isFullEdition) {
+    todayMenu.addItem('未完了の作業を再開','sbmResumeUnfinishedWorkflow');
+  }
+  todayMenu
     .addItem('記事情報を更新','sbmOpenArticleInfoUpdate')
     .addToUi();
 
@@ -14764,8 +14769,6 @@ function onOpen() {
 
   if (isFullEdition) {
     maintenanceMenu
-      .addSeparator()
-      .addItem('未完了の作業を再開','sbmResumeUnfinishedWorkflow')
       .addSeparator()
       .addItem('データ整合性を点検・修復','sbmAuditAndRepairWorkflowIntegrity');
   } else {
@@ -20497,6 +20500,8 @@ function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex,fastDisplayMode)
     'FOLLOW_UP_REQUEST_READY':20,
     'USER_ACTION_REQUIRED':30,
     'USER_DECISION_REQUIRED':30,
+    // 古いモニター終了待ちは、同一記事に新しいDoctor/利用者確認Workflowがあれば旧サイクルとして隠す。
+    'DOCTOR_NORMAL_CLOSE':5,
     'WRITER_REQUEST_READY':40,
     'WRITER_IN_PROGRESS':50
   };
