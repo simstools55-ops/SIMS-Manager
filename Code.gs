@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.7.9';
+const SBM_VERSION = '6.7.10';
+// v6.7.10: aWriter登録高速化試験を終了。利用者向け計測表示と専用プロファイラを撤去し、登録ロジックは維持。
 // v6.7.9: 実測済み03ボトルネックを限定改善。旧モニター検索I/O集約、新規履歴行の同期装飾を省略。v6.7.8の外側03x計測は撤去。
 // v6.7.7: aWriter改善履歴登録の内部区間計測(03a〜03h)を呼出元まで正しく伝播。計測表示のみ修正し、登録ロジックは変更しない。
 // v6.7.6: aDoctor途中再開ダイアログで「対象記事」カードを紹介状カードの直下へ移動。aWriter紹介状→対象記事→結果登録の操作順にUIを整理。処理ロジックは変更しない。
@@ -8399,7 +8400,7 @@ function sbmRegisterImprovementFeedback(data, options) {
     articleDbWritten=true;
     registerLap('article_db_written');
     sbmFeedbackTrace_('REGISTER_DB_WRITTEN','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
-    historyId = sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true,profileHistoryStages:options.profileHistoryStages||null});
+    historyId = sbmAppendImprovementHistory_(data,row,before,{deferDerivedRefresh:true});
     var mergeFollowUp={created:false};
     try{mergeFollowUp=sbmMaterializeFeedbackMergeReferral_(data,historyId)||{created:false};}catch(eMergeFollowUp){sbmLog_('FeedbackMergeReferral','Warning',String(eMergeFollowUp&&eMergeFollowUp.message||eMergeFollowUp));}
     registerLap('history_written');
@@ -9146,25 +9147,18 @@ function sbmStyleImprovementHistoryRow_(sh,row){
 
 function sbmAppendImprovementHistory_(data,row,before,options) {
   options=options||{};
-  var hpStart=Date.now(),hpLast=hpStart,hpStages=options.profileHistoryStages||null;
-  function hpMark_(label){if(!hpStages)return;var now=Date.now();hpStages.push({label:String(label||''),ms:now-hpLast});hpLast=now;}
   sbmEnsureHistoryAndEffectSchemasFast_();
-  hpMark_('03a_履歴スキーマ確認');
   var identityId=String(data.article_id||'').trim(), identityUrl=String(data.article_url||'').trim();
   if(!identityId && !identityUrl){
     sbmLog_('AppendImprovementHistory','Error','ArticleID and article URL are both missing. History registration was stopped.');
     throw new Error('改善履歴を登録できません。ArticleIDまたは記事URLが必要です。');
   }
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY), changed=sbmFeedbackChangedLabels_(data.changes).join('、');
-  hpMark_('03b_履歴シート取得');
   var historyId = sbmNextImprovementHistoryIdFast_();
-  hpMark_('03c_履歴ID採番');
   var articleTitle=String(row[SBM_HEADERS.ARTICLE_DB.indexOf('記事タイトル')]||data.new_values.article_title||before.title);
   // 新しい改善サイクル開始時に旧ACTIVE/REVIEW_REQUIREDを明示的に終了。
   try{sbmSupersedePreviousMonitoringCyclesFast_(identityId,identityUrl,articleTitle,historyId);}catch(eSupersede){sbmLog_('MonitoringSupersede','Warning',String(eSupersede));}
-  hpMark_('03d_旧モニター終了');
   var planSnapshot = sbmBuildImprovementPlanSnapshotFast_(data,row,before);
-  hpMark_('03e_改善計画生成');
   var historyDate=String(data.completed_at||'').trim()||sbmNowText_();
   var md=historyDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(md)historyDate=md[1]+'/'+parseInt(md[2],10)+'/'+parseInt(md[3],10);
@@ -9185,13 +9179,10 @@ function sbmAppendImprovementHistory_(data,row,before,options) {
   };
   var targetRow=sh.getLastRow()+1;
   sh.getRange(targetRow,1,1,SBM_HISTORY_HEADERS_V2.length).setValues([SBM_HISTORY_HEADERS_V2.map(function(h){return record[h]!==undefined?record[h]:'';})]);
-  hpMark_('03f_履歴行書込');
   // 新規行だけを整形し、履歴表示時の全行再装飾を不要にする。
   if(!options.deferDerivedRefresh){try{sbmStyleImprovementHistoryRow_(sh,targetRow);}catch(eRowStyle){try{sbmLog_('HistoryNewRowStyle','Warning',String(eRowStyle));}catch(ignoreRowStyleLog){}}}
-  hpMark_('03g_新規行整形');
   // synchronous registration prioritizes data commit; row-format copying is deferred to normal sheet maintenance.
   if(!options.deferDerivedRefresh){try{sbmUpdateEffectivenessCore_(false);}catch(e){}}
-  hpMark_('03h_派生更新判定');
   return historyId;
 }
 
@@ -22645,10 +22636,6 @@ function sbmDoctorNormalizeWriterTreatmentStatus_(value){
   return {raw:raw,normalized:raw,completed:false};
 }
 function sbmDoctorStoreWriterTreatmentResult_(o){
-  // v6.7.3: aWriter結果登録の実測用プロファイラ。処理内容は変更しない。
-  var writerProfileStart=Date.now(),writerProfileLast=writerProfileStart,writerProfile=[];
-  function writerProfileMark_(label){var now=Date.now();writerProfile.push({label:String(label||''),ms:now-writerProfileLast});writerProfileLast=now;}
-  function writerProfileFinish_(){var total=Date.now()-writerProfileStart;try{sbmLog_('DoctorWriterRegisterProfile','Info',JSON.stringify({case_id:String(o&&o.case_id||''),article_id:String(o&&o.article_id||''),total_ms:total,stages:writerProfile}));}catch(ignoreWriterProfileLog){}return {totalMs:total,stages:writerProfile};}
   var format=String(o&&o.format||'');
   if(format.indexOf('SIMS_DOCTOR_')===0)throw new Error('これはaDoctorの診断JSONです。aWriter結果登録には使いません。精密診断ダイアログでaDoctor診断結果を登録し、そこで自動生成されたaWriter紹介状をaWriterへ渡してください。');
   if(format!=='SIMS_WRITER_TREATMENT_RESULT_V1')throw new Error('aWriter処置結果ではありません。必要なformatは SIMS_WRITER_TREATMENT_RESULT_V1 です。現在のformat：'+(format||'未記載'));
@@ -22672,21 +22659,18 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
     if(previousHistoryId){
       try{sbmSetMonitoringLifecycleByHistoryId_(previousHistoryId,'COMPLETED');}catch(eClosePrevious){sbmLog_('DoctorClosePreviousMonitoring','Warning',String(eClosePrevious));}
     }
-    writerProfileMark_('01_旧観察履歴終了');
     // Doctor紹介で完了した処置も通常改善と同じ履歴・モニタリング基盤へ接続します。記事ランクは変更しません。
     // GSC非取得で記事管理行が消えていても、結果登録前に管理行を復元します。
     try{sbmDoctorEnsureArticleDbRowForMonitoring_(o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1],rec.hm['記事タイトル']?rec.values[rec.hm['記事タイトル']-1]:'');}catch(eRestoreBeforeRegister){sbmLog_('DoctorArticleDbRestoreBeforeRegister','Warning',String(eRestoreBeforeRegister));}
-    writerProfileMark_('02_記事管理行確認復元');
     var feedbackSource=Object.assign({},o,{article_url:o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:'')});
     var feedback=sbmDoctorTreatmentResultAsFeedback_(feedbackSource), normalized=sbmNormalizeImprovementFeedback_(JSON.stringify(feedback));
     // aWriter結果登録中は派生画面の再生成を最後まで遅延し、シート全体更新を1回に集約します。
-    var historyProfileStages=[];var registered=sbmRegisterImprovementFeedback(normalized,{deferDerivedRefresh:true,deferPersonalKnowledge:true,profileHistoryStages:historyProfileStages});writerProfileMark_('03_改善履歴登録');historyProfileStages.forEach(function(x){writerProfile.push({label:String(x.label||''),ms:Number(x.ms||0)});});if(!registered||registered.ok===false)throw new Error('処置結果は受け取りましたが、モニタリング登録に失敗しました：'+(registered&&registered.message?registered.message:'不明なエラー'));
+    var registered=sbmRegisterImprovementFeedback(normalized,{deferDerivedRefresh:true,deferPersonalKnowledge:true});if(!registered||registered.ok===false)throw new Error('処置結果は受け取りましたが、モニタリング登録に失敗しました：'+(registered&&registered.message?registered.message:'不明なエラー'));
     var committedHistoryId=String(registered.historyId||'')||sbmDoctorLatestHistoryIdForArticle_(o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1]);
     if(!committedHistoryId)throw new Error('改善履歴IDを確定できませんでした。Caseは未完了のまま保持します。');
     // v6.7.0: 改善の推移への1行同期まで確認してからCaseをMONITORINGへ確定する。
     // 途中失敗時はCaseをWriter待ちのまま残し、同じ回答の再登録で既存履歴を使って復旧できる。
     var effectCommit=sbmDoctorSyncSingleEffectRowAfterWriter_(committedHistoryId,o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1]);
-    writerProfileMark_('04_改善の推移1行同期');
     if(!effectCommit||effectCommit.ok===false)throw new Error('改善履歴は登録されましたが、改善の推移への反映確認に失敗しました。Caseは未完了のまま保持します。');
     rec.values[rec.hm['状態コード']-1]='MONITORING';rec.values[rec.hm['状態']-1]='モニター中';
     if(rec.hm['改善履歴ID'])rec.values[rec.hm['改善履歴ID']-1]=committedHistoryId;
@@ -22705,12 +22689,10 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
   var deferredPkCount=Array.isArray(o&&o.knowledge_candidates)?o.knowledge_candidates.length:(o&&o.knowledge_candidate?1:0);
   var pkWriterResult={ok:true,total:deferredPkCount,written:0,candidate:0,accepted:0,rejected:0,error:0,deferred:deferredPkCount>0};
   rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
-  writerProfileMark_('05_Case保存');
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
     var workflowHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
     // v6.6.55: 未完了Workflowの終了処理はfollow-up判定後に一括削除する。
     try{sbmDoctorRemoveCandidateArticle_(o.article_id,o.article_url||rec.values[rec.hm['記事URL']-1]);}catch(eRemoveDone){}
-    writerProfileMark_('06_候補削除');
     // 全体再生成は行わず、今回作成した改善履歴の1行だけを「改善の推移」へ反映する。
     var newHistoryId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
     // v6.7.0: 改善の推移同期はMONITORING確定前にコミット確認済み。ここでは再実行しない。
@@ -22718,19 +22700,15 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
     try{sbmInvalidateHomeSnapshot_();}catch(eFinalHome){sbmLog_('DoctorWriterHomeInvalidate','Warning',String(eFinalHome));}
     // v6.7.5: 実測でこの同期表示整形だけで約19秒を消費していたため、登録完了の必須経路から外す。
     // 各シートは表示時の軽量整形経路を持つため、ここではデータ確定を優先し再装飾しない。
-    writerProfileMark_('07_表示整形省略');
   }
   var writerFollowUp={required:false};
   if(String(rec.values[rec.hm['状態コード']-1]||'')==='MONITORING'){
     try{writerFollowUp=sbmDoctorPrepareWriterFollowUpDiagnosis_(o,rec);}catch(eWriterFollow){sbmLog_('DoctorWriterFollowUpPrepare','Warning',String(eWriterFollow));writerFollowUp={required:true,ready:false,label:'カニバリ精密診断',reason:String(eWriterFollow)};}
-    writerProfileMark_('08_follow-up判定');
     if(!writerFollowUp.required){
       try{sbmDoctorPurgeResumeDataAfterEffectTransfer_(String(o.article_id||''),o.article_url||(rec.hm['記事URL']?rec.values[rec.hm['記事URL']-1]:''),[String(o.case_id||'')]);}catch(ePurge){sbmLog_('DoctorWriterMonitoringPurge','Warning',String(ePurge));}
-      writerProfileMark_('09_未完了整理');
     }
   }
-  var writerProfileResult=writerProfileFinish_();
-  return {caseId:String(o.case_id||''),status:String(rec.values[rec.hm['状態']-1]||''),personalKnowledge:pkWriterResult,followUp:writerFollowUp,registrationProfile:writerProfileResult};
+  return {caseId:String(o.case_id||''),status:String(rec.values[rec.hm['状態']-1]||''),personalKnowledge:pkWriterResult,followUp:writerFollowUp};
 }
 function sbmDoctorRegisterCompletedWriterFeedbackRecovery_(raw,expectedCaseId,expectedArticleId,expectedArticleUrl){
   var data=sbmNormalizeImprovementFeedback_(raw);
@@ -22761,9 +22739,7 @@ function sbmDoctorRegisterWriterTreatmentResultFromDialog(raw,expectedCaseId,exp
     try{o=JSON.parse(text);}catch(e){throw new Error('aWriter結果JSONを読み取れませんでした。回答全文、または結果JSONをそのまま貼り付けてください。');}
     var saved=sbmDoctorStoreWriterTreatmentResult_(o);
     var follow=saved.followUp||{required:false};
-    var profile=saved.registrationProfile||null;
-    var profileText=profile?'\n登録処理時間：'+(profile.totalMs/1000).toFixed(2)+'秒\n区間計測：'+(profile.stages||[]).map(function(x){return x.label+' '+(Number(x.ms||0)/1000).toFixed(2)+'秒';}).join(' / '):'';
-    return {ok:true,message:'aWriterの改善結果を登録しました。\nCaseID：'+saved.caseId+'\n状態：'+saved.status+(follow.required?'\n追加確認：カニバリ精密診断候補があります。Mergeはまだ決定していません。':'')+(saved.personalKnowledge&&saved.personalKnowledge.deferred?'\nPersonal Knowledge候補：'+saved.personalKnowledge.total+'件（登録処理を優先し、同期書込は省略）':(saved.personalKnowledge&&saved.personalKnowledge.total?'\nPersonal Knowledge：候補'+saved.personalKnowledge.total+'件 / 保存'+saved.personalKnowledge.written+'件':''))+profileText,caseId:saved.caseId,followUpRequired:!!follow.required,followUpReady:!!follow.ready,followUpLabel:follow.label||'',followUpReason:follow.reason||''};
+    return {ok:true,message:'aWriterの改善結果を登録しました。\nCaseID：'+saved.caseId+'\n状態：'+saved.status+(follow.required?'\n追加確認：カニバリ精密診断候補があります。Mergeはまだ決定していません。':'')+(saved.personalKnowledge&&saved.personalKnowledge.deferred?'\nPersonal Knowledge候補：'+saved.personalKnowledge.total+'件（登録処理を優先し、同期書込は省略）':(saved.personalKnowledge&&saved.personalKnowledge.total?'\nPersonal Knowledge：候補'+saved.personalKnowledge.total+'件 / 保存'+saved.personalKnowledge.written+'件':'')),caseId:saved.caseId,followUpRequired:!!follow.required,followUpReady:!!follow.ready,followUpLabel:follow.label||'',followUpReason:follow.reason||''};
   }catch(e2){return {ok:false,message:String(e2&&e2.message?e2.message:e2)};}
 }
 function sbmDoctorRegisterWriterTreatmentResult(){

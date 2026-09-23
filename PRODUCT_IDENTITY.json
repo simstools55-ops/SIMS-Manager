@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.9",
+  "current_version": "6.7.10",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.9: Targeted aWriter registration optimization based on measured 03-stage bottlenecks.",
-  "version": "6.7.9",
+  "notes": "v6.7.10: End aWriter registration profiling; remove user-facing timing output and dedicated profiling code while preserving v6.7.9 optimizations.",
+  "version": "6.7.10",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.9-ST"
+  "starter_display_version": "v6.7.10-ST"
 }
