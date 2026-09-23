@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.20",
+  "current_version": "6.7.21",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.20: Make the follow-up Doctor case authoritative after user confirmation, migrate saved follow-up requests to the new case, and exclude superseded parent cases from Resume unfinished work.",
-  "version": "6.7.20",
+  "notes": "v6.7.21: Add explicit user decision controls for YELLOW SERP entry checks and continue to the existing aCreator referral flow only when the user chooses to proceed.",
+  "version": "6.7.21",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.20-ST"
+  "starter_display_version": "v6.7.21-ST"
 }
