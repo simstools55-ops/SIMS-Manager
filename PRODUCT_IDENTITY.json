@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.27",
+  "current_version": "6.7.33",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.27: Preserve performance by formatting only the updated Improvement Trend row; restore centered operation dialog.",
-  "version": "6.7.27",
+  "notes": "v6.7.33: Preserve completed Today rows as a one-way state and prevent checkbox regression.",
+  "version": "6.7.33",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.27-ST"
+  "starter_display_version": "v6.7.33-ST"
 }

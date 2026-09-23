@@ -2,256 +2,21 @@
  * SIMS Manager
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
+ *
+ * Current version: 6.7.32
+ * Release summary: Preserve completed Today rows as a one-way state and prevent checkbox regression.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.32.md.
  */
 
-const SBM_VERSION = '6.7.27';
-// v6.7.27: 改善の推移は登録・更新対象の1行だけ表示書式を復元し、列幅・他行・active sheetを変更しない。経過観察終了後の操作ダイアログを中央モーダル表示へ復元。
-// v6.7.25: 『未完了の作業を再開』の全候補に利用者判断の『取りやめる』を追加。既存データを削除せずWorkflow/CaseをCANCELLED_BY_USER相当で終了し、未完了一覧から除外。
-// v6.7.24: SERP上位10件が一部取得不能でも取得済み結果で判定を継続。データ不足を確認件数・注意表示・信頼度補正へ反映し、旧『上位30件』表示を10件基準へ統一。
-// v6.7.23: SERP参入余地チェックをWorkflowStateへチェックポイント保存し、未完了の作業から同じキーワード・依頼文・Claude回答・判定結果へ復帰できるよう対応。
-// v6.7.22: YELLOW SERP判定から利用者判断でaCreatorへ進む場合も、紹介状のSERP判定をYELLOWのまま保持し user_decision=GO を別記録。到達順位からGREENへ再判定される不整合を修正。
-// v6.7.21: SERP参入余地チェックのYELLOW判定に利用者判断導線を追加。進める選択時だけ既存aCreator紹介状工程へ接続し、見送り/閉じるを明確化。
-// v6.7.20: v6.7.19安定化後の後始末監査。未使用の公開Core bridgeのみ削除し、再診Case互換・要約復元・単一候補UIは維持。
-// v6.7.18: 保存済みDoctor再診依頼の旧V2契約版を現行V2へ安全に昇格し、再診結果登録画面を復元。
-// v6.7.17: 利用者確認後の再診Caseを正本化。旧CaseのFOLLOW_UP_REQUEST_READYを新Caseへ移管し、旧Caseを再開候補から除外。
-// v6.7.16: 未完了候補が1件でも候補画面を表示し、メニュー実行内での連続モーダル表示を回避。再開UIを別実行へ分離。
-// v6.7.15: 『未完了の作業を再開』の二重ダイアログ方式を廃止し、Core同期実行＋結果画面表示へ単純化。待機画面残留/次画面消失の競合を解消。
-// v6.7.14: 『未完了の作業を再開』の待機ダイアログ成功時host.close()を撤去。Coreが表示した再開候補/再開画面を直後に閉じる競合を防止。
-// v6.7.13: 利用者確認後のaDoctor再診依頼画面に再診結果受取欄を追加。新CaseIDの再診結果を同一ダイアログで登録し、Doctor判定に従ってWriter/Merge等の次工程へ継続できるよう修正。
-// v6.7.12: 未完了再開で同一記事の古いDOCTOR_NORMAL_CLOSEを現行Doctor/利用者確認Workflowより優先度を下げて重複表示から除外。『未完了の作業を再開』を設定・メンテナンスからSIMS今日の作業へ移動。
-// v6.7.11: Doctorのworkflow_handoff.user_confirmation_itemsを利用者確認UIへ表示し、確認結果をEvidence化して再診へ戻せるよう修正。
-// v6.7.10: aWriter登録高速化試験を終了。利用者向け計測表示と専用プロファイラを撤去し、登録ロジックは維持。
-// v6.7.9: 実測済み03ボトルネックを限定改善。旧モニター検索I/O集約、新規履歴行の同期装飾を省略。v6.7.8の外側03x計測は撤去。
-// v6.7.7: aWriter改善履歴登録の内部区間計測(03a〜03h)を呼出元まで正しく伝播。計測表示のみ修正し、登録ロジックは変更しない。
-// v6.7.6: aDoctor途中再開ダイアログで「対象記事」カードを紹介状カードの直下へ移動。aWriter紹介状→対象記事→結果登録の操作順にUIを整理。処理ロジックは変更しない。
-// v6.7.5: aWriter結果登録時の同期表示整形を廃止。v6.7.3実測で約19秒の最大ボトルネックだった区間を登録必須経路から除外。
-// v6.7.3: aWriter改善結果登録を区間計測し、登録遅延の実測ボトルネックを可視化。機能処理は変更しない。
-// v6.7.1: 改善ナビの閉じる操作から同期Checkpoint保存を除去。Workflowは表示前に保存済みのため、閉じる時の再保存待ち（約5秒）と完了済みWorkflow再生成リスクを解消。
-// v6.7.0: 完成済みaWriter回答(SIMS_FEEDBACK_V*)を旧未完了Caseから直接復旧登録できる経路を追加。改善履歴・改善の推移を確定後に同一記事の古いCase/Workflowを整理し、再診・再修正を不要化。
-// v6.6.99: aWriter結果登録を二段階コミット化。改善履歴作成前に失敗した場合は記事管理のモニター中更新をロールバックし、改善の推移1行同期を確認できるまでDoctor CaseをMONITORINGへ確定しない。途中失敗後の再登録は既存履歴を再利用して復旧する。
-// v6.6.98: aWriter正式完了状態 COMPLETED_PUBLIC_OK を正常完了として受理し、改善履歴登録・モニタリング開始へ接続する。
-// v6.6.96: legacy CaseのaWriter紹介状復元でDoctor JSONが旧形式の場合、保存済みCase列の許可範囲・禁止範囲を互換情報として使用する。復元失敗を空欄のまま隠さない。
-// v6.6.96: 未完了再開でWriter依頼JSONが空／要約保存の旧Caseでも、保存済みDoctor結果とCase情報からaWriter紹介状全文を画面内復元する。再診・新Case発行は行わない。
-// v6.6.93: 未完了再開でWRITER_REQUEST_READY / WRITER_IN_PROGRESSを選択した場合、Site Doctor共通処置の再探索を経由せず、選択Caseの保存済みaWriter紹介状・結果登録画面へ直接復帰する。
-// v6.6.92: 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
+const SBM_VERSION = '6.7.33';
+// v6.7.33: 今日の改善の既存完了表示を軽量同期でも保護し、過去完了行のチェックボックス回帰を復元。
+// 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
-// v6.6.91: STEP2読込I/Oを詳細計測し、Settingsを1回読込で共有。記事DB・判定仕様は変更しない。
-// v6.6.88: STEP3完全区間計測。処理本体に加え、プロファイル記録・処理ログ記録の計測オーバーヘッドを集計し、STEP3全時間の内訳を可視化。
-// v6.6.88: STEP3高速化。完了済み記事の状態再書込を抑止し、今日の改善シート再描画で全書式クリアを廃止。
-// v6.6.86: STEP3深掘り計測。改善の推移の判定計算と今日の改善整合を内部区間へ分解し、仕様変更なしでボトルネックを特定。
-// v6.6.74: 日次STEP3未完了整理を、記事ごとのCase/Workflow反復読込・deleteRowから一括読込・索引照合・一括書戻しへ変更。
-// v6.6.65: 新規記事(Creator Direct)の4週観察終了を再診候補から除外。記事管理の内部列非表示と改善の推移の選択列非表示を毎回強制し、表示キャッシュに依存しないよう修正。
-// v6.6.67: 『今日の改善』『未完了の作業を再開』の表示処理へ区間計測を追加。記事管理正本の設計は変更せず、表示時整合・シート読込・候補抽出・UI表示のボトルネックを実測可能化。
-// v6.6.71: 日次STEP1→STEP2→STEP3の実行遷移を監査する入口・出口ログを追加。処理ロジックは変更せず、STEP3未到達かSTEP3内部停止かを判別する。
-// v6.6.70: 日次STEP3の詳細区間計測を追加。
-// v6.6.69: 日次STEP1の設定保存を個別setValue連打から一括setValuesへ変更。実測11秒の設定保存ボトルネックを削減し、v6.6.68の表示高速化設計を維持。
-// v6.6.66: 今日の改善の通常候補にも記事管理正本のArticleIDを必須継承。URL一致で補完し、ArticleID空欄候補を防止。
-// v6.6.64: 利用者向け表示を整理。記事管理の内部状態列を非表示化し、改善の推移の選択チェックボックスを廃止、今日の改善のArticleIDを可視列として固定。
-// v6.6.62: 記事管理を記事状態の唯一の正本へ統一。作業理由・状態更新日・最終改善完了日・再評価予定日を追加し、90日再評価サイクルを導入。表示シートは状態を変更しない。
-// v6.6.61: 4回測定完了時に記事管理の作業状態をモニター中→今日の改善へ遷移。今日の改善は現在状態を正本にし、過去の観察終了履歴を再表示しない。ArticleIDを今日の改善へ表示。
-// v6.6.60: 経過観察終了候補をモニター状態文字列ではなく4回測定完了＋最終結果から復元し、メインクエリ未取得でも今日の改善へ必ず表示。
-// v6.6.59: 経過観察終了案件を「改善の推移」表示から即時除外し「今日の改善」へ移管。未完了掃除も観察終了案件を削除対象外に修正。
-// v6.6.58: 経過観察終了・要再診案件を「改善の推移」から「今日の改善」へ移管し、改善内容を見るから観察終了後処置を起動。ArticleID基準のURL解決も追加。
-// v6.6.57: 未完了処理開始時に『改善の推移』へ移管済みArticleIDを正本照合し、旧Case/WorkflowStateを物理削除してから候補表示する。
-// v6.6.55: 未完了データを一時データとして整理。モニター移管時にDoctor/Writer再開データを削除し、観察終了後の再診は旧Caseを昇格せず新規Caseで開始する。
-// v6.6.54: 未完了判定を共通候補抽出へ一本化。精密診断再開・共通処置UIも同じ完了境界を使用し、モニター移管済み旧Caseの別画面再出現を防止。
-// v6.6.53: 改善の推移への移管を旧Doctor/Writer Workflowの完了境界とし、移管済み旧Caseを未完了一覧から除外。正式な経過観察後再診は保持。
-// v6.6.48: aDoctor v1.5.3のV2契約へ一本化。SIMS-A/1外部エンベロープを廃止し、未完了の旧aDoctor案件は再開時に現行SIMS_DOCTOR_SINGLE_CASE_REQUEST_V2へ自動正規化／再生成する。
-// v6.6.47: aDoctor向け依頼文へSIMS Request Protocol v1エンベロープを自動付与。Full Manager発行の正規依頼であることをaDoctor側が受付検査できるようにする。
-// v6.6.46: 日次処理メニューは先にダイアログを表示し、Settings/健康診断/当日状態の事前確認を表示後の非同期1回読込へ移動。起動待ち時間をUIから分離。
-// v6.6.44: 通常改善WorkflowをArticleID/URLで同一案件化。作成時重複整理・再開一覧重複排除・登録完了時の残存Workflow一括完了を追加。
-// v6.6.43: 通常改善Workflowを改善ナビ表示前に確定保存し、未完了再開一覧へ全件列挙。最新1件だけ表示される問題を修正。
-// v6.6.42: 改善ナビ表示直後から通常改善Workflowを自動Checkpoint化し、閉じる操作でも現在状態を保存。未完了の作業から同一記事・同一Workflowの改善ナビを復元可能にする。
-// v6.6.41: 未完了作業の再開で通常改善とDoctor系Workflowを同一候補として扱い、選択したWorkflow Identityを厳密に再開。別Workflowの改善ナビが開く誤選択を防止。
-// Current release: v6.6.62 - 記事管理を状態管理の正本とする循環型ワークフローへ統一。
-// v6.6.25: 記事管理表示の区間計測を追加し、style処理が主要ボトルネックであることを実測可能化。
-// v6.6.23: 改善の推移を閲覧専用化し、表示時の全履歴自己修復を除去。
-// v6.6.22: Home Snapshotの改善履歴タイトル正規化でSettings反復I/Oを除去。
-// v6.6.20: 日次STEP3の旧日付修復全件走査を初回限定化。v6.6.19で日次STEP2候補選定のSettings反復I/Oを除去。
-// 改善ナビ起動修正：onEditトリガーからModal UIを呼ばず、選択記録だけを行い、メニュー操作の同期UI経路で開く。
-// 改善ナビ回帰修正：ダイアログ表示は実績のある共通同期UI経路へ戻し、重いCheckpoint・GSC・本文取得だけを表示後に非同期実行する。
-// 起動/Home高速化：通常起動をメニュー生成＋Home軽量同期に限定し、重複描画・全シート走査を停止。
-// License Center接続テストをSession依存から切り離し、初回のみ登録メール＋License Keyを入力してInstallation ID／Spreadsheet IDへ紐付ける方式へ変更。既存機能の利用制限はまだ行わない。
-// Full Editionでは記事本文とSearch Consoleデータから今回の記事固有の改善指示を一度だけ生成し、同一内容を利用者向け改善ガイドとaWriter依頼文の両方へ使用。共通ルールだけの抽象ガイドを廃止。Starter Editionの自己修正向け改善ガイドは変更なし。
-// Full Editionの改善ガイドをaWriter依頼文の改善目的・優先順位・変更方針・保護条件から直接生成する方式へ統一。Starter Editionは従来の自己修正向け改善ガイドを維持。「CTR機会値」を平易な説明へ変更し、「今回の方針」表示を削除。
-// Starter EditionからaDoctor連携を除外。サイト健康診断はManager内蔵診断として維持し、精密診断候補・aDoctor依頼・再診・追加診断への入口を非表示化／停止。未発芽・発芽・要改善はStarter改善ナビへ案内し、28日観察後の要見直しもStarter内で再改善判断する。Full EditionのaDoctor連携動作は変更なし。
-// 保存済みタイトルのローカル正規化を共通化。正常タイトルは再取得せず、設定済みブログ名が末尾に混入した記事タイトル/SEOタイトルだけをネットワークアクセスなしで補正。記事情報更新も混入タイトルをローカル修正対象として検出し、今日の改善の詳細チェックから改善ナビが開かない回帰を修正。GSC・aWriter依頼文・改善判定仕様は変更なし。
-// GA4プロトタイプで確認した記事領域正規化をSBMへ移植。はてなブログのtitleタグ末尾のブログ名を除去し、記事本文取得はentry-content等の記事本文領域を優先。ブログ名・共通見出しの混入を抑止し、改善ナビのタイトル/見出し診断精度を改善。GSC・aWriter依頼文・改善判定仕様は変更なし。
-// 改善ガイドを最有力1件中心から独立した有効改善テーマの必要件数表示へ再調整。CTR・見出し発見性・導入文・関連クエリの根拠が異なる改善を併記し、利用者向けガイド本文からaWriter表記を除外。aWriter依頼文生成・Contractは変更なし。
-// 利用者向け改善ナビの改善ガイド説明からaWriterへの言及を削除。対象は説明表示のみで、改善ガイド判定・aWriter依頼文・Contractは変更なし。
-// 改善候補なのにガイド0件となる過剰絞り込みを修正。aWriter依頼文を正本のまま、CTR機会が明確な場合は依頼文の改善優先順位に沿った検索結果改善を派生表示。aWriter依頼文生成ロジック・Contractは変更なし。
-// 改善ナビのクライアントJavaScript構文エラーを修正。改善ガイドHTMLの属性引用符が生成後スクリプトを壊し、クエリ・本文取得が起動しない問題を解消。
-// 改善ナビの表示後初期化を安定化。DOMContentLoaded取りこぼしでクエリ・本文取得が開始されない事象を防ぎ、readyState判定＋一度だけ実行するフォールバックで詳細取得を確実に開始。aWriter依頼文・取得ロジックは変更なし。
-// 改善ナビ高速化。SearchConsole_Dataの対象URLクエリ取得を全件走査からTextFinder優先＋必要行取得へ変更し、GSC URL候補は並列照会。内部リンク候補生成も必要列だけを読む。aWriter依頼文・改善判定ロジックは変更なし。
-// 改善ガイドを3件固定からaWriterと同じ改善スコープに基づく必要件数表示へ拡張。小見出しは太字＋改行。Fullは内部リンク候補も初期折りたたみ。aWriter依頼文生成・Contractは変更なし。
-// 改善ナビの『改善ポイント』を利用者向け『自分で修正する場合の改善ガイド』へ刷新。何のために・どこを・どう直すか・完了目安を具体化。FullはaWriter依頼文を従来どおり主導線として改善ガイドを必要時のみ展開、Starterは改善ガイドを初期表示。aWriter依頼文生成ロジック・Contractは変更なし。
-// ダイアログのネイティブタイトルと本文先頭見出しが同一の場合、共通表示関数で本文見出しを自動除去し、タイトル二重化を横断防止。日次処理を含む既存ダイアログへ一括適用。
-// 今日の改善の『収益改善（流入）』を2行表示にして区分列の視認性を改善。観察終了前の処置確認はaDoctor再診準備ではなく経過観察状況の確認と明示し、4回測定完了後に必要時のみ再診へ進む案内へ修正。
-// 高評価記事の改善前スナップショットを改善計画へ保存し、28日後aDoctor再診へKEEP/IMPROVE/RESTORE判断材料として渡す。RESTORE判定時は復元パッケージを提示し、利用者の原状復帰完了登録から新しい7・14・21・28日目の再観察サイクルを開始。今日の改善の区分列は2行表示に対応。
-// エース記事の『収益改善』をGSCで判断可能な『収益改善（流入）』として明確化。勝ちクエリ・SEO骨格を保護し、ページ内収益改善はGA4等の行動データ未接続時に推測しない。Writerのreview日数に関係なくSBMは7・14・21・28日目で固定測定。
-// 起動/Home表示の無駄な全体テーマ再適用と重複更新を削減。版表示を先にflushし、Home軽量表示は保存Snapshotを優先。今日の改善は保存済み候補でも新しい収益優先コメントへ軽量再描画する。
-// 今日の改善候補を収益優先・ランク保護型へ変更。成長→エース化を最優先、エースは保護付き収益改善、育成を次点、安定は条件付きとし、発芽・未発芽は日次改善から除外。改善理由・期待効果へ今回の改善方針コメントを追加。
-// 収益最大化を最終目的とする「収益優先・安全改善ポリシー」を正本化。記事ランクと作業優先度を分離し、成長・エースの保護改善、変更前スナップショット、28日後のaDoctor再診によるKEEP/IMPROVE/RESTORE、原状復帰後の再測定を段階実装する設計基準を確定。
-// 記事詳細トリアージを6ランクへ拡張。未発芽・発芽はaDoctor優先、育成は改善ナビ、安定・成長・エースは保護観察を基本とし、要改善等の異常時は既存のaDoctor優先分岐を維持。
-// aDoctor精密診断へ全記事ランク共通の『記事品質評価＋介入レベル判定』を追加。未発芽→発芽→育成→安定→成長→エースの段階に応じて既存評価の保護を強め、品質不足と低需要・データ不足・競合過強等を分離。未発芽でも自動全面リライトせず、成長/エースは大幅変更に強い根拠を要求する。
-// Workflow完了後にデータだけ更新され表示装飾が追いつかない問題を修正。変更された利用者向けシートだけを軽量に仕上げる共通後処理を追加し、記事管理・改善の推移・改善履歴へ既存レイアウトと現在テーマを即時適用。Creator/Writer/Merge/モニター終了へ接続し、全シート再装飾は行わない。
-// 新記事作成ダイアログの①→②遷移を修正。radioのchangeハンドラ依存をやめ、クリック時に明示関数を呼ぶ方式へ変更。初期化後にも選択状態を再判定し、②の表示・項目描画・スクロールを確実化。
-// 新記事作成ダイアログの初期UIを修正。ダイアログタイトルと本文H2の二重表示を解消し、新規開始時は記事タイプを未選択で明示。AdSense/アフィリエイトを選んだ瞬間に②の項目選択を確実に表示し、自動スクロールする。
-// 「新記事関連」に新しい「新記事を作成」Workflowを追加。AdSense/アフィリエイトを選び、Creatorへ渡したい任意項目だけをチェックして一覧入力できる。未入力はSIMS判断とし、実体験の捏造を禁止。入力途中・Creator回答待ち・公開登録待ちはWorkflow Caseへ保存し、「未完了の作業を再開」から同じ画面へ復帰できる。
-// CLOSE_MONITORING完了時のHome全再構築を廃止。記事DBと改善の推移だけを軽量再集計して、作業状態・モニター判定内訳の対象セルだけ差分更新する。モノクロテーマでは標準色を一度描画してから上書きする二重描画も抑止。
-// 「未完了の作業を再開」でDOCTOR_NORMAL_CLOSE（CLOSE_MONITORING完了待ち）を正式に抽出・表示・再開。保存済みDoctor結果から③の終了内容を復元し、再診を発行せず「モニターを終了して完了登録」へ直接戻れるようにした。
-// aDoctor V2の workflow_handoff.next_action=CLOSE_MONITORING を正式なWorkflow終端として認識。③に終了理由・不要処置・任意処置を表示し、1クリックで完了同期する。
-// aCreator新記事が記事管理ではモニター中なのに「改善の推移」へ出ない問題を修正。ACTIVE/REVIEW_REQUIRED履歴に対応する推移行をFull/Starter共通で軽量自己修復し、Creator公開登録直後も対象1件だけ推移へ同期。旧Creator新記事のランク「—」もGSC未観測なら「🆕 新規」へ補正。
-// 設定・メンテナンスを利用頻度/役割順へ再編し、利用者向け「未発芽判定を再確認」を削除。aCreator新規公開記事の初期ランクを「🆕 新規」とし、Search Console未観測中は保持、初観測後に通常ランクへ自動移行する。
-// SERP参入余地チェックのJSON受信部をV2正式対応。V1も後方互換で受け付け、生成側V2と受信側V1の不整合を解消。依頼formatと受信formatの整合性テストを追加。
-// 今日の改善0件時の新記事候補/BOS自動探索を廃止し、健康診断→精密診断へ案内。新記事キーワード参入確認はClaude標準、SERP上位10件＋判定困難時のみ11〜20位追加調査へ変更。GREEN/YELLOW/PINK/REDへ統一し、aCreator進行はGREENのみ。
-// モノクロテーマ最終統一。精密診断候補シートのトップバーを実列幅全体へチャコール統一し、動的ダイアログの情報装飾・進行中表示・補助リンク等の非意味色をグレースケール化。操作ボタンの青、成功/良好の緑、注意の黄〜橙、問題/削除の赤は意味色として維持。処理ロジック・GSC URL解決層には変更なし。
-// GSC URL解決層を共通化。内部正規化URLとGSC問い合わせURLを分離し、高速一括exact→未取得だけ末尾スラッシュ差→未取得だけhttp/https・www差→単記事のみcontains再照合の段階フォールバックを採用。成功したGSC一致URLをDocumentPropertiesへキャッシュし、次回以降は最優先利用。初回セットアップ・記事情報更新・改善ナビで共通利用。
-// モノクロテーマを利用者向け動的UIへ横断適用。全showModalDialogを共通テーマラッパー経由に統一し、記事情報更新・日次処理・改善ナビ・履歴・設定・Doctor/Creator/SERP等の主要ダイアログへ反映。サイト健康診断書・aDoctor精密診断候補シートもモノクロ対応。記事情報更新の「クエリ未取得31件＝未発芽31件」誤表示を修正し、通常ランク維持/未発芽維持/復元/更新保留を正しく分類。
-// サイト健康診断の開始前OK/キャンセル確認ダイアログを廃止。メニュー選択後は前提条件を確認して直ちに進捗Runnerを表示し、診断を開始する。未発芽再判定v6.2.99の安全ゲートは維持。
-// 未発芽誤判定を修正。クエリ未取得だけで未発芽へ変更する処理を廃止し、クリック/表示回数の実績を正本とする。既存の誤判定記事を通常ランク基準で安全に復元する「未発芽判定を再確認」を追加。健康診断も保存済み未発芽ラベルより180日実績を優先。
-// 改善ナビのaWriter依頼文生成条件を修正。本文取得済みならSearch Consoleクエリ0件でもLIMITEDモードで依頼文・改善ポイント・内部リンク候補を生成。クエリ未取得時は検索意図・タイトル・メインクエリの大幅変更を禁止し、本文構造と保存済みページ指標を根拠に限定改善する。
-// 記事情報更新の初期点検で発生する「Exception: 引数が無効です」を修正。最終行取得をgetLastRow＋キー列実値走査へ変更し、工程付きエラーを追加。
-// UI寸法・ダイアログ統一仕上げ。今日の改善ヘッダーを34pxへ統一し、利用者向け主要一覧のA列「選択」を56pxへ拡張。主要ダイアログへ共通余白・角丸・見出し・フォーム・ボタン寸法を適用し、MONOCHROME時は同じ階層グレースケールへ統一。
-// モノクロテーマ最終実装。白〜淡灰データ面で不可視になる白文字を全主要シートで自動補正し、改善の推移/改善履歴の判定ラベルはモノクロ専用の意味色へ明示変換。「大きく改善」「元に戻す検討」等も白背景で必ず読めるよう修正。
-// 階層グレースケールを利用者向け主要シートと主要ダイアログへ統一。表見出しは中濃度グレー、データ面は白〜ごく淡灰、意味色は文字側に保持。標準テーマと処理ロジックは変更なし。
-// モノクロHomeを階層グレースケールへ再設計。最上部のみ濃灰、主要セクション見出しは中濃度、補助見出しは淡灰。データ領域にごく淡い灰を使い、判定は意味色の文字＋必要最小限の淡灰で表現。「大きく改善」は白背景でも読める濃緑文字へ補正。
-// モノクロテーマを主要5シートへ拡張。Homeトップバー基準で見出し/項目セルを濃灰+白文字、データセルを白背景に統一。改善判定エリアは背景色を使わず、既存の意味色・太字・文字サイズで表現。標準テーマは従来配色を維持。
-// 表示テーマ試作。設定・メンテナンスからSTANDARD / MONOCHROMEを切替可能。処理ロジックには触れず、Home・記事管理・未完了作業再開ダイアログだけを表示層で切替。意味色（青/緑/黄〜橙/赤）は維持。
-// 生成HTML/ブラウザJS監査。通常aDoctorダイアログのWriter follow-up UIに残っていた単一\n 5か所を二重escape化。未完了一覧・個別再開・Doctorダイアログの生成script escapeをZIP前に検査する自動テストを追加。
-// 個別Workflow再開ダイアログの空白表示を修正。meta表示に追加した\nがHTML出力後に実改行となりclient JavaScriptを構文エラー停止させていたため二重escape化。初期案件情報をサーバー側でも描画し、client script失敗時も空白にならないfallbackを追加。
-// 未完了一覧が空白になる原因を修正。chooser内JavaScriptのconfirm文に実改行が生成されて構文エラーになっていたため、HTML出力後もJS文字列内の\nとして残るよう二重escape化。候補データをサーバー側でHTMLカード化し、クライアントJSが失敗しても一覧自体は必ず表示するfallbackを追加。
-// 未完了再開を軽量化。WorkflowStateを1回だけ一括読込して索引化し、Caseごとの全表再読込(N+1)を廃止。再開時の旧Merge移行・自動整理など不要な書込処理を外し、候補抽出と表示だけに限定。待機画面と再開/整理ボタンの処理中表示も修正。
-// モニター中Caseに残るWriter follow-upカニバリ追加診断を仮想未完了案件として再開センターへ表示。旧Case整理候補判定、再開/整理ボタンの処理中表示、Doctor回答のCase不一致メッセージを強化。
-// 「未完了の作業を再開」の既存複数案件運用を共通Dispatcherへ復帰。複数Case時は利用者向け作業要約・現在地・次操作・整理候補理由を表示して1件選択。旧Caseは物理削除せず利用者承認でCANCELLED_BY_USERへ整理。再開Doctor回答登録は通常精密診断と同じcheckpoint登録へ統一。
-// aDoctor精密診断ダイアログのコピー・診断結果登録を独立した安全ハンドラへ分離し、長文Request表示後に既存client scriptが停止しても主要操作を継続可能にする。Code.gs先頭コメントも版整合チェック対象へ追加。
-// 長文化するカニバリ精密診断RequestをBase64+client復号ではなくtextareaへサーバー側でHTML escapeして直接埋め込み、空欄表示を防止。コピー対象と表示内容を同一化。機能判定ロジックは変更しない。
-// Writer follow_up由来のカニバリ精密診断でFOLLOW_UP_REQUESTが未保存でも、Doctor_CasesのWriter結果・記事DB・元Caseから追加診断依頼をオンデマンド再生成する。既存Caseをそのまま復旧し、機能ロジック本体は変更しない。
-// Repository版管理を再監査し、VERSION/README/Distribution/Shared版情報の同期漏れを修正。版整合チェックを追加し、ZIP生成前の必須検証とする。機能ロジックは変更しない。
-// カニバリ精密診断を開いた直後に親ダイアログのsuccess handlerがhost.close()して新ダイアログまで閉じる競合を修正。追加診断では成功時にcloseせず、失敗時は元画面にエラーを残す。Writer登録直後の追加診断導線も同様に修正。
-// aWriter結果のfollow_up_referrals(MERGE)を自動Mergeせず「カニバリ精密診断候補」として同一Caseに保存。Writer本処置はモニターへ正常完了させ、記事詳細・未完了再開から追加診断へ進める。\n// 旧版: 未発芽aDoctor診断を全面リライト前提から原因診断優先へ変更。検索需要・検索意図・インデックス・カニバリ等を確認し、全面リライト／部分改善／Merge／インデックス対応／管理対象外／観察から適切な処置を選ぶ。未発芽判定式・日次処理は変更しない。
-// 未発芽記事の処置導線を記事詳細へ統合し、記事管理メニューの重複aDoctor直結操作を削除。インデックス問題処置の追加診断判定変数欠落も修正。未発芽判定式・日次処理は変更しない。
-// Merge完了後に残った古い重複aDoctor Caseを安全に再開対象外へ整理し、再開ダイアログの二重タイトルを解消する。
-// 未完了再開時はMerge利用者処置を最優先で⑤へ直接復帰し、他案件に埋もれないようにする。
-// Merge完了時はCase記事が統合先またはabsorbed記事に含まれることを検証し、統合先Primaryをモニター対象として登録。
-// 記事詳細が保存済みDoctor結果の「追加診断待ち」を認識し、単体診断を再発行せず同一Caseのカニバリ精密診断へ復帰できる導線を追加。
-// 記事詳細の主操作を記事状態連動へ変更。通常記事では操作ボタンを出さず、要確認・インデックス要確認・要改善・改善中・モニター中に必要な操作だけ表示。要確認画面もSearch Console選択に応じて主ボタンを切替。
-// 要確認記事のSearch Console確認を「Googleに登録／未登録」の選択式へ変更。未登録理由を記録し「インデックス要確認」として保持できる第三分岐を追加。
-// GSCデータ最終取得から14日以上を要確認ゲートとし、要確認記事を1件ずつ確認・処置する専用フローを追加。確認済み正常記事は要改善へ送り、意図的な除外記事は管理対象外へ整理。記事詳細のデータ取得表示も明確化。
-// 記事情報更新の完了画面から対象記事の詳細を同一ダイアログ内で確認できるようにし、利用者向け表現を簡略化。更新処理本体は変更しない。
-// 「記事情報を更新」の完了表示を仕上げ。6か月クエリ取得不可の記事をArticleID・URL・処置結果付きで明示し、記事管理へ直接移動できるようにする。日次処理・取得判定ロジックは変更しない。
-// 正本から復旧。sbmOpenHomeを維持し、Home未取得を記事管理から軽量再集計。検索露出待ちは未発芽として未取得から除外。
-// Homeスナップショットを製品バージョン連動にし、コード差替え後の旧集計残存を防止。10列Homeの版表示同期先もJ1へ修正。
-// Homeの未取得判定を記事ランク空欄ではなく管理フラグのデータ未取得・要確認から優先集計し、旧ランク保持記事でも総数整合するよう修正。
-// Home記事ランクに未取得を追加し総記事数との整合を可視化。改善率注記を削除し、モニター内訳を改善方向・要注意・判定待ちの3群へ再配置。
-// Homeの記事改善状況を全記事の作業状態集計へ変更し、ランクと色を分離。改善率を右欄KPI化。モニター内訳を『判定可能』『判定待ち』へ分離し、経過観察系ラベルを明確化。Home横幅・アドバイス欄も拡張。
-// 記事ランク名称を『迷走→育成』『旧育成→発芽』へ整理し、Homeを評価順の縦ランク＋改善状況＋改善モニター内訳の構成へ再配置。判定閾値はv6.2.51を維持。
-// 日次処理STEP3でHomeスナップショット更新後に記事ランク表示セルだけを軽量同期し、Article DBの最新ランク件数がHomeへ反映されない問題を修正。ランク判定ロジックは変更なし。
-// 記事ランク判定を90日データの評価可能性優先へ再構成。表示200以上またはクリック10以上を通常4ランク、未達はクリック3以上を育成、0〜2を未発芽として日次再評価。
-// 未発芽記事は表示回数100以上で「🌱 育成」へ復帰。Homeの旧モニター集計説明文を全Code正本から削除し、改善率説明のみ残す。
-// Home説明文を整理し、トップメニュー「診断」を「サイト健康診断」へ変更。診断ロジック・日次処理は変更なし。
-// 未発芽件数をHomeの記事ランクまとめへ追加。Homeの改善率説明を追記し、診断メニューを「サイト健康診断」サブメニュー化。健康診断所見の接続表現も修正。診断・日次処理ロジックは変更なし。
-// サイト健康診断UIの表示確認に基づき、ダイアログ二重タイトル、診断メニューの結果表示名、健康診断書の所見名、不自然な未発芽説明文を修正。ロジック変更なし。
-// Manager内蔵健康診断の利用者向け「Site Doctor」表記を「サイト健康診断」へ統一。内部識別子・診断ロジック・日次処理は変更なし。
-// aDoctor精密診断依頼へ記事ランクを明示的に引継ぎ、未発芽をUNGERMINATEDとして識別。未発芽記事は部分修正ではなく全面リライト前提で検索意図・ターゲットクエリ・構成・タイトル・本文を再設計する診断方針を依頼JSONへ付与。
-// aDoctor精密診断候補シートに記事管理番号（ArticleID）・記事URL・記事ランクを可視列として追加。候補生成時にArticle DBの最新記事ランクを参照し、診断用内部キーは非表示で維持。
-// Site Doctor健康診断に未発芽判定を追加。既存の未発芽ランクを精密診断候補へ優先送付し、後半90日クリック5以下＋直近28日クリック0＋過去表示実績ありの記事を新規未発芽として安全更新。
-// 6か月GSCでもメインクエリを取得できない記事を安全照合後に記事ランク「未発芽」へ変更。記事情報更新ダイアログの1件診断を削除し、未発芽ランクを通常再判定から保護。
-// 正常動作確認済みv6.2.37から再構築。記事情報点検をArticleID＋URL＋記事タイトル＋メインクエリの不足抽出だけに簡素化し、対象記事だけ取得。安全書込後にArticleID＋URL＋保存値を再確認する。日次処理は変更しない。
-// 記事情報更新の安全書込インターフェース不整合を修正。ArticleID＋URL＋更新前値の三重照合を維持し、取得成功・書込成功・安全保留・取得不可を正しく分離集計。
-// 1件診断と実更新の6か月メインクエリ取得を同一共通関数へ一本化。取得エラーを握り潰さず実更新へ返し、診断成功・更新失敗の経路差を解消。
-// 記事情報更新の未取得メインクエリ補完だけを過去6か月GSCで取得。既存クエリ・日次処理・通常GSC期間は変更しない。
-// メインクエリ未取得の原因切り分け用に1記事診断を追加。Article DBのArticleID+URLを二重照合し、GSCのpage完全一致・末尾スラッシュ差・query取得結果を最小リクエストで可視化。更新ロジックは変更しない。
-// 記事情報更新の1件処理Workerで欠落していた安全書込関数を実装。ArticleID＋正規化URL＋更新前値で二重/三重照合し、関連シートのタイトル同期もArticleID＋URL一致時だけ実行。
-// 記事情報更新ダイアログのクライアントJavaScript引用符崩れを修正。点検・1記事Worker・進捗表示の処理ロジックはv6.2.30から変更しない。
-// 記事情報更新を1記事ずつの短時間Workerへ分割。ArticleID＋URL＋更新前値の安全照合を維持し、ダイアログに件数・ArticleID・タイトル・URL・取得クエリ・所要時間を逐次表示。
-// 記事情報点検でBlogNameを1回だけ取得して全行へ渡し、sbmCleanDataListText_内のSettings反復I/Oを除去。点検対象・更新ロジックはv6.2.28から変更しない。
-// 記事情報更新をArticle DB起点の不足URL限定方式へ再設計。タイトル/メインクエリだけを対象に、GSCは対象URLを1リクエストで取得し、書込前にArticleID＋正規化URL＋現値を再照合して誤更新を防止。
-// 記事タイトル異常判定を強化し、修正タイトルを改善の推移・改善履歴へArticleID/URLで同期。メインクエリ取得はURL表記差のフォールバックを追加し、点検キャッシュの所要時間誤表示を修正。日次処理・SEOタイトル・description処理は変更しない。
-// 日次処理をv6.2.23相当の軽量処理へ戻し、実測メインクエリ一括取得を日次処理から撤去。「記事情報を更新」は記事タイトルとメインクエリだけを対象に限定。SEOタイトル・メタディスクリプション等の検証済み処理は変更しない。
-// 「記事情報を更新」を記事DB全体の点検・補完入口へ統合。タイトル・実測メインクエリ・SEO情報の未取得件数を事前表示し、更新結果を可視化。
-// 改善の推移・改善履歴・記事別履歴ダイアログを共通UIへ統一。記事情報→状態→内容→測定の順で表示し、閉じる操作・判定バッジ・カード装飾を統一。
-// Creator DirectをaDoctor追加経過観察から明示除外し、旧『改善の推移』キャッシュの誤表示を開く時に軽量補正。
-// 利用者目線の改善取りやめ確認へ統一。Writer/Merge結果登録文言を作業内容ベースへ変更し、Creator DirectをaDoctor追加経過観察へ誤分類する判定を修正。
-// Workflow系ダイアログのUI統一監査を実施。未完了件数表記、コピー完了表示、復元文言、処置スキップ確認、Merge完了説明、新記事登録表示を統一。
-// Merge補正対象を実Merge Caseへ限定し、通常MONITORING Caseの誤カウントを解消。確認文言も実処理に合わせて明確化。
-// 完了済みMulti-Merge中間Stepを未完了recovery fallbackから除外し、再開一覧への再表示を防止。
-// aMerge結果登録をSite Doctor専用判定から共通Merge Case受理へ統一。通常aDoctor / Site Doctor / Writer follow-up / Multi-Mergeを同一受信経路で処理。
-// 未完了再開ローダーをmodeless化し、google.script.run用の公開bridgeを追加。private末尾_関数の直接呼出を廃止。
-// 未完了Workflowの待機ダイアログをserver完了時に必ず閉じ、背後に生成済みの再開ダイアログを表示。failure/timeout時もスピナーを終了する。
-// 3件以上のWriter follow-up Mergeを2記事単位の連続Merge Workflowへ分解。各Step完了後に次のPairを自動生成し、最終Stepだけモニタリングへ移行。
-// Writer follow-up由来Merge Packageのstub復元を正式対応。未完了再開メニューは先にローディングダイアログを表示し、探索中の待ち時間を可視化。
-// 通常改善Writer結果の follow_up_referrals: MERGE を正式Workflowへ昇格。既存改善履歴も未完了再開時に安全検出し、aMerge Packageを生成して再開対象へ接続。
-// 未完了処置の長文紹介状復元を通常aDoctor/Site Doctor共通化。セル上限stubから本文・Evidence・Doctor結果を使ってダイアログ内だけで全文復元し、復元とコピーを明確に二段階化。
-// Personal Knowledge点検を中央モーダル化し、対象サイトの保存Knowledgeと全体構成を人が読める形で確認できるビューアを追加。
-// 改善履歴の週次判定列幅と上下中央揃えを調整し、判定を1行表示。Starter Homeタイトルを既存Homeにも軽量同期。
-// 改善履歴スキーマ移行後に残る装飾済みフラグを無効化し、書式消失を自動検知して再装飾。Starter Homeを明示し、Starter表示版を短い -ST に変更。
-// 週次測定の期限超過キャッチアップを強化。予定日を過ぎた未測定サイクルを日次処理で再検査し、表示でも「測定期限超過」を明示。測定失敗理由をSystem_Logへ記録。
-// 追加経過観察の判定をDoctor Caseだけでなく現役履歴の経路/WAIT-MONITOR情報からも安定判定。改善の推移・改善履歴にArticleIDを表示し、記事管理と同様に見出しフィルターで並べ替え・絞り込み可能にする。
-// Doctor WAIT/MONITORの状態遷移をDoctor Case→改善履歴→改善の推移→記事管理で一体同期。旧WORKFLOW_LOCKED案件を起動時に一度だけ救済し、改善履歴は初回だけ全体装飾・以後は新規行のみ整形。記事管理はデータ更新日を非表示化しArticleIDを利用者向け一覧へ表示。
-// aDoctor WAIT/MONITORは治療ロック中でも追加経過観察へ正しく遷移。改善履歴を開く処理から全行修復・再装飾・選択列全消去を外し、新規行だけを整形して表示を軽量化。
-// に再診を重複実行して作られた複数の旧Caseを救済。保存状態のない重複Caseでは最初のaDoctor依頼Caseを優先して回答登録工程へ復旧し、再Evidence収集を防止。Starterの利用者向け版表示は vX.Y.Z-Starter とする。
-// 経過観察終了後のaDoctor再診を中断・再開可能な案件フローへ変更。依頼JSON/回答JSONをチャンク保存し、登録エラー後はEvidence再収集をせず回答登録工程から再開。旧v6.1.16以前の再診待ちCaseも軽量復旧。
+
 const SBM_EDITION = 'FULL'; // bootstrap fallback only; runtime Edition is License Center
 const SBM_DISPLAY_VERSION = SBM_VERSION;
 function sbmIsADoctorEnabled_(){return sbmEffectiveEdition_()==='FULL';}
-// Workflow再開/復旧を正式再編。未完了再開を共通Dispatcherへ統一し、データ整合性点検を集約。再開時は新規Doctor結果登録欄を隠し、現在地点から直接続行する。
-// 未完了Workflowの再開入口を共通Dispatcherへ統合。通常aDoctor/Site Doctorを利用者に選ばせず、Case状態からDoctor・確認・Writer・Merge・Creatorを自動判定する。
-// aWriterのCOMPLETED_WITH_REPORTED_EXCEPTIONを失敗扱いせず、許可範囲内の処置完了＋例外報告としてモニタリングへ遷移。例外内容はWriter結果JSONに保持。
-// aDoctor未完了処置のメニュー入口を統一。通常aDoctorのWRITER_IN_PROGRESS等は専用再開ダイアログを表示し、該当がなければSite Doctor経由の共通処置UIへフォールバック。
-// 共通aDoctor処置ダイアログのWriter登録を経路自動判定化。通常aDoctor案件をSite Doctor専用登録へ誤送信していた回帰を修正し、共通UI名称もaDoctor基準へ統一。
-// onOpenのメニュー生成より前に実行していた移行修復を後段へ移動。旧版.33継続Case修復から全MONITORING Case再同期を外し、起動時タイムアウトでメニューが出ない回帰を防止。
-// 改善履歴/改善の推移のスキーマ確認を非破壊化。Sheets日付シリアルを正しく解釈し、改善日を日付型へ一度だけ正規化して異常な西暦46266年表示/#NUM!を修復。
-// 改善の推移を開く際に日付破損を軽量検出し、必要時だけ改善履歴の日付を冪等修復して表示データを再生成。旧版.35の一度限りフラグ依存を廃止。
-// SpreadsheetのタイムゾーンをAsia/Tokyoへ統一し、AI改善結果JSON.completed_atを正本として旧履歴の日付ずれを補正。日付シリアルと表示TZの境界で1日前化する再発を防止。
-// 改善履歴の改善日とAI改善結果JSON.completed_atの暦日不一致を軽量検出し、TZ変更済み後でも自己修復を確実に起動。
-// aDoctor回答抽出で依頼JSON内のreturn_contractを診断結果と誤認しないよう、結果JSONのCaseIDを必須化。依頼JSON誤貼付は明示エラーにし、正しいDoctor回答全文から対象CaseのRESULTのみを抽出。
-// Doctor継続Caseを明示的にSUPERSEDED化し、旧Caseを監査保持しつつ現役判定から除外。Writer完了時にWorkflow METAもモニタリング開始状態へ同期。
-// 改善履歴IDが空の旧観察サイクルでも、ArticleID/URL/SiteID/改善日/改善前指標/変更箇所が一致する旧サイクル指紋でDoctor回答継続を安全判定。新規再診時は旧履歴へ安定IDを補完。
-// 観察終了後の再実行でCaseIDが更新されても、同一ArticleID・SiteID・改善履歴IDの直前Doctor回答を安全に継続利用。回答抽出のCaseID不一致を同一案件の継続判定で救済。
-// Doctor V2 routing precedenceを修正。WRITER/MERGE/MONITOR等の明示指示・LIGHT_FIX等の治療指示をLOW_PRIORITY_SERP_STRUCTUREより優先し、誤正常終了を防止。
-// 観察終了後処置をArticleID+改善履歴IDで固定し、過去Doctor Case誤適用と1件処理後の全一覧再生成を防止。
-// 今日の改善を日中固定リスト化し、通常表示時の完了除外・不足補充・再描画を廃止。選択UIは既存チェックを保持。Starterのみ改善ナビ内部リンク候補を最大3件へ制限。
-// 改善ナビ起動前の同期記事DB再検索を廃止。ダイアログを先に表示し、詳細取得は表示後に非同期実行。起動失敗はImprovementNaviLaunchへ記録。
-// Full/Starter共通で改善履歴の改善経路〜最終判定を進捗ステータス装飾へ統一。次回測定を強調し、履歴詳細に残るHTML記事タイトルも共通正規化。
-// 改善ポイントの重複候補を抑止し、次点クエリへ切替。Starter改善完了登録は専用の軽量upsertで改善の推移へ確実に即時反映。
-// 記事管理表示を軽量再整形し、タイトル正規化のSettings反復I/Oを除去。内部リンク候補タイトルも正規化。Starter改善完了登録後は対象1件の改善の推移を即時同期。
-// 改善ナビのタイトル正規化を徹底。GSCクエリ取得と記事本文取得を並列化し、両方の完了後だけ改善ポイント/内部リンク候補を生成。ローカルGSC参照も対象URL単位へ軽量化。
-// 記事タイトルHTML混入を共通サニタイズし、改善ナビは本文・GSCクエリ取得完了後にのみ改善ポイント/内部リンク候補を生成。日次取得済みクエリと本文キャッシュを優先して待ち時間を短縮。
-// 初回セットアップ全ダイアログの生成後JavaScriptを構文監査。HTML文字列内の引用符崩壊で全ボタンが無反応になる根本原因を修正し、冗長なイベント処理を整理。
-// 初回セットアップ関連ダイアログのボタンイベントを監査・修正。イベント登録を明示化し、失敗時の再操作も保証。
-// Edition別の製品情報表示を同期。StarterではFull専用のaWriter / aCreator / aMerge役割を表示しない。
-// Starter Edition実装。Full正本と同一スキーマを共有し、Edition定数でFull専用メニューとaWriter導線を非表示化。
-// 日常入口を「SIMS今日の作業」へ変更。診断はサイト健康診断を先頭にし、診断・設定メニューのサブメニューを廃止して1クリック実行へ統一。
-// Starter / Full Edition構成を正式導入する製品ベースライン。Fullを正本とし、Starterは同一リポジトリ内の派生Editionとして管理。
-// 「SIMS Managerについて」ダイアログ内の独自「閉じる」ボタンを削除し、共通ダイアログフッターの「閉じる」だけに統一。二重表示を解消。
-// 利用者目的ベースの正本メニューへ再編。改善ナビの改善ポイントと内部リンク候補説明を具体化。
-// 正式Repository正本へ同期。機能仕様はv5.23.1を継承。
-// SERP参入余地チェックでAI依頼文/aCreator紹介状のコピー完了を明示し、aCreator紹介状コピー後に新記事作成・公開後の新記事登録へ直接進む導線を追加。
-// 1件SERP参入余地チェックを追加。Manager保有クエリで事前カニバリ判定し、問題がなければ外部AIへ上位30件精査を依頼。到達見込み順位をGREEN/YELLOW/PALE_PINK/REDへManager側で判定し、PALE_PINK以上はaCreator紹介状を生成可能。精密診断候補の利用者向け名称をaDoctorへ統一。
-// aDoctor精密診断の途中再開ダイアログを連続処理化。aWriter/aMerge紹介状生成後に回答貼付欄と対象記事を開くボタンを表示し、そのまま処置結果登録まで進める。
-// aDoctor回答JSONの軽微な構文崩れを受信側で補正。キー先頭のダブルクォート欠落など、LLM出力で起こり得る単純なJSON誤記を安全に正規化して登録可能にする。
-// aDoctor回答全文から診断結果JSONを堅牢に抽出。最初のコードフェンスだけを誤採用してJSON読取エラーになる問題を修正。
-// aDoctor個別精密診断とSite Doctor処置の再開経路を分離。個別精密診断の途中再開メニューを追加し、Site Doctor再開が個別aDoctor案件を誤って拾う問題を修正。
-// aDoctor精密診断結果登録を高速化。WAIT/MONITOR登録時の全体再計算を同期処理から外し、登録ボタンに処理中スピナーを追加。
-// Creator新規記事登録で公開URLを最上部の必須項目へ変更し、公開済みURLがない記事は登録不可と明示。あわせて「SIMS Managerについて」を情報ダイアログ化し、SIMS = SEO Improvement Master System、製品概要、効果測定基準を表示。
-// aDoctorのWAIT/MONITORを、既存の改善履歴がない記事でも新規モニターとして開始可能に修正。Doctorの約30日指定は目安として保持し、SBMの効果測定は7日目・14日目・21日目・28日目の4回を標準とする。
-// 実運用試験の管理番号更新。旧版.63で確認済みのaDoctor精密診断同期処理とDoctor Case保存軽量化を新しい管理基準版へ繰り上げ。機能ロジックの追加変更は行わない。
-// aDoctor精密診断はv5.21.60の同期処理構造を維持し、Doctor Case保存時に全Doctor管理シートを毎回再装飾していた不要処理だけを廃止。旧版.61のダイアログ先行非同期化および保留中v5.21.62のEvidence取得方式変更は取り込まない。
-// 改善履歴の旧データ互換修復。改善日列に残るISO日時文字列だけをDate型へ軽量変換し、yyyy/M/d表示へ統一。既存Date型・空欄・解釈不能値は変更せず、全体再計算や並べ替えは行わない。
-// Creator Directの登録品質ゲートを追加。新規記事タイトルまたはメインクエリを取得できない場合は改善履歴・モニターを開始しない。改善履歴詳細はCreator Directを新記事公開用表示へ切替。既存の不完全Creator Direct履歴を選択行だけバックアップ後に除外できる専用メンテナンス処理を追加。
-// 改善履歴の詳細表示で「改善の推移」全体再計算を実行していた処理を廃止。選択履歴の詳細は既存の改善の推移データを読むだけにし、詳細表示を即時化。
-// 改善履歴の表示を軽量整形方式へ変更。「改善履歴を開く」時に全データ再計算はせず、利用者向け列の表示・ヘッダー/幅/行高の整形と選択列のチェックボックス復元だけを少数のRange操作で行う。
-// バージョン表記整合修正。ファイル先頭の製品コメント、SBM_VERSION、成果物名をv5.21.56へ同期。旧版.55の機能修正内容は変更なし。
-// 「改善履歴を開く」を表示専用の軽量処理へ変更。履歴表示時の全体再計算・全行書式再設定・Creator Direct重複自動整理を廃止し、既存重複整理は明示的な専用メンテナンス処理へ分離。
-// 「改善の進捗」を「改善の推移・履歴」へ統合。履歴3操作を同メニュー末尾へ復活。改善履歴の新規行へチェックボックスを即時設定し、Creator Directの同一記事重複登録を防止。既存Creator Direct重複履歴はバックアップ後に安全整理。
-// aWriter処置結果登録を単一記事の軽量更新へ変更。改善の推移全体再生成と同期Personal Knowledge書込を登録経路から外し、起動時に内部管理シートを再非表示化。経過観察ダイアログの重複「この記事を開く」導線を削除。
-// 経過観察終了後の処置完了時に、対象行だけを軽量整形し、改善の推移シートを表示して対象行へ移動。全体再生成・autoResize・flushは行わない。
-// 経過観察終了後の追加観察処理を選択行だけの直接更新へ変更し、改善の推移全体再生成を廃止。
-// 経過観察終了後のaDoctor再診を非同期化し、処理開始直後に進捗ダイアログを表示。旧履歴ID空欄もArticleID/URLから補完。
-// aDoctor WAIT/MONITOR再診を新しい観察サイクルとして登録し、改善履歴IDのない旧履歴にも対応。
-// 日次処理を通常差分更新・初回分割構築・途中継続へ再設計。静的列/全件装飾の毎日再書込を廃止。
-// ダイアログ完了後のボタン表示を整理。
+
 // User-facing naming: aDoctor / Site Doctor. Legacy Doctor/SiteDiagnosis identifiers remain for compatibility.
 const SBM_PRODUCT_NAMING_COMPAT = 'ARTICLE_DOCTOR_SITE_DOCTOR_V1';
 // Personal Knowledge v1.0 Drive-file storage. Existing SIMS SiteID remains unchanged for contract compatibility.
@@ -6572,6 +6337,37 @@ function sbmBuildTodayImprovementSheet_() {
   ['記事URL','候補ID'].forEach(function(h){ if(hmToday[h]) try{sh.hideColumns(hmToday[h]);}catch(ignoreHideInternal){} });
 }
 
+/** v6.7.28: 「今日の改善」のArticleIDだけを必要時に記事管理正本から修復する。
+ * 高速化維持のため、全行・全書式は触らず、異常IDが存在するときだけ記事管理のURL/ArticleID列を読む。
+ */
+function sbmRepairTodayArticleIdsLight_(sh){
+  sh=sh||SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh),idCol=hm['ArticleID'],urlCol=hm['記事URL'];
+  if(!idCol||!urlCol)return 0;
+  var n=sh.getLastRow()-1,ids=sh.getRange(2,idCol,n,1).getDisplayValues(),needs=false;
+  for(var i=0;i<n;i++){if(!/^A\d+$/i.test(String(ids[i][0]||'').trim())){needs=true;break;}}
+  if(!needs)return 0;
+  var urls=sh.getRange(2,urlCol,n,1).getDisplayValues();
+  var db=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!db||db.getLastRow()<2)return 0;
+  var dh=sbmHeaderMap_(db),dbIdCol=dh['ArticleID'],dbUrlCol=dh['記事URL'];
+  if(!dbIdCol||!dbUrlCol)return 0;
+  var dn=db.getLastRow()-1,dbIds=db.getRange(2,dbIdCol,dn,1).getDisplayValues(),dbUrls=db.getRange(2,dbUrlCol,dn,1).getDisplayValues(),byUrl={};
+  for(var j=0;j<dn;j++){var u=sbmNormalizeUrl_(dbUrls[j][0]||''),aid=String(dbIds[j][0]||'').trim();if(u&&/^A\d+$/i.test(aid)&&!byUrl[u])byUrl[u]=aid;}
+  var changed=0;
+  for(var k=0;k<n;k++){var cur=String(ids[k][0]||'').trim();if(/^A\d+$/i.test(cur))continue;var canonical=byUrl[sbmNormalizeUrl_(urls[k][0]||'')]||'';if(canonical&&canonical!==cur){ids[k][0]=canonical;changed++;}}
+  if(!changed)return 0;
+  sh.getRange(2,idCol,n,1).setValues(ids);
+  // 保存候補も同じURL正本で直し、次回再描画時の再混入を防ぐ。
+  try{
+    var candidates=sbmGetTodayCandidates_(),savedChanged=false;
+    candidates.forEach(function(c){var u=sbmNormalizeUrl_(c&&c.url||''),canonical=byUrl[u]||'';if(canonical&&String(c.articleId||'').trim()!==canonical){c.articleId=canonical;savedChanged=true;}});
+    if(savedChanged)sbmSetSetting_('TodayRecommendationJson',JSON.stringify(candidates),'今日の改善候補ArticleIDを記事管理正本へ補正');
+  }catch(ignoreTodayIdSetting){}
+  return changed;
+}
+
 /** 旧版: 保存済み候補の順位や選択状態を変えず、表示文言だけを現行ルールへ同期する。 */
 function sbmRefreshTodayPresentationOnly_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.TODAY);
@@ -6639,12 +6435,16 @@ function sbmOpenTodayImprovement() {
   var tTitle=new Date();
   try { sbmRepairArticleTitleCells_(SBM_SHEETS.TODAY); } catch(eTitleRepair) { sbmLog_('TodayTitleRepair','Warning',String(eTitleRepair)); }
   profiler.lap('タイトル軽量補正','','',sbmSecondsSince_(tTitle)+'秒');
+  var tArticleId=new Date();
+  try { sbmRepairTodayArticleIdsLight_(sh); } catch(eTodayArticleId) { try{sbmLog_('TodayArticleIdRepair','Warning',String(eTodayArticleId));}catch(ignoreTodayArticleIdLog){} }
+  profiler.lap('ArticleID軽量補正','','',sbmSecondsSince_(tArticleId)+'秒');
   var tPresentation=new Date();
   try { sbmRefreshTodayPresentationOnly_(); } catch(eTodayPresentation) { try{sbmLog_('TodayPresentation','Warning',String(eTodayPresentation));}catch(ignoreTodayPresentationLog){} }
 
   profiler.lap('今日の改善 表示文言同期','','',sbmSecondsSince_(tPresentation)+'秒');
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
   var tTheme=new Date(); try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){} profiler.lap('表示テーマ適用','','',sbmSecondsSince_(tTheme)+'秒');
+  var tCompletedPresentation=new Date(); try{sbmSyncTodayCompletedPresentationLight_(sh);}catch(eCompletedPresentation){try{sbmLog_('TodayCompletedPresentation','Warning',String(eCompletedPresentation));}catch(ignoreCompletedPresentationLog){}} profiler.lap('完了済み行表示同期','','',sbmSecondsSince_(tCompletedPresentation)+'秒');
   var tActivate=new Date(); sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); profiler.lap('シート表示・activate','','',sbmSecondsSince_(tActivate)+'秒');
   var tCandidates=new Date();
   var current = sbmGetTodayCandidates_().filter(function(c){
@@ -6818,8 +6618,7 @@ function sbmCleanupTodayCompletedRows_() {
   try{candidates=raw?JSON.parse(raw):[];}catch(e){candidates=[];}
   if(!Array.isArray(candidates))candidates=[];
   var filtered=candidates.filter(function(c){
-    var key=sbmNormalizeUrl_(c&&c.url||'');
-    return !(key&&blocked[key]);
+    return !sbmTodayCompletedMatch_(blocked,c&&c.articleId,c&&c.url);
   });
   var removed=candidates.length-filtered.length;
   if(filtered.length!==candidates.length){
@@ -6836,7 +6635,8 @@ function sbmCleanupTodayCompletedRows_() {
         var url=sbmNormalizeUrl_(r[th['記事URL']-1]||'');
         var selected=th['選択']?String(r[th['選択']-1]||'').trim():'';
         var doneBySheet=(selected==='完了');
-        return !doneBySheet && !(url&&blocked[url]);
+        var aid=th['ArticleID']?String(r[th['ArticleID']-1]||'').trim():'';
+        return !doneBySheet && !sbmTodayCompletedMatch_(blocked,aid,url);
       });
       removed+=Math.max(0,rows.length-kept.length);
       if(kept.length!==rows.length){
@@ -13645,14 +13445,20 @@ function sbmMarkTodayImprovementCompleted_(articleId, articleUrl) {
   if (!sh || sh.getLastRow() < 2) return false;
   var hm = sbmHeaderMap_(sh);
   var urlCol = hm['記事URL'];
+  var idCol = hm['ArticleID'];
   var selectCol = hm['選択'];
   var titleCol = hm['記事タイトル'];
-  if (!urlCol || !selectCol) return false;
+  if (!selectCol || (!urlCol && !idCol)) return false;
   var normalized = sbmNormalizeUrl_(articleUrl || '');
-  var urls = sh.getRange(2, urlCol, sh.getLastRow() - 1, 1).getValues();
+  var wantedId = String(articleId || '').trim().toUpperCase();
+  var n = sh.getLastRow() - 1;
+  var urls = urlCol ? sh.getRange(2, urlCol, n, 1).getValues() : [];
+  var ids = idCol ? sh.getRange(2, idCol, n, 1).getDisplayValues() : [];
   var matched = false;
-  for (var i = 0; i < urls.length; i++) {
-    if (normalized && sbmNormalizeUrl_(urls[i][0] || '') === normalized) {
+  for (var i = 0; i < n; i++) {
+    var rowId = idCol ? String(ids[i][0] || '').trim().toUpperCase() : '';
+    var rowUrl = urlCol ? sbmNormalizeUrl_(urls[i][0] || '') : '';
+    if ((wantedId && rowId === wantedId) || (!wantedId && normalized && rowUrl === normalized) || (wantedId && normalized && rowUrl === normalized)) {
       var row = i + 2;
       var cell = sh.getRange(row, selectCol);
       cell.clearDataValidations().setValue('完了').setHorizontalAlignment('center').setFontWeight('bold');
@@ -13668,16 +13474,62 @@ function sbmMarkTodayImprovementCompleted_(articleId, articleUrl) {
 
 /** 記事管理の状態から、今日の改善で完了扱いにするURLを取得します。 */
 function sbmTodayCompletedUrlMap_() {
-  var map = {};
-  var rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB) || [];
-  rows.forEach(function(r) {
-    var state = String(r['作業状態'] || '');
-    if (state.indexOf('モニター中') >= 0 || state.indexOf('完了') >= 0) {
-      var u = sbmNormalizeUrl_(r['記事URL'] || '');
-      if (u) map[u] = true;
+  var map = {}, sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return map;
+  var hm=sbmHeaderMap_(sh),urlCol=hm['記事URL'],workCol=hm['作業状態'];
+  if(!urlCol||!workCol)return map;
+  var n=sh.getLastRow()-1,urls=sh.getRange(2,urlCol,n,1).getValues(),works=sh.getRange(2,workCol,n,1).getDisplayValues(),ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():[];
+  for(var i=0;i<n;i++){
+    var state=String(works[i][0]||'');
+    if(state.indexOf('モニター中')>=0||state.indexOf('完了')>=0){
+      var u=sbmNormalizeUrl_(urls[i][0]||'');if(u)map['URL:'+u]=true;
+      var aid=hm['ArticleID']?String(ids[i][0]||'').trim().toUpperCase():'';if(aid)map['ID:'+aid]=true;
     }
-  });
+  }
   return map;
+}
+
+/** 今日の改善の完了判定はArticleIDを優先し、URLは補助キーとして使う。 */
+function sbmTodayCompletedMatch_(map, articleId, articleUrl){
+  map=map||{};
+  var aid=String(articleId||'').trim().toUpperCase();
+  if(aid&&map['ID:'+aid])return true;
+  var u=sbmNormalizeUrl_(articleUrl||'');
+  return !!(u&&map['URL:'+u]);
+}
+
+/** v6.7.31: 表示中の「今日の改善」だけを軽量同期する。
+ *  通常表示は高速化のため固定リストを再描画しないため、記事管理で完了済みになった
+ *  既存行の表示だけを、テーマ適用後に対象行限定でグレーアウトする。
+ *  v6.7.33: 過去版で「完了」セルだけがチェックボックスへ戻った行は、残存する
+ *  タイトル取り消し線を完了証跡として保護する。完了→通常への降格は行わない。
+ */
+function sbmSyncTodayCompletedPresentationLight_(sh){
+  sh=sh||SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh), idCol=hm['ArticleID'], urlCol=hm['記事URL'], titleCol=hm['記事タイトル'], selectCol=hm['選択'];
+  if(!idCol&&!urlCol)return 0;
+  var n=sh.getLastRow()-1, ids=idCol?sh.getRange(2,idCol,n,1).getDisplayValues():[], urls=urlCol?sh.getRange(2,urlCol,n,1).getValues():[];
+  var selectVals=selectCol?sh.getRange(2,selectCol,n,1).getDisplayValues():[];
+  var titleLines=titleCol?sh.getRange(2,titleCol,n,1).getFontLines():[];
+  var completed=sbmTodayCompletedUrlMap_(), rows=[];
+  for(var i=0;i<n;i++){
+    var aid=idCol?String(ids[i][0]||'').trim():'';
+    var url=urlCol?urls[i][0]:'';
+    var alreadyComplete=selectCol&&String((selectVals[i]&&selectVals[i][0])||'').trim()==='完了';
+    var completedPresentation=titleCol&&String((titleLines[i]&&titleLines[i][0])||'').toLowerCase()==='line-through';
+    if(alreadyComplete||completedPresentation||sbmTodayCompletedMatch_(completed,aid,url))rows.push(i+2);
+  }
+  if(!rows.length)return 0;
+  var lastCol=Math.max(sh.getLastColumn(),SBM_HEADERS.TODAY.length);
+  rows.forEach(function(row){
+    if(selectCol){
+      sh.getRange(row,selectCol).clearDataValidations().setValue('完了').setHorizontalAlignment('center').setFontWeight('bold');
+    }
+    sh.getRange(row,1,1,lastCol).setBackground('#eeeeee').setFontColor('#777777');
+    if(titleCol)sh.getRange(row,titleCol).setFontLine('line-through');
+  });
+  return rows.length;
 }
 
 /* ========================================================================== *
@@ -13709,7 +13561,13 @@ function sbmApplySelectionUi_(sh) {
     var titles = sh.getRange(2, titleCol, n, 1).getDisplayValues();
     var urlCol = hm['記事URL'];
     var urls = urlCol ? sh.getRange(2, urlCol, n, 1).getValues() : [];
+    var idCol = hm['ArticleID'];
+    var ids = idCol ? sh.getRange(2, idCol, n, 1).getDisplayValues() : [];
     var current = sh.getRange(2, col, n, 1).getValues();
+    // v6.7.32: 完了表示は一方向に保護する。
+    // 過去版で選択セルがチェックボックスへ戻っても、タイトルの取り消し線が残っていれば
+    // 既存の完了表示として扱い、通常候補へ降格させない。
+    var titleLines = sh.getRange(2, titleCol, n, 1).getFontLines();
     var completed = sbmTodayCompletedUrlMap_();
 
     for (var i = 0; i < titles.length; i++) {
@@ -13722,7 +13580,9 @@ function sbmApplySelectionUi_(sh) {
       var oldValue = current[i] ? current[i][0] : false;
       var wasChecked = oldValue === true || String(oldValue || '').toUpperCase() === 'TRUE';
       var wasComplete = String(oldValue || '').trim() === '完了';
-      if (wasComplete || (url && completed[url])) {
+      var wasCompletedPresentation = String((titleLines[i] && titleLines[i][0]) || '').toLowerCase() === 'line-through';
+      var aid = idCol ? String(ids[i][0] || '').trim() : '';
+      if (wasComplete || wasCompletedPresentation || sbmTodayCompletedMatch_(completed,aid,url)) {
         sh.getRange(row, col).clearDataValidations().setValue('完了')
           .setHorizontalAlignment('center').setFontWeight('bold');
         sh.getRange(row, 1, 1, Math.max(sh.getLastColumn(), SBM_HEADERS.TODAY.length))
@@ -13808,13 +13668,17 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
   // sbmBuildTodayImprovementSheet_() already clears the small working area.
   // Do not clear/format all 1000 rows again here.
 
-  var shown = (candidates || []).slice(0, Math.min(Number(count || 0), (candidates || []).length));
+  // v6.7.29: 記事管理が既にモニター中/完了の候補は描画直前にも防御的に除外する。
+  // URL列＋作業状態列だけの軽量照合で、全シート再構築やGSC取得は行わない。
+  var blockedToday=sbmTodayCompletedUrlMap_();
+  var eligible=(candidates||[]).filter(function(c){return !sbmTodayCompletedMatch_(blockedToday,c&&c.articleId,c&&c.url);});
+  var shown = eligible.slice(0, Math.min(Number(count || 0), eligible.length));
 
   if (shown.length) {
     var values = shown.map(function(c) {
       c=c||{};
-      // v6.6.66: 旧保存候補にArticleIDが無い場合も、記事管理(URL一致)から一度だけ補完する。
-      if(!String(c.articleId||'').trim() && c.url){
+      // v6.7.28: ArticleIDは記事管理を正本とする。空欄だけでなく旧保存候補の誤値もURL一致で軽量補正する。
+      if(!/^A\d+$/i.test(String(c.articleId||'').trim()) && c.url){
         var dbArticle=sbmFindArticleDbByUrlFast_(c.url);
         if(dbArticle) c.articleId=String(dbArticle['ArticleID']||'').trim();
       }
@@ -19642,18 +19506,69 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
 
 
 
+/** v6.7.29: 経過観察終了は、関連状態が揃ったことを確認してから成功を返す。 */
 function sbmDoctorCompleteCloseMonitoring(caseId,articleId,articleUrl,historyId){
   try{
     caseId=String(caseId||'').trim();articleId=String(articleId||'').trim();articleUrl=String(articleUrl||'').trim();historyId=String(historyId||'').trim();
     if(!historyId){try{var h=sbmDoctorFindLatestHistory_(articleId,articleUrl);historyId=String(h&&h['改善履歴ID']||'').trim();}catch(ignoreHistory){}}
-    if(historyId)sbmSetMonitoringLifecycleByHistoryId_(historyId,'COMPLETED');
-    if(articleId)sbmMarkArticleMeasurementComplete_(articleId);else if(articleUrl)try{sbmSetArticleWorkStateByIdentity_('',articleUrl,'✔️ 完了');}catch(ignoreArticle){}
-    try{var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT),hm=sh?sbmHeaderMap_(sh):{},last=sh?sh.getLastRow():0;if(sh&&last>=2){var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getDisplayValues();for(var i=vals.length-1;i>=0;i--){var aid=hm['ArticleID']?String(vals[i][hm['ArticleID']-1]||'').trim():'',hid=hm['改善履歴ID']?String(vals[i][hm['改善履歴ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(vals[i][hm['記事URL']-1]||''):'';if((historyId&&hid===historyId)||(articleId&&aid===articleId)||(!articleId&&articleUrl&&url===sbmNormalizeUrl_(articleUrl)))sh.deleteRow(i+2);}}}catch(eEffect){try{sbmLog_('CloseMonitoringEffect','Warning',String(eEffect));}catch(ignoreEffectLog){}}
-    if(caseId){try{var csh=sbmDoctorEnsureCaseSheet_(),ch=sbmHeaderMap_(csh),rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];for(var j=rows.length-1;j>=0;j--){if(String(rows[j]['CaseID']||'').trim()===caseId){var rr=rows[j]._rowNumber;if(ch['状態コード'])csh.getRange(rr,ch['状態コード']).setValue('COMPLETED');if(ch['状態'])csh.getRange(rr,ch['状態']).setValue('モニター終了・完了');if(ch['更新日時'])csh.getRange(rr,ch['更新日時']).setValue(sbmNowText_());break;}}}catch(eCase){try{sbmLog_('CloseMonitoringCase','Warning',String(eCase));}catch(ignoreCaseLog){}}try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'COMPLETED',registration_status:'DONE',registered_at:sbmNowText_(),last_error:''});}catch(ignoreMeta){}}
+
+    var errors=[];
+    if(historyId&&!sbmSetMonitoringLifecycleByHistoryId_(historyId,'COMPLETED'))errors.push('改善履歴');
+    var articleOk=false;
+    try{articleOk=articleId?sbmMarkArticleMeasurementComplete_(articleId):!!(articleUrl&&sbmSetArticleWorkStateByIdentity_('',articleUrl,'✔️ 完了'));}catch(eArticle){errors.push('記事管理');}
+    if(!articleOk&&errors.indexOf('記事管理')<0)errors.push('記事管理');
+
+    try{var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT),hm=sh?sbmHeaderMap_(sh):{},last=sh?sh.getLastRow():0;if(sh&&last>=2){var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getDisplayValues();for(var i=vals.length-1;i>=0;i--){var aid=hm['ArticleID']?String(vals[i][hm['ArticleID']-1]||'').trim():'',hid=hm['改善履歴ID']?String(vals[i][hm['改善履歴ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(vals[i][hm['記事URL']-1]||''):'';if((historyId&&hid===historyId)||(articleId&&aid===articleId)||(!articleId&&articleUrl&&url===sbmNormalizeUrl_(articleUrl)))sh.deleteRow(i+2);}}}catch(eEffect){errors.push('改善の推移');try{sbmLog_('CloseMonitoringEffect','Error',String(eEffect));}catch(ignoreEffectLog){}}
+
+    var caseUpdated=!caseId;
+    if(caseId){
+      try{var csh=sbmDoctorEnsureCaseSheet_(),ch=sbmHeaderMap_(csh),rows=sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[];for(var j=rows.length-1;j>=0;j--){if(String(rows[j]['CaseID']||'').trim()===caseId){var rr=rows[j]._rowNumber;if(ch['状態コード'])csh.getRange(rr,ch['状態コード']).setValue('COMPLETED');if(ch['状態'])csh.getRange(rr,ch['状態']).setValue('モニター終了・完了');if(ch['更新日時'])csh.getRange(rr,ch['更新日時']).setValue(sbmNowText_());caseUpdated=true;break;}}}catch(eCase){try{sbmLog_('CloseMonitoringCase','Error',String(eCase));}catch(ignoreCaseLog){}}
+      if(!caseUpdated)errors.push('Doctor Case');
+      try{sbmDoctorWorkflowWriteMeta_(caseId,{current_stage:'COMPLETED',registration_status:'DONE',registered_at:sbmNowText_(),last_error:''});}catch(eMeta){errors.push('Workflow');try{sbmLog_('CloseMonitoringWorkflow','Error',String(eMeta));}catch(ignoreMetaLog){}}
+    }
+
+    // 「今日の改善」は対象行だけ即時に完了表示へ同期する。全シート再構築はしない。
+    try{sbmMarkTodayImprovementCompleted_(articleId,articleUrl);}catch(eToday){try{sbmLog_('CloseMonitoringToday','Warning',String(eToday));}catch(ignoreTodayLog){}}
+
+    SpreadsheetApp.flush();
+    var verify=sbmDoctorVerifyCloseMonitoring_(caseId,articleId,articleUrl,historyId);
+    if(!verify.ok)errors=errors.concat(verify.errors||[]);
+    errors=errors.filter(function(v,i,a){return v&&a.indexOf(v)===i;});
+    if(errors.length){
+      try{if(caseId)sbmDoctorWorkflowWriteMeta_(caseId,{last_error:'完了整合確認: '+errors.join(' / ')});}catch(ignoreVerifyMeta){}
+      return {ok:false,message:'完了登録の一部が反映されませんでした。未完了として保持します。\n確認対象：'+errors.join('、')};
+    }
+
     try{sbmRefreshHomeMonitoringDelta_();}catch(ignoreHomeDelta){}
     try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true,home:true});}catch(ignoreClosePresentation){}
     return {ok:true,message:'モニターを終了し、完了として登録しました。改善履歴とaDoctor診断記録は保持しています。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
+}
+
+/** v6.7.29: 完了登録後の最小整合確認。対象記事/Caseだけを読む。 */
+function sbmDoctorVerifyCloseMonitoring_(caseId,articleId,articleUrl,historyId){
+  var errors=[];
+  try{
+    var a=sbmDoctorFindArticleByIdOrUrl_(articleId,articleUrl)||{};
+    if(String(a['作業状態']||'').indexOf('完了')<0)errors.push('記事管理');
+  }catch(eA){errors.push('記事管理');}
+  if(historyId){
+    try{
+      var hsh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY),hh=hsh?sbmHeaderMap_(hsh):{},historyOk=false;
+      if(hsh&&hsh.getLastRow()>=2&&hh['改善履歴ID']&&hh['モニター状態']){var hids=hsh.getRange(2,hh['改善履歴ID'],hsh.getLastRow()-1,1).getDisplayValues(),hlife=hsh.getRange(2,hh['モニター状態'],hsh.getLastRow()-1,1).getDisplayValues();for(var hi=0;hi<hids.length;hi++){if(String(hids[hi][0]||'').trim()===String(historyId)){historyOk=String(hlife[hi][0]||'').toUpperCase()==='COMPLETED';break;}}}
+      if(!historyOk)errors.push('改善履歴');
+    }catch(eH){errors.push('改善履歴');}
+  }
+  if(caseId){
+    try{var rec=sbmDoctorFindCaseRow_(caseId);if(!rec||String(rec.values[rec.hm['状態コード']-1]||'').trim()!=='COMPLETED')errors.push('Doctor Case');}catch(eC){errors.push('Doctor Case');}
+    try{var meta=sbmDoctorWorkflowReadMeta_(caseId)||{};if(String(meta.current_stage||'')!=='COMPLETED'||String(meta.registration_status||'')!=='DONE')errors.push('Workflow');}catch(eM){errors.push('Workflow');}
+  }
+  try{
+    var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.EFFECT),hm=sh?sbmHeaderMap_(sh):{},found=false;
+    if(sh&&sh.getLastRow()>=2){var vals=sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).getDisplayValues();for(var i=0;i<vals.length;i++){var aid=hm['ArticleID']?String(vals[i][hm['ArticleID']-1]||'').trim():'',hid=hm['改善履歴ID']?String(vals[i][hm['改善履歴ID']-1]||'').trim():'',url=hm['記事URL']?sbmNormalizeUrl_(vals[i][hm['記事URL']-1]||''):'';if((historyId&&hid===historyId)||(articleId&&aid===articleId)||(!articleId&&articleUrl&&url===sbmNormalizeUrl_(articleUrl))){found=true;break;}}}
+    if(found)errors.push('改善の推移');
+  }catch(eE){errors.push('改善の推移');}
+  return {ok:errors.length===0,errors:errors.filter(function(v,i,a){return a.indexOf(v)===i;})};
 }
 
 function sbmDoctorUserConfirmationSpec_(doctor,n){

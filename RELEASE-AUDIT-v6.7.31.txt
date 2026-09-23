@@ -1,0 +1,9 @@
+SIMS Manager v6.7.31 Release Audit
+
+PASS
+- Runtime SBM_VERSION: 6.7.31
+- Code.gs copies: synchronized
+- VERSION / PRODUCT_IDENTITY / README-FIRST / CHANGELOG / Release Notes: synchronized
+- JavaScript syntax: PASS
+- Scope: targeted Today completed-row presentation sync only
+- Performance: no candidate reselection, full-sheet rebuild, GSC fetch, or full-style pass added
