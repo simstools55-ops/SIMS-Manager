@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.23",
+  "current_version": "6.7.25",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.23: Save SERP entry-check checkpoints in the existing WorkflowState store and resume them from Unfinished Work without changing established Doctor/new-article workflows.",
-  "version": "6.7.23",
+  "notes": "v6.7.25: Add a user-facing cancel action to every unfinished-work candidate without deleting registered article, history, or Doctor data.",
+  "version": "6.7.25",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.23-ST"
+  "starter_display_version": "v6.7.25-ST"
 }

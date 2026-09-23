@@ -1,0 +1,7 @@
+SIMS Manager v6.7.25 Release Audit
+Result: PASS
+- Code.gs syntax: PASS
+- Release audit script: PASS
+- 5 Code.gs copies version synchronized: PASS
+- VERSION / PRODUCT_IDENTITY / README-FIRST / CHANGELOG / Release Notes: synchronized
+- Scope: unfinished-work user cancel action only
