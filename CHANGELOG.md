@@ -1,3 +1,9 @@
+## v6.7.11
+
+- Doctorの `workflow_handoff.user_confirmation_items` を利用者確認UIへ反映。
+- 確認事項・条件別の案内を画面に表示し、確認結果登録→Doctor再診依頼生成までをつなげた。
+- 既存の診断・Writer登録ロジックは維持。
+
 ## v6.7.10
 - aWriter登録高速化試験を終了。登録処理時間・区間計測の画面表示を削除。
 - aWriter登録専用プロファイラと03a〜03h内部計測を撤去。

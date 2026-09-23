@@ -4,7 +4,8 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.7.10';
+const SBM_VERSION = '6.7.11';
+// v6.7.11: Doctorのworkflow_handoff.user_confirmation_itemsを利用者確認UIへ表示し、確認結果をEvidence化して再診へ戻せるよう修正。
 // v6.7.10: aWriter登録高速化試験を終了。利用者向け計測表示と専用プロファイラを撤去し、登録ロジックは維持。
 // v6.7.9: 実測済み03ボトルネックを限定改善。旧モニター検索I/O集約、新規履歴行の同期装飾を省略。v6.7.8の外側03x計測は撤去。
 // v6.7.7: aWriter改善履歴登録の内部区間計測(03a〜03h)を呼出元まで正しく伝播。計測表示のみ修正し、登録ロジックは変更しない。
@@ -19650,17 +19651,37 @@ function sbmDoctorCompleteCloseMonitoring(caseId,articleId,articleUrl,historyId)
 
 function sbmDoctorUserConfirmationSpec_(doctor,n){
   var req=doctor&&doctor.user_confirmation_request||doctor&&doctor.confirmation_request||{};
+  var handoff=doctor&&doctor.workflow_handoff||{};
+  var handoffItems=Array.isArray(handoff.user_confirmation_items)?handoff.user_confirmation_items:[];
   var action=String(req.action_for_sbm||req.action||'').trim();
   var reason=String(req.reason||'').trim();
   var target=String(req.target_url||doctor&&doctor.article_url||'').trim();
-  var isUrlInspection=/URL_INSPECTION|URL検査|正規URL|canonical|インデックス/i.test(action+' '+reason+ ' '+String(req.type||''));
+  var itemText=handoffItems.map(function(x){return [x&&x.item,x&&x.if_redirects,x&&x.if_displays,x&&x.if_toko_travel,x&&x.if_xsrv,x&&x.if_not_indexed].filter(Boolean).join(' ');}).join(' ');
+  var isUrlInspection=/URL_INSPECTION|URL検査|正規URL|canonical|インデックス/i.test(action+' '+reason+' '+String(req.type||'')+' '+itemText);
   var instruction='aDoctorが指定した確認を行い、結果を選択してください。';
   var choices=[
     {code:'NORMAL',label:'問題なし・正常だった'},
     {code:'ISSUE_FOUND',label:'問題が見つかった'},
     {code:'UNCLEAR',label:'どれに当てはまるか分からない'}
   ];
-  if(isUrlInspection){
+  if(handoffItems.length){
+    var lines=['aDoctorが指定した次の確認を行ってください。'];
+    handoffItems.forEach(function(x,i){
+      x=x||{};
+      lines.push((i+1)+'. '+String(x.item||'確認事項'));
+      if(x.if_redirects)lines.push('   ・転送された場合：'+String(x.if_redirects));
+      if(x.if_displays)lines.push('   ・そのまま表示された場合：'+String(x.if_displays));
+      if(x.if_toko_travel)lines.push('   ・本番URLの場合：'+String(x.if_toko_travel));
+      if(x.if_xsrv)lines.push('   ・初期ドメインの場合：'+String(x.if_xsrv));
+      if(x.if_not_indexed)lines.push('   ・未登録の場合：'+String(x.if_not_indexed));
+    });
+    instruction=lines.join('\n');
+    choices=[
+      {code:'CONFIRMATION_ALL_OK',label:'指定された確認をすべて完了し、問題なし'},
+      {code:'CONFIRMATION_ACTION_REQUIRED',label:'確認の結果、対処が必要な問題が見つかった'},
+      {code:'OTHER_OR_UNCLEAR',label:'確認できない項目がある／判断できない'}
+    ];
+  }else if(isUrlInspection){
     instruction='Search Consoleの「URL検査」で対象URLを確認してください。'+(target?' 対象：'+target:'')+' 末尾スラッシュ違いが疑われる場合は両方を確認し、Googleが選択した正規URLとインデックス状況を見ます。';
     choices=[
       {code:'INDEX_AND_CANONICAL_OK',label:'Googleに登録済みで、正規URLも問題なし'},
@@ -19669,11 +19690,11 @@ function sbmDoctorUserConfirmationSpec_(doctor,n){
       {code:'OTHER_OR_UNCLEAR',label:'どれに当てはまるか分からない／その他'}
     ];
   }
-  return {case_id:n.caseId,type:isUrlInspection?'SEARCH_CONSOLE_URL_INSPECTION':String(req.type||'USER_CONFIRMATION'),summary:'確認結果をSIMSへ登録すると、SIMSが結果をEvidenceとして追加したDoctor再診依頼JSONを自動生成します。利用者が次の治療方針を判断する必要はありません。',instruction:instruction,choices:choices,doctor_request:req};
+  return {case_id:n.caseId,type:handoffItems.length?'WORKFLOW_HANDOFF_CONFIRMATION':(isUrlInspection?'SEARCH_CONSOLE_URL_INSPECTION':String(req.type||'USER_CONFIRMATION')),summary:'aDoctorが指定した確認事項を下に表示しています。確認後、結果をSIMSへ登録してください。SIMSが確認結果をEvidenceとして追加したDoctor再診依頼JSONを自動生成します。',instruction:instruction,choices:choices,doctor_request:req,confirmation_items:handoffItems};
 }
 
 function sbmDoctorConfirmationLabel_(code){
-  var m={INDEX_AND_CANONICAL_OK:'Google登録・正規URLとも正常',CANONICAL_MISMATCH:'正規URL/canonicalの不一致',INDEXING_ISSUE:'インデックス・クロール関連の問題',OTHER_OR_UNCLEAR:'その他・判断できない',NORMAL:'問題なし',ISSUE_FOUND:'問題あり',UNCLEAR:'判断できない'};
+  var m={CONFIRMATION_ALL_OK:'指定確認を完了・問題なし',CONFIRMATION_ACTION_REQUIRED:'確認結果に要対処あり',INDEX_AND_CANONICAL_OK:'Google登録・正規URLとも正常',CANONICAL_MISMATCH:'正規URL/canonicalの不一致',INDEXING_ISSUE:'インデックス・クロール関連の問題',OTHER_OR_UNCLEAR:'その他・判断できない',NORMAL:'問題なし',ISSUE_FOUND:'問題あり',UNCLEAR:'判断できない'};
   return m[String(code||'')]||String(code||'');
 }
 
