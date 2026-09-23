@@ -4,7 +4,13 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  */
 
-const SBM_VERSION = '6.7.13';
+const SBM_VERSION = '6.7.20';
+// v6.7.20: v6.7.19安定化後の後始末監査。未使用の公開Core bridgeのみ削除し、再診Case互換・要約復元・単一候補UIは維持。
+// v6.7.18: 保存済みDoctor再診依頼の旧V2契約版を現行V2へ安全に昇格し、再診結果登録画面を復元。
+// v6.7.17: 利用者確認後の再診Caseを正本化。旧CaseのFOLLOW_UP_REQUEST_READYを新Caseへ移管し、旧Caseを再開候補から除外。
+// v6.7.16: 未完了候補が1件でも候補画面を表示し、メニュー実行内での連続モーダル表示を回避。再開UIを別実行へ分離。
+// v6.7.15: 『未完了の作業を再開』の二重ダイアログ方式を廃止し、Core同期実行＋結果画面表示へ単純化。待機画面残留/次画面消失の競合を解消。
+// v6.7.14: 『未完了の作業を再開』の待機ダイアログ成功時host.close()を撤去。Coreが表示した再開候補/再開画面を直後に閉じる競合を防止。
 // v6.7.13: 利用者確認後のaDoctor再診依頼画面に再診結果受取欄を追加。新CaseIDの再診結果を同一ダイアログで登録し、Doctor判定に従ってWriter/Merge等の次工程へ継続できるよう修正。
 // v6.7.12: 未完了再開で同一記事の古いDOCTOR_NORMAL_CLOSEを現行Doctor/利用者確認Workflowより優先度を下げて重複表示から除外。『未完了の作業を再開』を設定・メンテナンスからSIMS今日の作業へ移動。
 // v6.7.11: Doctorのworkflow_handoff.user_confirmation_itemsを利用者確認UIへ表示し、確認結果をEvidence化して再診へ戻せるよう修正。
@@ -16887,6 +16893,14 @@ function sbmDoctorNormalizeV2RequestText_(text){
   // コードフェンスだけ付いた保存値も安全に除去。
   raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
   var p;try{p=JSON.parse(raw);}catch(e){throw new Error('保存済みaDoctor依頼をV2形式へ復元できません。');}
+  // v6.7.18: 同じV2形式で保存された過去版の契約番号だけが古い場合は、
+  // Evidence / follow_up_context / CaseIDを保持したまま現行契約番号へ昇格する。
+  // 形式・送受信元が異なるデータは救済せず、従来どおりエラーにする。
+  if(p&&String(p.format||'')===SBM_DOCTOR_SINGLE_CASE_FORMAT&&
+     String(p.source_system||'')==='SIMS_BLOG_MANAGER'&&String(p.target_system||'')==='SIMS_DOCTOR'){
+    p.contract_version=SBM_DOCTOR_CONTRACT_VERSION;
+    p.schema_version=SBM_DOCTOR_SCHEMA_VERSION;
+  }
   return sbmDoctorBuildSimsRequestEnvelope_(p,JSON.stringify(p,null,2));
 }
 
@@ -19754,7 +19768,14 @@ function sbmDoctorRegisterUserConfirmationAndBuildFollowUp(caseId,resultCode,raw
     var spec=sbmDoctorUserConfirmationSpec_(doctor,n),now=sbmNowText_();
     put('確認種別',spec.type);put('確認結果',sbmDoctorConfirmationLabel_(resultCode));put('確認詳細',String(rawText||'').substring(0,45000));put('確認日時',now);put('状態コード','FOLLOW_UP_REQUEST_READY');put('状態','Doctor再診依頼作成済み');put('更新日時',now);
     var follow=sbmDoctorBuildFollowUpRequest_(caseId,resultCode,rawText),followJson=JSON.stringify(follow,null,2),text=sbmDoctorBuildSimsRequestEnvelope_(follow,followJson),compact=JSON.stringify(follow);
-    put('再診依頼JSON',compact.length<=49000?compact:JSON.stringify({format:follow.format,case_id:follow.case_id,follow_up_context:follow.follow_up_context,note:'再診依頼はダイアログへ表示済み。Evidenceを含むためセル保存上限を超えました。'}));
+    var storedFollow=compact.length<=49000?compact:JSON.stringify({format:follow.format,case_id:follow.case_id,follow_up_context:follow.follow_up_context,note:'再診依頼はダイアログへ表示済み。Evidenceを含むためセル保存上限を超えました。'});
+    // v6.7.17: 再診依頼の正本は新Case。旧Caseは履歴として保持するが再開対象から外す。
+    var nextRec=sbmDoctorFindCaseRow_(String(follow.case_id||''));
+    if(!nextRec)throw new Error('Doctor再診用の新Caseを保存できませんでした：'+String(follow.case_id||''));
+    function putNext(k,v){if(nextRec.hm[k])nextRec.values[nextRec.hm[k]-1]=v===undefined||v===null?'':v;}
+    putNext('再診依頼JSON',storedFollow);putNext('状態コード','FOLLOW_UP_REQUEST_READY');putNext('状態','Doctor再診結果待ち');putNext('更新日時',now);
+    nextRec.sheet.getRange(nextRec.row,1,1,nextRec.values.length).setValues([nextRec.values]);
+    put('状態コード','SUPERSEDED_FOLLOW_UP');put('状態','後続Doctor再診Caseへ移管済み');put('更新日時',now);
     rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);
     return {ok:true,message:'確認結果を登録し、Doctor再診依頼を作成しました。\n結果：'+sbmDoctorConfirmationLabel_(resultCode)+'\n新CaseID：'+follow.case_id,followUpRequest:text,followUpCaseId:follow.case_id};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
@@ -20019,9 +20040,25 @@ function sbmDoctorSingleCaseResumePayload_(row,hm){
   if(state==='FOLLOW_UP_REQUEST_READY'){
     var followRaw=String(v('再診依頼JSON')||'').trim();
     if(!followRaw)throw new Error('保存済みの再診依頼JSONがありません。');
+    // v6.7.19: Evidenceが大きくセル上限を超えた再診依頼は、保存時に要約JSONへ縮退する。
+    // 要約JSONにはV2契約番号・source/target・request/article全文が無いため、厳密V2検証へ渡すと
+    // 「契約バージョンが一致しません」で再開不能になる。再診結果登録に必要なのはCase/Article identityなので、
+    // 同一Case行を正本として現行V2の最小依頼を安全に再構築する。完全保存されている依頼は従来どおり使用する。
+    var followObj=null;try{followObj=JSON.parse(followRaw);}catch(ignoreFollowParse){}
+    var isCompactFollow=!!(followObj&&String(followObj.format||'')===SBM_DOCTOR_SINGLE_CASE_FORMAT&&
+      String(followObj.case_id||'').trim()===caseId&&(!followObj.request||!followObj.article||!followObj.source_system||!followObj.target_system));
+    if(isCompactFollow){
+      var c={};Object.keys(hm).forEach(function(k){c[k]=row[hm[k]-1];});
+      var effectRec=sbmDoctorFindEffectByUrl_(articleUrl)||{};
+      var recovered=sbmDoctorWorkflowMinimalRequestFromCase_(c,effectRec);
+      recovered.request.trigger='SBM_USER_CONFIRMATION_FOLLOW_UP_RECOVERED';
+      recovered.request.chief_complaint='保存済み再診依頼がセル上限により要約保存されたため、同一CaseIDのDoctor再診結果を登録するために復元しました。';
+      if(followObj.follow_up_context)recovered.follow_up_context=followObj.follow_up_context;
+      return recovered;
+    }
     followRaw=sbmDoctorNormalizeV2RequestText_(followRaw);
     var follow=JSON.parse(followRaw);
-    if(!follow.article||!follow.request)throw new Error('再診依頼が省略保存されているため、この画面だけでは全文を復元できません。元のaDoctor回答を再登録してください。');
+    if(!follow.article||!follow.request)throw new Error('再診依頼を復元できません。CaseID: '+caseId);
     return follow;
   }
 
@@ -20337,7 +20374,7 @@ function sbmDoctorResumePrecisionDiagnosis(){
 function sbmDoctorResumeStateLabel_(state){
   var m={
     'DOCTOR_DIAGNOSIS_PENDING':'aDoctorの回答待ち',
-    'FOLLOW_UP_REQUEST_READY':'追加のaDoctor診断待ち',
+    'FOLLOW_UP_REQUEST_READY':'aDoctor再診結果の登録待ち',
     'USER_ACTION_REQUIRED':'利用者確認待ち',
     'USER_DECISION_REQUIRED':'利用者判断待ち',
     'WRITER_REQUEST_READY':'aWriterへの依頼待ち',
@@ -20359,7 +20396,7 @@ function sbmDoctorResumeStateLabel_(state){
 function sbmDoctorResumeNextActionLabel_(state){
   var m={
     'DOCTOR_DIAGNOSIS_PENDING':'aDoctorの回答を登録して次の処置を決めます。',
-    'FOLLOW_UP_REQUEST_READY':'追加診断の回答を登録して、Merge・差別化・維持などを判断します。',
+    'FOLLOW_UP_REQUEST_READY':'aDoctorの再診結果を登録して、次の処置へ進みます。',
     'USER_ACTION_REQUIRED':'aDoctorが指定した確認結果を登録します。',
     'USER_DECISION_REQUIRED':'診断内容を確認し、利用者判断を登録します。',
     'WRITER_REQUEST_READY':'aWriterへ紹介状を渡します。',
@@ -20397,7 +20434,7 @@ function sbmDoctorResumeWorkSummary_(row,hm,wfIndex){
   if(state.indexOf('WRITER')>=0)return 'aDoctor診断に基づく記事改善';
   if(state.indexOf('CREATOR')>=0)return 'aDoctor診断に基づく新記事作成';
   if(state==='USER_ACTION_REQUIRED'||state==='USER_DECISION_REQUIRED')return 'aDoctor診断後の確認・判断';
-  if(state==='FOLLOW_UP_REQUEST_READY')return 'aDoctorの追加診断';
+  if(state==='FOLLOW_UP_REQUEST_READY')return 'aDoctor再診結果の登録';
   if(state==='DOCTOR_NORMAL_CLOSE')return 'aDoctor診断後のモニター終了・完了登録';
   if(state==='NEW_ARTICLE_SETUP'||state==='NEW_ARTICLE_CREATOR_IN_PROGRESS'||state==='NEW_ARTICLE_PUBLICATION_PENDING')return '新記事作成（aCreator）';
   return 'aDoctorによる記事の精密診断';
@@ -20448,6 +20485,38 @@ function sbmDoctorCasePredatesActiveMonitoring_(row,hm,monitorMap){
   // 作成日時不明のCaseは誤除外を避ける。日時が確認でき、モニター開始以前なら未完了ではない。
   return !!cts&&cts<=Number(ev.ts||0);
 }
+// v6.7.17: v6.7.11-v6.7.16で作成された「旧Case=FOLLOW_UP_REQUEST_READY / 新Case=DOCTOR_DIAGNOSIS_PENDING」を補正する。
+// 再診依頼JSON内のcase_idを正本Caseとして扱い、依頼本文を新Caseへ移管。旧Caseは履歴保持のまま再開対象外にする。
+function sbmDoctorReconcileFollowUpCaseLineage_(sh,hm,vals){
+  var byCase={};
+  vals.forEach(function(r){var cid=hm['CaseID']?String(r[hm['CaseID']-1]||'').trim():'';if(cid)byCase[cid]=r;});
+  var changed=0,now=sbmNowText_();
+  vals.forEach(function(row){
+    var state=hm['状態コード']?String(row[hm['状態コード']-1]||'').trim():'';
+    if(state!=='FOLLOW_UP_REQUEST_READY'||!hm['再診依頼JSON'])return;
+    var raw=String(row[hm['再診依頼JSON']-1]||'').trim();if(!raw)return;
+    var req=null;try{req=JSON.parse(raw);}catch(ignoreParse){return;}
+    var targetId=String(req&&req.case_id||req&&req.request&&req.request.case_id||'').trim();
+    var sourceId=hm['CaseID']?String(row[hm['CaseID']-1]||'').trim():'';
+    if(!targetId||targetId===sourceId||!byCase[targetId])return;
+    var target=byCase[targetId],targetState=hm['状態コード']?String(target[hm['状態コード']-1]||'').trim():'';
+    if(targetState!=='DOCTOR_DIAGNOSIS_PENDING'&&targetState!=='FOLLOW_UP_REQUEST_READY')return;
+    target[hm['再診依頼JSON']-1]=raw;
+    if(hm['状態コード'])target[hm['状態コード']-1]='FOLLOW_UP_REQUEST_READY';
+    if(hm['状態'])target[hm['状態']-1]='Doctor再診結果待ち';
+    if(hm['更新日時'])target[hm['更新日時']-1]=now;
+    if(hm['状態コード'])row[hm['状態コード']-1]='SUPERSEDED_FOLLOW_UP';
+    if(hm['状態'])row[hm['状態']-1]='後続Doctor再診Caseへ移管済み';
+    if(hm['更新日時'])row[hm['更新日時']-1]=now;
+    changed++;
+  });
+  if(changed){
+    sh.getRange(2,1,vals.length,sh.getLastColumn()).setValues(vals);
+    try{sbmLog_('V6717FollowUpLineageReconcile','Info','migrated='+changed);}catch(ignoreLog){}
+  }
+  return changed;
+}
+
 function sbmDoctorResumeChooserItems_(vals,hm,activeMap,wfIndex,fastDisplayMode){
   // v6.6.68: 未完了メニュー表示では日次整合済みデータを前提に、改善履歴/改善の推移の横断照合を省略する。
   // 他の整合・保守呼出しは従来照合を維持する。
@@ -20661,12 +20730,10 @@ function sbmDoctorShowResumeCaseChooser_(items){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   if (!sbmLicenseRequireForProcessing_()) return;
-  // メニュー選択直後に空の待機画面を出す。重いWorkflow探索はgoogle.script.run側で続行する。
-  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:28px;color:#202124;background:#fff}.wrap{text-align:center;padding-top:24px}.spinner{width:38px;height:38px;border:4px solid #e8eaed;border-top-color:#1a73e8;border-radius:50%;margin:0 auto 18px;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}h3{font-size:17px;margin:0 0 8px}.msg{font-size:13px;color:#5f6368;line-height:1.6}</style></head><body><div class="wrap"><div class="spinner"></div><h3>未完了の作業を確認しています</h3><div class="msg">保存済みCaseとWorkflowStateを一括で読み込み、再開が必要な案件だけを抽出しています。<br>記事情報の再取得・GSC取得・診断処理は行いません。</div></div><script>var finished=false;var timer=setTimeout(function(){if(finished)return;document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="未完了案件の抽出に時間がかかっています";document.querySelector(".msg").innerHTML="通常は短時間で完了します。45秒を超えたため、いったん閉じて再実行してください。待ち続ける必要はありません。"},45000);google.script.run.withFailureHandler(function(e){finished=true;clearTimeout(timer);document.querySelector(".spinner").style.display="none";document.querySelector("h3").textContent="再開処理を開始できませんでした";document.querySelector(".msg").textContent=e&&e.message?e.message:String(e)}).withSuccessHandler(function(){finished=true;clearTimeout(timer);google.script.host.close()}).sbmResumeUnfinishedWorkflowCore();</script></body></html>';
-  SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(250),'未完了の作業を再開');
-}
-// google.script.run から末尾_のprivate関数は呼べないため、公開bridgeを経由する。
-function sbmResumeUnfinishedWorkflowCore(){
+  // v6.7.15: 待機ダイアログと次画面の競合を廃止。
+  // 候補抽出は実測約8秒で完了するため、メニューからCoreを同期実行し、Coreが結果画面だけを表示する。
+  // これにより「待機画面が残る／次画面が閉じる」という二重ダイアログ競合を根本的に避ける。
+  try{SpreadsheetApp.getActive().toast('未完了の作業を確認しています…','SIMS Manager',10);}catch(ignoreToast){}
   return sbmResumeUnfinishedWorkflowCore_();
 }
 // v6.6.50: 未完了一覧を開くたびに、改善履歴を正本として旧Doctor/Writer Caseとの整合を軽量確認する。
@@ -20746,6 +20813,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
       finishProfile_('完了','Starter候補0件'); return sbmAlert_('未完了の作業を再開','再開できる通常改善の作業はありません。\n\nStarter Editionでは、旧版のaDoctor関連Caseは再開対象に表示しません。モニター中の記事は「改善の推移・履歴」から確認してください。');
     }
     var tCases=new Date(); var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[]; profiler.lap('Doctor Case一括読込','',vals.length,sbmSecondsSince_(tCases)+'秒');
+    var tLineage=new Date();var lineageFixed=sbmDoctorReconcileFollowUpCaseLineage_(sh,hm,vals);profiler.lap('再診Case正本化','',lineageFixed,sbmSecondsSince_(tLineage)+'秒');
     var doctorOrConfirm={
       'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,
       'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
@@ -20786,12 +20854,14 @@ function sbmResumeUnfinishedWorkflowCore_(){
     profiler.lap('Fallback候補走査','',doctorCandidate?1:0,sbmSecondsSince_(tFallbackScan)+'秒');
     // 系統をまたいで候補が複数ある場合は必ず選択画面へ。更新日時だけで通常改善/Doctor系を自動選択しない。
     if(resumeItems.length>1){finishProfile_('完了','候補='+resumeItems.length+'件');sbmDoctorShowResumeCaseChooser_(resumeItems);return;}
-    // 候補が1件だけなら、その候補のWorkflow Identityをそのまま再開する。
+    // v6.7.16: 候補が1件でも自動再開せず、必ず候補画面を表示する。
+    // メニュー実行中にCore→個別再開→別モーダルを連続表示すると、Apps Script UI側で
+    // 個別モーダルが表示されないケースがあるため、表示境界をここで一度切る。
+    // 利用者が「この作業を再開」を押した後は google.script.run の別実行で個別画面を開く。
     if(resumeItems.length===1){
-      var only=resumeItems[0];
-      finishProfile_('完了','候補=1件 / '+String(only.workflowType||'DOCTOR'));
-      if(String(only.workflowType||'DOCTOR')==='NORMAL_IMPROVEMENT')return sbmResumeSelectedWorkflow('NORMAL_IMPROVEMENT',only.workflowId,false);
-      return sbmResumeSelectedWorkflowCase(only.caseId,!!only.virtualFollowUp);
+      finishProfile_('完了','候補=1件 / 選択画面表示');
+      sbmDoctorShowResumeCaseChooser_(resumeItems);
+      return;
     }
     if(doctorCandidate){ finishProfile_('完了','fallback Doctor候補=1件');
       if(newArticle[doctorCandidate.state]){sbmShowNewArticleCreationDialog_(doctorCandidate.caseId);return;}
