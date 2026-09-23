@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.21",
+  "current_version": "6.7.23",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.21: Add explicit user decision controls for YELLOW SERP entry checks and continue to the existing aCreator referral flow only when the user chooses to proceed.",
-  "version": "6.7.21",
+  "notes": "v6.7.23: Save SERP entry-check checkpoints in the existing WorkflowState store and resume them from Unfinished Work without changing established Doctor/new-article workflows.",
+  "version": "6.7.23",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.21-ST"
+  "starter_display_version": "v6.7.23-ST"
 }

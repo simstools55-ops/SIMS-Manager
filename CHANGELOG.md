@@ -1,3 +1,10 @@
+## v6.7.23
+- SERP参入余地チェックを既存WorkflowStateへチェックポイント保存し、「未完了の作業を再開」からキーワード・Claude依頼文・回答・判定・aCreator紹介状を復元できるよう対応。
+- YELLOW見送り・参入不可は完了扱いとして未完了一覧から除外。既存Doctor再診・通常改善・新記事作成Workflowには変更なし。
+
+## v6.7.22
+- YELLOW SERP判定から利用者判断でaCreatorへ進む場合、紹介状の `serp_entry_assessment.grade` を `YELLOW` のまま保持し、`user_decision: "GO"` を別記録するよう修正。到達順位からGREENへ再判定される不整合を解消。
+
 ## v6.7.21
 - SERP参入余地チェックのYELLOW判定に「aCreatorで記事作成へ進む」「今回は見送る」の利用者判断導線を追加。
 - 進む選択時のみ既存aCreator紹介状作成工程へ接続。SERP判定そのものは変更しない。
