@@ -1,0 +1,15 @@
+SIMS Manager v6.7.36 VERSION / PACKAGE AUDIT
+
+Result: PASS
+- SBM_VERSION: 6.7.36
+- Code.gs header: 6.7.36
+- README-FIRST: 6.7.36
+- PRODUCT_IDENTITY: 6.7.36
+- CHANGELOG: v6.7.36 entry present
+- RELEASE NOTES: RELEASE_NOTES_v6.7.36.md present
+- Code.gs copies: 5 / SHA-256 identical
+- JavaScript syntax check: PASS
+- Scope: unfinished-work UI only (spinner + centered zero-result modal)
+- Resume discovery / chooser / optimized processing logic: unchanged
+
+Code.gs SHA-256: 2d7e612720a601e4fc238860e499a310b9ae9e843ac6028f4fc7ccfb9650949b

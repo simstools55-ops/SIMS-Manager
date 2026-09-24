@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.35
+ * Current version: 6.7.36
  * Release summary: Restore centered unfinished-work checking/result UI without changing resume discovery logic.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.35.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.36.md.
  */
 
-const SBM_VERSION = '6.7.35';
+const SBM_VERSION = '6.7.36';
+// v6.7.36: 未完了再開の確認中UIに回転インジケータを追加し、0件結果を中央モーダルで明示。探索・高速化処理は変更なし。
 // v6.7.35: 未完了再開の確認中表示を中央へ戻し、0件時の結果を明示。候補探索・再開ロジックは変更なし。
 // v6.7.33: 今日の改善の既存完了表示を軽量同期でも保護し、過去完了行のチェックボックス回帰を復元。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
@@ -20650,16 +20651,26 @@ function sbmDoctorShowResumeCaseChooser_(items){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   if (!sbmLicenseRequireForProcessing_()) return;
-  // v6.7.35: 未完了探索ロジックには触れず、処理中表示だけを中央のmodeless dialogへ戻す。
+  // v6.7.36: 未完了探索ロジックには触れず、確認中UIに回転インジケータを追加。
   // modelessにすることで、Coreが表示する既存の再開選択modalとの競合を避ける。
   var themeCss=sbmMonochromeDialogOverrides_();
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+themeCss+
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:28px;color:#202124;background:#fff;text-align:center}'+
-    '.msg{font-size:16px;font-weight:700;margin-top:8px}.sub{font-size:12px;color:#5f6368;margin-top:10px}</style></head><body>'+
-    '<div class="msg">未完了の作業を確認しています…</div><div class="sub">確認が終わるまで、このままお待ちください。</div>'+
+    '.spinner{width:30px;height:30px;margin:2px auto 14px;border:4px solid #dadce0;border-top-color:#5f6368;border-radius:50%;animation:spin .85s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.msg{font-size:16px;font-weight:700;margin-top:8px}.sub{font-size:12px;color:#5f6368;margin-top:10px}</style></head><body>'+
+    '<div class="spinner" aria-hidden="true"></div><div class="msg">未完了の作業を確認しています…</div><div class="sub">確認が終わるまで、このままお待ちください。</div>'+
     '<script>google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(){google.script.host.close()}).sbmResumeUnfinishedWorkflowFromCheckingDialog();</script></body></html>';
   SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(420).setHeight(150),'SIMS Manager');
 }
+// 未完了0件の結果はtoastではなく中央モーダルで明示する。
+function sbmShowNoUnfinishedWorkDialog_(){
+  var themeCss=sbmMonochromeDialogOverrides_();
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+themeCss+
+    'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:26px;color:#202124;background:#fff}.msg{font-size:15px;line-height:1.75}.actions{text-align:right;margin-top:22px}button{border:1px solid #dadce0;border-radius:6px;padding:8px 18px;background:#fff;font-weight:700;cursor:pointer}</style></head><body>'+
+    '<div class="msg">未完了の作業はありません。現在、再開が必要な作業はありません。</div>'+
+    '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></body></html>';
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(460).setHeight(190),'未完了の作業を再開');
+}
+
 // 中央の確認中UIからCoreを呼ぶための公開bridge。探索・再開処理はCoreへそのまま委譲する。
 function sbmResumeUnfinishedWorkflowFromCheckingDialog(){
   return sbmResumeUnfinishedWorkflowCore_();
@@ -20738,7 +20749,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
     if(!sbmIsADoctorEnabled_()){
       if(normals.length>1){var starterItems=normals.map(sbmNormalImprovementResumeChooserItem_).filter(function(x){return !!x;});profiler.lap('Starter候補UI構築','',starterItems.length,'');finishProfile_('完了','Starter複数候補='+starterItems.length);sbmDoctorShowResumeCaseChooser_(starterItems);return;}
       if(normal){finishProfile_('完了','Starter通常改善1件');return sbmResumeNormalImprovementWorkflow_(normal);}
-      finishProfile_('完了','Starter候補0件'); return sbmAlert_('未完了の作業を再開','未完了の作業はありません。現在、再開が必要な作業はありません。');
+      finishProfile_('完了','Starter候補0件'); sbmShowNoUnfinishedWorkDialog_(); return;
     }
     var tCases=new Date(); var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[]; profiler.lap('Doctor Case一括読込','',vals.length,sbmSecondsSince_(tCases)+'秒');
     var tLineage=new Date();var lineageFixed=sbmDoctorReconcileFollowUpCaseLineage_(sh,hm,vals);profiler.lap('再診Case正本化','',lineageFixed,sbmSecondsSince_(tLineage)+'秒');
@@ -20806,7 +20817,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
         'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
     }
     finishProfile_('完了','候補=0件');
-    return sbmAlert_('未完了の作業を再開','未完了の作業はありません。現在、再開が必要な作業はありません。');
+    sbmShowNoUnfinishedWorkDialog_(); return;
   }catch(e){
     finishProfile_('エラー',String(e&&e.message?e.message:e));
     sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
