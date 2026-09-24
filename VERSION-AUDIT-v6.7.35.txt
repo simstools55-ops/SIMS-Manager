@@ -1,0 +1,15 @@
+SIMS Manager v6.7.35 Version Audit
+Date: 2026-09-24
+
+- Base repository: SIMS Manager v6.7.34
+- Code.gs (5 copies): Current version comment = 6.7.35 / SBM_VERSION = 6.7.35
+- Code.gs SHA-256 identical: PASS
+- JavaScript syntax parse (node --check via .js copy): PASS
+- README-FIRST.md: 6.7.35
+- distribution/README-FIRST.md: 6.7.35
+- PRODUCT_IDENTITY.json: 6.7.35 / v6.7.35-ST
+- shared/PRODUCT_IDENTITY.json: 6.7.35 / v6.7.35-ST
+- CHANGELOG.md: v6.7.35 entry added
+- RELEASE_NOTES_v6.7.35.md: added
+- UI scope: centered checking modeless dialog + explicit zero-case result message
+- Resume discovery logic / chooser / optimized indexing path: unchanged

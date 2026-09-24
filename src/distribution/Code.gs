@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.32
- * Release summary: Preserve completed Today rows as a one-way state and prevent checkbox regression.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.32.md.
+ * Current version: 6.7.35
+ * Release summary: Restore centered unfinished-work checking/result UI without changing resume discovery logic.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.35.md.
  */
 
-const SBM_VERSION = '6.7.33';
+const SBM_VERSION = '6.7.35';
+// v6.7.35: 未完了再開の確認中表示を中央へ戻し、0件時の結果を明示。候補探索・再開ロジックは変更なし。
 // v6.7.33: 今日の改善の既存完了表示を軽量同期でも保護し、過去完了行のチェックボックス回帰を復元。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -20649,10 +20650,18 @@ function sbmDoctorShowResumeCaseChooser_(items){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   if (!sbmLicenseRequireForProcessing_()) return;
-  // v6.7.15: 待機ダイアログと次画面の競合を廃止。
-  // 候補抽出は実測約8秒で完了するため、メニューからCoreを同期実行し、Coreが結果画面だけを表示する。
-  // これにより「待機画面が残る／次画面が閉じる」という二重ダイアログ競合を根本的に避ける。
-  try{SpreadsheetApp.getActive().toast('未完了の作業を確認しています…','SIMS Manager',10);}catch(ignoreToast){}
+  // v6.7.35: 未完了探索ロジックには触れず、処理中表示だけを中央のmodeless dialogへ戻す。
+  // modelessにすることで、Coreが表示する既存の再開選択modalとの競合を避ける。
+  var themeCss=sbmMonochromeDialogOverrides_();
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+themeCss+
+    'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:28px;color:#202124;background:#fff;text-align:center}'+
+    '.msg{font-size:16px;font-weight:700;margin-top:8px}.sub{font-size:12px;color:#5f6368;margin-top:10px}</style></head><body>'+
+    '<div class="msg">未完了の作業を確認しています…</div><div class="sub">確認が終わるまで、このままお待ちください。</div>'+
+    '<script>google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(){google.script.host.close()}).sbmResumeUnfinishedWorkflowFromCheckingDialog();</script></body></html>';
+  SpreadsheetApp.getUi().showModelessDialog(HtmlService.createHtmlOutput(html).setWidth(420).setHeight(150),'SIMS Manager');
+}
+// 中央の確認中UIからCoreを呼ぶための公開bridge。探索・再開処理はCoreへそのまま委譲する。
+function sbmResumeUnfinishedWorkflowFromCheckingDialog(){
   return sbmResumeUnfinishedWorkflowCore_();
 }
 // v6.6.50: 未完了一覧を開くたびに、改善履歴を正本として旧Doctor/Writer Caseとの整合を軽量確認する。
@@ -20729,7 +20738,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
     if(!sbmIsADoctorEnabled_()){
       if(normals.length>1){var starterItems=normals.map(sbmNormalImprovementResumeChooserItem_).filter(function(x){return !!x;});profiler.lap('Starter候補UI構築','',starterItems.length,'');finishProfile_('完了','Starter複数候補='+starterItems.length);sbmDoctorShowResumeCaseChooser_(starterItems);return;}
       if(normal){finishProfile_('完了','Starter通常改善1件');return sbmResumeNormalImprovementWorkflow_(normal);}
-      finishProfile_('完了','Starter候補0件'); return sbmAlert_('未完了の作業を再開','再開できる通常改善の作業はありません。\n\nStarter Editionでは、旧版のaDoctor関連Caseは再開対象に表示しません。モニター中の記事は「改善の推移・履歴」から確認してください。');
+      finishProfile_('完了','Starter候補0件'); return sbmAlert_('未完了の作業を再開','未完了の作業はありません。現在、再開が必要な作業はありません。');
     }
     var tCases=new Date(); var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow(),vals=last>1?sh.getRange(2,1,last-1,sh.getLastColumn()).getValues():[]; profiler.lap('Doctor Case一括読込','',vals.length,sbmSecondsSince_(tCases)+'秒');
     var tLineage=new Date();var lineageFixed=sbmDoctorReconcileFollowUpCaseLineage_(sh,hm,vals);profiler.lap('再診Case正本化','',lineageFixed,sbmSecondsSince_(tLineage)+'秒');
@@ -20797,7 +20806,7 @@ function sbmResumeUnfinishedWorkflowCore_(){
         'これは通常の「再開」ではなくデータ整合性の点検・復旧対象です。\n\nCaseID：'+failed.slice(0,5).join(', '));
     }
     finishProfile_('完了','候補=0件');
-    return sbmAlert_('未完了の作業を再開','再開できる未完了作業はありません。\n\nモニター中の案件は「改善の推移・履歴」から確認してください。');
+    return sbmAlert_('未完了の作業を再開','未完了の作業はありません。現在、再開が必要な作業はありません。');
   }catch(e){
     finishProfile_('エラー',String(e&&e.message?e.message:e));
     sbmAlert_('未完了の作業を再開できません',String(e&&e.message?e.message:e));
@@ -22650,7 +22659,7 @@ function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
 
 function sbmDoctorNormalizeWriterTreatmentStatus_(value){
   var raw=String(value||'').trim().toUpperCase();
-  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_PUBLIC_OK:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
+  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_PUBLIC_OK:1,COMPLETED_WITH_FOLLOW_UP:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
   if(completed[raw])return {raw:raw,normalized:(raw==='COMPLETED_WITH_REPORTED_EXCEPTION'?'COMPLETED_WITH_REPORTED_EXCEPTION':'COMPLETED'),completed:true};
   return {raw:raw,normalized:raw,completed:false};
 }

@@ -1,0 +1,13 @@
+SIMS Manager v6.7.34 Version Audit
+Date: 2026-09-24
+
+- Code.gs (5 copies): SBM_VERSION = 6.7.34
+- Code.gs SHA-256 identical: PASS
+- JavaScript syntax parse (node --check via .js copy): PASS
+- README-FIRST.md: 6.7.34
+- distribution/README-FIRST.md: 6.7.34
+- PRODUCT_IDENTITY.json: 6.7.34 / v6.7.34-ST
+- shared/PRODUCT_IDENTITY.json: 6.7.34 / v6.7.34-ST
+- CHANGELOG.md: v6.7.34 entry added
+- RELEASE_NOTES_v6.7.34.md: added
+- Scope: accept COMPLETED_WITH_FOLLOW_UP as completed treatment status only; no heavy refresh path added
