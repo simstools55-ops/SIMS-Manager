@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.37",
+  "current_version": "6.7.38",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.37: Formalize distribution artifact/template tracking; production logic remains unchanged from v6.7.36.",
-  "version": "6.7.37",
+  "notes": "v6.7.38: Daily processing refreshes Today queue by removing completed/active items and refilling available slots with the existing candidate policy.",
+  "version": "6.7.38",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.37-ST"
+  "starter_display_version": "v6.7.38-ST"
 }

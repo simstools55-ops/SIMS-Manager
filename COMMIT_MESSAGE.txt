@@ -1,1 +1,1 @@
-chore: formalize distribution artifacts and template tracking (v6.7.37)
+fix: refresh today queue after daily processing (v6.7.38)

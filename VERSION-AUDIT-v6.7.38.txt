@@ -1,0 +1,22 @@
+SIMS Manager v6.7.38 VERSION / PACKAGE AUDIT
+
+Result: PASS
+
+- Repository version: 6.7.38
+- Code.gs files found: 5
+- SBM_VERSION in all Code.gs: 6.7.38
+- All Code.gs SHA-256 identical: True
+- README-FIRST: 6.7.38
+- PRODUCT_IDENTITY: 6.7.38
+- shared/PRODUCT_IDENTITY: 6.7.38
+- CHANGELOG: v6.7.38 entry present
+- RELEASE NOTES: RELEASE_NOTES_v6.7.38.md present
+- distribution source: included and synchronized
+- Drive template reference: v6.7.37 copy exists; bound script update still required and is explicitly marked unsynced
+
+Code.gs paths:
+- Code.gs
+- apps-script/Code.gs
+- distribution/Code.gs
+- src/apps-script/Code.gs
+- src/distribution/Code.gs

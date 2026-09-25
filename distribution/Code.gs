@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.37
- * Release summary: Restore centered unfinished-work checking/result UI without changing resume discovery logic.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.37.md.
+ * Current version: 6.7.38
+ * Release summary: Refresh Today queue after daily processing: remove completed/active items and refill available slots.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.38.md.
  */
 
-const SBM_VERSION = '6.7.37';
+const SBM_VERSION = '6.7.38';
+// v6.7.38: 日次処理後に今日の改善から完了・進行中記事を除外し、不足枠を既存候補ロジックで補充。
 // v6.7.37: 未完了再開の確認中UIに回転インジケータを追加し、0件結果を中央モーダルで明示。探索・高速化処理は変更なし。
 // v6.7.35: 未完了再開の確認中表示を中央へ戻し、0件時の結果を明示。候補探索・再開ロジックは変更なし。
 // v6.7.33: 今日の改善の既存完了表示を軽量同期でも保護し、過去完了行のチェックボックス回帰を復元。
@@ -707,6 +708,10 @@ function sbmRunDailyFinalizeStageFromDialog() {
     sbmDailyProfileCheckpoint_('STEP3_SHARED_SNAPSHOT',step3Shared.articleRows.length,step3Shared.observationEndedCandidates.length,step3SharedSec,'記事管理・改善履歴を1回読込し後続処理で共有',startedText,sbmNowText_());
     var tDailyTodaySync3=new Date(),dailyTodaySyncCount=0;
     try{dailyTodaySyncCount=Number(sbmSyncObservationEndedToToday_(step3Shared)||0);}catch(eDailyTodaySync){try{sbmLog_('DailyObservationEndedTodaySync','Warning',String(eDailyTodaySync));}catch(ignoreDailyTodaySyncLog){}}
+    // v6.7.38: 日次処理の最終整合で、前日までに完了した行と現在進行中の記事を
+    // 「今日の改善」から除外し、空いた枠だけ既存の候補選定ロジックで補充する。
+    // 候補カテゴリ・優先順位・上限は変更せず、既存の高速差分更新を再利用する。
+    try{sbmRefreshTodayQueueFast_();}catch(eDailyTodayQueueRefresh){try{sbmLog_('DailyTodayQueueRefresh','Warning',String(eDailyTodayQueueRefresh));}catch(ignoreDailyTodayQueueRefreshLog){}}
     var step3TodaySyncSec=sbmSecondsSince_(tDailyTodaySync3);
     sbmDailyProfileCheckpoint_('STEP3_今日の改善整合',dailyTodaySyncCount,'',step3TodaySyncSec,'区間完了',startedText,sbmNowText_());
     var todayTiming=SBM_LAST_TODAY_SYNC_TIMING||{};
