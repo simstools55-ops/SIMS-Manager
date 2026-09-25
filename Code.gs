@@ -3,12 +3,17 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.38
- * Release summary: Refresh Today queue after daily processing: remove completed/active items and refill available slots.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.38.md.
+ * Current version: 6.7.45
+ * Release summary: Keep tracked improvement cycles out of Today's Improvements until Article Management explicitly releases them for 90-day re-evaluation.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.45.md.
  */
 
-const SBM_VERSION = '6.7.38';
+const SBM_VERSION = '6.7.45';
+// v6.7.45: エース記事の直近28日急落を日次で検知し、通常枠とは別の『エース急落』としてaDoctor精密診断へ接続。完了記事は急落時だけ90日保護を解除。
+// v6.7.44: ACTIVE/REVIEW_REQUIRED/COMPLETEDの最新改善サイクルを通常候補から除外し、記事管理の明示的な90日再評価時だけ再候補化を許可。
+// v6.7.42: 前日完了を候補抽出前に除外して同区分の次点候補を補充し、再描画前に旧完了書式も初期化。
+// v6.7.40: 日次STEP3『今日の改善』再構築の診断ログを追加（候補ロジック・書込みロジックは変更なし）。
+// v6.7.39: 日次STEP3で保存済み候補を使わず、最新の記事管理状態から今日の改善を再構築。
 // v6.7.38: 日次処理後に今日の改善から完了・進行中記事を除外し、不足枠を既存候補ロジックで補充。
 // v6.7.37: 未完了再開の確認中UIに回転インジケータを追加し、0件結果を中央モーダルで明示。探索・高速化処理は変更なし。
 // v6.7.35: 未完了再開の確認中表示を中央へ戻し、0件時の結果を明示。候補探索・再開ロジックは変更なし。
@@ -517,6 +522,9 @@ function sbmRunDailyAnalysisStageFromDialog() {
     if (continuationPhase === 'RECOMMEND') {
       try { mergeResult = JSON.parse(String(step2SettingsShared.DailyAnalysisMergeResultJson || '{}')); } catch(eJson) { mergeResult = {}; }
     } else {
+      // v6.7.45: GSC更新でランクが落ちる直前のエースArticleID/URLを退避する。
+      // 急落によって当日『成長』等へ降格しても、主力記事の急変を取りこぼさない。
+      try{sbmCapturePreUpdateAceArticles_();}catch(eAceSnapshot){try{sbmLog_('AceDropSnapshot','Warning',String(eAceSnapshot));}catch(ignoreAceSnapshotLog){}}
       var tMerge2 = new Date();
       mergeResult = sbmMergeArticleDbDaily_(rows);
       step2MergeSec = sbmSecondsSince_(tMerge2);
@@ -532,8 +540,15 @@ function sbmRunDailyAnalysisStageFromDialog() {
     try{sbmRecycleCompletedArticlesForReview_();}catch(eRecycle){try{sbmLog_('CompletedArticleRecycle','Warning',String(eRecycle));}catch(ignoreRecycleLog){}}
     var step2RecycleSec = sbmSecondsSince_(tRecycle2);
     try { sbmDailyProfileCheckpoint_('STEP2_RECYCLE','','',step2RecycleSec,'完了記事の再評価準備完了',startedText,sbmNowText_()); } catch(ignoreStep2RecycleProfile) {}
+    // v6.7.41: STEP2が今日シートを書き直す前に、前日までに完了表示された記事を退避する。
+    // これを先に行わないと、STEP2_TODAY_WRITEで「完了」表示がFALSEへ置き換わり、
+    // STEP3からは完了済みArticleIDを復元できない。
+    var dailyCompletedExclusions=sbmCollectTodayCompletedExclusions_();
+    try{sbmSetSetting_('DailyTodayCompletedExclusionsJson',JSON.stringify(dailyCompletedExclusions),'日次処理中の完了済み今日候補除外キー');}catch(eDailyExclusionSave){sbmLog_('DailyTodayQueue','Warning','完了除外キー保存失敗: '+String(eDailyExclusionSave));}
     var tSelect2 = new Date();
-    var candidates = sbmSelectTodayRecommendations_();
+    var candidatesRaw = sbmSelectTodayRecommendations_();
+    var candidates = sbmFilterTodayCandidatesByExclusions_(candidatesRaw,dailyCompletedExclusions);
+    candidates._timing = candidatesRaw && candidatesRaw._timing ? candidatesRaw._timing : {};
     var step2SelectSec = sbmSecondsSince_(tSelect2);
     try { sbmDailyProfileCheckpoint_('STEP2_SELECT',rows.length,Number(candidates.length||0),step2SelectSec,'今日の改善候補選定完了',startedText,sbmNowText_()); } catch(ignoreStep2SelectProfile) {}
     var candidateCount = candidates.length;
@@ -707,11 +722,13 @@ function sbmRunDailyFinalizeStageFromDialog() {
     var step3SharedSec=sbmSecondsSince_(tShared3);
     sbmDailyProfileCheckpoint_('STEP3_SHARED_SNAPSHOT',step3Shared.articleRows.length,step3Shared.observationEndedCandidates.length,step3SharedSec,'記事管理・改善履歴を1回読込し後続処理で共有',startedText,sbmNowText_());
     var tDailyTodaySync3=new Date(),dailyTodaySyncCount=0;
-    try{dailyTodaySyncCount=Number(sbmSyncObservationEndedToToday_(step3Shared)||0);}catch(eDailyTodaySync){try{sbmLog_('DailyObservationEndedTodaySync','Warning',String(eDailyTodaySync));}catch(ignoreDailyTodaySyncLog){}}
-    // v6.7.38: 日次処理の最終整合で、前日までに完了した行と現在進行中の記事を
-    // 「今日の改善」から除外し、空いた枠だけ既存の候補選定ロジックで補充する。
-    // 候補カテゴリ・優先順位・上限は変更せず、既存の高速差分更新を再利用する。
-    try{sbmRefreshTodayQueueFast_();}catch(eDailyTodayQueueRefresh){try{sbmLog_('DailyTodayQueueRefresh','Warning',String(eDailyTodayQueueRefresh));}catch(ignoreDailyTodayQueueRefreshLog){}}
+    // v6.7.39: 保存済みの前日キューを土台にせず、STEP3時点の最新「記事管理」を正本に
+    // 通常候補を再選定し、経過観察終了候補を統合して今日の改善を再構築する。
+    // これにより、前日までの完了表示が残る／空き枠が補充されない状態を防ぐ。
+    try{dailyTodaySyncCount=Number(sbmRebuildTodayQueueAfterDaily_(step3Shared)||0);}catch(eDailyTodaySync){
+      try{sbmLog_('DailyTodayQueueRebuild','Error',String(eDailyTodaySync));}catch(ignoreDailyTodaySyncLog){}
+      throw eDailyTodaySync;
+    }
     var step3TodaySyncSec=sbmSecondsSince_(tDailyTodaySync3);
     sbmDailyProfileCheckpoint_('STEP3_今日の改善整合',dailyTodaySyncCount,'',step3TodaySyncSec,'区間完了',startedText,sbmNowText_());
     var todayTiming=SBM_LAST_TODAY_SYNC_TIMING||{};
@@ -6389,9 +6406,10 @@ function sbmRefreshTodayPresentationOnly_(){
   for(var i=0;i<n;i++){
     var c=byUrl[sbmNormalizeUrl_(urls[i][0]||'')];if(!c)continue;
     var isObservationEnd=String(c.candidateId||'').indexOf('OBS_END:')===0||c.workflowType==='EFFECT_AFTER_OBSERVATION';
+    var isAceDrop=String(c.candidateId||'').indexOf('ACE_DROP:')===0||c.workflowType==='ACE_DROP_REVIEW';
     c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-    var kind=isObservationEnd?'🔄 経過観察終了':(c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善\n（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||'')))));
-    var reason=isObservationEnd?String(c.reason||'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。'):sbmTodayReason_(c,kind),estimate=isObservationEnd?String(c.estimate||'約10分'):sbmTodayEstimate_(c,kind);
+    var kind=isAceDrop?'🚨 エース急落':(isObservationEnd?'🔄 経過観察終了':(c.rankCode==='GROWTH'?'📈 エース化':(c.rankCode==='ACE'?'💰 収益改善\n（流入）':(c.rankCode==='NURTURE'?'🌱 育成改善':(c.rankCode==='STABLE'?'✅ 安全改善':String(c.kind||''))))));
+    var reason=isAceDrop?String(c.reason||'エース記事の急落を検知しました。修正前にaDoctorで原因を精密診断します。'):(isObservationEnd?String(c.reason||'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。'):sbmTodayReason_(c,kind)),estimate=(isAceDrop||isObservationEnd)?String(c.estimate||'約10分'):sbmTodayEstimate_(c,kind);
     if(String(kinds[i][0]||'')!==kind){kinds[i][0]=kind;changed++;}
     if(String(reasons[i][0]||'')!==reason){reasons[i][0]=reason;changed++;}
     if(String(times[i][0]||'')!==estimate){times[i][0]=estimate;changed++;}
@@ -6458,7 +6476,8 @@ function sbmOpenTodayImprovement() {
     // v6.6.60: 経過観察終了案件は既存記事の再確認であり、メインクエリ未取得を理由に
     // 今日の改善から除外しない。ArticleID/URLで対象記事を確定できれば表示する。
     var isObservationEnd=String(c&&c.candidateId||'').indexOf('OBS_END:')===0||String(c&&c.workflowType||'')==='EFFECT_AFTER_OBSERVATION';
-    return isObservationEnd || !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);
+    var isAceDrop=String(c&&c.candidateId||'').indexOf('ACE_DROP:')===0||String(c&&c.workflowType||'')==='ACE_DROP_REVIEW';
+    return isObservationEnd || isAceDrop || !sbmIsPendingArticleIdentity_(c&&c.title,c&&c.query);
   });
   profiler.lap('保存候補読込・表示対象判定','',current.length,sbmSecondsSince_(tCandidates)+'秒');
   if (!current.length) {
@@ -6476,6 +6495,132 @@ function sbmOpenTodayImprovement() {
 function sbmShowTodayZeroAdviceDialog_(){
   var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}h2{margin:0 0 12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:14px;line-height:1.75}.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}.status{min-height:18px;margin-top:10px;font-size:12px;color:#5f6368}</style></head><body><h2>今日の改善はありません</h2><div class="card"><b>今日行うべき日次改善の記事はありません。</b><br>次は「健康診断 → 精密診断」で、発芽・育成段階の記事、長期流入低下など、日次候補とは別の観点から改善対象を確認してください。<br><br>新記事キーワードの調査は自動では行いません。必要なときに「新記事関連 → 新記事キーワードの参入余地を確認」から開始できます。</div><div id="st" class="status"></div><div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button class="primary" onclick="health()">健康診断へ進む</button></div><script>function health(){var b=document.querySelector(".primary"),s=document.getElementById("st");b.disabled=true;b.textContent="開始しています…";s.textContent="健康診断を開始しています。";google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(e){b.disabled=false;b.textContent="健康診断へ進む";s.textContent=(e&&e.message)?e.message:String(e)}).sbmRunSiteHealthCheck()}</script></body></html>').setWidth(620).setHeight(360);
   sbmShowThemedModalDialog_(html,'今日の改善');
+}
+
+/** v6.7.41: STEP2書換え前の「今日の改善」から完了済みArticleID/URLを取得する。 */
+function sbmCollectTodayCompletedExclusions_(){
+  var out={ids:[],urls:[]},idSeen={},urlSeen={};
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh||sh.getLastRow()<2)return out;
+  var hm=sbmHeaderMap_(sh),n=sh.getLastRow()-1;
+  if(!hm['選択'])return out;
+  var sels=sh.getRange(2,hm['選択'],n,1).getDisplayValues();
+  var ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():[];
+  var urls=hm['記事URL']?sh.getRange(2,hm['記事URL'],n,1).getValues():[];
+  for(var i=0;i<n;i++){
+    if(String(sels[i][0]||'').trim()!=='完了')continue;
+    var aid=ids.length?String(ids[i][0]||'').trim().toUpperCase():'';
+    var u=urls.length?sbmNormalizeUrl_(urls[i][0]||''):'';
+    if(aid&&!idSeen[aid]){idSeen[aid]=true;out.ids.push(aid);}
+    if(u&&!urlSeen[u]){urlSeen[u]=true;out.urls.push(u);}
+  }
+  return out;
+}
+
+/** v6.7.41: 完了済みArticleID/URLを通常候補から除外する。 */
+function sbmFilterTodayCandidatesByExclusions_(candidates,exclusions){
+  candidates=candidates||[];exclusions=exclusions||{};
+  var ids={},urls={};
+  (exclusions.ids||[]).forEach(function(x){x=String(x||'').trim().toUpperCase();if(x)ids[x]=true;});
+  (exclusions.urls||[]).forEach(function(x){x=sbmNormalizeUrl_(x||'');if(x)urls[x]=true;});
+  return candidates.filter(function(c){
+    c=c||{};var aid=String(c.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(c.url||'');
+    return !((aid&&ids[aid])||(u&&urls[u]));
+  });
+}
+
+/** v6.7.39: 日次処理専用。最新の記事管理状態から「今日の改善」を確定し直す。 */
+function sbmRebuildTodayQueueAfterDaily_(snapshot) {
+  snapshot=snapshot||{};
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var today=ss.getSheetByName(SBM_SHEETS.TODAY);
+  var completedOnSheet={};
+  // v6.7.41: STEP2書換え前に退避した完了行を引き継ぐ。STEP2後のシートだけでは完了表示は失われている。
+  try{
+    var carried=JSON.parse(String(sbmGetSetting_('DailyTodayCompletedExclusionsJson','{}')||'{}'))||{};
+    (carried.ids||[]).forEach(function(x){x=String(x||'').trim().toUpperCase();if(x)completedOnSheet['ID:'+x]=true;});
+    (carried.urls||[]).forEach(function(x){x=sbmNormalizeUrl_(x||'');if(x)completedOnSheet['URL:'+x]=true;});
+  }catch(eCarriedCompleted){sbmLog_('DailyTodayQueue','Warning','完了除外キー読込失敗: '+String(eCarriedCompleted));}
+  if(today&&today.getLastRow()>1){
+    var th=sbmHeaderMap_(today),n=today.getLastRow()-1;
+    if(th['選択']){
+      var sels=today.getRange(2,th['選択'],n,1).getDisplayValues();
+      var urls=th['記事URL']?today.getRange(2,th['記事URL'],n,1).getValues():[];
+      var ids=th['ArticleID']?today.getRange(2,th['ArticleID'],n,1).getDisplayValues():[];
+      for(var i=0;i<n;i++){
+        if(String(sels[i][0]||'').trim()!=='完了')continue;
+        var u=urls.length?sbmNormalizeUrl_(urls[i][0]||''):'';
+        var aid=ids.length?String(ids[i][0]||'').trim().toUpperCase():'';
+        if(u)completedOnSheet['URL:'+u]=true;
+        if(aid)completedOnSheet['ID:'+aid]=true;
+      }
+    }
+  }
+
+  // v6.7.40 diagnostic: 再構築の入力状態を記録する。候補選定・除外条件には影響しない。
+  var diagPreCompletedIds=Object.keys(completedOnSheet).filter(function(k){return k.indexOf('ID:')===0;}).map(function(k){return k.substring(3);});
+  var diagArticleStates={};
+  (snapshot.articleRows||[]).forEach(function(r){
+    var aid=String((r&&((r.ArticleID!==undefined?r.ArticleID:r['ArticleID'])||r['記事ID']))||'').trim().toUpperCase();
+    if(aid&&diagPreCompletedIds.indexOf(aid)>=0)diagArticleStates[aid]=String((r&&r['作業状態'])||'');
+  });
+
+  // 通常候補は最新の記事管理から再選定する。sbmSelectTodayRecommendations_() 自体が
+  // 未着手以外（改善中・モニター中・完了等）を除外するため、前日の保存候補は再利用しない。
+  var normal=sbmSelectTodayRecommendations_(carried||{})||[];
+  var obs=snapshot.observationEndedCandidates||sbmObservationEndedTodayCandidates_(snapshot)||[];
+  // v6.7.45: エース急落は通常4カテゴリ×2件とは別枠。最優先で統合し、
+  // 同じ記事が通常候補や経過観察終了にも該当する場合はエース急落を1行だけ残す。
+  var aceDrop=[];
+  try{aceDrop=sbmAceDropTodayCandidates_(snapshot)||[];}catch(eAceDrop){try{sbmLog_('AceDropToday','Warning',String(eAceDrop));}catch(ignoreAceDropLog){}}
+  var merged=[],seen={};
+  aceDrop.concat(obs).concat(normal).forEach(function(c){
+    c=c||{};
+    var aid=String(c.articleId||'').trim().toUpperCase();
+    var u=sbmNormalizeUrl_(c.url||'');
+    var isAceDrop=String(c.workflowType||'')==='ACE_DROP_REVIEW'||String(c.candidateId||'').indexOf('ACE_DROP:')===0;
+    if(!isAceDrop&&((aid&&completedOnSheet['ID:'+aid])||(u&&completedOnSheet['URL:'+u])))return;
+    var key=aid?('ID:'+aid):(u?('URL:'+u):'');
+    if(!key||seen[key])return;
+    seen[key]=true; merged.push(c);
+  });
+
+  try{
+    sbmLog_('DailyTodayQueueDiag','BeforeWrite',JSON.stringify({
+      completedOnSheet:diagPreCompletedIds,
+      articleStates:diagArticleStates,
+      normal:(normal||[]).map(function(c){return String((c&&c.articleId)||'').trim().toUpperCase();}),
+      observationEnded:(obs||[]).map(function(c){return String((c&&c.articleId)||'').trim().toUpperCase();}),
+      aceDrop:(aceDrop||[]).map(function(c){return String((c&&c.articleId)||'').trim().toUpperCase();}),
+      merged:(merged||[]).map(function(c){return String((c&&c.articleId)||'').trim().toUpperCase();})
+    }));
+  }catch(eDiagBefore){try{sbmLog_('DailyTodayQueueDiag','DiagError','BeforeWrite '+String(eDiagBefore));}catch(ignoreDiagBefore){}}
+
+  sbmSetSetting_('TodayRecommendationJson',JSON.stringify(merged),'日次処理で最新状態から再構築した今日の改善候補');
+  sbmSetSetting_('DisplayedImprovementCount',String(merged.length),'今日の改善に表示している件数');
+  sbmSetSetting_('TodayRecommendationPolicyVersion',SBM_DEFAULTS.TODAY_POLICY_VERSION,'今日の改善候補選定仕様');
+  sbmWriteTodayRecommendations_(merged,merged.length,{skipDisplayedCountSetting:true});
+  sbmApplyTodayWorkState_(merged,merged.length);
+
+  // v6.7.40 diagnostic: 実際のシート書込み結果を再読込し、入力との不一致を切り分ける。
+  try{
+    var diagPost=[];
+    if(today&&today.getLastRow()>1){
+      var ph=sbmHeaderMap_(today),pn=today.getLastRow()-1;
+      var pids=ph['ArticleID']?today.getRange(2,ph['ArticleID'],pn,1).getDisplayValues():[];
+      var psels=ph['選択']?today.getRange(2,ph['選択'],pn,1).getDisplayValues():[];
+      for(var pi=0;pi<pn;pi++){
+        var paid=pids.length?String(pids[pi][0]||'').trim().toUpperCase():'';
+        var psel=psels.length?String(psels[pi][0]||'').trim():'';
+        if(paid||psel)diagPost.push({articleId:paid,selection:psel});
+      }
+    }
+    sbmLog_('DailyTodayQueueDiag','AfterWrite',JSON.stringify({rows:diagPost}));
+  }catch(eDiagAfter){try{sbmLog_('DailyTodayQueueDiag','DiagError','AfterWrite '+String(eDiagAfter));}catch(ignoreDiagAfter){}}
+  try{sbmSetSetting_('DailyTodayCompletedExclusionsJson','{}','日次処理の完了除外キーを消去');}catch(ignoreDailyExclusionClear){}
+  try{sbmSetSetting_('DailyPreUpdateAceJson','[]','日次エース急落監視の更新前スナップショットを消去');}catch(ignoreAceSnapshotClear){}
+  SBM_LAST_TODAY_SYNC_TIMING={settings:0,candidates:0,merge:0,settingsWrite:0,sheetWrite:0,workState:0,total:0};
+  return obs.length+aceDrop.length;
 }
 
 /** RC8 Final: 今日の改善の高速差分更新。 */
@@ -6712,7 +6857,54 @@ function sbmBuildTodayRecommendationsManual() {
   }
 }
 
-function sbmSelectTodayRecommendations_() {
+
+/** v6.7.44: 改善履歴は候補重複防止の安全網として使う。
+ * ACTIVE / REVIEW_REQUIRED / COMPLETED の最新サイクルは通常候補へ戻さない。
+ * 90日後の再評価解禁は改善履歴の「改善日」では判定せず、記事管理の正本処理
+ * sbmRecycleCompletedArticlesForReview_() が「未着手／作業理由=90日再評価」へ戻した時だけ許可する。
+ * これにより、改善開始日が90日以上前でも「昨日完了した記事」が即日再候補化される不整合を防ぐ。
+ */
+function sbmTodayHistoryExclusionMap_(){
+  var out={ids:{},urls:{}},rows=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
+  if(!rows.length)return out;
+  var articleRows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],articleById={},articleByUrl={};
+  articleRows.forEach(function(a){
+    var aid=String(a['ArticleID']||'').trim().toUpperCase(),url=sbmNormalizeUrl_(a['記事URL']||'');
+    if(aid)articleById[aid]=a;
+    if(url)articleByUrl[url]=a;
+  });
+  var latest={};
+  rows.forEach(function(r,idx){
+    var aid=String(r['ArticleID']||'').trim().toUpperCase(),url=sbmNormalizeUrl_(r['記事URL']||'');
+    if(!aid&&!url)return;
+    var key=aid?('ID:'+aid):('URL:'+url),d=sbmParseDate_(r['改善日']||'');
+    var ts=d?d.getTime():0,prev=latest[key];
+    if(!prev||ts>prev.ts||(ts===prev.ts&&idx>prev.idx))latest[key]={row:r,ts:ts,idx:idx,aid:aid,url:url};
+  });
+  Object.keys(latest).forEach(function(k){
+    var x=latest[k],r=x.row||{},life=String(r['モニター状態']||'').trim().toUpperCase(),state=String(r['状態']||'').trim();
+    var tracked=(life==='ACTIVE'||life==='REVIEW_REQUIRED'||life==='COMPLETED'||state.indexOf('モニター中')>=0||state==='完了');
+    if(!tracked)return;
+    var a=(x.aid&&articleById[x.aid])||(x.url&&articleByUrl[x.url])||{};
+    var work=sbmNormalizeWorkState_(a['作業状態']||''),reason=String(a['作業理由']||'').trim();
+    var explicitlyRecycled=(work==='未着手'&&reason==='90日再評価');
+    if(explicitlyRecycled)return;
+    if(x.aid)out.ids[x.aid]=true;
+    if(x.url)out.urls[x.url]=true;
+  });
+  return out;
+}
+
+function sbmSelectTodayRecommendations_(exclusions) {
+  exclusions=exclusions||{};
+  var excludedIds={},excludedUrls={};
+  (exclusions.ids||[]).forEach(function(x){x=String(x||'').trim().toUpperCase();if(x)excludedIds[x]=true;});
+  (exclusions.urls||[]).forEach(function(x){x=sbmNormalizeUrl_(x||'');if(x)excludedUrls[x]=true;});
+  // v6.7.44: 記事管理に加え、改善履歴の最新サイクルも候補重複防止に使う。
+  // ACTIVE は常時除外、COMPLETED は既存の90日再評価周期と同じ期間だけ通常候補から除外する。
+  var historyBlocked=sbmTodayHistoryExclusionMap_();
+  Object.keys(historyBlocked.ids||{}).forEach(function(x){excludedIds[x]=true;});
+  Object.keys(historyBlocked.urls||{}).forEach(function(x){excludedUrls[x]=true;});
   // v6.6.19: 候補選定の全記事ループ内でSettingsを再読込しない。
   // BlogName/MinImpressionsは開始時に1回だけ取得し、タイトル正規化へ渡す。
   var tStart = Date.now();
@@ -6757,6 +6949,10 @@ function sbmSelectTodayRecommendations_() {
 
     var articleId = String(r['ArticleID'] || '').trim();
     if (!articleId) return null; // 記事管理を正本とするため、ArticleIDのない候補は作らない。
+    // v6.7.42: 前日完了は上位2件を選んだ後ではなく、候補プール段階で除外する。
+    // これにより同じ区分に次点候補があれば空いた枠へ自動補充される。
+    var exclusionId=articleId.toUpperCase(),exclusionUrl=sbmNormalizeUrl_(url);
+    if((exclusionId&&excludedIds[exclusionId])||(exclusionUrl&&excludedUrls[exclusionUrl]))return null;
     return {
       articleId:articleId,url:url,title:title,query:query,clicks:clicks,impressions:imps,ctr:ctr,position:pos,
       rank:rank,rankCode:rankCode,work:work,targetCtr:target,expectedClicks:expected,
@@ -6841,6 +7037,86 @@ function sbmGetTodayCandidates_() {
 
 
 /** v6.6.58: 4回の経過観察が終了し再確認が必要な記事を「今日の改善」へ追加する。 */
+/** v6.7.45: 日次GSC更新前のエース記事を退避する。 */
+function sbmCapturePreUpdateAceArticles_(){
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],out=[];
+  rows.forEach(function(r){
+    if(sbmDoctorRankCode_(r['記事ランク']||'')!=='ACE')return;
+    var aid=String(r['ArticleID']||'').trim(),url=String(r['記事URL']||'').trim();
+    if(!aid&&!url)return;
+    out.push({articleId:aid,url:url});
+  });
+  sbmSetSetting_('DailyPreUpdateAceJson',JSON.stringify(out),'日次更新直前のエース記事（急落監視用）');
+  return out.length;
+}
+
+/** v6.7.45: エース専用の急落条件。単一指標だけでは90日保護を解除しない。 */
+function sbmAceDropDecision_(current,previous){
+  current=current||{};previous=previous||{};
+  var ci=Number(current.impressions||0),pi=Number(previous.impressions||0),cc=Number(current.clicks||0),pc=Number(previous.clicks||0);
+  var impRate=sbmDoctorRateChange_(ci,pi),clickRate=sbmDoctorRateChange_(cc,pc);
+  var posDelta=(ci>0&&pi>0)?Number(current.position||0)-Number(previous.position||0):0;
+  var clickDown=(clickRate!==null&&clickRate<=-0.20&&(pc-cc)>=2);
+  var rankDrop=(ci>=50&&pi>=50&&posDelta>=1.5&&clickDown);
+  var trafficDrop=(pi>=100&&impRate!==null&&impRate<=-0.30&&clickDown);
+  if(!rankDrop&&!trafficDrop)return {drop:false};
+  var reasons=[];
+  if(rankDrop)reasons.push('平均順位 '+Number(previous.position||0).toFixed(1)+'位 → '+Number(current.position||0).toFixed(1)+'位（'+posDelta.toFixed(1)+'位悪化）');
+  if(trafficDrop)reasons.push('表示回数 '+pi+' → '+ci+'（'+Math.round(impRate*100)+'%）');
+  reasons.push('クリック '+pc+' → '+cc+'（'+Math.round(clickRate*100)+'%）');
+  return {drop:true,reason:reasons.join(' / '),positionDelta:posDelta,impressionRate:impRate,clickRate:clickRate};
+}
+
+/** v6.7.45: 更新前または更新後にエースだった記事だけを、28日対28日で一括監視する。 */
+function sbmAceDropTodayCandidates_(snapshot){
+  snapshot=snapshot||{};
+  var articleRows=snapshot.articleRows||sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+  var watched={},pre=[];
+  try{pre=JSON.parse(String(sbmGetSetting_('DailyPreUpdateAceJson','[]')||'[]'))||[];}catch(ignoreAceJson){pre=[];}
+  pre.forEach(function(x){var aid=String(x&&x.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(x&&x.url||'');if(aid)watched['ID:'+aid]=true;if(u)watched['URL:'+u]=true;});
+  articleRows.forEach(function(a){if(sbmDoctorRankCode_(a['記事ランク']||'')!=='ACE')return;var aid=String(a['ArticleID']||'').trim().toUpperCase(),u=sbmNormalizeUrl_(a['記事URL']||'');if(aid)watched['ID:'+aid]=true;if(u)watched['URL:'+u]=true;});
+  var targets=articleRows.filter(function(a){
+    var aid=String(a['ArticleID']||'').trim().toUpperCase(),u=sbmNormalizeUrl_(a['記事URL']||''),work=String(a['作業状態']||'').trim();
+    if(!(watched['ID:'+aid]||watched['URL:'+u]))return false;
+    if(work.indexOf('改善中')>=0||work.indexOf('モニター中')>=0||work.indexOf('今日の改善')>=0)return false;
+    if(sbmNormalizeWorkState_(work)==='✔️ 完了'){
+      var completed=sbmParseDate_(a['最終改善完了日']);
+      if(completed&&((new Date()).getTime()-completed.getTime())<14*86400000)return false;
+    }
+    return !!u;
+  });
+  if(!targets.length)return [];
+  var property=sbmGetSetting_('SearchConsoleProperty','');if(!property)return [];
+  var full=sbmDoctorEvidenceRange_(180),end=full.endDate,recentStart=sbmDoctorDateAdd_(end,-27),previousEnd=sbmDoctorDateAdd_(recentStart,-1),previousStart=sbmDoctorDateAdd_(previousEnd,-27);
+  var recent=sbmDoctorSitePeriodRows_(property,recentStart,end),previous=sbmDoctorSitePeriodRows_(property,previousStart,previousEnd),rm={},pm={};
+  (recent.rows||[]).forEach(function(r){rm[r.normalized_url]=r;});(previous.rows||[]).forEach(function(r){pm[r.normalized_url]=r;});
+  var out=[];
+  targets.forEach(function(a){
+    var u=sbmNormalizeUrl_(a['記事URL']||''),decision=sbmAceDropDecision_(rm[u],pm[u]);if(!decision.drop)return;
+    var aid=String(a['ArticleID']||'').trim(),work=sbmNormalizeWorkState_(a['作業状態']||'');
+    // 完了記事だけは急落を明示的な例外として90日保護から解放する。
+    if(work==='✔️ 完了'){
+      try{
+        sbmSetArticleWorkStateByIdentity_(aid,String(a['記事URL']||''),'未着手','GSC急落再評価');
+        var hit=sbmFindArticleDbRowByIdentity_(aid,String(a['記事URL']||''));
+        if(hit){var ah=sbmHeaderMap_(hit.sheet);if(ah['再評価予定日'])hit.sheet.getRange(hit.row,ah['再評価予定日']).clearContent();}
+      }catch(eState){try{sbmLog_('AceDropState','Warning',aid+' '+String(eState));}catch(ignoreAceStateLog){}}
+    }
+    var cur=rm[u]||{},prev=pm[u]||{};
+    out.push({workflowType:'ACE_DROP_REVIEW',candidateId:'ACE_DROP:'+(aid||u),articleId:aid,kind:'🚨 エース急落',title:String(a['記事タイトル']||'').trim(),reason:'前回または現在のエース記事でGSC急落を検知しました。'+decision.reason+'。記事を直接修正せず、aDoctorで原因を精密診断します。',estimate:'約10分',rank:String(a['記事ランク']||''),query:String(a['メインクエリ']||''),clicks:Number(cur.clicks||0),impressions:Number(cur.impressions||0),ctr:Number(cur.ctr||0),position:Number(cur.position||0),url:String(a['記事URL']||''),aceDrop:{recent:cur,previous:prev,decision:decision}});
+  });
+  return out;
+}
+
+/** v6.7.45: 今日の改善のエース急落行から、記事を変更せずaDoctor精密診断へ進む。 */
+function sbmStartAceDropDoctorFromToday_(record){
+  record=record||{};
+  var aid=String(record['ArticleID']||'').trim(),url=String(record['記事URL']||'').trim();
+  if(!aid&&!url)return sbmAlert_('エース急落','ArticleIDまたは記事URLを取得できません。');
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('エース急落','エース急落を検知しました。Starter EditionではaDoctor精密診断を利用できないため、改善ナビで内容を確認してください。');
+  return sbmDoctorCreateRequestFromArticleIdentity(aid,url);
+}
+
 function sbmObservationEndedTodayCandidates_(snapshot){
   snapshot=snapshot||{};
   // v6.6.85: STEP3では改善履歴・記事管理の同一スナップショットを共有し、再読込を避ける。
@@ -9928,6 +10204,9 @@ function sbmOpenSelectedImprovementNavi(){
     record=sbmRowRecord_(sh,row);
     if(sh.getName()===SBM_SHEETS.TODAY && String(record['候補ID']||'').indexOf('OBS_END:')===0){
       return sbmStartEffectAfterObservationFromToday_(record);
+    }
+    if(sh.getName()===SBM_SHEETS.TODAY && String(record['候補ID']||'').indexOf('ACE_DROP:')===0){
+      return sbmStartAceDropDoctorFromToday_(record);
     }
     url=String(record['記事URL']||'').trim();
     if(!url)return sbmAlert_('改善ナビ','記事URLを取得できません。');
@@ -13662,6 +13941,9 @@ function sbmPrepareTodayImprovementSheetFast_() {
     // v6.6.88: 書式は既存レイアウトを再利用する。clearFormat() は再描画コストが大きいため日次処理では行わない。
     var r=sh.getRange(2,1,last-1,expected.length);
     r.clearContent(); r.clearDataValidations();
+    // v6.7.42: 完了行のグレー背景・取り消し線等を次の日へ持ち越さない。
+    // 値だけ消すと空行に『完了』の見た目が残るため、使用範囲だけ表示書式を軽量初期化する。
+    r.setBackground(null).setFontColor(null).setFontLine('none').setFontWeight('normal');
   }
   return sh;
 }
@@ -13678,7 +13960,10 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
   // v6.7.29: 記事管理が既にモニター中/完了の候補は描画直前にも防御的に除外する。
   // URL列＋作業状態列だけの軽量照合で、全シート再構築やGSC取得は行わない。
   var blockedToday=sbmTodayCompletedUrlMap_();
-  var eligible=(candidates||[]).filter(function(c){return !sbmTodayCompletedMatch_(blockedToday,c&&c.articleId,c&&c.url);});
+  var eligible=(candidates||[]).filter(function(c){
+    var isAceDrop=String(c&&c.workflowType||'')==='ACE_DROP_REVIEW'||String(c&&c.candidateId||'').indexOf('ACE_DROP:')===0;
+    return isAceDrop||!sbmTodayCompletedMatch_(blockedToday,c&&c.articleId,c&&c.url);
+  });
   var shown = eligible.slice(0, Math.min(Number(count || 0), eligible.length));
 
   if (shown.length) {
@@ -13690,8 +13975,13 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
         if(dbArticle) c.articleId=String(dbArticle['ArticleID']||'').trim();
       }
       var isObservationEnd=String(c.candidateId||'').indexOf('OBS_END:')===0||c.workflowType==='EFFECT_AFTER_OBSERVATION';
+      var isAceDrop=String(c.candidateId||'').indexOf('ACE_DROP:')===0||c.workflowType==='ACE_DROP_REVIEW';
       c.rankCode=c.rankCode||sbmDoctorRankCode_(c.rank||'');
-      if(isObservationEnd){
+      if(isAceDrop){
+        c.kind='🚨 エース急落';
+        c.reason=c.reason||'エース記事の急落を検知しました。修正前にaDoctorで原因を精密診断します。';
+        c.estimate=c.estimate||'約10分';
+      }else if(isObservationEnd){
         c.kind='🔄 経過観察終了';
         c.reason=c.reason||'4回の経過観察が終了しました。改善効果を確認し、必要な次の処置を進めます。';
         c.estimate=c.estimate||'約10分';
@@ -13740,7 +14030,7 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
 
   var guideRow = shown.length + 3;
   sh.getRange(guideRow, 1).setValue(
-    '今日の改善は通常候補に加え、経過観察終了後に再確認が必要な記事を追加表示します。'
+    '今日の改善は通常候補に加え、エース急落と経過観察終了後の要処置記事を優先追加表示します。'
   ).setFontColor('#5f6368');
 
   // v6.6.84: 再構築直後のデータ行には上でチェックボックスを一括設定済み。

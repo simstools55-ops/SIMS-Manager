@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.38",
+  "current_version": "6.7.45",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.38: Daily processing refreshes Today queue by removing completed/active items and refilling available slots with the existing candidate policy.",
-  "version": "6.7.38",
+  "notes": "v6.7.45: Adds protected Ace-article drop monitoring and routes detected drops to Today Improvements for aDoctor diagnosis without weakening normal completed-cycle protection.",
+  "version": "6.7.45",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.38-ST"
+  "starter_display_version": "v6.7.45-ST"
 }
