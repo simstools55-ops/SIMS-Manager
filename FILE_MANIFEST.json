@@ -659,8 +659,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "size": 468,
-      "sha256": "e60986348e82e50a6e9b6c7ebd5dd075223e2b6dd07498db6e2df99ef8a0653e"
+      "size": 409,
+      "sha256": "9b70e845c8e5162719bd64ae9653156d2205f1da64bd6d549bf96116036c1b4a"
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -3513,6 +3513,11 @@
       "sha256": "a021862aec059fb2ee91f2c1d5ba9c547b1955f2e404e793e2662ed8363e9241"
     },
     {
+      "path": "VERSION-AUDIT-v6.7.37.txt",
+      "size": 865,
+      "sha256": "09b351510503935c016dc32acf356504c6120cc1c2f5b60ce0361a382ed7d607"
+    },
+    {
       "path": "VERSION_POLICY.md",
       "size": 738,
       "sha256": "9517798acee0a05d925ff7960adf71f73fdbf8ea49cae930f527dc9c5e299cf9"
@@ -3520,7 +3525,7 @@
     {
       "path": "apps-script/Code.gs",
       "size": 1785826,
-      "sha256": "2d7e612720a601e4fc238860e499a310b9ae9e843ac6028f4fc7ccfb9650949b"
+      "sha256": "14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b"
     },
     {
       "path": "apps-script/appsscript.json",
@@ -4083,14 +4088,14 @@
       "sha256": "a997ed7d3d932148e53d326455aa9ba590886dc1270b120731cd24469b253aae"
     },
     {
-      "path": "docs/daily-workflow/index.md",
-      "size": 1515,
-      "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969"
-    },
-    {
       "path": "docs/daily-workflow.md",
       "size": 3541,
       "sha256": "e49fb76ec206de1c22dc117a2a75096490ea793b28d0bd8c26feaafdc5efbdec"
+    },
+    {
+      "path": "docs/daily-workflow/index.md",
+      "size": 1515,
+      "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969"
     },
     {
       "path": "docs/download.md",
@@ -4103,24 +4108,24 @@
       "sha256": "bfc42f8b49f3e1fa8a9e0c6cc52ac555b396e42b4b79c8ce74712ae6fabb9e20"
     },
     {
-      "path": "docs/faq/index.md",
-      "size": 1672,
-      "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967"
-    },
-    {
       "path": "docs/faq.md",
       "size": 183,
       "sha256": "fb8895bbeb5106b1e6ea587b54862e32f3887e693486a86fc8aaf7c8b53a8cd7"
     },
     {
-      "path": "docs/getting-started/index.md",
-      "size": 1229,
-      "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083"
+      "path": "docs/faq/index.md",
+      "size": 1672,
+      "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967"
     },
     {
       "path": "docs/getting-started.md",
       "size": 252,
       "sha256": "8908455958fb09919997b642de3396b3150a85b0200258e1e7c2ff2433fec22d"
+    },
+    {
+      "path": "docs/getting-started/index.md",
+      "size": 1229,
+      "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083"
     },
     {
       "path": "docs/google-cloud-api-guide.md",
@@ -4173,6 +4178,16 @@
       "sha256": "e26658f27c056eabb51cb1c1904201e2980ee9e971fd017c54860285581e9573"
     },
     {
+      "path": "docs/setup-guide.md",
+      "size": 482,
+      "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
+    },
+    {
+      "path": "docs/setup.html",
+      "size": 1951,
+      "sha256": "f9dea44ae69454e616131ade0f13a5cc98a1ee8852e5aeb2930fb499c6572b33"
+    },
+    {
       "path": "docs/setup/article-db-foundation.md",
       "size": 1458,
       "sha256": "c3f85876300981507686c5fb4c0aac18c3fb09c0524fa355766f3295e57462e3"
@@ -4208,16 +4223,6 @@
       "sha256": "3debc2f280b85cb46865558a51dbbec09df0a38368bc55b089f78bd40923ec0e"
     },
     {
-      "path": "docs/setup-guide.md",
-      "size": 482,
-      "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
-    },
-    {
-      "path": "docs/setup.html",
-      "size": 1951,
-      "sha256": "f9dea44ae69454e616131ade0f13a5cc98a1ee8852e5aeb2930fb499c6572b33"
-    },
-    {
       "path": "docs/spreadsheet-guide.md",
       "size": 1052,
       "sha256": "6c089cbe99ff4104887698da7daea77a2c874590f1572c99cb23b2dfffaa023f"
@@ -4231,6 +4236,16 @@
       "path": "docs/todays-improvement.html",
       "size": 1813,
       "sha256": "febaa74b6beb8d716a2cdf0c349f88414a32e69802d4f5244c7a032dc9e43599"
+    },
+    {
+      "path": "docs/troubleshooting.html",
+      "size": 1791,
+      "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
+    },
+    {
+      "path": "docs/troubleshooting.md",
+      "size": 241,
+      "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
     },
     {
       "path": "docs/troubleshooting/common-errors.md",
@@ -4256,16 +4271,6 @@
       "path": "docs/troubleshooting/urlfetch-auth.md",
       "size": 525,
       "sha256": "06482d76ef7657d8cf4a052cb3993def516933b7b22e1aa850e61758184802c7"
-    },
-    {
-      "path": "docs/troubleshooting.html",
-      "size": 1791,
-      "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
-    },
-    {
-      "path": "docs/troubleshooting.md",
-      "size": 241,
-      "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
     },
     {
       "path": "docs/user-guide/data-list.md",
@@ -4303,14 +4308,14 @@
       "sha256": "8f3f80a57111dd820de9575dc412343ee7ee79153bf85be716b9ee83552f2c6d"
     },
     {
-      "path": "docs/user-guide/todays-improvement/index.md",
-      "size": 1495,
-      "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140"
-    },
-    {
       "path": "docs/user-guide/todays-improvement.md",
       "size": 551,
       "sha256": "33608c8347948f51e3f1004f164412bda5ea59b5ba76ade16af7cfc28d4521e9"
+    },
+    {
+      "path": "docs/user-guide/todays-improvement/index.md",
+      "size": 1495,
+      "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140"
     },
     {
       "path": "integration/SBM_BATCH_INTEGRATION.md",
@@ -5258,6 +5263,11 @@
       "sha256": "f5310184c548121ea3d548a25fc8bc8e09634e9652d6a209d0ac1642c6a27afc"
     },
     {
+      "path": "shared/FILE_MANIFEST.txt",
+      "size": 31897,
+      "sha256": "eb3bafc2725400614364a76e05b45aae61f06ed03cc58a62d461065c7bf53baf"
+    },
+    {
       "path": "shared/LICENSE",
       "size": 158,
       "sha256": "ce0c69a4019923878282e03bb1ce789260e592199a0fbbab67e77fefe0e97664"
@@ -5274,8 +5284,8 @@
     },
     {
       "path": "shared/PRODUCT_IDENTITY.json",
-      "size": 569,
-      "sha256": "e83a5d82803baffb985940195d7cd55277b0de30cbc9a623745e52bd8f3443f1"
+      "size": 510,
+      "sha256": "ffe7d8811ae3939da4fb02cec23d054d06c7b2bef1dd07bf812cf545abd4628d"
     },
     {
       "path": "shared/README.md",
@@ -6640,7 +6650,7 @@
     {
       "path": "src/apps-script/Code.gs",
       "size": 1785826,
-      "sha256": "2d7e612720a601e4fc238860e499a310b9ae9e843ac6028f4fc7ccfb9650949b"
+      "sha256": "14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b"
     },
     {
       "path": "src/distribution/Code.gs",

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.36",
+  "current_version": "6.7.37",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.36: Add spinner to centered unfinished-work checking UI and show the zero-result message in a centered modal; resume discovery and optimized processing unchanged.",
-  "version": "6.7.36",
+  "notes": "v6.7.37: Formalize distribution artifact/template tracking; production logic remains unchanged from v6.7.36.",
+  "version": "6.7.37",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.36-ST"
+  "starter_display_version": "v6.7.37-ST"
 }

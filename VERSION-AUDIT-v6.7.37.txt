@@ -1,0 +1,21 @@
+SIMS Manager v6.7.37 VERSION / PACKAGE AUDIT
+
+RESULT: PASS
+
+- Repository version: 6.7.37
+- All Code.gs files discovered recursively: 5
+- All Code.gs SHA-256 identical: YES
+- SBM_VERSION in all Code.gs: 6.7.37
+- README-FIRST: 6.7.37
+- PRODUCT_IDENTITY: 6.7.37
+- shared/PRODUCT_IDENTITY: 6.7.37
+- CHANGELOG: v6.7.37 entry present
+- RELEASE NOTES: RELEASE_NOTES_v6.7.37.md present
+- distribution tracking: enabled
+
+Code.gs files:
+- Code.gs: 14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b
+- distribution/Code.gs: 14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b
+- apps-script/Code.gs: 14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b
+- src/distribution/Code.gs: 14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b
+- src/apps-script/Code.gs: 14d96decac221d620b04df3a2625bf1016e5acd04a3d9a1a464420d915c6783b

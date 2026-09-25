@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.36
+ * Current version: 6.7.37
  * Release summary: Restore centered unfinished-work checking/result UI without changing resume discovery logic.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.36.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.37.md.
  */
 
-const SBM_VERSION = '6.7.36';
-// v6.7.36: 未完了再開の確認中UIに回転インジケータを追加し、0件結果を中央モーダルで明示。探索・高速化処理は変更なし。
+const SBM_VERSION = '6.7.37';
+// v6.7.37: 未完了再開の確認中UIに回転インジケータを追加し、0件結果を中央モーダルで明示。探索・高速化処理は変更なし。
 // v6.7.35: 未完了再開の確認中表示を中央へ戻し、0件時の結果を明示。候補探索・再開ロジックは変更なし。
 // v6.7.33: 今日の改善の既存完了表示を軽量同期でも保護し、過去完了行のチェックボックス回帰を復元。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
@@ -20651,7 +20651,7 @@ function sbmDoctorShowResumeCaseChooser_(items){
 // Site Doctorか通常aDoctorかを利用者に選ばせない。SiteDiagnosis IDは内部Identity検証にのみ使う。
 function sbmResumeUnfinishedWorkflow(){
   if (!sbmLicenseRequireForProcessing_()) return;
-  // v6.7.36: 未完了探索ロジックには触れず、確認中UIに回転インジケータを追加。
+  // v6.7.37: 未完了探索ロジックには触れず、確認中UIに回転インジケータを追加。
   // modelessにすることで、Coreが表示する既存の再開選択modalとの競合を避ける。
   var themeCss=sbmMonochromeDialogOverrides_();
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+themeCss+
