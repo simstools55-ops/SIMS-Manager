@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.60",
+  "current_version": "6.7.63",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.60: Build re-examination candidates from Article Management work state as the source of truth; use improvement history only as supplemental metadata.",
-  "version": "6.7.60",
+  "notes": "v6.7.63: STEP2 guides first-time users through creating a standard Cloud project, linking it to this Apps Script, and enabling Search Console API in the same project.",
+  "version": "6.7.63",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.60-ST"
+  "starter_display_version": "v6.7.63-ST"
 }

@@ -3,13 +3,15 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.60
- * Release summary: Ensure newly generated re-examination cases appear in Today Improvement even when prior completed-row exclusions exist.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.60.md.
+ * Current version: 6.7.63
+ * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.63.md.
  */
 
-const SBM_VERSION = '6.7.60';
-// v6.7.60: 再診処置候補は記事管理を正本に列挙し、改善履歴は補助参照へ変更。
+const SBM_VERSION = '6.7.63';
+// v6.7.63: STEP2は未完了の新規利用者ではCloudプロジェクト番号を空欄表示し、完了済み環境のみ保存済み番号を表示。
+// v6.7.62: 初回利用者向けSTEP2を、標準Cloudプロジェクト作成→Apps Script関連付け→Search Console API有効化の3段階へ再構成。
+// v6.7.61: 初回セットアップSTEP2を当該Apps Scriptプロジェクト設定へ誘導し、入力した同一CloudプロジェクトでSearch Console APIを開く。
 // v6.7.59: 4週判定で新たに発生した再診処置を、過去の今日の改善『終了/完了』除外キーで抑止しない。
 // v6.7.58: 期限超過した週次測定を1回の日次処理で到来済み回数までキャッチアップ。
 // v6.7.57: 「今日の改善」0件ダイアログの健康診断ボタンを正式なサイト健康診断起動関数へ接続。
@@ -2405,8 +2407,20 @@ function sbmSetupStep2ApiGuide() {
   return sbmShowRelease1SetupStep_(2);
 }
 
+function sbmGoogleCloudProjectCreateUrl_() {
+  return 'https://console.cloud.google.com/projectcreate';
+}
+
+function sbmGoogleCloudProjectSettingsUrl_() {
+  return 'https://console.cloud.google.com/iam-admin/settings';
+}
+
 function sbmSearchConsoleApiUrl_() {
-  return 'https://console.cloud.google.com/apis/library/searchconsole.googleapis.com';
+  return 'https://console.cloud.google.com/apis/api/searchconsole.googleapis.com/overview';
+}
+
+function sbmAppsScriptProjectSettingsUrl_() {
+  return 'https://script.google.com/home/projects/' + encodeURIComponent(ScriptApp.getScriptId()) + '/settings';
 }
 
 function sbmSetupStep3ConnectionTest() {
@@ -14290,7 +14304,7 @@ function sbmShowRelease1SetupStep_(step) {
   };
   var descriptions = {
     1:'サイト名、サイトURL、Search Consoleプロパティを登録します。',
-    2:'Google Search Console APIの有効化と認証手順だけを確認します。',
+    2:'初めての方でも、Google Cloudプロジェクトの作成からSearch Console APIの有効化まで順番に設定できます。',
     3:'外部通信権限を確認したうえで、登録済みSearch Consoleプロパティへの接続を確認します。',
     4:'Search ConsoleからページURLと指標を取得し、記事管理を作成します。',
     5:'未補完記事のタイトル、SEOタイトル、ディスクリプション等を取得します。',
@@ -14304,15 +14318,26 @@ function sbmShowRelease1SetupStep_(step) {
       + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
       + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>';
   } else if (step === 2) {
+    // v6.7.63: 新規セットアップでは過去値・テンプレート値を初期表示しない。
+    // STEP2完了済みの既存環境だけ、確認用として保存済み番号を表示する。
+    var displayedCloudProjectNumber = s.step2 ? String(s.cloudProjectNumber || '') : '';
+    var cloudProjectNumberNote = s.step2 && displayedCloudProjectNumber
+      ? '<div style="font-size:12px;color:#5f6368;margin-top:4px">保存済みのプロジェクト番号です。新しく作り直す必要はありません。</div>'
+      : '<div style="font-size:12px;color:#5f6368;margin-top:4px">初回セットアップでは空欄です。②で確認したプロジェクト番号を入力してください。</div>';
     body = '<div class="box">'
-      + '1. Apps Scriptで使用するGoogle Cloudプロジェクトを確認します。<br>'
-      + '2. 下の「プロジェクト番号を確認」からプロジェクト番号を確認し、入力します。<br>'
-      + '3. 同じプロジェクトでGoogle Search Console APIを有効にします。<br>'
-      + '4. 初回認証画面が表示された場合は許可します。<br><br>'
-      + '<button id="projectHelpBtn" type="button" class="helpLink">プロジェクト番号を確認</button>'
-      + '<button id="apiHelpBtn" type="button" class="helpLink">Google Search Console APIを開く</button>'
-      + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(s.cloudProjectNumber)+'"></div>'
-      + '<div style="font-size:12px;color:#5f6368">APIを有効化したプロジェクト番号を記録します。未入力のままSTEP3へは進めません。</div>'
+      + '<b>初めてGoogle Cloudを使う方は①から進めてください。</b><br><br>'
+      + '<b>① Google Cloudプロジェクトを作成</b><br>'
+      + '「Cloudプロジェクトを作成」を押し、新しいプロジェクトを1つ作成します。すでにSIMS用の標準Cloudプロジェクトがある場合は、この操作は不要です。<br>'
+      + '<button id="createProjectBtn" type="button" class="helpLink">Cloudプロジェクトを作成</button><br><br>'
+      + '<b>② SIMS Managerにプロジェクトを関連付け</b><br>'
+      + '作成後、「Cloud側でプロジェクト番号を確認」を押し、いま作成したプロジェクトが選択されていることを確認して「プロジェクト番号」（数字）をコピーします。次に「Apps Scriptのプロジェクト設定を開く」を押し、Google Cloud Platform（GCP）プロジェクトの「プロジェクトを変更」で同じ番号を設定してください。設定後、その番号を下欄にも入力します。<br>'
+      + '<button id="cloudSettingsBtn" type="button" class="helpLink">Cloud側でプロジェクト番号を確認</button>'
+      + '<button id="projectHelpBtn" type="button" class="helpLink">Apps Scriptのプロジェクト設定を開く</button>'
+      + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(displayedCloudProjectNumber)+'"></div>'+cloudProjectNumberNote
+      + '<b>③ Search Console APIを有効化</b><br>'
+      + '下のボタンは、入力した同じCloudプロジェクトを指定してSearch Console API画面を開きます。「有効にする」を押してください。<br>'
+      + '<button id="apiHelpBtn" type="button" class="helpLink">Google Search Console APIを開く</button><br><br>'
+      + '<div style="font-size:12px;color:#5f6368">初回認証画面が表示された場合は内容を確認して許可します。プロジェクト番号が未入力のままSTEP3へは進めません。</div>'
       + '</div>';
   } else if (step === 3) {
     body = '<div class="box">接続先：<b>'+sbmEscapeHtml_(s.property || '未登録')+'</b></div>';
@@ -14354,12 +14379,14 @@ function sbmShowRelease1SetupStep_(step) {
     + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
     + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=el("msg"),a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
     + 'if(el("runBtn"))el("runBtn").addEventListener("click",executeStep);if(el("skipBtn"))el("skipBtn").addEventListener("click",skipStep);if(el("endBtn"))el("endBtn").addEventListener("click",finishWizard);if(el("completeBtn"))el("completeBtn").addEventListener("click",finishWizard);'
-    + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("https://console.cloud.google.com/iam-admin/settings");});'
-    + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){openExternal("'+sbmSearchConsoleApiUrl_()+'");});'
+    + 'if(el("createProjectBtn"))el("createProjectBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectCreateUrl_()+'");});'
+    + 'if(el("cloudSettingsBtn"))el("cloudSettingsBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectSettingsUrl_()+'");});'
+    + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("'+sbmAppsScriptProjectSettingsUrl_()+'");});'
+    + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){var n=String(el("cloudProjectNumber").value||"").trim();if(!/^\\d+$/.test(n)){clearBusy("先に①でCloudプロジェクトを作成し、②でそのプロジェクト番号をSIMS ManagerのApps Scriptへ関連付けてから、同じ番号を入力してください。");return;}openExternal("'+sbmSearchConsoleApiUrl_()+'?project="+encodeURIComponent(n));});'
     + '</script></body></html>';
 
   sbmShowThemedModalDialog_(
-    HtmlService.createHtmlOutput(html).setWidth(620).setHeight(step === 1 ? 620 : 520),
+    HtmlService.createHtmlOutput(html).setWidth(620).setHeight(step === 1 ? 620 : (step === 2 ? 680 : 520)),
     '初回セットアップ'
   );
 }
