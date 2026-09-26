@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.47",
+  "current_version": "6.7.48",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.47: Makes Article Management the source of truth for work states, adds explicit 急落 / 再診処置 states, and consolidates legacy 処置中 into 改善中.",
-  "version": "6.7.47",
+  "notes": "v6.7.48: Reconciles orphan 改善中 states during daily processing only when no active Workflow, Doctor Case, or improvement history supports the state.",
+  "version": "6.7.48",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.47-ST"
+  "starter_display_version": "v6.7.48-ST"
 }

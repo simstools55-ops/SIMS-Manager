@@ -8,8 +8,8 @@
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.46.md.
  */
 
-const SBM_VERSION = '6.7.47';
-// v6.7.47: 記事管理の作業状態を正本化。『今日の改善』『処置中』を廃止方向へ整理し、急落・再診処置・改善中・モニター中・完了を明示管理。
+const SBM_VERSION = '6.7.48';
+// v6.7.48: 記事管理の孤立した「改善中」を日次STEP3で整合。未完了Workflow/Case/改善履歴の根拠がない場合のみ未着手へ復旧。
 // v6.7.46: 「今日の改善」の作業済み表示を『完了』から『終了』へ明確化。旧『完了』表示は互換読込し、記事管理の『✔️ 完了』は変更しない。
 // v6.7.45: エース記事の直近28日急落を日次で検知し、通常枠とは別の『エース急落』としてaDoctor精密診断へ接続。完了記事は急落時だけ90日保護を解除。
 // v6.7.44: ACTIVE/REVIEW_REQUIRED/COMPLETEDの最新改善サイクルを通常候補から除外し、記事管理の明示的な90日再評価時だけ再候補化を許可。
@@ -750,6 +750,14 @@ function sbmRunDailyFinalizeStageFromDialog() {
     sbmDailyProfileCheckpoint_('STEP3_未完了整理',Number(dailyResumePurge.articles||0),Number(dailyResumePurge.cases||0),step3ResumePurgeSec,'区間完了',startedText,sbmNowText_());
     sbmProcessLog_('日次処理 STEP3 区間計測','未完了整理',Number(dailyResumePurge.articles||0),Number(dailyResumePurge.cases||0),step3ResumePurgeSec,
       '対象記事 '+Number(dailyResumePurge.articles||0)+'件 / 削除Case '+Number(dailyResumePurge.cases||0)+'件',startedText,sbmNowText_());
+
+    // v6.7.48: 未完了整理後に、記事管理だけ「改善中」が残った孤立状態を安全条件付きで復旧する。
+    var tOrphanImproving3=new Date(),orphanImproving={checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0};
+    try{orphanImproving=sbmReconcileOrphanImprovingStates_(step3Shared)||orphanImproving;}catch(eOrphanImproving){try{sbmLog_('DailyOrphanImprovingReconcile','Warning',String(eOrphanImproving));}catch(ignoreOrphanImprovingLog){}}
+    var step3OrphanImprovingSec=sbmSecondsSince_(tOrphanImproving3);
+    sbmDailyProfileCheckpoint_('STEP3_改善中整合',Number(orphanImproving.checked||0),Number(orphanImproving.recovered||0),step3OrphanImprovingSec,'孤立した改善中のみ未着手へ復旧',startedText,sbmNowText_());
+    sbmProcessLog_('日次処理 STEP3 区間計測','改善中整合',Number(orphanImproving.checked||0),Number(orphanImproving.recovered||0),step3OrphanImprovingSec,
+      '確認 '+Number(orphanImproving.checked||0)+'件 / 復旧 '+Number(orphanImproving.recovered||0)+'件 / Workflow保護 '+Number(orphanImproving.protectedWorkflow||0)+'件 / Case保護 '+Number(orphanImproving.protectedCase||0)+'件 / 履歴保護 '+Number(orphanImproving.protectedHistory||0)+'件',startedText,sbmNowText_());
 
     // STEP3前後に改善履歴を全件2回読む処理を廃止。
     // モニター件数は生成済み「改善の推移」の件数を正本として利用。
@@ -19377,6 +19385,47 @@ function sbmMigrateLegacyArticleWorkStates_(){
     if(hm['作業理由'])sh.getRange(i+2,hm['作業理由']).setValue(reason);
     if(hm['状態更新日'])sh.getRange(i+2,hm['状態更新日']).setValue(sbmDateText_(new Date()));
     out.changed++;
+  }
+  return out;
+}
+
+/** v6.7.48: 記事管理の「改善中」に根拠があるかを日次で整合する。
+ * 正常な未完了Workflow/Doctor Caseは維持し、改善履歴がある記事も自動復旧しない。
+ * 3系統すべてに根拠がない場合だけ、孤立状態として「未着手」へ戻す。
+ */
+function sbmReconcileOrphanImprovingStates_(shared){
+  shared=shared||{};
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return {checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0};
+  var hm=sbmHeaderMap_(sh);if(!hm['作業状態'])return {checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0};
+  var wfIndex=sbmDoctorWorkflowResumeIndex_(),wfIds={},wfUrls={};
+  (sbmNormalImprovementActiveEntries_(wfIndex)||[]).forEach(function(e){
+    var m=e&&e.meta?e.meta:{},id=String(m.article_id||'').trim(),u=sbmNormalizeUrl_(m.article_url||'');
+    if(id)wfIds[id]=true;if(u)wfUrls[u]=true;
+  });
+  var activeCaseCodes={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_SETUP':1,'NEW_ARTICLE_CREATOR_IN_PROGRESS':1,'NEW_ARTICLE_PUBLICATION_PENDING':1};
+  var caseIds={},caseUrls={};
+  (sbmRowsAsObjects_(SBM_SHEETS.DOCTOR_CASES)||[]).forEach(function(c){
+    var code=String(c['状態コード']||'').trim();if(!activeCaseCodes[code])return;
+    var id=String(c['記事ID']||'').trim(),u=sbmNormalizeUrl_(c['記事URL']||'');if(id)caseIds[id]=true;if(u)caseUrls[u]=true;
+  });
+  var histIds={},histUrls={};
+  (shared.histories||sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[]).forEach(function(h){
+    var id=String(h['ArticleID']||'').trim(),u=sbmNormalizeUrl_(h['記事URL']||'');if(id)histIds[id]=true;if(u)histUrls[u]=true;
+  });
+  var n=sh.getLastRow()-1,states=sh.getRange(2,hm['作業状態'],n,1).getDisplayValues();
+  var ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():[],urls=hm['記事URL']?sh.getRange(2,hm['記事URL'],n,1).getDisplayValues():[];
+  var out={checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0},today=sbmDateText_(new Date());
+  for(var i=0;i<n;i++){
+    if(sbmNormalizeWorkState_(states[i][0])!=='✏️ 改善中')continue;out.checked++;
+    var id=ids.length?String(ids[i][0]||'').trim():'',u=urls.length?sbmNormalizeUrl_(urls[i][0]||''):'';
+    if((id&&wfIds[id])||(u&&wfUrls[u])){out.protectedWorkflow++;continue;}
+    if((id&&caseIds[id])||(u&&caseUrls[u])){out.protectedCase++;continue;}
+    if((id&&histIds[id])||(u&&histUrls[u])){out.protectedHistory++;continue;}
+    sh.getRange(i+2,hm['作業状態']).setValue('未着手');
+    if(hm['作業理由'])sh.getRange(i+2,hm['作業理由']).setValue('孤立した改善中を整合・未完了Workflow等の根拠なし');
+    if(hm['状態更新日'])sh.getRange(i+2,hm['状態更新日']).setValue(today);
+    out.recovered++;
   }
   return out;
 }

@@ -1,1 +1,1 @@
-fix: make Article Management the work-state source of truth (v6.7.47)
+fix: reconcile orphan improving states safely (v6.7.48)
