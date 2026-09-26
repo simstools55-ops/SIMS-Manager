@@ -1,1 +1,1 @@
-feat: add Ace article drop monitoring and aDoctor review route (v6.7.45)
+fix: make Article Management the work-state source of truth (v6.7.47)
