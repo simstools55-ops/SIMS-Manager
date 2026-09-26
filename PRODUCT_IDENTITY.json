@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.52",
+  "current_version": "6.7.53",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.52: Display theme is fixed to monochrome; theme selection is removed and Home is built directly into the monochrome presentation.",
-  "version": "6.7.52",
+  "notes": "v6.7.53: Today Improvement display order is enforced as Ace Drop, Recheck Action, then normal candidates while preserving normal-category order.",
+  "version": "6.7.53",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.52-ST"
+  "starter_display_version": "v6.7.53-ST"
 }

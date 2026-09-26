@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.52
+ * Current version: 6.7.53
  * Release summary: Fix the product display theme to monochrome and remove theme selection.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.52.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.53.md.
  */
 
-const SBM_VERSION = '6.7.52';
+const SBM_VERSION = '6.7.53';
+// v6.7.53: 今日の改善の表示優先順を描画直前に保証（急落 → 再診処置 → 通常候補）。
 // v6.7.52: 表示テーマをモノトーン固定へ統一。テーマ選択を廃止し、Home生成時点でモノトーン書式を完成させる。
 // v6.7.51: Home表示前に選択テーマを確定・flushしてからシートをアクティブ化し、標準配色が一瞬見える描画ちらつきを抑止。
 // v6.7.50: Homeレイアウト署名を現行配置へ同期し、正常なHomeを毎回再構築して標準配色→選択テーマへ戻す不要処理を解消。
@@ -13983,6 +13984,14 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
     var isAceDrop=String(c&&c.workflowType||'')==='ACE_DROP_REVIEW'||String(c&&c.candidateId||'').indexOf('ACE_DROP:')===0;
     return isAceDrop||!sbmTodayCompletedMatch_(blockedToday,c&&c.articleId,c&&c.url);
   });
+  // v6.7.53: 呼出元ごとの結合順に依存せず、今日の改善の確定優先順を描画直前に保証する。
+  // 急落・再診処置だけを先頭へ移し、通常カテゴリ同士の既存順序は保持する。
+  eligible=eligible.map(function(c,i){
+    var workflow=String(c&&c.workflowType||''),candidateId=String(c&&c.candidateId||''),kind=String(c&&c.kind||'');
+    var priority=(workflow==='ACE_DROP_REVIEW'||candidateId.indexOf('ACE_DROP:')===0||kind.indexOf('急落')>=0)?0:
+      ((workflow==='EFFECT_AFTER_OBSERVATION'||candidateId.indexOf('OBS_END:')===0||kind.indexOf('再診処置')>=0)?1:2);
+    return {candidate:c,index:i,priority:priority};
+  }).sort(function(a,b){return a.priority-b.priority||a.index-b.index;}).map(function(x){return x.candidate;});
   var shown = eligible.slice(0, Math.min(Number(count || 0), eligible.length));
 
   if (shown.length) {
