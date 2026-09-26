@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.55
- * Release summary: Backfill missing 90-day review dates for completed articles from verified 4th measurement dates.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.55.md.
+ * Current version: 6.7.56
+ * Release summary: Move the target-article button below the step-3 referral copy action in the aDoctor resume dialog.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.56.md.
  */
 
-const SBM_VERSION = '6.7.55';
+const SBM_VERSION = '6.7.56';
+// v6.7.56: 精密診断の途中再開ダイアログで「対象記事」を③紹介状コピーの直下へ移動。
 // v6.7.55: 完了記事で欠落した90日再評価情報を、最新の4回目測定日時から安全に補完。
 // v6.7.54: 未完了の通常改善Workflowと記事管理の作業状態を双方向整合。
 // v6.7.53: 今日の改善の表示優先順を描画直前に保証（急落 → 再診処置 → 通常候補）。
@@ -20502,11 +20503,11 @@ function sbmDoctorShowSingleCaseResumeDialog_(info){
     '<div id="meta" class="meta">'+initialMeta+'</div>'+
     '<div id="resumeLoading" class="card"><b>再開データを準備しています…</b><div class="note">保存済みの依頼文と現在の工程を画面へ復元しています。GSC取得や記事再取得は行っていません。</div></div>'+
     '<div id="requestCard" class="card hidden"><b id="requestTitle">aDoctorへ依頼</b><div id="requestNote" class="note">保存済みCaseIDを使って続きから再開します。</div><textarea id="request" readonly></textarea><div id="requestCopyStatus" class="status"></div><div class="actions"><button class="primary" onclick="copyReq()">依頼文をコピー</button></div></div>'+
-    '<div id="articleCard" class="card hidden"><b>対象記事</b><div class="note">紹介状を確認・コピーした後、実際の記事を開いて処置内容を確認できます。</div><div class="actions" style="justify-content:flex-start"><a id="articleOpen" class="link-button" target="_blank" rel="noopener noreferrer">この記事を開く</a></div></div>'+
     '<div id="resultCard" class="card hidden"><b id="resultTitle">回答を登録</b><div id="resultNote" class="note"></div><textarea id="result" placeholder="回答全文またはJSONを貼り付けてください"></textarea><div id="resultStatus" class="status"></div><div class="actions"><button id="resultBtn" class="primary" onclick="submitResult()">回答を登録して次へ進む</button></div></div>'+
     '<div id="confirmCard" class="card hidden"><b>利用者確認を再開</b><div id="confirmInstruction" class="note"></div><div id="choices"></div><textarea id="confirmRaw" placeholder="確認内容・表示内容・メモ（任意）"></textarea><div id="confirmStatus" class="status"></div><div class="actions"><button id="confirmBtn" class="primary" onclick="submitConfirm()">確認結果を登録して再診依頼を作る</button></div></div>'+
     '<div id="closeCard" class="card hidden"><b>③ 診断結果：経過観察を終了します</b><div id="closeMessage" class="note" style="white-space:pre-wrap;margin-top:8px"></div><div id="closeStatus" class="status"></div><div class="actions"><button id="closeMonitoringBtn" class="primary" onclick="completeCloseMonitoringResume()">モニターを終了して完了登録</button></div></div>'+
     '<div id="nextCard" class="card hidden"><b id="nextTitle">次の処置</b><div id="nextMsg" class="note"></div><textarea id="nextReq" readonly></textarea><div id="nextCopyStatus" class="status"></div><div class="actions"><button id="copyNextBtn" class="primary" onclick="copyNext()">紹介状をコピー</button></div></div>'+
+    '<div id="articleCard" class="card hidden"><b>対象記事</b><div class="note">紹介状を確認・コピーした後、実際の記事を開いて処置内容を確認できます。</div><div class="actions" style="justify-content:flex-start"><a id="articleOpen" class="link-button" target="_blank" rel="noopener noreferrer">この記事を開く</a></div></div>'+
     '<div id="writerCard" class="card hidden"><b>aWriterの改善結果をSIMSへ返す</b><div class="note">aWriterで修正が完了したら、aWriterの回答を最初から最後までそのまま貼り付けてください。</div><textarea id="writerResult" placeholder="ここへaWriterの回答全文をそのまま貼り付けます"></textarea><div id="writerStatus" class="status"></div><div class="actions"><button id="writerBtn" class="primary" onclick="submitWriter()">aWriterの改善結果を登録</button></div></div>'+
     '<div id="mergeCard" class="card hidden"><b>aMergeの統合結果をSIMSへ返す</b><div class="note">aMergeで記事統合の設計が完了したら、aMergeの回答全文を貼り付けてください。</div><textarea id="mergeResult" placeholder="ここへaMergeの回答全文をそのまま貼り付けます"></textarea><div id="mergeStatus" class="status"></div><div class="actions"><button id="mergeBtn" class="primary" onclick="submitMerge()">aMergeの統合結果を登録</button></div></div>'+
     '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div>'+

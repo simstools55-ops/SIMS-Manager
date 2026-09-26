@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.55",
+  "current_version": "6.7.56",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.55: Backfill missing completed-article 90-day review metadata only when a verified completed history has a 4th measurement date.",
-  "version": "6.7.55",
-  "starter_display_version": "v6.7.55-ST"
+  "notes": "v6.7.56: Move the target-article button below the step-3 referral copy action in the aDoctor resume dialog.",
+  "version": "6.7.56",
+  "starter_display_version": "v6.7.56-ST"
 }
