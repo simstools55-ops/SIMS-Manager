@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.56",
+  "current_version": "6.7.57",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.56: Move the target-article button below the step-3 referral copy action in the aDoctor resume dialog.",
-  "version": "6.7.56",
+  "notes": "v6.7.57: Connect the no-improvement dialog health-check action to the official site health-check entry point.",
+  "version": "6.7.57",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.56-ST"
+  "starter_display_version": "v6.7.57-ST"
 }

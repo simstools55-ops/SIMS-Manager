@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.56
- * Release summary: Move the target-article button below the step-3 referral copy action in the aDoctor resume dialog.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.56.md.
+ * Current version: 6.7.57
+ * Release summary: Fix the no-improvement dialog so its health-check action launches the official site health-check flow.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.57.md.
  */
 
-const SBM_VERSION = '6.7.56';
+const SBM_VERSION = '6.7.57';
+// v6.7.57: 「今日の改善」0件ダイアログの健康診断ボタンを正式なサイト健康診断起動関数へ接続。
 // v6.7.56: 精密診断の途中再開ダイアログで「対象記事」を③紹介状コピーの直下へ移動。
 // v6.7.55: 完了記事で欠落した90日再評価情報を、最新の4回目測定日時から安全に補完。
 // v6.7.54: 未完了の通常改善Workflowと記事管理の作業状態を双方向整合。
@@ -6523,7 +6524,7 @@ function sbmOpenTodayImprovement() {
  * 健康診断→精密診断へ案内する。
  */
 function sbmShowTodayZeroAdviceDialog_(){
-  var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}h2{margin:0 0 12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:14px;line-height:1.75}.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}.status{min-height:18px;margin-top:10px;font-size:12px;color:#5f6368}</style></head><body><h2>今日の改善はありません</h2><div class="card"><b>今日行うべき日次改善の記事はありません。</b><br>次は「健康診断 → 精密診断」で、発芽・育成段階の記事、長期流入低下など、日次候補とは別の観点から改善対象を確認してください。<br><br>新記事キーワードの調査は自動では行いません。必要なときに「新記事関連 → 新記事キーワードの参入余地を確認」から開始できます。</div><div id="st" class="status"></div><div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button class="primary" onclick="health()">健康診断へ進む</button></div><script>function health(){var b=document.querySelector(".primary"),s=document.getElementById("st");b.disabled=true;b.textContent="開始しています…";s.textContent="健康診断を開始しています。";google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(e){b.disabled=false;b.textContent="健康診断へ進む";s.textContent=(e&&e.message)?e.message:String(e)}).sbmRunSiteHealthCheck()}</script></body></html>').setWidth(620).setHeight(360);
+  var html=HtmlService.createHtmlOutput('<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:22px;color:#202124}h2{margin:0 0 12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:8px;padding:14px;line-height:1.75}.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}button{border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4;color:#3c4043}.status{min-height:18px;margin-top:10px;font-size:12px;color:#5f6368}</style></head><body><h2>今日の改善はありません</h2><div class="card"><b>今日行うべき日次改善の記事はありません。</b><br>次は「健康診断 → 精密診断」で、発芽・育成段階の記事、長期流入低下など、日次候補とは別の観点から改善対象を確認してください。<br><br>新記事キーワードの調査は自動では行いません。必要なときに「新記事関連 → 新記事キーワードの参入余地を確認」から開始できます。</div><div id="st" class="status"></div><div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button><button class="primary" onclick="health()">健康診断へ進む</button></div><script>function health(){var b=document.querySelector(".primary"),s=document.getElementById("st");b.disabled=true;b.textContent="開始しています…";s.textContent="健康診断を開始しています。";google.script.run.withSuccessHandler(function(){google.script.host.close()}).withFailureHandler(function(e){b.disabled=false;b.textContent="健康診断へ進む";s.textContent=(e&&e.message)?e.message:String(e)}).sbmDoctorRunHealthCheck()}</script></body></html>').setWidth(620).setHeight(360);
   sbmShowThemedModalDialog_(html,'今日の改善');
 }
 
