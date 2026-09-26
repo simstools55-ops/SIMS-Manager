@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.49
+ * Current version: 6.7.50
  * Release summary: Fix Home open/update ReferenceError and synchronize release version metadata.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.49.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.50.md.
  */
 
-const SBM_VERSION = '6.7.49';
+const SBM_VERSION = '6.7.50';
+// v6.7.50: Homeレイアウト署名を現行配置へ同期し、正常なHomeを毎回再構築して標準配色→選択テーマへ戻す不要処理を解消。
 // v6.7.49: Home画面を開く処理に残った未定義 profiler 参照を除去。バージョン関連ファイルの不整合も同期修正。
 // v6.7.48: 記事管理の孤立した「改善中」を日次STEP3で整合。未完了Workflow/Case/改善履歴の根拠がない場合のみ未着手へ復旧。
 // v6.7.46: 「今日の改善」の作業済み表示を『完了』から『終了』へ明確化。旧『完了』表示は互換読込し、記事管理の『✔️ 完了』は変更しない。
@@ -12666,12 +12667,13 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
     var expected = [
       ['A5','記事ランク'],['E5','記事改善の状況'],['I5','改善率'],
       ['A6','🏆 エース'],['A7','📈 成長'],['A8','✅ 安定'],['A9','🌱 育成'],['A10','🌿 発芽'],['A11','🌰 未発芽'],['A12','未取得'],
-      ['E6','未着手'],['E9','モニター中'],['A18','改善モニター中｜0件｜判定内訳'],
-      ['A19','改善が確認できる'],['D19','要注意・見直し'],['H19','まだ判定できない'],['H20','判定待ち'],['H22','再判定待ち']
+      ['E6','未着手'],['E9','モニター中'],['A16','改善モニター中｜0件｜判定内訳'],
+      ['A17','改善が確認できる'],['D17','要注意・見直し'],['H17','まだ判定できない'],
+      ['A18','大きく改善'],['D18','変化小'],['H18','測定待ち'],['H21','データ不足'],['A22','今週のアドバイス']
     ];
     for (var i=0;i<expected.length;i++) {
       var v=String(sh.getRange(expected[i][0]).getValue() || '').trim();
-      if (expected[i][0]==='A18') {
+      if (expected[i][0]==='A16') {
         if (v.indexOf('改善モニター中｜')!==0 || v.indexOf('｜判定内訳')<0) return true;
       } else if (v !== expected[i][1]) return true;
     }
