@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.48",
+  "current_version": "6.7.49",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.48: Reconciles orphan 改善中 states during daily processing only when no active Workflow, Doctor Case, or improvement history supports the state.",
-  "version": "6.7.48",
+  "notes": "v6.7.49: Fixes the Home open/update ReferenceError caused by an undefined profiler reference and synchronizes release version metadata.",
+  "version": "6.7.49",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.48-ST"
+  "starter_display_version": "v6.7.49-ST"
 }

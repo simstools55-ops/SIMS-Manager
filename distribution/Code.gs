@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.46
- * Release summary: Keep tracked improvement cycles out of Today's Improvements until Article Management explicitly releases them for 90-day re-evaluation.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.46.md.
+ * Current version: 6.7.49
+ * Release summary: Fix Home open/update ReferenceError and synchronize release version metadata.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.49.md.
  */
 
-const SBM_VERSION = '6.7.48';
+const SBM_VERSION = '6.7.49';
+// v6.7.49: Home画面を開く処理に残った未定義 profiler 参照を除去。バージョン関連ファイルの不整合も同期修正。
 // v6.7.48: 記事管理の孤立した「改善中」を日次STEP3で整合。未完了Workflow/Case/改善履歴の根拠がない場合のみ未着手へ復旧。
 // v6.7.46: 「今日の改善」の作業済み表示を『完了』から『終了』へ明確化。旧『完了』表示は互換読込し、記事管理の『✔️ 完了』は変更しない。
 // v6.7.45: エース記事の直近28日急落を日次で検知し、通常枠とは別の『エース急落』としてaDoctor精密診断へ接続。完了記事は急落時だけ90日保護を解除。
@@ -6277,7 +6278,9 @@ function sbmUpdateArticleRankManual() {
 function sbmOpenHome() {
   // 「HOME画面を開く」は画面遷移だけを行う。既存Homeを標準配色で再描画しない。
   // データ更新は日次処理・各結果登録側で行い、選択中の表示テーマをそのまま維持する。
-  var tHide=new Date(); sbmHideOptionalAdminSheets_(); profiler.lap('管理用シート非表示','','',sbmSecondsSince_(tHide)+'秒');
+  // Home表示経路ではprofilerを生成していないため、非表示処理だけを実行する。
+  // 表示専用経路へ計測依存を持ち込まず、Home更新/表示の既存挙動を維持する。
+  sbmHideOptionalAdminSheets_();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sh = ss.getSheetByName(SBM_SHEETS.HOME);
   var needsBuild = !sh;

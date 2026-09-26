@@ -1,3 +1,8 @@
+## v6.7.49 - 2026-09-26
+- `sbmOpenHome()` に残っていた未定義 `profiler.lap(...)` 呼び出しを除去し、Home画面更新時の ReferenceError を修正。
+- Home表示専用経路の既存動作・テーマ維持方針は変更なし。
+- Code.gs先頭コメント、VERSION、PRODUCT_IDENTITY、README-FIRST、Release Notes、Repository ZIP名のバージョン整合を修正。
+
 ## v6.7.48 - 2026-09-26
 - 日次STEP3で記事管理の `✏️ 改善中` を整合。
 - 有効な未完了Workflow、Doctor Case、改善履歴のいずれにも根拠がない場合だけ `未着手` へ復旧。
