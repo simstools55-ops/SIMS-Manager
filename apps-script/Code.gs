@@ -3,12 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.50
- * Release summary: Fix Home open/update ReferenceError and synchronize release version metadata.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.50.md.
+ * Current version: 6.7.52
+ * Release summary: Fix the product display theme to monochrome and remove theme selection.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.52.md.
  */
 
-const SBM_VERSION = '6.7.50';
+const SBM_VERSION = '6.7.52';
+// v6.7.52: 表示テーマをモノトーン固定へ統一。テーマ選択を廃止し、Home生成時点でモノトーン書式を完成させる。
+// v6.7.51: Home表示前に選択テーマを確定・flushしてからシートをアクティブ化し、標準配色が一瞬見える描画ちらつきを抑止。
 // v6.7.50: Homeレイアウト署名を現行配置へ同期し、正常なHomeを毎回再構築して標準配色→選択テーマへ戻す不要処理を解消。
 // v6.7.49: Home画面を開く処理に残った未定義 profiler 参照を除去。バージョン関連ファイルの不整合も同期修正。
 // v6.7.48: 記事管理の孤立した「改善中」を日次STEP3で整合。未完了Workflow/Case/改善履歴の根拠がない場合のみ未着手へ復旧。
@@ -1806,6 +1808,8 @@ function sbmBuildHomeSheet_() {
   sh.getRange('A23:J30').setBackground('#fffaf0').setBorder(true,true,true,true,false,false,'#e6cf8b',SpreadsheetApp.BorderStyle.SOLID).setFontSize(13).setFontWeight('normal').setVerticalAlignment('top');
   sh.getRangeList(['A2','A3']).setFontWeight('bold');
   try { sh.getRange('K:N').clearContent(); sh.showColumns(11,4); } catch(e) {}
+  // v6.7.52: Homeは生成時点で製品標準のモノトーン書式を完成させる。
+  sbmApplyHomeDisplayTheme_(sh);
 }
 
 function sbmBuildSetupSheet_() {
@@ -6300,6 +6304,7 @@ function sbmOpenHome() {
   }
   if (sh) {
     if (sh.isSheetHidden()) sh.showSheet();
+    // v6.7.52: 表示テーマはモノトーン固定。通常のHome表示では書式を書き直さない。
     if (ss.getActiveSheet().getSheetId() !== sh.getSheetId()) ss.setActiveSheet(sh);
   }
 }
@@ -14600,12 +14605,9 @@ function sbmSyncHomeVersionOnly_(){
  * STANDARD keeps the current product colors.
  * MONOCHROME uses the Home top bar as the common heading language.
  * ========================================================================== */
-function sbmDisplayTheme_(){
-  var v=String(sbmGetSetting_('DisplayTheme','STANDARD')||'STANDARD').toUpperCase();
-  return v==='MONOCHROME'?'MONOCHROME':'STANDARD';
-}
-function sbmIsMonochromeTheme_(){return sbmDisplayTheme_()==='MONOCHROME';}
-function sbmDisplayThemeLabel_(){return sbmIsMonochromeTheme_()?'モノクロ':'標準';}
+function sbmDisplayTheme_(){return 'MONOCHROME';}
+function sbmIsMonochromeTheme_(){return true;}
+function sbmDisplayThemeLabel_(){return 'モノトーン';}
 function sbmThemeTopBarBg_(){return '#3c4043';}
 function sbmThemeTopBarFg_(){return '#ffffff';}
 
@@ -14879,17 +14881,10 @@ function sbmApplyDisplayThemePrototype_(){
   SpreadsheetApp.flush();
 }
 function sbmChangeDisplayTheme(){
-  var ui=SpreadsheetApp.getUi(),current=sbmDisplayThemeLabel_();
-  var r=ui.alert(
-    '表示テーマを変更',
-    '現在：'+current+'\n\n「はい」＝モノクロ\n「いいえ」＝標準\n\n表示だけを切り替えます。記事データ・GSC・診断・Workflowには影響しません。',
-    ui.ButtonSet.YES_NO_CANCEL
-  );
-  if(r===ui.Button.CANCEL||r===ui.Button.CLOSE)return;
-  var theme=(r===ui.Button.YES)?'MONOCHROME':'STANDARD';
-  sbmSetSetting_('DisplayTheme',theme,'SIMS Manager表示テーマ');
-  sbmApplyDisplayThemePrototype_();
-  ui.alert('表示テーマ','表示テーマを「'+(theme==='MONOCHROME'?'モノクロ':'標準')+'」へ変更しました。\n\nHome・今日の改善・改善の推移・記事管理・改善履歴へ反映します。',ui.ButtonSet.OK);
+  // 旧メニュー／既存ショートカット互換。v6.7.52以降はモノトーン固定。
+  sbmApplyVisibleSheetDisplayThemes_();
+  SpreadsheetApp.flush();
+  SpreadsheetApp.getUi().alert('表示テーマ','SIMS Managerの表示テーマはモノトーンに統一されています。',SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 function onOpen() {
@@ -14952,7 +14947,6 @@ function onOpen() {
 
   var maintenanceMenu = ui.createMenu('設定・メンテナンス')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
-    .addItem('表示テーマを変更','sbmChangeDisplayTheme')
     .addItem('Personal Knowledgeを点検','sbmPersonalKnowledgeCheckAndInitializeMenu');
 
   if (isFullEdition) {
