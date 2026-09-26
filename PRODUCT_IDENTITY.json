@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.63",
+  "current_version": "6.7.64",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.63: STEP2 guides first-time users through creating a standard Cloud project, linking it to this Apps Script, and enabling Search Console API in the same project.",
-  "version": "6.7.63",
+  "notes": "v6.7.64: Treat zero Search Console rows on a first-time site as data waiting, not a failure, and guide the user to retry after about one week.",
+  "version": "6.7.64",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.63-ST"
+  "starter_display_version": "v6.7.64-ST"
 }
