@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.57",
+  "current_version": "6.7.60",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.57: Connect the no-improvement dialog health-check action to the official site health-check entry point.",
-  "version": "6.7.57",
+  "notes": "v6.7.60: Build re-examination candidates from Article Management work state as the source of truth; use improvement history only as supplemental metadata.",
+  "version": "6.7.60",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.57-ST"
+  "starter_display_version": "v6.7.60-ST"
 }

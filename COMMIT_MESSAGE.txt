@@ -1,1 +1,1 @@
-fix: reconcile orphan improving states safely (v6.7.48)
+fix: 再診処置候補を記事管理の作業状態から生成 (v6.7.60)

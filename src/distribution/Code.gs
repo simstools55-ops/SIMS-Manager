@@ -3,12 +3,15 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.57
- * Release summary: Fix the no-improvement dialog so its health-check action launches the official site health-check flow.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.57.md.
+ * Current version: 6.7.60
+ * Release summary: Ensure newly generated re-examination cases appear in Today Improvement even when prior completed-row exclusions exist.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.60.md.
  */
 
-const SBM_VERSION = '6.7.57';
+const SBM_VERSION = '6.7.60';
+// v6.7.60: 再診処置候補は記事管理を正本に列挙し、改善履歴は補助参照へ変更。
+// v6.7.59: 4週判定で新たに発生した再診処置を、過去の今日の改善『終了/完了』除外キーで抑止しない。
+// v6.7.58: 期限超過した週次測定を1回の日次処理で到来済み回数までキャッチアップ。
 // v6.7.57: 「今日の改善」0件ダイアログの健康診断ボタンを正式なサイト健康診断起動関数へ接続。
 // v6.7.56: 精密診断の途中再開ダイアログで「対象記事」を③紹介状コピーの直下へ移動。
 // v6.7.55: 完了記事で欠落した90日再評価情報を、最新の4回目測定日時から安全に補完。
@@ -6610,7 +6613,10 @@ function sbmRebuildTodayQueueAfterDaily_(snapshot) {
     var aid=String(c.articleId||'').trim().toUpperCase();
     var u=sbmNormalizeUrl_(c.url||'');
     var isAceDrop=String(c.workflowType||'')==='ACE_DROP_REVIEW'||String(c.candidateId||'').indexOf('ACE_DROP:')===0;
-    if(!isAceDrop&&((aid&&completedOnSheet['ID:'+aid])||(u&&completedOnSheet['URL:'+u])))return;
+    // v6.7.59: 過去の「終了/完了」表示は通常候補の再掲防止には使うが、
+    // 新たに4週判定で発生した再診処置を抑止してはいけない。
+    var isObservationEnd=String(c.workflowType||'')==='EFFECT_AFTER_OBSERVATION'||String(c.candidateId||'').indexOf('OBS_END:')===0||String(c.kind||'').indexOf('再診処置')>=0;
+    if(!isAceDrop&&!isObservationEnd&&((aid&&completedOnSheet['ID:'+aid])||(u&&completedOnSheet['URL:'+u])))return;
     var key=aid?('ID:'+aid):(u?('URL:'+u):'');
     if(!key||seen[key])return;
     seen[key]=true; merged.push(c);
@@ -7154,29 +7160,34 @@ function sbmStartAceDropDoctorFromToday_(record){
 
 function sbmObservationEndedTodayCandidates_(snapshot){
   snapshot=snapshot||{};
-  // v6.6.85: STEP3では改善履歴・記事管理の同一スナップショットを共有し、再読込を避ける。
   var histories=snapshot.histories||sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[];
-  var latest=snapshot.latestMonitoring||sbmLatestMonitoringHistories_(histories);
-  var articleRows=snapshot.articleRows||sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],byId={},byUrl={};
-  articleRows.forEach(function(r){
-    var id=String(r['ArticleID']||'').trim(),u=sbmNormalizeUrl_(r['記事URL']||'');
-    if(id&&!byId[id])byId[id]=r;
-    if(u&&!byUrl[u])byUrl[u]=r;
-  });
-  return latest.map(function(h){
-    var articleId=String(h['ArticleID']||'').trim(),url=String(h['記事URL']||'').trim();
-    var normalizedUrl=sbmNormalizeUrl_(url),a=(articleId&&byId[articleId])||(normalizedUrl&&byUrl[normalizedUrl])||{};
-    var work=String(a['作業状態']||'').trim();
-    // v6.6.61: 過去履歴ではなく「現在の作業状態」を正本にする。
-    // 4回測定後に今日の改善へ移管された案件だけを表示する。
-    if(sbmNormalizeWorkState_(work)!=='🔄 再診処置')return null;
+  var articleRows=snapshot.articleRows||sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+
+  // v6.7.60: 「再診処置」の正本は記事管理。
+  // 旧実装は各記事の「最新の改善履歴」から候補を起こしていたため、同一記事に別サイクルの
+  // 新しい履歴があると、記事管理が再診処置でも対象の4週完了履歴を拾えず候補0件になった。
+  // 先に記事管理の再診処置を列挙し、履歴は説明・履歴IDの補助情報としてだけ参照する。
+  var latestEligible={};
+  histories.forEach(function(h,idx){
     var ms=sbmHistoryMeasurementState_(h);
-    if(!ms.complete)return null;
+    if(!ms.complete)return;
     var finalOutcome=sbmFinalImprovementOutcome_(String(ms.latestJudgment||''),true);
-    if(finalOutcome==='改善完了')return null;
-    url=String(a['記事URL']||url).trim();
-    articleId=articleId||String(a['ArticleID']||'').trim();
-    if(!url||!articleId)return null;
+    if(finalOutcome==='改善完了')return;
+    var aid=String(h['ArticleID']||'').trim().toUpperCase(),u=sbmNormalizeUrl_(h['記事URL']||'');
+    if(!aid&&!u)return;
+    var meta={h:h,index:idx,sortKey:sbmHistoryCycleTime_(h,idx)};
+    function keep(key){if(!key)return;if(!latestEligible[key]||sbmHistoryCycleNewer_(meta.sortKey,latestEligible[key].sortKey))latestEligible[key]=meta;}
+    keep(aid?'ID:'+aid:''); keep(u?'URL:'+u:'');
+  });
+
+  return articleRows.map(function(a){
+    var work=sbmNormalizeWorkState_(a['作業状態']||'');
+    if(work!=='🔄 再診処置')return null;
+    var articleId=String(a['ArticleID']||'').trim(),aid=articleId.toUpperCase();
+    var url=String(a['記事URL']||'').trim(),u=sbmNormalizeUrl_(url);
+    if(!articleId||!url)return null;
+    var meta=(aid&&latestEligible['ID:'+aid])||(u&&latestEligible['URL:'+u])||null;
+    var h=meta&&meta.h?meta.h:{};
     return {
       workflowType:'EFFECT_AFTER_OBSERVATION',
       candidateId:'OBS_END:'+String(h['改善履歴ID']||articleId||url),
@@ -10511,10 +10522,29 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
     var state=sbmHistoryMeasurementState_(h), dueStatus=sbmMeasurementDueStatus_(h,now), due=dueStatus.due, dueReached=dueStatus.reached, dueOverdue=dueStatus.overdue;
     var currentJudgment=sbmJudgeEffectV2_(ctrDelta,posDelta,clickDelta,impDelta,elapsed,beforeClicks,beforeImp,currentImp);
     if(!options.viewOnly&&dueReached&&!state.complete){
-      var rec=sbmRecordWeeklyMeasurement_(h,currentJudgment,now,{beforeCtr:beforeCtr,currentCtr:currentCtr,beforePos:beforePos,currentPos:currentPos,beforeClicks:beforeClicks,currentClicks:currentClicks,beforeImp:beforeImp,currentImp:currentImp,ctrDelta:ctrDelta,posDelta:posDelta,clickDelta:clickDelta,impDelta:impDelta},measurementContext);
-      if(rec.recorded){recordedCount++;if(rec.count<=4){h[(rec.count)+'回目測定日時']=now;h[(rec.count)+'週']=currentJudgment;h[(rec.count)+'回目SIMS寸評']=rec.observation;}else if(rec.extraJson){h['追加測定JSON']=rec.extraJson;}h['最終判定']=sbmFinalImprovementOutcome_(currentJudgment,rec.complete);h['状態']=rec.complete?'完了':'モニター中';h['モニター状態']=rec.complete?(h['最終判定']==='改善完了'?'COMPLETED':'REVIEW_REQUIRED'):'ACTIVE';}
-      else if(dueOverdue){try{sbmLog_('MeasurementCatchup','Warning','historyId='+String(h['改善履歴ID']||'')+', articleId='+String(h['ArticleID']||'')+', due='+Utilities.formatDate(due,'Asia/Tokyo','yyyy/M/d')+', reason='+String(rec.reason||'unknown'));}catch(ignoreCatchupLog){}}
-      state=sbmHistoryMeasurementState_(h);dueStatus=sbmMeasurementDueStatus_(h,now);due=dueStatus.due;dueOverdue=dueStatus.overdue;
+      // v6.7.58: 期限超過が複数週にまたがる場合、1回の日次処理で到来済みの測定をまとめて追いつかせる。
+      // 従来は1実行につき1週しか記録しなかったため、長期未実行案件が1週／4週のまま残り続けていた。
+      var catchupGuard=0;
+      while(dueReached&&!state.complete&&catchupGuard<Math.max(4,Number(state.target||4))){
+        catchupGuard++;
+        var rec=sbmRecordWeeklyMeasurement_(h,currentJudgment,now,{beforeCtr:beforeCtr,currentCtr:currentCtr,beforePos:beforePos,currentPos:currentPos,beforeClicks:beforeClicks,currentClicks:currentClicks,beforeImp:beforeImp,currentImp:currentImp,ctrDelta:ctrDelta,posDelta:posDelta,clickDelta:clickDelta,impDelta:impDelta},measurementContext);
+        if(rec.recorded){
+          recordedCount++;
+          if(rec.count<=4){h[(rec.count)+'回目測定日時']=now;h[(rec.count)+'週']=currentJudgment;h[(rec.count)+'回目SIMS寸評']=rec.observation;}
+          else if(rec.extraJson){h['追加測定JSON']=rec.extraJson;}
+          h['最終判定']=sbmFinalImprovementOutcome_(currentJudgment,rec.complete);
+          h['状態']=rec.complete?'完了':'モニター中';
+          h['モニター状態']=rec.complete?(h['最終判定']==='改善完了'?'COMPLETED':'REVIEW_REQUIRED'):'ACTIVE';
+        }else{
+          if(dueOverdue){try{sbmLog_('MeasurementCatchup','Warning','historyId='+String(h['改善履歴ID']||'')+', articleId='+String(h['ArticleID']||'')+', due='+Utilities.formatDate(due,'Asia/Tokyo','yyyy/M/d')+', reason='+String(rec.reason||'unknown'));}catch(ignoreCatchupLog){}}
+          break;
+        }
+        state=sbmHistoryMeasurementState_(h);
+        dueStatus=sbmMeasurementDueStatus_(h,now);
+        due=dueStatus.due;
+        dueReached=dueStatus.reached;
+        dueOverdue=dueStatus.overdue;
+      }
     }
     var judgment=state.count>0?state.latestJudgment:'測定待ち';
     var finalOutcome=sbmFinalImprovementOutcome_(judgment,state.complete);
