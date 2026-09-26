@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.53",
+  "current_version": "6.7.55",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.53: Today Improvement display order is enforced as Ace Drop, Recheck Action, then normal candidates while preserving normal-category order.",
-  "version": "6.7.53",
+  "notes": "v6.7.55: Backfill missing completed-article 90-day review metadata only when a verified completed history has a 4th measurement date.",
+  "version": "6.7.55",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.53-ST"
+  "starter_display_version": "v6.7.55-ST"
 }

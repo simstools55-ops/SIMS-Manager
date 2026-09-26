@@ -3,12 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.53
- * Release summary: Fix the product display theme to monochrome and remove theme selection.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.53.md.
+ * Current version: 6.7.55
+ * Release summary: Backfill missing 90-day review dates for completed articles from verified 4th measurement dates.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.55.md.
  */
 
-const SBM_VERSION = '6.7.53';
+const SBM_VERSION = '6.7.55';
+// v6.7.55: 完了記事で欠落した90日再評価情報を、最新の4回目測定日時から安全に補完。
+// v6.7.54: 未完了の通常改善Workflowと記事管理の作業状態を双方向整合。
 // v6.7.53: 今日の改善の表示優先順を描画直前に保証（急落 → 再診処置 → 通常候補）。
 // v6.7.52: 表示テーマをモノトーン固定へ統一。テーマ選択を廃止し、Home生成時点でモノトーン書式を完成させる。
 // v6.7.51: Home表示前に選択テーマを確定・flushしてからシートをアクティブ化し、標準配色が一瞬見える描画ちらつきを抑止。
@@ -546,6 +548,7 @@ function sbmRunDailyAnalysisStageFromDialog() {
     // v6.7.47: 候補選定前に旧作業状態を正規状態へ移行し、記事管理を状態管理の正本にする。
     try{var migratedStates=sbmMigrateLegacyArticleWorkStates_();if(migratedStates.changed)sbmLog_('WorkStateMigration','Info',JSON.stringify(migratedStates));}catch(eWorkStateMigration){try{sbmLog_('WorkStateMigration','Warning',String(eWorkStateMigration));}catch(ignoreWorkStateMigrationLog){}}
     var tRecycle2 = new Date();
+    try{var backfillReviewDates=sbmBackfillCompletedArticleReviewDates_();if(backfillReviewDates.filled)sbmLog_('CompletedArticleReviewBackfill','Info',JSON.stringify(backfillReviewDates));}catch(eBackfillReview){try{sbmLog_('CompletedArticleReviewBackfill','Warning',String(eBackfillReview));}catch(ignoreBackfillReviewLog){}}
     try{sbmRecycleCompletedArticlesForReview_();}catch(eRecycle){try{sbmLog_('CompletedArticleRecycle','Warning',String(eRecycle));}catch(ignoreRecycleLog){}}
     var step2RecycleSec = sbmSecondsSince_(tRecycle2);
     try { sbmDailyProfileCheckpoint_('STEP2_RECYCLE','','',step2RecycleSec,'完了記事の再評価準備完了',startedText,sbmNowText_()); } catch(ignoreStep2RecycleProfile) {}
@@ -757,12 +760,12 @@ function sbmRunDailyFinalizeStageFromDialog() {
       '対象記事 '+Number(dailyResumePurge.articles||0)+'件 / 削除Case '+Number(dailyResumePurge.cases||0)+'件',startedText,sbmNowText_());
 
     // v6.7.48: 未完了整理後に、記事管理だけ「改善中」が残った孤立状態を安全条件付きで復旧する。
-    var tOrphanImproving3=new Date(),orphanImproving={checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0};
+    var tOrphanImproving3=new Date(),orphanImproving={checked:0,recovered:0,restored:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0};
     try{orphanImproving=sbmReconcileOrphanImprovingStates_(step3Shared)||orphanImproving;}catch(eOrphanImproving){try{sbmLog_('DailyOrphanImprovingReconcile','Warning',String(eOrphanImproving));}catch(ignoreOrphanImprovingLog){}}
     var step3OrphanImprovingSec=sbmSecondsSince_(tOrphanImproving3);
-    sbmDailyProfileCheckpoint_('STEP3_改善中整合',Number(orphanImproving.checked||0),Number(orphanImproving.recovered||0),step3OrphanImprovingSec,'孤立した改善中のみ未着手へ復旧',startedText,sbmNowText_());
+    sbmDailyProfileCheckpoint_('STEP3_改善中整合',Number(orphanImproving.checked||0),Number(orphanImproving.recovered||0),step3OrphanImprovingSec,'通常改善Workflowと記事管理を双方向整合',startedText,sbmNowText_());
     sbmProcessLog_('日次処理 STEP3 区間計測','改善中整合',Number(orphanImproving.checked||0),Number(orphanImproving.recovered||0),step3OrphanImprovingSec,
-      '確認 '+Number(orphanImproving.checked||0)+'件 / 復旧 '+Number(orphanImproving.recovered||0)+'件 / Workflow保護 '+Number(orphanImproving.protectedWorkflow||0)+'件 / Case保護 '+Number(orphanImproving.protectedCase||0)+'件 / 履歴保護 '+Number(orphanImproving.protectedHistory||0)+'件',startedText,sbmNowText_());
+      '確認 '+Number(orphanImproving.checked||0)+'件 / 未着手→改善中 '+Number(orphanImproving.restored||0)+'件 / 改善中→未着手 '+Number(orphanImproving.recovered||0)+'件 / Workflow保護 '+Number(orphanImproving.protectedWorkflow||0)+'件 / Case保護 '+Number(orphanImproving.protectedCase||0)+'件 / 履歴保護 '+Number(orphanImproving.protectedHistory||0)+'件',startedText,sbmNowText_());
 
     // STEP3前後に改善履歴を全件2回読む処理を廃止。
     // モニター件数は生成済み「改善の推移」の件数を正本として利用。
@@ -19423,17 +19426,59 @@ function sbmReconcileOrphanImprovingStates_(shared){
   });
   var n=sh.getLastRow()-1,states=sh.getRange(2,hm['作業状態'],n,1).getDisplayValues();
   var ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():[],urls=hm['記事URL']?sh.getRange(2,hm['記事URL'],n,1).getDisplayValues():[];
-  var out={checked:0,recovered:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0},today=sbmDateText_(new Date());
+  var out={checked:0,recovered:0,restored:0,protectedWorkflow:0,protectedCase:0,protectedHistory:0},today=sbmDateText_(new Date());
   for(var i=0;i<n;i++){
-    if(sbmNormalizeWorkState_(states[i][0])!=='✏️ 改善中')continue;out.checked++;
+    var state=sbmNormalizeWorkState_(states[i][0]);
     var id=ids.length?String(ids[i][0]||'').trim():'',u=urls.length?sbmNormalizeUrl_(urls[i][0]||''):'';
-    if((id&&wfIds[id])||(u&&wfUrls[u])){out.protectedWorkflow++;continue;}
+    var hasWorkflow=!!((id&&wfIds[id])||(u&&wfUrls[u]));
+    // v6.7.54: 有効な通常改善Workflowが残っているのに記事管理だけ未着手へ戻った旧データを双方向整合する。
+    // STEP3の未完了整理後に実行するため、改善の推移／改善履歴へ正式移行済みのWorkflowはここへ到達しない。
+    if(state==='未着手'&&hasWorkflow){
+      sh.getRange(i+2,hm['作業状態']).setValue('✏️ 改善中');
+      if(hm['作業理由'])sh.getRange(i+2,hm['作業理由']).setValue('未完了の通常改善Workflowと整合');
+      if(hm['状態更新日'])sh.getRange(i+2,hm['状態更新日']).setValue(today);
+      out.restored++;
+      continue;
+    }
+    if(state!=='✏️ 改善中')continue;out.checked++;
+    if(hasWorkflow){out.protectedWorkflow++;continue;}
     if((id&&caseIds[id])||(u&&caseUrls[u])){out.protectedCase++;continue;}
     if((id&&histIds[id])||(u&&histUrls[u])){out.protectedHistory++;continue;}
     sh.getRange(i+2,hm['作業状態']).setValue('未着手');
     if(hm['作業理由'])sh.getRange(i+2,hm['作業理由']).setValue('孤立した改善中を整合・未完了Workflow等の根拠なし');
     if(hm['状態更新日'])sh.getRange(i+2,hm['状態更新日']).setValue(today);
     out.recovered++;
+  }
+  return out;
+}
+
+/** v6.7.55: 90日管理情報が欠落した既存の完了記事を、最新の完了済み改善履歴から安全に補完する。
+ * 対象は「✔️ 完了」かつ最終改善完了日/再評価予定日のどちらかが空欄の記事だけ。
+ * 完了日は最新サイクルの4回目測定日時を正本とし、日付を特定できない記事は変更しない。
+ */
+function sbmBackfillCompletedArticleReviewDates_(){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);if(!sh||sh.getLastRow()<2)return {filled:0,skipped:0};
+  var hm=sbmHeaderMap_(sh);if(!hm['作業状態']||!hm['最終改善完了日']||!hm['再評価予定日'])return {filled:0,skipped:0};
+  var history=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],latest=sbmLatestMonitoringHistories_(history),byId={},byUrl={};
+  latest.forEach(function(h){
+    if(sbmMonitoringLifecycleFromHistory_(h)!=='COMPLETED'||String(h['最終判定']||'').trim()!=='改善完了')return;
+    var d=sbmParseDate_(h['4回目測定日時']);if(!d)return;
+    var id=String(h['ArticleID']||'').trim(),u=sbmNormalizeUrl_(h['記事URL']||'');
+    var rec={date:d};if(id)byId[id]=rec;if(u)byUrl[u]=rec;
+  });
+  var n=sh.getLastRow()-1,states=sh.getRange(2,hm['作業状態'],n,1).getDisplayValues(),completed=sh.getRange(2,hm['最終改善完了日'],n,1).getValues(),reviews=sh.getRange(2,hm['再評価予定日'],n,1).getValues();
+  var ids=hm['ArticleID']?sh.getRange(2,hm['ArticleID'],n,1).getDisplayValues():[],urls=hm['記事URL']?sh.getRange(2,hm['記事URL'],n,1).getDisplayValues():[],out={filled:0,skipped:0};
+  for(var i=0;i<n;i++){
+    if(sbmNormalizeWorkState_(states[i][0])!=='✔️ 完了')continue;
+    var hasCompleted=!!sbmParseDate_(completed[i][0]),hasReview=!!sbmParseDate_(reviews[i][0]);if(hasCompleted&&hasReview)continue;
+    var id=ids.length?String(ids[i][0]||'').trim():'',u=urls.length?sbmNormalizeUrl_(urls[i][0]||''):'';var rec=(id&&byId[id])||(u&&byUrl[u])||null;
+    if(!rec||!rec.date){out.skipped++;continue;}
+    var done=new Date(rec.date.getTime()),review=new Date(done.getTime());review.setDate(review.getDate()+90);
+    if(!hasCompleted)sh.getRange(i+2,hm['最終改善完了日']).setValue(sbmDateText_(done));
+    if(!hasReview)sh.getRange(i+2,hm['再評価予定日']).setValue(sbmDateText_(review));
+    if(hm['作業理由']&&!String(sh.getRange(i+2,hm['作業理由']).getDisplayValue()||'').trim())sh.getRange(i+2,hm['作業理由']).setValue('改善効果確認完了');
+    if(hm['状態更新日']&&!String(sh.getRange(i+2,hm['状態更新日']).getDisplayValue()||'').trim())sh.getRange(i+2,hm['状態更新日']).setValue(sbmDateText_(done));
+    out.filled++;
   }
   return out;
 }
