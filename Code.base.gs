@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.66
+ * Current version: 6.7.67
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.66.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.67.md.
  */
 
-const SBM_VERSION = '6.7.66';
+const SBM_VERSION = '6.7.67';
+// v6.7.67: 配布前整合監査。版情報同期と旧通信障害テストヘルパー除去のみ。機能仕様はv6.7.66を継承。
 // v6.7.66: GSCデータ0件は初回に設定確認導線を表示し、確認後の再取得でも0件ならデータ待ちへ移行。
 // v6.7.64: GSC取得実績のない初回環境で取得0件の場合はエラーにせず「データ待ち」と案内し、約1週間後の再実行を促す。
 // v6.7.63: STEP2は未完了の新規利用者ではCloudプロジェクト番号を空欄表示し、完了済み環境のみ保存済み番号を表示。
@@ -24075,14 +24076,12 @@ function sbmSyncRepairedArticleTitle_(articleId, url, newTitle) {
 
 
 /* ========================================================================== *
- * 旧版 License Center site registration test module
- * - Does not use Session.getActiveUser()/getEffectiveUser().
- * - Initial test activation asks for the registered Google account email and
- *   license key, then binds License + email + installationId + spreadsheetId.
- * - This test module does NOT lock Manager features yet.
+ * License Center integration
+ * - Uses explicit registered-email + license-key activation.
+ * - Binds License + email + installationId + spreadsheetId.
+ * - Historical function names containing "Test" are retained for compatibility;
+ *   this block is the production license integration.
  * ========================================================================== */
-const SBM_LICENSE_TEST_VERSION = '0.2.0';
-
 function sbmLicenseNormalizeEmail_(value){
   return String(value||'').trim().toLowerCase();
 }
@@ -24311,54 +24310,6 @@ function sbmLicenseRc4StatusDialog(){
     ui.alert('ライセンス状態',label+'\nEdition：'+(s.edition||'-'),ui.ButtonSet.OK);
   }else{
     ui.alert('ライセンスを確認してください',r.message||'ライセンスを確認できませんでした。',ui.ButtonSet.OK);
-  }
-}
-
-
-
-/* ========================================================================== *
- * 旧版 License resilience test helpers
- * TEST ONLY. Remove before final release.
- * ========================================================================== */
-function sbmLicenseCommunicationTest(){
-  return sbmLicenseRc5SimulateCommunicationFailure_();
-}
-function sbmLicenseCommunicationTestReset(){
-  return sbmLicenseRc5RestoreOnlineState_();
-}
-
-function sbmLicenseRc5SimulateCommunicationFailure_(){
-  var p=PropertiesService.getDocumentProperties();
-  var st=sbmLicenseRc4State_();
-  if(st.status!=='ACTIVE'||!st.lastOk){
-    SpreadsheetApp.getUi().alert('通信障害テスト','先に正常なライセンス認証を行ってください。',SpreadsheetApp.getUi().ButtonSet.OK);
-    return;
-  }
-  // Keep last successful validation within 7 days, but older than the 24h cache.
-  p.setProperty('SIMS_LICENSE_LAST_OK',new Date(Date.now()-25*60*60*1000).toISOString());
-  p.setProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR','1');
-  var r=sbmLicenseRc4Check_(false);
-  p.deleteProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR');
-  if(r.ok&&r.mode==='GRACE'){
-    SpreadsheetApp.getUi().alert('通信障害テスト：成功',
-      'License Centerへ通信できない状態を再現しました。\n\n認証済み（通信障害時の猶予期間）\nEdition：'+(sbmLicenseRc4State_().edition||'-')+
-      '\n\n最終正常認証から7日以内なので利用可能と判定されています。',SpreadsheetApp.getUi().ButtonSet.OK);
-  }else{
-    SpreadsheetApp.getUi().alert('通信障害テスト：要確認',
-      '期待した猶予判定になりませんでした。',SpreadsheetApp.getUi().ButtonSet.OK);
-  }
-}
-function sbmLicenseRc5RestoreOnlineState_(){
-  PropertiesService.getDocumentProperties().deleteProperty('SIMS_LICENSE_RC5_FORCE_COMM_ERROR');
-  try{
-    var r=sbmLicenseRc4Check_(true);
-    if(r&&r.ok){
-      SpreadsheetApp.getUi().alert('テスト状態を解除しました','License Centerで正常認証し、通常状態へ戻しました。',SpreadsheetApp.getUi().ButtonSet.OK);
-    }else{
-      SpreadsheetApp.getUi().alert('ライセンスを確認してください',String(r&&r.message||'正常認証できませんでした。'),SpreadsheetApp.getUi().ButtonSet.OK);
-    }
-  }catch(e){
-    SpreadsheetApp.getUi().alert('テスト状態を解除できません','License Centerへの接続を確認してください。',SpreadsheetApp.getUi().ButtonSet.OK);
   }
 }
 

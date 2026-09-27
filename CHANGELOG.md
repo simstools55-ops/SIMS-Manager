@@ -1,3 +1,9 @@
+## v6.7.67 - 2026-09-27
+- 配布前整合監査。PRODUCT_IDENTITY / VERSION / distribution README / manifests を同期。
+- 本番から未参照の旧通信障害シミュレーション4関数を削除。
+- License Center本番処理の旧test表記を整理。機能仕様はv6.7.66を継承。
+- Shared snapshot metadataをSNAPSHOT_MANIFESTのShared v3.5.0へ復元。
+
 ## v6.7.66 - 2026-09-27
 - GSCデータ0件を即時エラー判定せず、設定確認→再実行→データ待ちの二段階フローへ変更。
 - Search Console、Search Console API、Apps Scriptプロジェクト設定へのジャンプボタンを日次処理ダイアログに追加。

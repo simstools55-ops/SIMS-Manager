@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.65",
+  "current_version": "6.7.67",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.65: When Search Console returns zero analyzable rows, guide the user to verify Search Console/API/Apps Script settings first; if a confirmed retry still returns zero rows, treat it as data waiting.",
-  "version": "6.7.65",
+  "notes": "v6.7.67: Pre-distribution consistency release. Synchronizes release metadata and removes obsolete communication-failure test helpers; runtime behavior remains based on v6.7.66.",
+  "version": "6.7.67",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.65-ST"
+  "starter_display_version": "v6.7.67-ST"
 }
