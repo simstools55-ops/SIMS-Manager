@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.67
+ * Current version: 6.7.68
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.67.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.68.md.
  */
 
-const SBM_VERSION = '6.7.67';
-// v6.7.67: 配布前整合監査。版情報同期と旧通信障害テストヘルパー除去のみ。機能仕様はv6.7.66を継承。
+const SBM_VERSION = '6.7.68';
+// v6.7.68: aWriter結果のCOMPLETED_WITH_USER_DEPENDENCYを処置完了状態として受理。
 // v6.7.66: GSCデータ0件は初回に設定確認導線を表示し、確認後の再取得でも0件ならデータ待ちへ移行。
 // v6.7.64: GSC取得実績のない初回環境で取得0件の場合はエラーにせず「データ待ち」と案内し、約1週間後の再実行を促す。
 // v6.7.63: STEP2は未完了の新規利用者ではCloudプロジェクト番号を空欄表示し、完了済み環境のみ保存済み番号を表示。
@@ -23203,7 +23203,7 @@ function sbmDoctorOpenWriterFollowUpDiagnosis(caseId){
 
 function sbmDoctorNormalizeWriterTreatmentStatus_(value){
   var raw=String(value||'').trim().toUpperCase();
-  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_PUBLIC_OK:1,COMPLETED_WITH_FOLLOW_UP:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
+  var completed={COMPLETED:1,COMPLETE:1,DONE:1,SUCCESS:1,SUCCEEDED:1,COMPLETED_PUBLIC_OK:1,COMPLETED_WITH_FOLLOW_UP:1,COMPLETED_WITH_USER_DEPENDENCY:1,COMPLETED_WITH_REPORTED_EXCEPTION:1,COMPLETED_WITH_EXCEPTION:1,COMPLETED_WITH_EXCEPTIONS:1};
   if(completed[raw])return {raw:raw,normalized:(raw==='COMPLETED_WITH_REPORTED_EXCEPTION'?'COMPLETED_WITH_REPORTED_EXCEPTION':'COMPLETED'),completed:true};
   return {raw:raw,normalized:raw,completed:false};
 }

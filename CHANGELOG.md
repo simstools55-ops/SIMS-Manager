@@ -1,3 +1,9 @@
+## v6.7.68 - 2026-09-28
+
+- aWriter結果の `COMPLETED_WITH_USER_DEPENDENCY` を処置完了状態として受理。
+- 利用者依存作業が残る正常完了結果を登録可能にした。
+- `sbmDoctorNormalizeWriterTreatmentStatus_()` の完了状態一覧以外は変更なし。
+
 ## v6.7.67 - 2026-09-27
 - 配布前整合監査。PRODUCT_IDENTITY / VERSION / distribution README / manifests を同期。
 - 本番から未参照の旧通信障害シミュレーション4関数を削除。
