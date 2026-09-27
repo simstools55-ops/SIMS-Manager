@@ -1,3 +1,9 @@
+## v6.7.69 - 2026-09-28
+
+- aWriter結果の正規ステータス `PARTIALLY_COMPLETED` を、実施済み処置をモニタリング登録できる完了系ステータスとして受理。
+- 将来条件成立後の追加処置が残る場合でも、現在実施済みの改善サイクルを `MONITORING` へ進められるようにした。
+- 変更範囲は `sbmDoctorNormalizeWriterTreatmentStatus_()` の完了状態一覧のみ。既存のfollow-up生成・Workflow分岐は変更していない。
+
 ## v6.7.68 - 2026-09-28
 
 - aWriter結果の `COMPLETED_WITH_USER_DEPENDENCY` を処置完了状態として受理。

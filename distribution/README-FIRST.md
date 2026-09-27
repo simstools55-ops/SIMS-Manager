@@ -1,6 +1,6 @@
-# SIMS Manager v6.7.68
+# SIMS Manager v6.7.69
 
-## v6.7.68 変更点
+## v6.7.69 変更点
 
 - aWriterが `treatment_status: COMPLETED_WITH_USER_DEPENDENCY` を返した場合も、処置完了状態として登録できるようにしました。
 - 利用者側にスクリーンショット撮影・挿入などの作業が残るケースでも、正常なaWriter処置結果をエラー扱いしません。

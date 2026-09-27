@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.68",
+  "current_version": "6.7.69",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.68: Accepts COMPLETED_WITH_USER_DEPENDENCY as a completed aWriter treatment status; all other runtime behavior remains based on v6.7.67.",
-  "version": "6.7.68",
+  "notes": "v6.7.69: Accepts PARTIALLY_COMPLETED as a registrable completed aWriter treatment status; all other runtime behavior remains based on v6.7.68.",
+  "version": "6.7.69",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.68-ST"
+  "starter_display_version": "v6.7.69-ST"
 }
