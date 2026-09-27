@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.64",
+  "current_version": "6.7.65",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.64: Treat zero Search Console rows on a first-time site as data waiting, not a failure, and guide the user to retry after about one week.",
-  "version": "6.7.64",
+  "notes": "v6.7.65: When Search Console returns zero analyzable rows, guide the user to verify Search Console/API/Apps Script settings first; if a confirmed retry still returns zero rows, treat it as data waiting.",
+  "version": "6.7.65",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.64-ST"
+  "starter_display_version": "v6.7.65-ST"
 }

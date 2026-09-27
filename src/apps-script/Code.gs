@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.64
+ * Current version: 6.7.66
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.64.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.66.md.
  */
 
-const SBM_VERSION = '6.7.64';
+const SBM_VERSION = '6.7.66';
+// v6.7.66: GSCデータ0件は初回に設定確認導線を表示し、確認後の再取得でも0件ならデータ待ちへ移行。
 // v6.7.64: GSC取得実績のない初回環境で取得0件の場合はエラーにせず「データ待ち」と案内し、約1週間後の再実行を促す。
 // v6.7.63: STEP2は未完了の新規利用者ではCloudプロジェクト番号を空欄表示し、完了済み環境のみ保存済み番号を表示。
 // v6.7.62: 初回利用者向けSTEP2を、標準Cloudプロジェクト作成→Apps Script関連付け→Search Console API有効化の3段階へ再構成。
@@ -350,7 +351,7 @@ function sbmOpenDailyUpdateDialog() {
     + 'body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{color:#0b8043;margin:0 0 12px}'
     + '.box{background:#f8f9fa;border-left:5px solid #0b8043;padding:13px 15px;margin:10px 0;line-height:1.55;white-space:pre-wrap}'
     + '.note{font-size:13px;color:#5f6368;line-height:1.6}.buttons{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}'
-    + 'button{border:0;border-radius:6px;padding:10px 18px;font-weight:700;cursor:pointer}.run{background:#0b8043;color:white}.close{background:#f1f3f4}'
+    + 'button{border:0;border-radius:6px;padding:10px 18px;font-weight:700;cursor:pointer}.run{background:#0b8043;color:white}.close{background:#f1f3f4}.verify{background:#fff;color:#0b8043;border:1px solid #0b8043;box-shadow:0 1px 2px rgba(60,64,67,.15)}.verify:hover{background:#e6f4ea}'
     + '.spinner{display:none;width:42px;height:42px;border:5px solid #dfe7df;border-top-color:#0b8043;border-radius:50%;animation:spin .9s linear infinite;margin:22px auto}'
     + '@keyframes spin{to{transform:rotate(360deg)}}.error{color:#b3261e;border-left-color:#b3261e}.done{color:#0b8043;border-left-color:#0b8043}'
     + '.result{margin-top:8px}.group{margin-top:10px;padding-top:8px;border-top:1px solid #e0e0e0}.group:first-child{border-top:0;margin-top:6px;padding-top:0}.groupTitle{font-size:13px;font-weight:700;color:#0b8043;margin-bottom:5px}.resultGrid{display:grid;grid-template-columns:1fr auto;gap:3px 18px;font-size:14px;line-height:1.35}.resultGrid b{text-align:right}.groupNote{margin-top:7px;font-size:11px;line-height:1.45;color:#5f6368}'
@@ -359,6 +360,7 @@ function sbmOpenDailyUpdateDialog() {
     + '<div id="message" class="box">' + sbmEscapeHtml_(initial) + '</div>'
     + '<div id="spinner" class="spinner"></div>'
     + '<p id="note" class="note">Search Consoleデータ取得後、分析・記事DB更新、改善の推移更新へ自動的に進みます。</p>'
+    + '<div id="verifyLinks" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="gscBtn" class="verify">Search Consoleを確認</button><button id="apiBtn" class="verify">Search Console APIを確認</button><button id="scriptBtn" class="verify">Apps Script設定を確認</button></div>'
     + '<div class="buttons"><button id="cancelBtn" class="close" onclick="closeDialog()">キャンセル</button><button id="runBtn" class="run" onclick="startDaily()" disabled>準備中</button></div>'
     + '<script>'
     + 'var terminal=false;function el(id){return document.getElementById(id);}function closeDialog(){terminal=true;google.script.host.close();}'
@@ -367,7 +369,7 @@ function sbmOpenDailyUpdateDialog() {
     + 'function showRunning(title,text){if(terminal)return;el("spinner").style.display="block";el("message").className="box";el("message").innerHTML="<div class=stage>"+title+"</div>"+text;el("note").textContent="処理中です。完了までこの画面を閉じずにお待ちください。";}'
     + 'function showFailure(prefix,e,retry,retryStage){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent=prefix+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";if(retry){el("runBtn").textContent=retryStage===3?"STEP 3を再実行":"再実行する";el("runBtn").onclick=retryStage===3?retryFinalize:startDaily;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";}}'
     + 'function startDaily(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 1 / 3　Search Consoleデータ取得中","最新のページデータを取得しています。");google.script.run.withFailureHandler(function(e){showFailure("Search Consoleデータの取得に失敗しました。",e,true);}).withSuccessHandler(function(fetch){if(terminal)return;showRunning("STEP 2 / 3　データ分析・記事DB更新中","取得済みデータとの差分だけを記事DBへ反映しています。");runAnalysis();}).sbmRunDailyFetchStageFromDialog();}'
-    + 'function runAnalysis(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("データ分析・記事DB更新に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(r.dataWaiting){terminal=true;el("spinner").style.display="none";el("message").className="box done";el("message").textContent="Search Consoleのデータがまだ十分にありません。"+String.fromCharCode(10,10)+(r.message||"目安として1週間ほど待ってから、もう一度「日次処理」を実行してください。");el("note").textContent="設定エラーとは限りません。データが蓄積されると日次処理を続けられます。";el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";return;}if(r.initializationRequired){showRunning("初回の記事DB構築","記事DBがまだありません。"+Number(r.total||0)+"記事を複数回に分けて安全に構築します。");runInitialBuild();return;}if(r.continuationRequired){showRunning("STEP 2 / 3　処理を継続しています",r.message||"実行時間上限を避けるため、保存済み位置から次の処理へ継続します。");setTimeout(runAnalysis,150);return;}showRunning("STEP 3 / 3　改善の推移・完了処理中","改善後の推移を更新し、日次処理の完了状態を確定しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に失敗しました。",e,true,3);}).withSuccessHandler(function(x){showComplete(x||{});}).sbmRunDailyFinalizeStageFromDialog();}).sbmRunDailyAnalysisStageFromDialog();}'
+    + 'function openCheck(url){if(url)window.open(url,"_blank");}function confirmAndRetry(){el("runBtn").disabled=true;google.script.run.withFailureHandler(function(e){showFailure("設定確認状態の保存に失敗しました。",e,false);}).withSuccessHandler(function(){el("verifyLinks").style.display="none";startDaily();}).sbmMarkGscZeroDataVerification();}function runAnalysis(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("データ分析・記事DB更新に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(r.verificationRequired){el("spinner").style.display="none";el("message").className="box";el("message").textContent="Search Consoleの設定を確認してください。"+String.fromCharCode(10,10)+(r.message||"");el("note").textContent="各ボタンで設定を確認したあと、「確認後に再実行」を押してください。";var links=r.links||{};el("verifyLinks").style.display="flex";el("gscBtn").onclick=function(){openCheck(links.searchConsole);};el("apiBtn").onclick=function(){openCheck(links.api);};el("scriptBtn").onclick=function(){openCheck(links.appsScript);};el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";el("runBtn").textContent="確認後に再実行";el("runBtn").onclick=confirmAndRetry;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";return;}if(r.dataWaiting){terminal=true;el("spinner").style.display="none";el("message").className="box done";el("message").textContent="Search Consoleのデータがまだ十分にありません。"+String.fromCharCode(10,10)+(r.message||"目安として1週間ほど待ってから、もう一度「日次処理」を実行してください。");el("note").textContent="設定エラーとは限りません。データが蓄積されると日次処理を続けられます。";el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";return;}if(r.initializationRequired){showRunning("初回の記事DB構築","記事DBがまだありません。"+Number(r.total||0)+"記事を複数回に分けて安全に構築します。");runInitialBuild();return;}if(r.continuationRequired){showRunning("STEP 2 / 3　処理を継続しています",r.message||"実行時間上限を避けるため、保存済み位置から次の処理へ継続します。");setTimeout(runAnalysis,150);return;}showRunning("STEP 3 / 3　改善の推移・完了処理中","改善後の推移を更新し、日次処理の完了状態を確定しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に失敗しました。",e,true,3);}).withSuccessHandler(function(x){showComplete(x||{});}).sbmRunDailyFinalizeStageFromDialog();}).sbmRunDailyAnalysisStageFromDialog();}'
     + 'function runInitialBuild(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("記事DBの初回構築に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(!r.done){showRunning("初回の記事DB構築","記事DBを分割作成しています。 "+Number(r.processed||0)+" / "+Number(r.total||0)+"記事");setTimeout(runInitialBuild,150);return;}showRunning("STEP 2 / 3　データ分析・記事DB更新中","初回構築が完了しました。ランクと今日の改善を確定しています。");setTimeout(runAnalysis,150);}).sbmRunArticleDbInitialBatchFromDialog();}'
     + 'function retryFinalize(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 3 / 3　改善の推移・完了処理を再実行中","STEP 1・2の取得結果は保持したまま、STEP 3だけを再実行しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に再度失敗しました。",e,true,3);}).withSuccessHandler(function(r){showComplete(r||{});}).sbmRunDailyFinalizeStageFromDialog();}function showComplete(r){if(terminal)return;terminal=true;var updated=Math.max(0,Number(r.updated||0)),added=Math.max(0,Number(r.added||0)),total=Math.max(0,Number(r.total||0)),outside=Math.max(0,total-updated-added);el("spinner").style.display="none";el("message").className="box done";el("message").innerHTML="✓ 日次処理が完了しました。<div class=result><div class=group><div class=groupTitle>Search Console</div><div class=resultGrid><span>取得行</span><b>"+Number(r.rawRows||0).toLocaleString()+"件</b><span>有効な記事URL</span><b>"+Number(r.validRows||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>記事DB</div><div class=resultGrid><span>更新記事</span><b>"+updated.toLocaleString()+"件</b><span>更新対象外</span><b>"+outside.toLocaleString()+"件</b><span>新規記事</span><b>"+added.toLocaleString()+"件</b><span>総記事数</span><b>"+total.toLocaleString()+"件</b></div><div class=groupNote>※更新対象外：今回のSearch Consoleデータ取得で対象とならなかった記事です。</div></div><div class=group><div class=groupTitle>改善効果</div><div class=resultGrid><span>モニタ中</span><b>"+Number(r.monitoringCount||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>処理時間</div><div class=resultGrid><span>Search Console取得</span><b>"+formatTime(r.fetchElapsedSeconds)+"</b><span>分析・処理</span><b>"+formatTime(r.analysisElapsedSeconds)+"</b><span>全体所要時間</span><b>"+formatTime(r.totalElapsedSeconds)+"</b></div></div></div>";el("note").textContent="結果を確認して「閉じる」を押してください。";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";}'
     + '</script></body></html>';
@@ -466,6 +468,7 @@ function sbmRunDailyFetchStageFromDialog() {
       '除外 ' + Number(result.excluded || 0) + '件 / ' + timingSummary + ' / ProfileRunId ' + profiler.runId, startedText, sbmNowText_());
     try { profiler.finish('完了', timingSummary); } catch(ignoreProfileFinish) {}
     try { sbmProcessLog_('日次処理 ステージ遷移','STEP1_EXIT',result.rawRows || 0,(result.rows || []).length,sbmSecondsSince_(started),'STEP1正常終了。ダイアログからSTEP2呼出待ち',startedText,sbmNowText_()); sbmDailyProfileCheckpoint_('STEP1_EXIT',result.rawRows || 0,(result.rows || []).length,sbmSecondsSince_(started),'STEP1正常終了。ダイアログからSTEP2呼出待ち',startedText,sbmNowText_()); } catch(ignoreStageAudit1) {}
+    if ((result.rows || []).length > 0) { try { sbmSetSetting_('GscZeroDataVerificationDone','NO','GSCデータ取得成功のため0件確認状態を解除'); } catch(ignoreGscVerifyReset) {} }
     return {
       ok:true, rawRows:Number(result.rawRows || 0), validRows:Number((result.rows || []).length), excluded:Number(result.excluded || 0),
       elapsedSeconds:Number(elapsed || 0),
@@ -512,14 +515,17 @@ function sbmRunDailyAnalysisStageFromDialog() {
     try { sbmDailyProfileCheckpoint_('STEP2_WORK_VALUES',rows.length,'',workValuesSec2,'作業データgetValues',startedText,sbmNowText_()); } catch(ignoreStep2WorkValues) {}
     try { sbmProcessLog_('日次処理 ステージ遷移','STEP2_WORK_READ',rows.length,'',sbmSecondsSince_(started),'作業データ読込完了',startedText,sbmNowText_()); sbmDailyProfileCheckpoint_('STEP2_WORK_READ',rows.length,'',sbmSecondsSince_(started),'作業データ読込完了',startedText,sbmNowText_()); } catch(ignoreStageAudit2Read) {}
     if (!rows.length) {
-      var noPreviousSuccessfulDaily = !Number(sbmGetSetting_('LastSuccessfulDailyUpdateEpoch', 0) || 0);
-      if (noPreviousSuccessfulDaily) {
-        var waitMessage = 'Search Consoleのデータがまだ十分にありません。サイトを登録したばかりの場合、分析に必要なデータが蓄積されるまで時間がかかることがあります。目安として1週間ほど待ってから、もう一度「日次処理」を実行してください。';
-        sbmPersistDailyRuntime_({DailyUpdateRunning:'NO',DailyUpdateContinuationRequired:'NO',DailyUpdatePhase:'DATA_WAITING',DailyUpdateProgress:'0',DailyUpdateLastError:'',DailyUpdateMessage:waitMessage,DailyUpdateActionRequired:'NO',DailyUpdateActionMessage:''});
-        sbmProcessLog_('日次処理 STEP2 分析・記事DB更新', 'データ待ち', 0, 0, sbmSecondsSince_(started), waitMessage, startedText, sbmNowText_());
-        return {ok:true,dataWaiting:true,message:waitMessage};
+      var verificationDone = String(sbmGetSetting_('GscZeroDataVerificationDone','NO') || 'NO') === 'YES';
+      if (!verificationDone) {
+        var verifyMessage = 'Search Consoleから分析対象データを取得できませんでした。まず対象プロパティ・Search Console API・Apps ScriptのCloudプロジェクト設定を確認してください。確認後にもう一度日次処理を実行します。';
+        sbmPersistDailyRuntime_({DailyUpdateRunning:'NO',DailyUpdateContinuationRequired:'NO',DailyUpdatePhase:'GSC_VERIFY_REQUIRED',DailyUpdateProgress:'0',DailyUpdateLastError:'',DailyUpdateMessage:verifyMessage,DailyUpdateActionRequired:'YES',DailyUpdateActionMessage:'Search Console設定を確認してください。'});
+        sbmProcessLog_('日次処理 STEP2 分析・記事DB更新', '設定確認', 0, 0, sbmSecondsSince_(started), verifyMessage, startedText, sbmNowText_());
+        return {ok:true,verificationRequired:true,message:verifyMessage,links:sbmGscVerificationLinks_()};
       }
-      throw new Error('Search Console取得データが見つかりません。過去に取得実績があるため、Search Console設定・API接続・対象プロパティを確認してから再実行してください。');
+      var waitMessage = '接続と設定を確認して再実行しましたが、分析に使用できるSearch Consoleデータがまだありません。新しいサイトではデータが蓄積されるまで時間がかかることがあります。目安として1週間ほど待ってから、もう一度「日次処理」を実行してください。';
+      sbmPersistDailyRuntime_({DailyUpdateRunning:'NO',DailyUpdateContinuationRequired:'NO',DailyUpdatePhase:'DATA_WAITING',DailyUpdateProgress:'0',DailyUpdateLastError:'',DailyUpdateMessage:waitMessage,DailyUpdateActionRequired:'NO',DailyUpdateActionMessage:''});
+      sbmProcessLog_('日次処理 STEP2 分析・記事DB更新', 'データ待ち', 0, 0, sbmSecondsSince_(started), waitMessage, startedText, sbmNowText_());
+      return {ok:true,dataWaiting:true,message:waitMessage};
     }
 
     var tSettingsMap2 = new Date();
@@ -2427,6 +2433,30 @@ function sbmGoogleCloudProjectSettingsUrl_() {
 
 function sbmSearchConsoleApiUrl_() {
   return 'https://console.cloud.google.com/apis/api/searchconsole.googleapis.com/overview';
+}
+
+function sbmSearchConsolePropertyUrl_() {
+  var property = String(sbmGetSetting_('SearchConsoleProperty','') || sbmGetSetting_('BlogUrl','') || sbmGetSetting_('SiteUrl','') || '').trim();
+  return property ? 'https://search.google.com/search-console?resource_id=' + encodeURIComponent(property) : 'https://search.google.com/search-console';
+}
+
+function sbmGscVerificationLinks_() {
+  var projectNumber = String(sbmGetSetting_('GoogleCloudProjectNumber','') || '').trim();
+  return {
+    searchConsole: sbmSearchConsolePropertyUrl_(),
+    api: sbmSearchConsoleApiUrl_() + (projectNumber ? '?project=' + encodeURIComponent(projectNumber) : ''),
+    appsScript: sbmAppsScriptProjectSettingsUrl_()
+  };
+}
+
+function sbmMarkGscZeroDataVerification_() {
+  sbmSetSetting_('GscZeroDataVerificationDone','YES','GSCデータ0件時に利用者が設定確認導線を確認済み');
+  return {ok:true};
+}
+
+// HTML Serviceから呼び出す公開ラッパー。末尾_のprivate関数はgoogle.script.runから直接呼べない。
+function sbmMarkGscZeroDataVerification() {
+  return sbmMarkGscZeroDataVerification_();
 }
 
 function sbmAppsScriptProjectSettingsUrl_() {
