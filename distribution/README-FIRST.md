@@ -1,10 +1,15 @@
-# SIMS Manager v6.7.69
+# SIMS Manager v6.7.70
+
+## v6.7.70 変更点
+
+- aWriterが `treatment_status: COMPLETED_NO_CHANGE_REQUIRED` を返した場合も、確認完了・修正不要の正常終了として登録できるようにしました。
+- `performed_changes: []` の修正不要ケースでも、正常なaWriter処置結果として改善履歴へ登録し、モニタリングへ進めます。
+- 未知の `treatment_status` を一括許可する変更は行っていません。その他の運用フローはv6.7.69を継承します。
 
 ## v6.7.69 変更点
 
-- aWriterが `treatment_status: COMPLETED_WITH_USER_DEPENDENCY` を返した場合も、処置完了状態として登録できるようにしました。
-- 利用者側にスクリーンショット撮影・挿入などの作業が残るケースでも、正常なaWriter処置結果をエラー扱いしません。
-- 変更範囲は完了ステータス判定のみです。その他の運用フローはv6.7.67を継承します。
+- aWriterが `treatment_status: PARTIALLY_COMPLETED` を返した場合、実施済み処置を登録してモニタリングへ進められるようにしました。
+- 元のステータスはWriter結果JSONに保持し、完全完了との区別を維持します。
 
 ## v6.7.67 変更点
 

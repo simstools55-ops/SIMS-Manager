@@ -1,5 +1,5 @@
 {
-  "version": "6.7.69",
+  "version": "6.7.70",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -63,23 +63,23 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "f48471ee88280ba2456283434645c5debae2060a5a2b6d1198c59cf13efa357c",
-      "size": 107718
+      "sha256": "576db80845ed2803843cfedca36c486b783b062e3e169b199c3acde18ffdd17f",
+      "size": 107936
     },
     {
       "path": "COMMIT_MESSAGE.txt",
-      "sha256": "dc64c0bc4af82d577a314e79bd0e0435f7dc2701a52bc891a91e92a8d7168420",
-      "size": 77
+      "sha256": "2365aad7c2dba2d628fd44b1bc018e24b74629a7f6c1da13d16a3ef0a259f221",
+      "size": 56
     },
     {
       "path": "Code.base.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "Code.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "Code.gs.bak6657",
@@ -658,8 +658,8 @@
     },
     {
       "path": "PRODUCT_IDENTITY.json",
-      "sha256": "4eb013a93ebee8440e6051d9a1494004982cd65868c0f6e0534e7c997098d033",
-      "size": 443
+      "sha256": "d851b6beb5906d555cfc46728d38bbed69b2f23483daa2c7694aae13dff5a6d1",
+      "size": 452
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -898,8 +898,8 @@
     },
     {
       "path": "README-FIRST.md",
-      "sha256": "78795eb8fb9077c55d7b9682e9ab3c659d7ddfb608d4b0e350690459f72802e2",
-      "size": 7651
+      "sha256": "0743ac024533e2e9e59c9bfdd634e1f5457b1dae9d590ab5d401790863bd052c",
+      "size": 7990
     },
     {
       "path": "README-RC8.17.txt",
@@ -3467,6 +3467,11 @@
       "size": 525
     },
     {
+      "path": "RELEASE_NOTES_v6.7.70.md",
+      "sha256": "e39b116874fee206a47805daf9ba1508ef4067291f15dd6ad679266766095e20",
+      "size": 1492
+    },
+    {
       "path": "RELEASE_NOTES_v6.7.9.md",
       "sha256": "b97abba3d79cc5536470a067ad248a4c0e08b33489824b4d454601b1ec4ec910",
       "size": 387
@@ -3613,7 +3618,7 @@
     },
     {
       "path": "VERSION",
-      "sha256": "c9636faa3c420d7dc475c63920e8e19e3bb1108a108b8fd6b308005b8ee761af",
+      "sha256": "95e4425e59b7283767fd58069c58d322d384bba10fb7d22cf16eae10f529bfe2",
       "size": 7
     },
     {
@@ -3777,14 +3782,19 @@
       "size": 423
     },
     {
+      "path": "VERSION-AUDIT-v6.7.70.md",
+      "sha256": "9d34b2e2de3bd4d9f2570324a2005f9a3ac1fdbacbdbd3185fda1327eb7e6a3d",
+      "size": 432
+    },
+    {
       "path": "VERSION_POLICY.md",
       "sha256": "9517798acee0a05d925ff7960adf71f73fdbf8ea49cae930f527dc9c5e299cf9",
       "size": 738
     },
     {
       "path": "apps-script/Code.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "apps-script/appsscript.json",
@@ -4103,8 +4113,8 @@
     },
     {
       "path": "distribution/Code.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "distribution/DISTRIBUTION_POLICY.md",
@@ -4113,12 +4123,12 @@
     },
     {
       "path": "distribution/README-FIRST.md",
-      "sha256": "78795eb8fb9077c55d7b9682e9ab3c659d7ddfb608d4b0e350690459f72802e2",
-      "size": 7651
+      "sha256": "0743ac024533e2e9e59c9bfdd634e1f5457b1dae9d590ab5d401790863bd052c",
+      "size": 7990
     },
     {
       "path": "distribution/TEMPLATE_REFERENCE.json",
-      "sha256": "d9f99adedd329aba338fc61a1a602bab0b00d7a145f8ee61546ad83f2e05d9dd",
+      "sha256": "49d8ec3f7ba3dd4303b8c16d8957fddb076ebea1042431b1c4e677941fec1c7e",
       "size": 574
     },
     {
@@ -5522,6 +5532,11 @@
       "size": 348
     },
     {
+      "path": "shared/FILE_MANIFEST.txt",
+      "sha256": "eb3bafc2725400614364a76e05b45aae61f06ed03cc58a62d461065c7bf53baf",
+      "size": 31897
+    },
+    {
       "path": "shared/LICENSE",
       "sha256": "ce0c69a4019923878282e03bb1ce789260e592199a0fbbab67e77fefe0e97664",
       "size": 158
@@ -5538,8 +5553,8 @@
     },
     {
       "path": "shared/PRODUCT_IDENTITY.json",
-      "sha256": "4b83d7fcc059658db2c6a4bae879cd43f0aad54710947192d9c1e2381902d7e8",
-      "size": 501
+      "sha256": "c9c6eab59f26d24f889cd290e19bc51805397f94a2fd7def6273074fb62d8ff7",
+      "size": 553
     },
     {
       "path": "shared/README.md",
@@ -5722,13 +5737,18 @@
       "size": 798
     },
     {
+      "path": "shared/SHA256SUMS.txt",
+      "sha256": "8fe8bda6e69eef4e05f41f1d9f8bee52a12fc7f0ad943f82e17d62dbfc648640",
+      "size": 28251
+    },
+    {
       "path": "shared/SNAPSHOT_MANIFEST.json",
       "sha256": "40062a4a5556c378b74f62b47bfcca6aab4a7c7ad975257dd60c0a127a6027ba",
       "size": 2825
     },
     {
       "path": "shared/VERSION",
-      "sha256": "c9636faa3c420d7dc475c63920e8e19e3bb1108a108b8fd6b308005b8ee761af",
+      "sha256": "95e4425e59b7283767fd58069c58d322d384bba10fb7d22cf16eae10f529bfe2",
       "size": 7
     },
     {
@@ -6898,13 +6918,13 @@
     },
     {
       "path": "src/apps-script/Code.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "src/distribution/Code.gs",
-      "sha256": "3b1757788e811948d9aa4172f2cafb675cbfee092a493d0dcb0769b4b009f55c",
-      "size": 1829769
+      "sha256": "2f51a1290c7c69ed5392422c264a2e27aa6203e4dc7537740a55570915045189",
+      "size": 1829923
     },
     {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",

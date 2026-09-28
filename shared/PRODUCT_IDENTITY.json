@@ -5,8 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.69",
+  "current_version": "6.7.70",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.69: Accepts PARTIALLY_COMPLETED as a registrable completed aWriter treatment status; all other runtime behavior remains based on v6.7.68.",
-  "version": "6.7.69"
+  "notes": "v6.7.70: Accepts COMPLETED_NO_CHANGE_REQUIRED as a registrable completed aWriter treatment status; all other runtime behavior remains based on v6.7.69.",
+  "version": "6.7.70",
+  "starter_display_version": "v6.7.70-ST"
 }
