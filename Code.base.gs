@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.70
+ * Current version: 6.7.71
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.70.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.71.md.
  */
 
-const SBM_VERSION = '6.7.70';
+const SBM_VERSION = '6.7.71';
+// v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
 // v6.7.68: aWriter結果のCOMPLETED_WITH_USER_DEPENDENCYを処置完了状態として受理。
@@ -8551,8 +8552,13 @@ function sbmRegisterImprovementFeedback(data, options) {
     var existing=sbmFindExistingImprovementFeedback_(data);
     sbmFeedbackTrace_('REGISTER_DUP_CHECK','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / found=' + (!!existing.found));
     if(existing.found){
+      // v6.7.71: 冪等再登録でも「今日の改善」の終了表示を同期する。
+      // 改善履歴が既に存在する復旧経路で、記事管理だけモニター中・今日の改善だけ未終了になる不整合を防ぐ。
+      try { sbmMarkTodayImprovementCompleted_(data.article_id, data.article_url); } catch (eTodayDuplicate) {
+        try{sbmLog_('TodayImprovementComplete','Warning',String(eTodayDuplicate&&eTodayDuplicate.message||eTodayDuplicate));}catch(ignoreTodayDuplicateLog){}
+      }
       sbmNormalImprovementWorkflowComplete_(data.article_id,data.article_url);
-      return {ok:true,alreadyRegistered:true,historyId:existing.historyId||'',message:'このWriter回答はすでに登録済みです。\n改善履歴の二重登録は行いませんでした。'+(existing.historyId?'\n改善履歴ID：'+existing.historyId:'')};
+      return {ok:true,alreadyRegistered:true,historyId:existing.historyId||'',message:'このWriter回答はすでに登録済みです。\n改善履歴の二重登録は行いませんでした。\n今日の改善を終了表示に同期しました。'+(existing.historyId?'\n改善履歴ID：'+existing.historyId:'')};
     }
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     sh = ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
