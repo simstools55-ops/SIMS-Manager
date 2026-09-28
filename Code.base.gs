@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.69
+ * Current version: 6.7.70
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.69.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.70.md.
  */
 
-const SBM_VERSION = '6.7.69';
+const SBM_VERSION = '6.7.70';
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
 // v6.7.68: aWriter結果のCOMPLETED_WITH_USER_DEPENDENCYを処置完了状態として受理。
