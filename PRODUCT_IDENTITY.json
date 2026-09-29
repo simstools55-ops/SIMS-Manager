@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.75",
+  "current_version": "6.7.76",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.75: Home improvement rate now shows improved/assessed counts, and menu item 0 refreshes Home directly.",
-  "version": "6.7.75",
+  "notes": "v6.7.76: Starter onOpen hides known internal/admin sheets by direct name lookup without a full-sheet scan.",
+  "version": "6.7.76",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.75-ST"
+  "starter_display_version": "v6.7.76-ST"
 }

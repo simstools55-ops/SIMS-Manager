@@ -1,1 +1,1 @@
-ui: clarify Home improvement rate and refresh menu (v6.7.75)
+fix: hide Starter internal sheets on open (v6.7.76)

@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.75
+ * Current version: 6.7.76
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.75.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.76.md.
  */
 
-const SBM_VERSION = '6.7.75';
-// v6.7.75: Home改善率に改善完了件数／判定済み件数を併記し、0番メニューを『HOME画面を更新』へ統一。
+const SBM_VERSION = '6.7.76';
+// v6.7.76: Starter起動時に既知の内部・管理シートを直接非表示同期し、全シート走査なしで通常利用タブを整理。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
@@ -15020,6 +15020,25 @@ function sbmChangeDisplayTheme(){
   SpreadsheetApp.getUi().alert('表示テーマ','SIMS Managerの表示テーマはモノトーンに統一されています。',SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
+
+function sbmHideStarterInternalSheetsOnOpen_(ss) {
+  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
+  var names = [
+    SBM_SHEETS.LOG, SBM_SHEETS.SETUP, SBM_SHEETS.QUERY_DATA, SBM_SHEETS.RAW_DATA,
+    SBM_SHEETS.DIAGNOSIS, SBM_SHEETS.SETTINGS, SBM_SHEETS.USER_SETTINGS, SBM_SHEETS.SYSTEM_LOG,
+    SBM_SHEETS.BRIEF, SBM_SHEETS.MEASURE_HISTORY, SBM_SHEETS.PROCESS_LOG, SBM_SHEETS.PROFILE_LOG,
+    SBM_SHEETS.IN_PROGRESS, SBM_SHEETS.TREATMENT_PERFORMANCE,
+    SBM_SHEETS.DOCTOR_HEALTH_SNAPSHOT, SBM_SHEETS.DOCTOR_HEALTH_RECORD, SBM_SHEETS.DOCTOR_TREATMENT_QUEUE,
+    SBM_SHEETS.DOCTOR_HEALTH_RUN, SBM_SHEETS.DOCTOR_CASES, SBM_SHEETS.DOCTOR_WORKFLOW_STATE,
+    SBM_SHEETS.PLATFORM_CASES, SBM_SHEETS.PLATFORM_TREATMENTS, SBM_SHEETS.PLATFORM_EVENTS, SBM_SHEETS.PLATFORM_ERRORS,
+    'aDoctor_精密診断候補', 'Doctor_精密診断候補', 'Doctor_精密診断紹介状', 'Doctor_治療案内'
+  ];
+  names.forEach(function(name){
+    var sh = ss.getSheetByName(name);
+    if (sh && !sh.isSheetHidden()) { try { sh.hideSheet(); } catch(ignoreHideStarterInternal) {} }
+  });
+}
+
 function onOpen() {
   // Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
@@ -15121,14 +15140,12 @@ function onOpen() {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
   }
 
-  // StarterではaDoctor精密診断候補を利用者に表示しない。
-  // 全シート走査は行わず、対象シートを名前で直接取得して起動負荷を抑える。
+  // Starterでは通常利用者に不要な内部・管理シートを非表示に同期する。
+  // 全シート走査は行わず、既知のシート名だけを直接取得してF5/onOpenの起動負荷を抑える。
   if (!isFullEdition) {
-    try {
-      var detailedCandidateSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('aDoctor_精密診断候補');
-      if (detailedCandidateSheet && !detailedCandidateSheet.isSheetHidden()) detailedCandidateSheet.hideSheet();
-    } catch (eStarterDetailedCandidate) {
-      try { sbmLog_('OnOpenStarterDetailedCandidate','Warning',String(eStarterDetailedCandidate)); } catch(ignoreStarterDetailedCandidate) {}
+    try { sbmHideStarterInternalSheetsOnOpen_(SpreadsheetApp.getActiveSpreadsheet()); }
+    catch (eStarterSheetVisibility) {
+      try { sbmLog_('OnOpenStarterSheetVisibility','Warning',String(eStarterSheetVisibility)); } catch(ignoreStarterSheetVisibility) {}
     }
   }
 
