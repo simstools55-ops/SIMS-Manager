@@ -3,13 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.85
+ * Current version: 6.7.86
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.85.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.86.md.
  */
 
-const SBM_VERSION = '6.7.85';
-// v6.7.85: Home改善率から管理変更履歴を完全除外し、v6.7.84導入時の分母混入を修正。
+const SBM_VERSION = '6.7.86';
+// v6.7.86: Home KPIを「改善効果率」へ再定義。Creator Direct/管理変更を除外し、再改善中件数を別表示。
+// v6.7.85: Home改善率から管理変更履歴を完全除外。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
 // v6.7.83: 旧版でロック済みのaWriter紹介状を未完了再開時に再構築し、既存CaseのままWriter工程へ復帰。
 // v6.7.82: aDoctorがWRITER/MERGEへの引継ぎを確定した場合、診断時ロックを処置ロックへ持ち越さない。
@@ -1770,7 +1771,7 @@ function sbmBuildHomeSheet_() {
   // ランクは未取得を含む7区分、改善状況は全記事6区分。改善率注記を削除し、モニター判定を3群へ整理。
   sh.getRange('A5:D5').merge().setValue('記事ランク');
   sh.getRange('E5:H5').merge().setValue('記事改善の状況');
-  sh.getRange('I5:J5').merge().setValue('改善率');
+  sh.getRange('I5:J5').merge().setValue('改善効果率');
   var ranks = [
     ['🏆 エース','0件 →'],['📈 成長','0件 →'],['✅ 安定','0件 →'],
     ['🌱 育成','0件 →'],['🌿 発芽','0件 →'],['🌰 未発芽','0件 →'],['未取得','0件 →']
@@ -12722,19 +12723,22 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
   }
   var groups={},aliasToKey={},seq=0;
   function ensureGroup(key){
-    if(!groups[key])groups[key]={aliases:{},success:false,closed:false,reworked:false,cycles:0};
+    if(!groups[key])groups[key]={aliases:{},success:false,closed:false,reworked:false,cycles:0,hasActive:false,needsReview:false};
     return groups[key];
   }
   function mergeInto(targetKey,sourceKey){
     if(!sourceKey||sourceKey===targetKey||!groups[sourceKey])return;
     var t=ensureGroup(targetKey),s=groups[sourceKey];
     Object.keys(s.aliases).forEach(function(a){t.aliases[a]=true;aliasToKey[a]=targetKey;});
-    t.success=t.success||s.success;t.closed=t.closed||s.closed;t.reworked=t.reworked||s.reworked;t.cycles+=s.cycles;
+    t.success=t.success||s.success;t.closed=t.closed||s.closed;t.reworked=t.reworked||s.reworked;
+    t.hasActive=t.hasActive||s.hasActive;t.needsReview=t.needsReview||s.needsReview;t.cycles+=s.cycles;
     delete groups[sourceKey];
   }
   rows.forEach(function(r){
-    // v6.7.85: 管理変更履歴は記事ライフサイクルの監査記録であり、改善率の母数・成功数に含めない。
-    if(String(r['改善経路']||'').trim()==='管理変更' || String(r['改善規模']||'').trim()==='管理変更' || String(r['最終判定']||'').trim()==='管理変更')return;
+    var route=String(r['改善経路']||'').trim(),scale=String(r['改善規模']||'').trim(),final=String(r['最終判定']||'').trim();
+    // 管理変更は監査履歴、新記事Creator Directは公開後観察であり、既存記事の改善効果率には含めない。
+    if(route==='管理変更'||scale==='管理変更'||final==='管理変更')return;
+    if(route==='Creator Direct'||route.indexOf('Creator Direct')>=0)return;
     var aliases=sbmMonitoringAliasesFrom_(r,blogNameOverride),existing=[];
     aliases.forEach(function(a){var k=aliasToKey[a];if(k&&existing.indexOf(k)<0)existing.push(k);});
     var key=existing.length?existing[0]:('G:'+(++seq));
@@ -12743,16 +12747,20 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
     var g=ensureGroup(key);
     aliases.forEach(function(a){g.aliases[a]=true;aliasToKey[a]=key;});
     g.cycles++;
-    var life=sbmMonitoringLifecycleFromHistory_(r),final=String(r['最終判定']||'').trim();
+    var life=sbmMonitoringLifecycleFromHistory_(r);
     if(final==='改善完了'){g.success=true;g.closed=true;}
     else if(life==='COMPLETED'){g.closed=true;}
-    if(life==='REVIEW_REQUIRED'||life==='SUPERSEDED'||final==='再改善必要')g.closed=true;
+    if(life==='REVIEW_REQUIRED'||life==='SUPERSEDED'||final==='再改善必要'){g.closed=true;g.needsReview=true;}
+    if(life==='ACTIVE')g.hasActive=true;
     if(life==='SUPERSEDED'||g.cycles>1)g.reworked=true;
   });
   var list=Object.keys(groups).map(function(k){return groups[k];});
   var targets=list.length,improved=list.filter(function(g){return g.success;}).length;
-  var assessed=list.filter(function(g){return g.closed;}).length,reworked=list.filter(function(g){return g.reworked;}).length;
-  return {targets:targets,improved:improved,assessed:assessed,reworked:reworked,rate:assessed?Math.round(improved/assessed*100):0};
+  var assessed=list.filter(function(g){return g.closed;}).length;
+  // 再改善中＝一度見直し判定を受け、その後に新しい観察サイクルが動いている案件。
+  var reworking=list.filter(function(g){return g.needsReview&&g.hasActive;}).length;
+  var reworked=list.filter(function(g){return g.reworked;}).length;
+  return {targets:targets,improved:improved,assessed:assessed,reworked:reworked,reworking:reworking,rate:assessed?Math.round(improved/assessed*100):0};
 }
 
 function sbmHomeMonitorJudgmentCounts_() {
@@ -12838,7 +12846,7 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
   if (!sh) return true;
   try {
     var expected = [
-      ['A5','記事ランク'],['E5','記事改善の状況'],['I5','改善率'],
+      ['A5','記事ランク'],['E5','記事改善の状況'],['I5','改善効果率'],
       ['A6','🏆 エース'],['A7','📈 成長'],['A8','✅ 安定'],['A9','🌱 育成'],['A10','🌿 発芽'],['A11','🌰 未発芽'],['A12','未取得'],
       ['E6','未着手'],['E9','モニター中'],['A16','改善モニター中｜0件｜判定内訳'],
       ['A17','改善が確認できる'],['D17','要注意・見直し'],['H17','まだ判定できない'],
@@ -13044,7 +13052,7 @@ function sbmRefreshHome_(options) {
   sh.getRange('G9').setValue(Number(work.monitor||0)+'件');
   sh.getRange('G10').setValue(Number(work.done||0)+'件');
   sh.getRange('G11').setValue(Number(work.excluded||0)+'件');
-  sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%\n（'+Number(historyStats.improved||0)+'/'+Number(historyStats.assessed||0)+'件）').setWrap(true);
+  sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%\n（'+Number(historyStats.improved||0)+'/'+Number(historyStats.assessed||0)+'件）\n再改善中 '+Number(historyStats.reworking||0)+'件').setWrap(true);
   sh.getRange('A16').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
