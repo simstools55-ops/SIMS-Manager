@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.77
+ * Current version: 6.7.78
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.77.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.78.md.
  */
 
-const SBM_VERSION = '6.7.77';
-// v6.7.77: Starter起動時に既知の内部・管理シートを直接非表示同期し、全シート走査なしで通常利用タブを整理。
+const SBM_VERSION = '6.7.78';
+// v6.7.78: 改善の推移を開く際、改善履歴に残るACTIVE/REVIEW_REQUIREDの欠落行を軽量復旧。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
@@ -11036,6 +11036,8 @@ function sbmOpenEffectiveness(){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.EFFECT);
   if(!sh){sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);try{sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);}catch(ignoreSchema){}}
   try{sbmEnsureVisibleMeasurementSchemasV623_('effect');sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(ignoreVisibleSchema){}
+  // v6.7.78: 改善履歴にACTIVE/REVIEW_REQUIREDがあるのに「改善の推移」が欠落した旧案件を、表示時に最大30件だけ軽量復旧する。
+  try{sbmRepairMissingActiveEffectRows_();sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(eMissingEffect){try{sbmLog_('EffectViewMissingActiveRepair','Warning',String(eMissingEffect));}catch(ignoreMissingEffectLog){}}
   var props=PropertiesService.getDocumentProperties(),repairKey='SBM_EFFECT_VIEW_REPAIR_664_'+String(sh.getSheetId());
   if(props.getProperty(repairKey)!=='1'){
     try{

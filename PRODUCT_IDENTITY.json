@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.77",
+  "current_version": "6.7.78",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.77: Writer registration immediately upserts the active effect row and preserves same-day completed Today rows across redraws.",
-  "version": "6.7.77",
+  "notes": "v6.7.78: Opening the effectiveness view repairs missing ACTIVE/REVIEW_REQUIRED effect rows with the existing bounded repair routine.",
+  "version": "6.7.78",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.77-ST"
+  "starter_display_version": "v6.7.78-ST"
 }
