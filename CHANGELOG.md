@@ -1,3 +1,9 @@
+# v6.7.85
+
+- Home改善率の集計から「管理変更」履歴を分母・分子ともに除外。
+- v6.7.84で追加した管理変更履歴は監査記録として保持し、削除しない。
+- 改善率は通常の改善案件だけで再計算する。
+
 
 ## v6.7.84
 - Added non-measurement management-history records for intentional article lifecycle changes (exclude, redirect/merge, restore).

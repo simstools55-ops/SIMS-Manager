@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.84
+ * Current version: 6.7.85
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.84.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.85.md.
  */
 
-const SBM_VERSION = '6.7.84';
+const SBM_VERSION = '6.7.85';
+// v6.7.85: Home改善率から管理変更履歴を完全除外し、v6.7.84導入時の分母混入を修正。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
 // v6.7.83: 旧版でロック済みのaWriter紹介状を未完了再開時に再構築し、既存CaseのままWriter工程へ復帰。
 // v6.7.82: aDoctorがWRITER/MERGEへの引継ぎを確定した場合、診断時ロックを処置ロックへ持ち越さない。
@@ -12732,6 +12733,8 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
     delete groups[sourceKey];
   }
   rows.forEach(function(r){
+    // v6.7.85: 管理変更履歴は記事ライフサイクルの監査記録であり、改善率の母数・成功数に含めない。
+    if(String(r['改善経路']||'').trim()==='管理変更' || String(r['改善規模']||'').trim()==='管理変更' || String(r['最終判定']||'').trim()==='管理変更')return;
     var aliases=sbmMonitoringAliasesFrom_(r,blogNameOverride),existing=[];
     aliases.forEach(function(a){var k=aliasToKey[a];if(k&&existing.indexOf(k)<0)existing.push(k);});
     var key=existing.length?existing[0]:('G:'+(++seq));
