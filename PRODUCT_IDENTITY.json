@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.70",
+  "current_version": "6.7.75",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.70: Accepts COMPLETED_NO_CHANGE_REQUIRED as a registrable completed aWriter treatment status; all other runtime behavior remains based on v6.7.69.",
-  "version": "6.7.70",
+  "notes": "v6.7.75: Home improvement rate now shows improved/assessed counts, and menu item 0 refreshes Home directly.",
+  "version": "6.7.75",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.70-ST"
+  "starter_display_version": "v6.7.75-ST"
 }

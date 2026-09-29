@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.71
+ * Current version: 6.7.75
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.71.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.75.md.
  */
 
-const SBM_VERSION = '6.7.71';
+const SBM_VERSION = '6.7.75';
+// v6.7.75: Home改善率に改善完了件数／判定済み件数を併記し、0番メニューを『HOME画面を更新』へ統一。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
@@ -1783,7 +1784,7 @@ function sbmBuildHomeSheet_() {
     sh.getRange(ir,5,1,2).merge().setValue(improvement[j][0]);
     sh.getRange(ir,7,1,2).merge().setValue(improvement[j][1]);
   }
-  sh.getRange('I6:J11').merge().setValue('0%');
+  sh.getRange('I6:J11').merge().setValue('0%\n（0/0件）').setWrap(true);
 
   sh.getRange('A13:J13').merge().setValue('今日のメッセージ');
   sh.getRange('A14:J15').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
@@ -6374,6 +6375,17 @@ function sbmOpenHome() {
     // v6.7.52: 表示テーマはモノトーン固定。通常のHome表示では書式を書き直さない。
     if (ss.getActiveSheet().getSheetId() !== sh.getSheetId()) ss.setActiveSheet(sh);
   }
+}
+
+function sbmRefreshHomeManual() {
+  // 利用者が明示的にHome集計を更新するための軽量経路。
+  // GSC取得や日次処理は行わず、記事管理・改善の推移・改善履歴からSnapshotを再構築する。
+  sbmInvalidateHomeSnapshot_();
+  sbmRefreshHome_({applyTheme:false});
+  SpreadsheetApp.flush();
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(sh&&ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
 
 function sbmOpenToday() {
@@ -12676,7 +12688,8 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
     aliases.forEach(function(a){g.aliases[a]=true;aliasToKey[a]=key;});
     g.cycles++;
     var life=sbmMonitoringLifecycleFromHistory_(r),final=String(r['最終判定']||'').trim();
-    if(life==='COMPLETED'||final==='改善完了'){g.success=true;g.closed=true;}
+    if(final==='改善完了'){g.success=true;g.closed=true;}
+    else if(life==='COMPLETED'){g.closed=true;}
     if(life==='REVIEW_REQUIRED'||life==='SUPERSEDED'||final==='再改善必要')g.closed=true;
     if(life==='SUPERSEDED'||g.cycles>1)g.reworked=true;
   });
@@ -12714,7 +12727,7 @@ function sbmMigrateLegacyMonitoringLabels_(){
       var hm=sbmHeaderMap_(db), c=hm['作業状態'];
       if(c){
         var rg=db.getRange(2,c,db.getLastRow()-1,1), vals=rg.getValues(), changed=false;
-        vals.forEach(function(r){var v=String(r[0]||'');if(v.indexOf('改善中')>=0){r[0]='👀 モニター中';changed=true;}});
+        vals.forEach(function(r){var v=String(r[0]||'').trim();/* v6.7.73: 改善中は処置中、モニター中は登録後の経過観察。意味が異なるため自動変換しない。 */});
         if(changed)rg.setValues(vals);
       }
     }
@@ -12831,7 +12844,7 @@ function sbmBuildHomeSnapshot_(){
   var weekly=sbmHomeWeeklyActivity_(historyRows);
 
   var snapshot={
-    version:1,
+    version:2,
     productVersion:String(SBM_DISPLAY_VERSION||SBM_VERSION||''),
     generatedAt:Date.now(),
     total:articleStats.total,
@@ -12853,7 +12866,7 @@ function sbmGetHomeSnapshot_(){
     var raw=PropertiesService.getDocumentProperties().getProperty('SBM_HOME_SNAPSHOT_V1');
     if(!raw)return null;
     var obj=JSON.parse(raw);
-    return obj&&obj.version===1?obj:null; // v6.5.0: Product版更新だけでSnapshot全再構築しない。schema versionで互換性を判断。
+    return obj&&obj.version===2?obj:null; // v6.7.74: Home集計ロジック変更時の旧Snapshot再利用を防止。 v6.5.0: Product版更新だけでSnapshot全再構築しない。schema versionで互換性を判断。
   }catch(e){return null;}
 }
 
@@ -12975,7 +12988,7 @@ function sbmRefreshHome_(options) {
   sh.getRange('G9').setValue(Number(work.monitor||0)+'件');
   sh.getRange('G10').setValue(Number(work.done||0)+'件');
   sh.getRange('G11').setValue(Number(work.excluded||0)+'件');
-  sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%');
+  sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%\n（'+Number(historyStats.improved||0)+'/'+Number(historyStats.assessed||0)+'件）').setWrap(true);
   sh.getRange('A16').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
@@ -13048,7 +13061,7 @@ function sbmRefreshHomeMonitoringDelta_(){
   var articleStats=sbmHomeArticleStatsFromRows_(articleRows);
   var currentTreatment=sbmHomeCurrentTreatmentStats_(effectRows);
   var snap=sbmGetHomeSnapshot_()||{
-    version:1,
+    version:2,
     productVersion:String(SBM_DISPLAY_VERSION||SBM_VERSION||''),
     generatedAt:Date.now(),
     counts:articleStats.counts||{},
@@ -15015,7 +15028,7 @@ function onOpen() {
   // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
   var todayMenu = ui.createMenu('SIMS今日の作業')
-    .addItem('0．HOME画面を開く','sbmOpenHome')
+    .addItem('0．HOME画面を更新','sbmRefreshHomeManual')
     .addItem('1．日次処理を実行','sbmRunDailyUpdateManual')
     .addItem('2．今日の改善を開く','sbmOpenTodayImprovement')
     .addItem('3．選択記事の改善内容を見る','sbmOpenSelectedImprovementNavi')
@@ -15106,6 +15119,17 @@ function onOpen() {
     }
   } catch (eHome) {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
+  }
+
+  // StarterではaDoctor精密診断候補を利用者に表示しない。
+  // 全シート走査は行わず、対象シートを名前で直接取得して起動負荷を抑える。
+  if (!isFullEdition) {
+    try {
+      var detailedCandidateSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('aDoctor_精密診断候補');
+      if (detailedCandidateSheet && !detailedCandidateSheet.isSheetHidden()) detailedCandidateSheet.hideSheet();
+    } catch (eStarterDetailedCandidate) {
+      try { sbmLog_('OnOpenStarterDetailedCandidate','Warning',String(eStarterDetailedCandidate)); } catch(ignoreStarterDetailedCandidate) {}
+    }
   }
 
   // F5/onOpenでは、ここから先の保守処理・全シート走査を行わない。

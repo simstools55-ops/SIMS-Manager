@@ -1,1 +1,1 @@
-fix: aWriter修正不要完了を正常受理 (v6.7.70)
+ui: clarify Home improvement rate and refresh menu (v6.7.75)
