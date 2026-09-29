@@ -1,1 +1,1 @@
-fix: hide Starter internal sheets on open (v6.7.76)
+fix: sync Writer monitoring and preserve Today completion rows (v6.7.77)

@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.76
+ * Current version: 6.7.77
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.76.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.77.md.
  */
 
-const SBM_VERSION = '6.7.76';
-// v6.7.76: Starter起動時に既知の内部・管理シートを直接非表示同期し、全シート走査なしで通常利用タブを整理。
+const SBM_VERSION = '6.7.77';
+// v6.7.77: Starter起動時に既知の内部・管理シートを直接非表示同期し、全シート走査なしで通常利用タブを整理。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
 // v6.7.69: aWriter結果のPARTIALLY_COMPLETEDを、実施済み処置を登録可能な部分完了として受理。
@@ -8564,6 +8564,11 @@ function sbmRegisterImprovementFeedback(data, options) {
     var existing=sbmFindExistingImprovementFeedback_(data);
     sbmFeedbackTrace_('REGISTER_DUP_CHECK','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / found=' + (!!existing.found));
     if(existing.found){
+      // v6.7.77: 改善履歴が既に存在する復旧経路でも、改善の推移を対象1件だけ即時同期する。
+      // 全件再構築は行わず、登録済み履歴IDから不足行だけをupsertする。
+      if(existing.historyId){
+        try{sbmUpsertEffectRowForHistory_(existing.historyId,data.article_id,data.article_url);}catch(eEffectDuplicate){try{sbmLog_('FeedbackEffectSync','Warning',String(eEffectDuplicate&&eEffectDuplicate.message||eEffectDuplicate));}catch(ignoreEffectDuplicateLog){}}
+      }
       // v6.7.71: 冪等再登録でも「今日の改善」の終了表示を同期する。
       // 改善履歴が既に存在する復旧経路で、記事管理だけモニター中・今日の改善だけ未終了になる不整合を防ぐ。
       try { sbmMarkTodayImprovementCompleted_(data.article_id, data.article_url); } catch (eTodayDuplicate) {
@@ -8610,6 +8615,12 @@ function sbmRegisterImprovementFeedback(data, options) {
     try{mergeFollowUp=sbmMaterializeFeedbackMergeReferral_(data,historyId)||{created:false};}catch(eMergeFollowUp){sbmLog_('FeedbackMergeReferral','Warning',String(eMergeFollowUp&&eMergeFollowUp.message||eMergeFollowUp));}
     registerLap('history_written');
     sbmFeedbackTrace_('REGISTER_HISTORY_WRITTEN','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's / historyId=' + String(historyId||''));
+    // v6.7.77: Writer登録直後に改善の推移へ対象1件だけ同期する。
+    // deferDerivedRefreshで全件再構築を省略しても、経過観察の開始行は即時に存在させる。
+    var effectSync={ok:false};
+    try{effectSync=sbmUpsertEffectRowForHistory_(historyId,data.article_id,data.article_url)||{ok:false};}catch(eEffectSync){try{sbmLog_('FeedbackEffectSync','Warning',String(eEffectSync&&eEffectSync.message||eEffectSync));}catch(ignoreEffectSyncLog){}}
+    if(!effectSync.ok)throw new Error('改善履歴は登録されましたが、改善の推移への反映確認に失敗しました。再登録すると復旧を試みます。');
+    registerLap('effect_written');
     try{sbmAppendLegacyImprovementLog_(data,row,before);}catch(eLegacy){try{sbmLog_('FeedbackLegacyLog','Warning',String(eLegacy));}catch(ignoreLegacyLog){}}
     registerLap('legacy_log_written');
     var pkIngest={ok:true,total:0,written:0,candidate:0,accepted:0,rejected:0,error:0,deferred:false};
@@ -13857,6 +13868,32 @@ function sbmStyleEffectSheetV2_() {
  * 改善結果を登録した記事を「今日の改善」で終了表示にします。
  * チェックボックスを削除し、行をグレーアウトして再選択を防止します。
  */
+function sbmRememberTodayCompletedRow_(sh,row,articleId,articleUrl){
+  try{
+    if(!sh||row<2)return;
+    var key='SBM_TODAY_COMPLETED_ROWS_V1',props=PropertiesService.getDocumentProperties(),today=sbmDateText_(new Date()),saved=[];
+    try{saved=JSON.parse(String(props.getProperty(key)||'[]'));}catch(ignoreParse){saved=[];}
+    if(!Array.isArray(saved))saved=[];
+    saved=saved.filter(function(x){return x&&String(x.date||'')===today;});
+    var width=SBM_HEADERS.TODAY.length,values=sh.getRange(row,1,1,width).getValues()[0];
+    values[0]='終了';
+    var aid=String(articleId||'').trim().toUpperCase(),url=sbmNormalizeUrl_(articleUrl||'');
+    saved=saved.filter(function(x){return !((aid&&String(x.articleId||'').trim().toUpperCase()===aid)||(url&&sbmNormalizeUrl_(x.articleUrl||'')===url));});
+    saved.push({date:today,articleId:articleId||'',articleUrl:articleUrl||'',values:values});
+    props.setProperty(key,JSON.stringify(saved));
+  }catch(e){try{sbmLog_('TodayCompletedRemember','Warning',String(e&&e.message||e));}catch(ignoreLog){}}
+}
+function sbmTodayCompletedRowsRemembered_(){
+  try{
+    var key='SBM_TODAY_COMPLETED_ROWS_V1',props=PropertiesService.getDocumentProperties(),today=sbmDateText_(new Date()),saved=[];
+    try{saved=JSON.parse(String(props.getProperty(key)||'[]'));}catch(ignoreParse){saved=[];}
+    if(!Array.isArray(saved))saved=[];
+    var current=saved.filter(function(x){return x&&String(x.date||'')===today&&Array.isArray(x.values);});
+    if(current.length!==saved.length)props.setProperty(key,JSON.stringify(current));
+    return current;
+  }catch(e){return [];}
+}
+
 function sbmMarkTodayImprovementCompleted_(articleId, articleUrl) {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
   if (!sh || sh.getLastRow() < 2) return false;
@@ -13877,6 +13914,7 @@ function sbmMarkTodayImprovementCompleted_(articleId, articleUrl) {
     var rowUrl = urlCol ? sbmNormalizeUrl_(urls[i][0] || '') : '';
     if ((wantedId && rowId === wantedId) || (!wantedId && normalized && rowUrl === normalized) || (wantedId && normalized && rowUrl === normalized)) {
       var row = i + 2;
+      sbmRememberTodayCompletedRow_(sh,row,articleId,articleUrl);
       var cell = sh.getRange(row, selectCol);
       cell.clearDataValidations().setValue('終了').setHorizontalAlignment('center').setFontWeight('bold');
       sh.getRange(row, 1, 1, Math.max(sh.getLastColumn(), SBM_HEADERS.TODAY.length))
@@ -14081,6 +14119,8 @@ function sbmPrepareTodayImprovementSheetFast_() {
 
 function sbmWriteTodayRecommendations_(candidates, count, options) {
   options=options||{};
+  // v6.7.77: 同日に終了した行は、日次処理の再実行で候補を再描画しても当日中は終了表示を保持する。
+  var rememberedCompleted=sbmTodayCompletedRowsRemembered_();
   // v6.6.84: 既存レイアウトを毎回全面再構築しない。
   var sh = sbmPrepareTodayImprovementSheetFast_();
   if (!sh) return;
@@ -14167,7 +14207,21 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
     sh.setRowHeights(2, values.length, 76);
   }
 
-  var guideRow = shown.length + 3;
+  if(rememberedCompleted.length){
+    var activeIds={},activeUrls={};
+    shown.forEach(function(c){var aid=String(c&&c.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(c&&c.url||'');if(aid)activeIds[aid]=true;if(u)activeUrls[u]=true;});
+    var completedRows=rememberedCompleted.filter(function(x){var aid=String(x.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(x.articleUrl||'');return !(aid&&activeIds[aid])&&!(u&&activeUrls[u]);});
+    if(completedRows.length){
+      var startRow=shown.length+2,completedValues=completedRows.map(function(x){var v=(x.values||[]).slice(0,SBM_HEADERS.TODAY.length);while(v.length<SBM_HEADERS.TODAY.length)v.push('');v[0]='終了';return v;});
+      sh.getRange(startRow,1,completedValues.length,SBM_HEADERS.TODAY.length).setValues(completedValues);
+      sh.getRange(startRow,1,completedValues.length,1).clearDataValidations().setHorizontalAlignment('center').setFontWeight('bold');
+      sh.getRange(startRow,1,completedValues.length,SBM_HEADERS.TODAY.length).setBackground('#eeeeee').setFontColor('#777777').setVerticalAlignment('middle');
+      var hmDone=sbmHeaderMap_(sh);if(hmDone['記事タイトル'])sh.getRange(startRow,hmDone['記事タイトル'],completedValues.length,1).setFontLine('line-through');
+      sh.setRowHeights(startRow,completedValues.length,76);
+    }
+  }
+
+  var guideRow = shown.length + rememberedCompleted.length + 3;
   sh.getRange(guideRow, 1).setValue(
     '今日の改善は通常候補に加え、エース急落と経過観察終了後の要処置記事を優先追加表示します。'
   ).setFontColor('#5f6368');
