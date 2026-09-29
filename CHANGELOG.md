@@ -1,3 +1,7 @@
+## v6.7.82 - 2026-09-30
+- Fixed Doctor-to-Writer/Merge handoff: diagnosis-time workflow locks are released when the Doctor explicitly routes the case to WRITER or MERGE.
+- Prevented Writer requests from inheriting stale diagnosis locks and returning false BLOCKED results.
+
 
 ## v6.7.81 - 2026-09-29
 - 「今日の改善」で本日終了案件を元の区分順へ合流して表示。

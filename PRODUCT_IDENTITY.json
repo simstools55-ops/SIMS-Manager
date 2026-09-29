@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.81",
+  "current_version": "6.7.82",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.81: same-day completed Today rows use the normal numeric display formats and completed-row presentation.",
-  "version": "6.7.81",
+  "notes": "v6.7.82: release diagnosis-time workflow locks when aDoctor explicitly hands the case off to Writer or Merge.",
+  "version": "6.7.82",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.81-ST"
+  "starter_display_version": "v6.7.82-ST"
 }

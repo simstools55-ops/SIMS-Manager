@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.81
+ * Current version: 6.7.82
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.81.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.82.md.
  */
 
-const SBM_VERSION = '6.7.81';
+const SBM_VERSION = '6.7.82';
+// v6.7.82: aDoctorがWRITER/MERGEへの引継ぎを確定した場合、診断時ロックを処置ロックへ持ち越さない。
 // v6.7.81: 本日終了した『今日の改善』行を当日中は軽量復元。旧版で消えた当日案件も改善履歴から1日1回自己修復。
 // v6.7.78: 改善の推移を開く際、改善履歴に残るACTIVE/REVIEW_REQUIREDの欠落行を軽量復旧。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
@@ -19314,7 +19315,7 @@ function sbmDoctorNormalizeCaseResult_(o){
     var reviewDateV2=review.next_review_target_date||re.recommended_date||'';
     var reviewAfterDaysV2=Number(review.next_review_after_days||review.review_after_days||0);
     if(!reviewDateV2&&reviewAfterDaysV2>0){var rd=new Date();rd.setDate(rd.getDate()+reviewAfterDaysV2);reviewDateV2=Utilities.formatDate(rd,SBM_DEFAULTS.TIMEZONE,'yyyy-MM-dd');}
-    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:allowedV2,blocked:blockedV2,reviewDate:normalCloseV2?'':reviewDateV2,locked:!!((o.workflow&&o.workflow.workflow_locked)||(o.dependencies&&o.dependencies.doctor_treatment_allowed===false)||(o.dependencies&&o.dependencies.lock_reference_id)),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,additionalDiagnosis:additionalDiagnosisV2.required,additionalDiagnosisSpec:additionalDiagnosisV2,normalClose:normalCloseV2,closeMonitoring:closeMonitoringV2,restore:restoreV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
+    return {format:format,caseId:String(o.case_id||cc.case_id||cc.individual_case_id||''),diagnosisId:o.diagnosis_id||cc.case_id||'',diagnosisStatus:d.status||d.primary_hypothesis||d.summary||'',primaryCode:d.primary_code||d.primary_hypothesis||d.code||serpOutcomeV2||'',priority:d.priority||t.priority||'',action:normalCloseV2?'NORMAL_CLOSE':((writerReadyV2||mergeReadyV2)?'TREATMENT_RECOMMENDED':(manualReviewV2?'MANUAL_REVIEW':(monitorV2?'MONITOR':t.action||t.strategy||''))),treatmentLevel:t.treatment_level||t.strategy||'',destination:mergeReadyV2?'SIMS_MERGE':(writerReadyV2?'SIMS_WRITER':ref.destination||''),allowed:allowedV2,blocked:blockedV2,reviewDate:normalCloseV2?'':reviewDateV2,locked:!writerReadyV2&&!mergeReadyV2&&!!((o.workflow&&o.workflow.workflow_locked)||(o.dependencies&&o.dependencies.doctor_treatment_allowed===false)||(o.dependencies&&o.dependencies.lock_reference_id)),nextAction:normalCloseV2?'NORMAL_CLOSE':(explicitNextActionV2||(mergeReadyV2?'MERGE':writerReadyV2?'WRITER':manualReviewV2?'USER_CONFIRMATION':monitorV2?'MONITOR':'')),writerReady:writerReadyV2,mergeReady:mergeReadyV2,manualReview:manualReviewV2,monitor:monitorV2,additionalDiagnosis:additionalDiagnosisV2.required,additionalDiagnosisSpec:additionalDiagnosisV2,normalClose:normalCloseV2,closeMonitoring:closeMonitoringV2,restore:restoreV2,serpOutcome:serpOutcomeV2,lowSampleSerp:lowSerp,writerReferrals:[],mergeReferrals:mergeReadyV2?[ref]:[]};
   }
   if(format==='SIMS_DOCTOR_SINGLE_CASE_RESULT_V1'){
     var refs=Array.isArray(o.referrals)?o.referrals:[],activeWriter=[],deferredWriter=[],activeMerge=[],deferredMerge=[],sbmRequired=[];
@@ -19342,7 +19343,7 @@ function sbmDoctorNormalizeCaseResult_(o){
     var manualReview=explicitNextAction==='USER_CONFIRMATION'||(!writerReady&&!mergeReady&&sbmRequired.length>0);
     var monitor=!restore&&(explicitNextAction==='MONITOR'||(!writerReady&&!mergeReady&&!manualReview&&explicitNextAction===''));
     var mergeAllowed=[],mergeBlocked=[];activeMerge.forEach(function(x){mergeAllowed=mergeAllowed.concat(x.allowed_scope||[]);mergeBlocked=mergeBlocked.concat(x.blocked_scope||[]);});
-    return {format:format,caseId:String(o.case_id||''),diagnosisId:o.diagnosis_id||o.case_id||'',diagnosisStatus:diagnosisStatus,primaryCode:primaryCode,priority:priority,action:(writerReady||mergeReady)?'TREATMENT_RECOMMENDED':(manualReview?'MANUAL_REVIEW':'MONITOR'),treatmentLevel:(writerReady||mergeReady)?'LIMITED':'',destination:mergeReady?'SIMS_MERGE':(writerReady?'SIMS_WRITER':(manualReview?'SBM':'')),allowed:uniq(mergeReady?mergeAllowed:allowed),blocked:uniq(mergeReady?mergeBlocked:blocked),reviewDate:reviewDate,locked:!!(o.workflow&&o.workflow.lock_at_diagnosis_time),nextAction:explicitNextAction||(mergeReady?'MERGE':writerReady?'WRITER':manualReview?'USER_CONFIRMATION':'MONITOR'),writerReady:writerReady,mergeReady:mergeReady,manualReview:manualReview,monitor:monitor,restore:restore,writerReferrals:activeWriter,deferredWriterReferrals:deferredWriter,mergeReferrals:activeMerge,deferredMergeReferrals:deferredMerge,sbmReferrals:sbmRequired};
+    return {format:format,caseId:String(o.case_id||''),diagnosisId:o.diagnosis_id||o.case_id||'',diagnosisStatus:diagnosisStatus,primaryCode:primaryCode,priority:priority,action:(writerReady||mergeReady)?'TREATMENT_RECOMMENDED':(manualReview?'MANUAL_REVIEW':'MONITOR'),treatmentLevel:(writerReady||mergeReady)?'LIMITED':'',destination:mergeReady?'SIMS_MERGE':(writerReady?'SIMS_WRITER':(manualReview?'SBM':'')),allowed:uniq(mergeReady?mergeAllowed:allowed),blocked:uniq(mergeReady?mergeBlocked:blocked),reviewDate:reviewDate,locked:!writerReady&&!mergeReady&&!!(o.workflow&&o.workflow.lock_at_diagnosis_time),nextAction:explicitNextAction||(mergeReady?'MERGE':writerReady?'WRITER':manualReview?'USER_CONFIRMATION':'MONITOR'),writerReady:writerReady,mergeReady:mergeReady,manualReview:manualReview,monitor:monitor,restore:restore,writerReferrals:activeWriter,deferredWriterReferrals:deferredWriter,mergeReferrals:activeMerge,deferredMergeReferrals:deferredMerge,sbmReferrals:sbmRequired};
   }
   throw new Error('未対応のaDoctor結果形式です：'+format+'。aDoctor回答内のJSON contractを貼り付けてください。');
 }
