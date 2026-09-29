@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.82",
+  "current_version": "6.7.83",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.82: release diagnosis-time workflow locks when aDoctor explicitly hands the case off to Writer or Merge.",
-  "version": "6.7.82",
-  "starter_display_version": "v6.7.82-ST"
+  "notes": "v6.7.83: rebuild stale locked aWriter referrals during unfinished-work resume without rerunning aDoctor.",
+  "version": "6.7.83",
+  "starter_display_version": "v6.7.83-ST"
 }

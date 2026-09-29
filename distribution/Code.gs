@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.82
+ * Current version: 6.7.83
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.82.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.83.md.
  */
 
-const SBM_VERSION = '6.7.82';
+const SBM_VERSION = '6.7.83';
+// v6.7.83: 旧版でロック済みのaWriter紹介状を未完了再開時に再構築し、既存CaseのままWriter工程へ復帰。
 // v6.7.82: aDoctorがWRITER/MERGEへの引継ぎを確定した場合、診断時ロックを処置ロックへ持ち越さない。
 // v6.7.81: 本日終了した『今日の改善』行を当日中は軽量復元。旧版で消えた当日案件も改善履歴から1日1回自己修復。
 // v6.7.78: 改善の推移を開く際、改善履歴に残るACTIVE/REVIEW_REQUIREDの欠落行を軽量復旧。
@@ -20595,8 +20596,13 @@ function sbmDoctorShowSiteDiagnosisWriterDialog_(req,id){
 function sbmDoctorStoredReferralNeedsRebuild_(text){
   var s=String(text||'').trim();if(!s)return true;
   try{
-    var o=JSON.parse(s),note=String(o.note||'');
-    return /セル保存上限|ダイアログ.*正本|要約保存/.test(note);
+    var o=JSON.parse(s),note=String(o.note||''),workflow=o&&o.workflow||{};
+    // v6.7.83: v6.7.81以前に保存されたWriter紹介状で、Doctor診断時の安全ロックが
+    // Writer処置ロックとして持ち越されたものは未完了再開時に再構築する。
+    // 保存済みDoctor結果/CaseIDを正本にするため、診断のやり直しは不要。
+    var staleWriterLock=String(o&&o.target_system||'').toUpperCase()==='SIMS_WRITER'&&
+      (workflow.locked===true||workflow.treatment_allowed===false);
+    return staleWriterLock||/セル保存上限|ダイアログ.*正本|要約保存/.test(note);
   }catch(e){return false;}
 }
 function sbmDoctorRebuildSiteDiagnosisReferral(caseId,route){
