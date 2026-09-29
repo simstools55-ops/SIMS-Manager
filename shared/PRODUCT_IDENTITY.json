@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.77",
+  "current_version": "6.7.81",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.77: Writer registration immediately upserts the active effect row and preserves same-day completed Today rows across redraws.",
-  "version": "6.7.77",
-  "starter_display_version": "v6.7.77-ST"
+  "notes": "v6.7.81: same-day completed Today rows use the normal numeric display formats and completed-row presentation.",
+  "version": "6.7.81",
+  "starter_display_version": "v6.7.81-ST"
 }

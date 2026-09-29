@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.78
+ * Current version: 6.7.81
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.78.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.81.md.
  */
 
-const SBM_VERSION = '6.7.78';
+const SBM_VERSION = '6.7.81';
+// v6.7.81: 本日終了した『今日の改善』行を当日中は軽量復元。旧版で消えた当日案件も改善履歴から1日1回自己修復。
 // v6.7.78: 改善の推移を開く際、改善履歴に残るACTIVE/REVIEW_REQUIREDの欠落行を軽量復旧。
 // v6.7.71: 改善結果の冪等再登録時も『今日の改善』を終了表示へ同期し、モニター中との表示不整合を自己修復。
 // v6.7.70: aWriter結果のCOMPLETED_NO_CHANGE_REQUIREDを、確認完了・修正不要の正常終了として受理。
@@ -6567,6 +6568,12 @@ function sbmOpenTodayImprovement() {
   var tArticleId=new Date();
   try { sbmRepairTodayArticleIdsLight_(sh); } catch(eTodayArticleId) { try{sbmLog_('TodayArticleIdRepair','Warning',String(eTodayArticleId));}catch(ignoreTodayArticleIdLog){} }
   profiler.lap('ArticleID軽量補正','','',sbmSecondsSince_(tArticleId)+'秒');
+  var tCompletedRestore=new Date();
+  try { sbmRestoreTodayCompletedRowsLight_(sh); } catch(eTodayCompletedRestore) { try{sbmLog_('TodayCompletedRestore','Warning',String(eTodayCompletedRestore));}catch(ignoreTodayCompletedRestoreLog){} }
+  profiler.lap('本日終了行復元','','',sbmSecondsSince_(tCompletedRestore)+'秒');
+  var tCompletedLayout=new Date();
+  try { sbmNormalizeTodayCompletedLayoutLight_(sh); } catch(eTodayCompletedLayout) { try{sbmLog_('TodayCompletedLayout','Warning',String(eTodayCompletedLayout));}catch(ignoreTodayCompletedLayoutLog){} }
+  profiler.lap('本日終了行区分整列','','',sbmSecondsSince_(tCompletedLayout)+'秒');
   var tPresentation=new Date();
   try { sbmRefreshTodayPresentationOnly_(); } catch(eTodayPresentation) { try{sbmLog_('TodayPresentation','Warning',String(eTodayPresentation));}catch(ignoreTodayPresentationLog){} }
 
@@ -13896,6 +13903,97 @@ function sbmTodayCompletedRowsRemembered_(){
   }catch(e){return [];}
 }
 
+/** v6.7.81: 本日終了した改善を「今日の改善」へ軽量復元する。 */
+function sbmRestoreTodayCompletedRowsLight_(sh){
+  sh=sh||SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh)return 0;
+  var today=sbmDateText_(new Date()),restored=0,hm=sbmHeaderMap_(sh),idCol=hm['ArticleID'],urlCol=hm['記事URL'];
+  var existingIds={},existingUrls={},n=Math.max(0,sh.getLastRow()-1);
+  if(n){
+    var ids=idCol?sh.getRange(2,idCol,n,1).getDisplayValues():[],urls=urlCol?sh.getRange(2,urlCol,n,1).getValues():[];
+    for(var i=0;i<n;i++){var aid=idCol?String(ids[i][0]||'').trim().toUpperCase():'',u=urlCol?sbmNormalizeUrl_(urls[i][0]||''):'';if(aid)existingIds[aid]=true;if(u)existingUrls[u]=true;}
+  }
+  function append_(values,aid,url){
+    aid=String(aid||'').trim().toUpperCase();url=sbmNormalizeUrl_(url||'');
+    if((aid&&existingIds[aid])||(url&&existingUrls[url]))return false;
+    var v=(values||[]).slice(0,SBM_HEADERS.TODAY.length);while(v.length<SBM_HEADERS.TODAY.length)v.push('');v[0]='終了';
+    var row=Math.max(2,sh.getLastRow()+1);sh.getRange(row,1,1,SBM_HEADERS.TODAY.length).setValues([v]);
+    sh.getRange(row,1).clearDataValidations().setHorizontalAlignment('center').setFontWeight('bold');
+    sh.getRange(row,1,1,SBM_HEADERS.TODAY.length).setBackground('#eeeeee').setFontColor('#777777').setVerticalAlignment('middle');
+    var th=sbmHeaderMap_(sh);if(th['記事タイトル'])sh.getRange(row,th['記事タイトル']).setFontLine('line-through');
+    sh.setRowHeight(row,76);sbmRememberTodayCompletedRow_(sh,row,aid,url);if(aid)existingIds[aid]=true;if(url)existingUrls[url]=true;restored++;return true;
+  }
+  // 通常は登録時に保存された当日終了行だけを戻す。シート全体の再構築は行わない。
+  (sbmTodayCompletedRowsRemembered_()||[]).forEach(function(x){append_(x.values,x.articleId,x.articleUrl);});
+  // v6.7.81導入前に消えた当日終了行だけ、1日1回、改善履歴から自己修復する。
+  var props=PropertiesService.getDocumentProperties(),repairKey='SBM_TODAY_COMPLETED_HISTORY_REPAIR_DATE_V1';
+  if(String(props.getProperty(repairKey)||'')!==today){
+    var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],articles=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],articleById={},articleByUrl={},candidates=sbmGetTodayCandidates_()||[],candidateById={},candidateByUrl={};
+    articles.forEach(function(a){var aid=String(a['ArticleID']||'').trim().toUpperCase(),u=sbmNormalizeUrl_(a['記事URL']||'');if(aid)articleById[aid]=a;if(u)articleByUrl[u]=a;});
+    candidates.forEach(function(c){var aid=String(c&&c.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(c&&c.url||'');if(aid)candidateById[aid]=c;if(u)candidateByUrl[u]=c;});
+    histories.forEach(function(h){
+      var d=h['改善日'];if(d instanceof Date)d=sbmDateText_(d);else{var pd=sbmParseDate_(d);d=pd?sbmDateText_(pd):String(d||'').replace(/\//g,'-').substring(0,10);}if(d!==today)return;
+      var aid=String(h['ArticleID']||'').trim().toUpperCase(),url=sbmNormalizeUrl_(h['記事URL']||''),a=articleById[aid]||articleByUrl[url];if(!a)return;
+      var work=String(a['作業状態']||'');if(work.indexOf('モニター中')<0&&work.indexOf('完了')<0)return;
+      var c=candidateById[aid]||candidateByUrl[url]||{},rank=String(a['記事ランク']||''),rankCode=sbmDoctorRankCode_(rank),kind=rankCode==='GROWTH'?'📈 エース化':rankCode==='ACE'?'💰 収益改善':rankCode==='NURTURE'?'🌱 育成改善':rankCode==='STABLE'?'✅ 安全改善':'改善';
+      var values=['終了',c.kind||kind,sbmCleanDataListText_(c.title||a['記事タイトル']||'',url),c.reason||'本日の改善作業は終了しました。',c.estimate||'約15分',c.rank||rank,c.query||a['メインクエリ']||'',Number(c.clicks!==undefined?c.clicks:a['クリック数']||0),Number(c.impressions!==undefined?c.impressions:a['表示回数']||0),Number(c.ctr!==undefined?c.ctr:a['CTR']||0),Number(c.position!==undefined?c.position:a['掲載順位']||0),aid,url,c.candidateId||''];
+      append_(values,aid,url);
+    });
+    props.setProperty(repairKey,today);
+  }
+  return restored;
+}
+
+/** v6.7.81: 「今日の改善」を従来の区分順へ軽量整列し、注意書きを全案件の後ろへ戻す。 */
+function sbmNormalizeTodayCompletedLayoutLight_(sh){
+  sh=sh||SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
+  if(!sh||sh.getLastRow()<2)return 0;
+  var hm=sbmHeaderMap_(sh),idCol=hm['ArticleID'],kindCol=hm['区分'],selectCol=hm['選択'],titleCol=hm['記事タイトル'];
+  if(!idCol||!kindCol)return 0;
+  var width=SBM_HEADERS.TODAY.length,last=Math.max(2,sh.getLastRow()),n=last-1;
+  var values=sh.getRange(2,1,n,width).getValues(),rows=[];
+  function priority_(kind){
+    kind=String(kind||'');
+    if(kind.indexOf('急落')>=0)return 0;
+    if(kind.indexOf('再診処置')>=0)return 1;
+    if(kind.indexOf('エース化')>=0)return 2;
+    if(kind.indexOf('収益改善')>=0)return 3;
+    if(kind.indexOf('育成改善')>=0)return 4;
+    if(kind.indexOf('安全改善')>=0)return 5;
+    return 6;
+  }
+  for(var i=0;i<values.length;i++){
+    var aid=String(values[i][idCol-1]||'').trim();
+    if(!/^A\d+$/i.test(aid))continue;
+    rows.push({values:values[i],priority:priority_(values[i][kindCol-1]),index:i,completed:String(values[i][(selectCol||1)-1]||'').trim()==='終了'});
+  }
+  if(!rows.length)return 0;
+  rows.sort(function(a,b){return a.priority-b.priority||a.index-b.index;});
+  var clearRows=Math.max(n,rows.length+2),area=sh.getRange(2,1,clearRows,width);
+  area.clearContent();area.clearDataValidations();
+  area.setBackground(null).setFontColor(null).setFontLine('none').setFontWeight('normal');
+  sh.getRange(2,1,rows.length,width).setValues(rows.map(function(x){return x.values;}));
+  sh.getRange(2,1,rows.length,width).setBorder(true,true,true,true,true,true).setVerticalAlignment('middle');
+  sh.getRange(2,2,rows.length,1).setFontWeight('bold').setHorizontalAlignment('center');
+  sh.getRange(2,3,rows.length,2).setWrap(true);sh.getRange(2,5,rows.length,1).setHorizontalAlignment('center');sh.getRange(2,7,rows.length,1).setWrap(true);
+  sh.getRange(2,8,rows.length,2).setNumberFormat('#,##0');sh.getRange(2,10,rows.length,1).setNumberFormat('0.0%');sh.getRange(2,11,rows.length,1).setNumberFormat('0.0');
+  sh.setRowHeights(2,rows.length,76);
+  rows.forEach(function(x,j){
+    var row=j+2;
+    if(x.completed){
+      if(selectCol)sh.getRange(row,selectCol).setValue('終了').clearDataValidations().setHorizontalAlignment('center').setFontWeight('bold');
+      sh.getRange(row,1,1,width).setBackground('#eeeeee').setFontColor('#777777');
+      if(titleCol)sh.getRange(row,titleCol).setFontLine('line-through');
+    }else if(selectCol){
+      sh.getRange(row,selectCol).insertCheckboxes().setValue(false).setHorizontalAlignment('center');
+    }
+  });
+  // 従来レイアウト: 全案件の直後に1行空け、その次の行へ注意書きを置く。
+  var guideRow=rows.length+3;
+  sh.getRange(guideRow,1).setValue('今日の改善は通常候補に加え、エース急落と経過観察終了後の要処置記事を優先追加表示します。').setFontColor('#5f6368');
+  return rows.length;
+}
+
 function sbmMarkTodayImprovementCompleted_(articleId, articleUrl) {
   var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
   if (!sh || sh.getLastRow() < 2) return false;
@@ -13983,8 +14081,15 @@ function sbmSyncTodayCompletedPresentationLight_(sh){
     if(selectCol){
       sh.getRange(row,selectCol).clearDataValidations().setValue('終了').setHorizontalAlignment('center').setFontWeight('bold');
     }
-    sh.getRange(row,1,1,lastCol).setBackground('#eeeeee').setFontColor('#777777');
+    sh.getRange(row,1,1,lastCol).setBackground('#eeeeee').setFontColor('#777777').setVerticalAlignment('middle');
     if(titleCol)sh.getRange(row,titleCol).setFontLine('line-through');
+    // v6.7.81: 復元された終了行にも通常候補と同じ数値表示を適用する。
+    // 値そのものは変更せず、CTR/掲載順位などの生値表示だけを防ぐ。
+    if(hm['クリック数'])sh.getRange(row,hm['クリック数']).setNumberFormat('#,##0');
+    if(hm['表示回数'])sh.getRange(row,hm['表示回数']).setNumberFormat('#,##0');
+    if(hm['CTR'])sh.getRange(row,hm['CTR']).setNumberFormat('0.0%');
+    if(hm['掲載順位'])sh.getRange(row,hm['掲載順位']).setNumberFormat('0.0');
+    try{sh.setRowHeight(row,76);}catch(ignoreCompletedRowHeight){}
   });
   return rows.length;
 }
@@ -14238,6 +14343,9 @@ function sbmWriteTodayRecommendations_(candidates, count, options) {
       '今日の改善に表示している件数'
     );
   }
+
+  // v6.7.81: 終了行を通常区分へ合流し、注意書きを全表示案件の後ろへ統一する。
+  try{sbmNormalizeTodayCompletedLayoutLight_(sh);}catch(eTodayLayoutWrite){try{sbmLog_('TodayCompletedLayoutWrite','Warning',String(eTodayLayoutWrite));}catch(ignoreTodayLayoutWriteLog){}}
 
   // v6.6.84: flushは呼出元に委ね、STEP2/STEP3での強制同期を避ける。
 }

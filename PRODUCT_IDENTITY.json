@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.78",
+  "current_version": "6.7.81",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.78: Opening the effectiveness view repairs missing ACTIVE/REVIEW_REQUIRED effect rows with the existing bounded repair routine.",
-  "version": "6.7.78",
+  "notes": "v6.7.81: same-day completed Today rows use the normal numeric display formats and completed-row presentation.",
+  "version": "6.7.81",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.78-ST"
+  "starter_display_version": "v6.7.81-ST"
 }
