@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.83",
+  "current_version": "6.7.84",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.83: rebuild stale locked aWriter referrals during unfinished-work resume without rerunning aDoctor.",
-  "version": "6.7.83",
+  "notes": "v6.7.84: record intentional article lifecycle changes as management history excluded from effectiveness measurement.",
+  "version": "6.7.84",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.83-ST"
+  "starter_display_version": "v6.7.84-ST"
 }

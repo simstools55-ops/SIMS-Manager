@@ -1,3 +1,8 @@
+
+## v6.7.84
+- Added non-measurement management-history records for intentional article lifecycle changes (exclude, redirect/merge, restore).
+- Merge absorbed-article lifecycle changes are idempotently recorded without entering effectiveness monitoring.
+
 ## v6.7.83 - 2026-09-30
 - 旧版でロック済みのaWriter紹介状を未完了再開時に保存済みDoctor結果/CaseIDから再構築するよう修正。
 - aDoctor診断をやり直さず、既存CaseのままWriter工程へ復帰可能。

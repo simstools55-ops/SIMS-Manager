@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.83
+ * Current version: 6.7.84
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.83.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.84.md.
  */
 
-const SBM_VERSION = '6.7.83';
+const SBM_VERSION = '6.7.84';
+// v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
 // v6.7.83: 旧版でロック済みのaWriter紹介状を未完了再開時に再構築し、既存CaseのままWriter工程へ復帰。
 // v6.7.82: aDoctorがWRITER/MERGEへの引継ぎを確定した場合、診断時ロックを処置ロックへ持ち越さない。
 // v6.7.81: 本日終了した『今日の改善』行を当日中は軽量復元。旧版で消えた当日案件も改善履歴から1日1回自己修復。
@@ -10845,6 +10846,7 @@ function sbmApplyNeedsReviewDisposition(payload){
     put('選択',false);put('管理フラグ','管理対象外');put('記事ステータス',label);put('作業状態',action==='noindex'?'⏸️ noindex':'⏸️ 管理対象外');put('除外理由',label+'のため検索改善管理から除外');
     put('備考',(oldNote?oldNote+' / ':'')+'要確認処置: '+label+' / '+now+' / 利用者確認済み');
     sh.getRange(rowNo,1,1,row.length).setValues([row]);
+    try{sbmAppendArticleManagementHistory_(article,'EXCLUDE_'+action.toUpperCase(),'管理対象外へ変更（'+label+'）',label+'のため検索改善管理から除外。利用者確認済み。','NEEDS_REVIEW:'+String(id||url)+':'+action+':'+now);}catch(eHist){try{sbmLog_('NeedsReviewManagementHistory','Warning',String(eHist));}catch(ignoreHistLog){}}
     try{sbmRemoveArticleFromOperationalViews_(id,url);}catch(ignoreView){}
     return {ok:true,message:'「'+label+'」として管理対象外へ整理しました。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
@@ -10925,6 +10927,30 @@ function sbmRemoveArticleFromOperationalViews_(articleId,url){
   }
 }
 
+function sbmAppendArticleManagementHistory_(article,eventType,summary,detail,eventKey){
+  article=article||{};eventType=String(eventType||'').trim();summary=String(summary||'').trim();detail=String(detail||'').trim();eventKey=String(eventKey||'').trim();
+  var articleId=String(article['ArticleID']||article.articleId||'').trim(),articleUrl=String(article['記事URL']||article.articleUrl||'').trim();
+  if(!articleId&&!articleUrl)return '';
+  var sh=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);sbmEnsureHeaders_(sh,SBM_HISTORY_HEADERS_V2);
+  // Merge完了の再送などでも同じ管理変更を二重登録しない。
+  if(eventKey&&sh.getLastRow()>=2){
+    var hm=sbmHeaderMap_(sh),rawCol=hm['AI改善結果JSON'];
+    if(rawCol){var raws=sh.getRange(2,rawCol,sh.getLastRow()-1,1).getDisplayValues();for(var i=raws.length-1;i>=0;i--){if(String(raws[i][0]||'').indexOf('"event_key":"'+eventKey.replace(/"/g,'\\"')+'"')>=0)return '';}}
+  }
+  var historyId=sbmNextImprovementHistoryIdFast_(),title=String(article['記事タイトル']||article['H1タイトル']||article.articleTitle||'').trim();
+  var raw={format:'SIMS_ARTICLE_MANAGEMENT_HISTORY_V1',event_type:eventType,event_key:eventKey,recorded_at:sbmNowText_(),article_id:articleId,article_url:articleUrl,summary:summary,detail:detail,measurement_excluded:true};
+  var record={
+    '選択':false,'改善日':sbmNowText_(),'記事タイトル':title,'ArticleID':articleId,'改善概要':summary,'改善経路':'管理変更','使用AI':'',
+    '1週':'—','2週':'—','3週':'—','4週':'—','最終判定':'管理変更','状態':'完了','モニター状態':'COMPLETED',
+    '記事URL':articleUrl,'変更箇所':'管理状態','改善規模':'管理変更','次のアクション':'なし（効果測定対象外）','注意事項':detail,
+    '改善前クリック':Number(article['クリック数']||0),'改善前表示回数':Number(article['表示回数']||0),'改善前CTR':Number(article['CTR']||0),'改善前順位':Number(article['掲載順位']||0),
+    'AI改善結果JSON':JSON.stringify(raw),'改善履歴ID':historyId,'改善計画JSON':'{}','公開OK変更JSON':'{}','利用者判断変更JSON':'[]','変更サマリーJSON':JSON.stringify({event_type:eventType,detail:detail}),'Feedback Format':'SIMS_ARTICLE_MANAGEMENT_HISTORY_V1','Writer Version':'','観察予定回数':0,'追加測定JSON':'[]'
+  };
+  var target=sh.getLastRow()+1;sh.getRange(target,1,1,SBM_HISTORY_HEADERS_V2.length).setValues([SBM_HISTORY_HEADERS_V2.map(function(h){return record[h]!==undefined?record[h]:'';})]);
+  try{sbmStyleImprovementHistoryRow_(sh,target);}catch(ignoreStyle){}
+  return historyId;
+}
+
 function sbmApplyArticleManagementState(payload){
   try{
     payload=payload||{};if(payload.confirmed!==true)throw new Error('ブログ側の状態確認が必要です。');
@@ -10945,6 +10971,11 @@ function sbmApplyArticleManagementState(payload){
       try{sbmDoctorRemoveCandidateArticle_(String(article['ArticleID']||''),String(article['記事URL']||''));}catch(ignoreCandidate){}
     }
     sh.getRange(rowNo,1,1,row.length).setValues([row]);
+    try{
+      var historySummary=action==='restore'?'管理対象へ復帰':('管理対象外へ変更（'+(action==='noindex'?'noindex':action==='unpublished'?'非公開・公開停止':'その他')+'）');
+      var historyDetail=action==='restore'?'利用者確認により通常の改善管理対象へ復帰。':String((hm['除外理由']?row[hm['除外理由']-1]:'')||'利用者確認により検索改善管理から除外。');
+      sbmAppendArticleManagementHistory_(article,action==='restore'?'RESTORE':'EXCLUDE_'+action.toUpperCase(),historySummary,historyDetail,'ARTICLE_STATE:'+String(article['ArticleID']||article['記事URL']||'')+':'+action+':'+now);
+    }catch(eHist){try{sbmLog_('ArticleManagementHistory','Warning',String(eHist));}catch(ignoreHistLog){}}
     // 1記事の状態変更では全体再構築を行わない。
     // 重いToday/効果測定/Homeの再生成は次回の日次処理へ委ね、必要な操作ビューだけ即時除外する。
     if(action!=='restore'){
@@ -23016,6 +23047,9 @@ function sbmDoctorMarkMergeAbsorbedArticle301_(absorbed,primary,caseId,completed
   // Merge吸収記事はArticle DBだけでなく、既存の現役Monitoring Cycleも同時に終了する。
   // これにより吸収済み記事が「改善の推移」やACTIVE履歴として残り続ける不整合を防ぐ。
   try{sbmSupersedePreviousMonitoringCyclesFast_(absorbedId,absorbedUrl,absorbedTitle,'');}catch(eLife){try{sbmLog_('MergeAbsorbedLifecycleClose','Warning',String(eLife));}catch(ignoreLifeLog){}}
+  try{
+    sbmAppendArticleManagementHistory_(article,noRedirect?'MERGE_EXCLUDED_NO_REDIRECT':'MERGE_301','記事統合により管理対象外へ変更',reason+'。統合先：'+primaryLabel+' / CaseID：'+caseId,'MERGE_ABSORBED:'+caseId+':'+absorbedId+':'+(noRedirect?'NO_REDIRECT':'301'));
+  }catch(eHist){try{sbmLog_('MergeAbsorbedManagementHistory','Warning',String(eHist));}catch(ignoreHistLog){}}
   try{sbmDoctorRemoveCandidateArticle_(absorbedId,absorbedUrl);}catch(ignoreCandidate){}
   return {ok:true,articleId:absorbedId,articleUrl:absorbedUrl,primary:primaryLabel,redirectMode:noRedirect?'NO_REDIRECT':'301'};
 }
