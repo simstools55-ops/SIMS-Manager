@@ -3,13 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.87
+ * Current version: 6.7.88
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.87.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.88.md.
  */
 
-const SBM_VERSION = '6.7.87';
-// v6.7.87: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
+const SBM_VERSION = '6.7.88';
+// v6.7.88: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
+// v6.7.88: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
 // v6.7.86: Home KPIを「改善効果率」へ再定義。Creator Direct/管理変更を除外し、再改善中件数を別表示。
 // v6.7.85: Home改善率から管理変更履歴を完全除外。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
@@ -1772,7 +1773,7 @@ function sbmBuildHomeSheet_() {
   // ランクは未取得を含む7区分、改善状況は全記事6区分。改善率注記を削除し、モニター判定を3群へ整理。
   sh.getRange('A5:D5').merge().setValue('記事ランク');
   sh.getRange('E5:H5').merge().setValue('記事改善の状況');
-  sh.getRange('I5:J5').merge().setValue('改善効果率');
+  sh.getRange('I5:J5').merge().setValue('改善率');
   var ranks = [
     ['🏆 エース','0件 →'],['📈 成長','0件 →'],['✅ 安定','0件 →'],
     ['🌱 育成','0件 →'],['🌿 発芽','0件 →'],['🌰 未発芽','0件 →'],['未取得','0件 →']
@@ -1791,7 +1792,7 @@ function sbmBuildHomeSheet_() {
     sh.getRange(ir,5,1,2).merge().setValue(improvement[j][0]);
     sh.getRange(ir,7,1,2).merge().setValue(improvement[j][1]);
   }
-  sh.getRange('I6:J11').merge().setValue('0%\n（0/0件）\n再改善中 0件').setWrap(true);
+  sh.getRange('I6:J11').merge().setValue('0%\n効果判定済 0件\n効果あり 0件\n累計改善実績 0件').setWrap(true);
 
   sh.getRange('A13:J13').merge().setValue('今日のメッセージ');
   sh.getRange('A14:J15').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
@@ -12735,11 +12736,14 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
     t.hasActive=t.hasActive||s.hasActive;t.needsReview=t.needsReview||s.needsReview;t.cycles+=s.cycles;
     delete groups[sourceKey];
   }
+  var cumulative=0;
   rows.forEach(function(r){
     var route=String(r['改善経路']||'').trim(),scale=String(r['改善規模']||'').trim(),final=String(r['最終判定']||'').trim();
     // 管理変更は監査履歴、新記事Creator Directは公開後観察であり、既存記事の改善効果率には含めない。
     if(route==='管理変更'||scale==='管理変更'||final==='管理変更')return;
     if(route==='Creator Direct'||route.indexOf('Creator Direct')>=0)return;
+    // 累計改善実績は、過去の改善サイクルを記事の現在状態や90日リセットとは独立して累積する。
+    cumulative++;
     var aliases=sbmMonitoringAliasesFrom_(r,blogNameOverride),existing=[];
     aliases.forEach(function(a){var k=aliasToKey[a];if(k&&existing.indexOf(k)<0)existing.push(k);});
     var key=existing.length?existing[0]:('G:'+(++seq));
@@ -12761,7 +12765,7 @@ function sbmHomeTreatmentHistoryStats_(preloadedRows,blogNameOverride){
   // 再改善中＝一度見直し判定を受け、その後に新しい観察サイクルが動いている案件。
   var reworking=list.filter(function(g){return g.needsReview&&g.hasActive;}).length;
   var reworked=list.filter(function(g){return g.reworked;}).length;
-  return {targets:targets,improved:improved,assessed:assessed,reworked:reworked,reworking:reworking,rate:assessed?Math.round(improved/assessed*100):0};
+  return {targets:targets,improved:improved,assessed:assessed,reworked:reworked,reworking:reworking,cumulative:cumulative,rate:assessed?Math.round(improved/assessed*100):0};
 }
 
 function sbmHomeMonitorJudgmentCounts_() {
@@ -13084,17 +13088,23 @@ function sbmRefreshHome_(options) {
   }
 }
 
-/** v6.7.87: 改善効果率は%だけを大きくし、件数・再改善中は通常サイズで表示する。 */
+/** v6.7.88: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
 function sbmSetHomeImprovementEffectKpi_(sh,stats){
   stats=stats||{};
-  var rate=Number(stats.rate||0), improved=Number(stats.improved||0), assessed=Number(stats.assessed||0), reworking=Number(stats.reworking||0);
+  var rate=Number(stats.rate||0), improved=Number(stats.improved||0), assessed=Number(stats.assessed||0), cumulative=Number(stats.cumulative||0);
   var percent=rate+'%';
-  var text=percent+'\n（'+improved+'/'+assessed+'件）\n再改善中 '+reworking+'件';
-  var big=SpreadsheetApp.newTextStyle().setFontSize(22).setBold(true).build();
-  var normal=SpreadsheetApp.newTextStyle().setFontSize(11).setBold(true).build();
+  var assessedText='効果判定済 '+assessed+'件';
+  var improvedText='効果あり '+improved+'件';
+  var cumulativeText='累計改善実績 '+cumulative+'件';
+  var text=percent+'\n'+assessedText+'\n'+improvedText+'\n'+cumulativeText;
+  var big=SpreadsheetApp.newTextStyle().setFontSize(22).setBold(true).setForegroundColor('#202124').build();
+  var normal=SpreadsheetApp.newTextStyle().setFontSize(11).setBold(true).setForegroundColor('#202124').build();
+  var cumulativeStyle=SpreadsheetApp.newTextStyle().setFontSize(11).setBold(true).setForegroundColor('#5f6f82').build();
+  var cumulativeStart=text.length-cumulativeText.length;
   var rich=SpreadsheetApp.newRichTextValue().setText(text)
     .setTextStyle(0,percent.length,big)
-    .setTextStyle(percent.length,text.length,normal)
+    .setTextStyle(percent.length,cumulativeStart,normal)
+    .setTextStyle(cumulativeStart,text.length,cumulativeStyle)
     .build();
   sh.getRange('I6').setRichTextValue(rich).setWrap(true);
 }
@@ -20305,7 +20315,7 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
       try{sbmUpdateEffectivenessCore_(false,{dailyFast:true});}
       catch(eEffectSync){try{sbmLog_('DoctorExtendedEffectSync','Warning',String(eEffectSync));}catch(ignoreEffectSync){}}
       try{sbmDoctorSupersedeLegacyDuplicatePendingCases_(sourceArticle,String(source.article&&source.article.url||''),n.caseId);}catch(ignoreDupSync){}
-      // v6.7.87: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
+      // v6.7.88: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
       try{sbmMarkTodayImprovementCompleted_(sourceArticle,String(source.article&&source.article.url||''));}
       catch(eTodayMonitor){try{sbmLog_('DoctorExtendedMonitoringToday','Warning',String(eTodayMonitor));}catch(ignoreTodayMonitorLog){}}
       return {ok:true,message:'aDoctor診断結果を登録し、追加の経過観察へ移行しました。',route:'MONITOR',nextTitle:'③ aDoctor判定：追加経過観察です',nextMessage:'記事は変更しません。'+(n.reviewDate?'次回診察予定：'+n.reviewDate+'。':'aDoctor指定の期間まで')+' SIMSが7日単位で追加の経過観察を続けます。',nextRequest:'',monitoring:mon};

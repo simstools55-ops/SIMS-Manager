@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.87",
+  "current_version": "6.7.88",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.87: Manager-aligned shared identity for Today re-diagnosis completion sync and Home KPI typography update.",
-  "version": "6.7.87",
-  "starter_display_version": "v6.7.87-ST"
+  "notes": "v6.7.88: Manager-aligned shared identity for Home improvement KPI and cumulative improvement record display.",
+  "version": "6.7.88",
+  "starter_display_version": "v6.7.88-ST"
 }
