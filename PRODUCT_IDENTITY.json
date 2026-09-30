@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.86",
+  "current_version": "6.7.87",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.86: redefine Home KPI as improvement effect rate, exclude Creator Direct and management history, and show active re-improvement separately.",
-  "version": "6.7.86",
+  "notes": "v6.7.87: close Today re-diagnosis task when Doctor moves to extended monitoring, and emphasize only the Home effect-rate percentage.",
+  "version": "6.7.87",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.86-ST"
+  "starter_display_version": "v6.7.87-ST"
 }

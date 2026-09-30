@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.84",
+  "current_version": "6.7.87",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.84: record intentional article lifecycle changes as management history excluded from effectiveness measurement.",
-  "version": "6.7.84",
-  "starter_display_version": "v6.7.84-ST"
+  "notes": "v6.7.87: Manager-aligned shared identity for Today re-diagnosis completion sync and Home KPI typography update.",
+  "version": "6.7.87",
+  "starter_display_version": "v6.7.87-ST"
 }

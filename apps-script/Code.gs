@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.86
+ * Current version: 6.7.87
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.86.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.87.md.
  */
 
-const SBM_VERSION = '6.7.86';
+const SBM_VERSION = '6.7.87';
+// v6.7.87: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
 // v6.7.86: Home KPIを「改善効果率」へ再定義。Creator Direct/管理変更を除外し、再改善中件数を別表示。
 // v6.7.85: Home改善率から管理変更履歴を完全除外。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
@@ -1790,7 +1791,7 @@ function sbmBuildHomeSheet_() {
     sh.getRange(ir,5,1,2).merge().setValue(improvement[j][0]);
     sh.getRange(ir,7,1,2).merge().setValue(improvement[j][1]);
   }
-  sh.getRange('I6:J11').merge().setValue('0%\n（0/0件）').setWrap(true);
+  sh.getRange('I6:J11').merge().setValue('0%\n（0/0件）\n再改善中 0件').setWrap(true);
 
   sh.getRange('A13:J13').merge().setValue('今日のメッセージ');
   sh.getRange('A14:J15').merge().setValue('記事の育ち方と改善状況に合わせて表示します。');
@@ -13052,7 +13053,7 @@ function sbmRefreshHome_(options) {
   sh.getRange('G9').setValue(Number(work.monitor||0)+'件');
   sh.getRange('G10').setValue(Number(work.done||0)+'件');
   sh.getRange('G11').setValue(Number(work.excluded||0)+'件');
-  sh.getRange('I6').setValue(Number(historyStats.rate||0)+'%\n（'+Number(historyStats.improved||0)+'/'+Number(historyStats.assessed||0)+'件）\n再改善中 '+Number(historyStats.reworking||0)+'件').setWrap(true);
+  sbmSetHomeImprovementEffectKpi_(sh,historyStats);
   sh.getRange('A16').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
@@ -13081,6 +13082,21 @@ function sbmRefreshHome_(options) {
   if(options.applyTheme===true){
     try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
   }
+}
+
+/** v6.7.87: 改善効果率は%だけを大きくし、件数・再改善中は通常サイズで表示する。 */
+function sbmSetHomeImprovementEffectKpi_(sh,stats){
+  stats=stats||{};
+  var rate=Number(stats.rate||0), improved=Number(stats.improved||0), assessed=Number(stats.assessed||0), reworking=Number(stats.reworking||0);
+  var percent=rate+'%';
+  var text=percent+'\n（'+improved+'/'+assessed+'件）\n再改善中 '+reworking+'件';
+  var big=SpreadsheetApp.newTextStyle().setFontSize(22).setBold(true).build();
+  var normal=SpreadsheetApp.newTextStyle().setFontSize(11).setBold(true).build();
+  var rich=SpreadsheetApp.newRichTextValue().setText(text)
+    .setTextStyle(0,percent.length,big)
+    .setTextStyle(percent.length,text.length,normal)
+    .build();
+  sh.getRange('I6').setRichTextValue(rich).setWrap(true);
 }
 
 function sbmRefreshHomeRankSummaryOnly_(snapshot) {
@@ -20289,6 +20305,9 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
       try{sbmUpdateEffectivenessCore_(false,{dailyFast:true});}
       catch(eEffectSync){try{sbmLog_('DoctorExtendedEffectSync','Warning',String(eEffectSync));}catch(ignoreEffectSync){}}
       try{sbmDoctorSupersedeLegacyDuplicatePendingCases_(sourceArticle,String(source.article&&source.article.url||''),n.caseId);}catch(ignoreDupSync){}
+      // v6.7.87: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
+      try{sbmMarkTodayImprovementCompleted_(sourceArticle,String(source.article&&source.article.url||''));}
+      catch(eTodayMonitor){try{sbmLog_('DoctorExtendedMonitoringToday','Warning',String(eTodayMonitor));}catch(ignoreTodayMonitorLog){}}
       return {ok:true,message:'aDoctor診断結果を登録し、追加の経過観察へ移行しました。',route:'MONITOR',nextTitle:'③ aDoctor判定：追加経過観察です',nextMessage:'記事は変更しません。'+(n.reviewDate?'次回診察予定：'+n.reviewDate+'。':'aDoctor指定の期間まで')+' SIMSが7日単位で追加の経過観察を続けます。',nextRequest:'',monitoring:mon};
     }
     if(n.locked)return {ok:true,message:'aDoctor診断結果を登録しました。',nextTitle:'現在は処置を開始しません',nextMessage:'既存の改善効果を測定中です。測定完了後に再診してください。',nextRequest:''};
