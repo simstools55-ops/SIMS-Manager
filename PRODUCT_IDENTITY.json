@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.90",
+  "current_version": "6.7.91",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.90: Search Console fallback display fix; improvement trend/history default to newest-first date order.",
-  "version": "6.7.90",
+  "notes": "v6.7.91: Search Console fallback display fix; improvement trend/history default to newest-first date order.",
+  "version": "6.7.91",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.90-ST"
+  "starter_display_version": "v6.7.91-ST"
 }
