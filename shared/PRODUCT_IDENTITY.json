@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.98",
+  "current_version": "6.7.99",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.98: add optional aDoctor diagnosis entry from article detail while preserving workflow eligibility guards.",
-  "version": "6.7.98",
-  "starter_display_version": "v6.7.98-ST"
+  "notes": "v6.7.99: clarify article-detail action hierarchy and emphasize user-judgment guidance.",
+  "version": "6.7.99",
+  "starter_display_version": "v6.7.99-ST"
 }

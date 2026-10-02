@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.98",
+  "current_version": "6.7.99",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.98: add optional aDoctor diagnosis entry from article detail while preserving workflow eligibility guards.",
-  "version": "6.7.98",
+  "notes": "v6.7.99: clarify article-detail action hierarchy and emphasize user-judgment guidance.",
+  "version": "6.7.99",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.98-ST"
+  "starter_display_version": "v6.7.99-ST"
 }

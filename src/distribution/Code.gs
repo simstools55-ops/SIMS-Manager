@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.98
- * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
+ * Current version: 6.7.99
+ * Release summary: Clarify article-detail action hierarchy: Close is primary, optional improvement actions are secondary, and the user-judgment heading is emphasized.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.95.md.
  */
 
-const SBM_VERSION = '6.7.98';
+const SBM_VERSION = '6.7.99';
+// v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
 // v6.7.98: 利用者判断の任意改善対象にaDoctor診断入口を追加。既存の通常診断フローへ正式に接続。
 // v6.7.97: Creator登録後の記事管理を通常の記事一覧と同じ正本ソート・表示処理へ統合。
 // v6.7.96: 改善の推移の判定列を拡幅し、期限超過表示を単一行へ統一。v6.7.95の表示一元化は維持。
@@ -13518,10 +13519,10 @@ function sbmArticleDbDetailHtml_(o) {
     + 'table{width:100%;border-collapse:collapse;font-size:14px}'
     + '.summary{background:#f1f8f4;border-left:5px solid #0b8043;padding:12px;margin-bottom:16px}'
     + '.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
-    + '.close{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
-    + '.overrideNote{margin-top:16px;padding:11px 12px;background:#f8f9fa;border-left:4px solid #9aa0a6;color:#5f6368;font-size:12px}'
-    + '.doctorBtn{border:0;background:#174ea6;color:#fff;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
-    + '.overrideBtn{border:1px solid #5f6368;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + '.close{border:0;background:#0b8043;color:#fff;padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + '.overrideNote{margin-top:16px;padding:11px 12px;background:#f8f9fa;border-left:4px solid #9aa0a6;color:#5f6368;font-size:12px}.overrideNote b{color:#c5221f;font-size:13px}'
+    + '.doctorBtn{border:1px solid #9aa0a6;background:#fff;color:#5f6368;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}'
+    + '.overrideBtn{border:1px solid #9aa0a6;background:#fff;color:#5f6368;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer}'
     + '#msg{font-size:12px;color:#5f6368;margin-top:8px;text-align:right}'
     + '</style></head><body>'
     + '<h3>' + e(value(displayTitle)) + '</h3>'
