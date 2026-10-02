@@ -3,14 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.88
+ * Current version: 6.7.89
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.88.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.89.md.
  */
 
-const SBM_VERSION = '6.7.88';
-// v6.7.88: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
-// v6.7.88: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
+const SBM_VERSION = '6.7.89';
+// v6.7.89: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
+// v6.7.89: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
 // v6.7.86: Home KPIを「改善効果率」へ再定義。Creator Direct/管理変更を除外し、再改善中件数を別表示。
 // v6.7.85: Home改善率から管理変更履歴を完全除外。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
@@ -13088,7 +13088,7 @@ function sbmRefreshHome_(options) {
   }
 }
 
-/** v6.7.88: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
+/** v6.7.89: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
 function sbmSetHomeImprovementEffectKpi_(sh,stats){
   stats=stats||{};
   var rate=Number(stats.rate||0), improved=Number(stats.improved||0), assessed=Number(stats.assessed||0), cumulative=Number(stats.cumulative||0);
@@ -13571,6 +13571,25 @@ function sbmArticleDetailDoctorEligibility_(o){
   return {eligible:false,reason:''};
 }
 
+function sbmArticleDetailUserOverrideSpec_(o, actionSpec){
+  o=o||{};
+  actionSpec=actionSpec||{};
+  // SIMSの通常導線がある場合は任意改善を重ねて表示しない。
+  if(String(actionSpec.type||'NONE')!=='NONE')return {eligible:false};
+  var flag=String(o['管理フラグ']||'').trim();
+  var work=String(o['作業状態']||'').trim();
+  // 管理対象外・要確認系、および処置/観察サイクル中は利用者判断でも開始させない。
+  if(flag==='管理対象外'||flag==='インデックス要確認'||flag==='要確認'||flag==='要改善')return {eligible:false};
+  if(work.indexOf('モニター')>=0||work.indexOf('改善中')>=0||work.indexOf('処置中')>=0||work.indexOf('再診処置')>=0||work.indexOf('急落')>=0)return {eligible:false};
+  // 完了直後は90日リセットまで現行評価を保護する。任意改善は未着手の記事に限定する。
+  if(work && work!=='未着手')return {eligible:false};
+  return {
+    eligible:true,
+    label:'利用者判断で改善ナビを開く',
+    note:'現在、SIMSから改善は推奨していません。現在の評価を保護して観察することを基本とします。内容更新など明確な目的がある場合のみ、利用者の判断で改善ナビへ進んでください。'
+  };
+}
+
 function sbmArticleDetailActionSpec_(o){
   o=o||{};
   var flag=String(o['管理フラグ']||'').trim();
@@ -13709,6 +13728,7 @@ function sbmArticleDbDetailHtml_(o) {
   var url = String(o['記事URL'] || '');
   var articleId = String(o['ArticleID'] || '');
   var actionSpec = sbmArticleDetailActionSpec_(o);
+  var overrideSpec = sbmArticleDetailUserOverrideSpec_(o, actionSpec);
   var safeJsUrl = JSON.stringify(url).replace(/</g, '\\u003c');
   var safeJsId = JSON.stringify(articleId).replace(/</g, '\\u003c');
   var safeAction = JSON.stringify(actionSpec.type||'NONE');
@@ -13717,6 +13737,12 @@ function sbmArticleDbDetailHtml_(o) {
     ? '<button id="actionBtn" type="button" onclick="runAction()" '
       + 'style="border:0;background:'+e(actionSpec.color||'#0b8043')+';color:#fff;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer">'
       + e(actionSpec.label) + '</button>'
+    : '';
+  var overrideNotice = (url && overrideSpec.eligible)
+    ? '<div class="overrideNote"><b>利用者判断で改善する場合</b><br>'+e(overrideSpec.note)+'</div>'
+    : '';
+  var overrideButton = (url && overrideSpec.eligible)
+    ? '<button id="overrideBtn" type="button" onclick="runOverride()" class="overrideBtn">'+e(overrideSpec.label)+'</button>'
     : '';
 
   return '<!doctype html><html><head><base target="_top">'
@@ -13728,6 +13754,8 @@ function sbmArticleDbDetailHtml_(o) {
     + '.summary{background:#f1f8f4;border-left:5px solid #0b8043;padding:12px;margin-bottom:16px}'
     + '.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
     + '.close{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
+    + '.overrideNote{margin-top:16px;padding:11px 12px;background:#f8f9fa;border-left:4px solid #9aa0a6;color:#5f6368;font-size:12px}'
+    + '.overrideBtn{border:1px solid #5f6368;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
     + '#msg{font-size:12px;color:#5f6368;margin-top:8px;text-align:right}'
     + '</style></head><body>'
     + '<h3>' + e(value(displayTitle)) + '</h3>'
@@ -13752,12 +13780,15 @@ function sbmArticleDbDetailHtml_(o) {
     + row('補完日時', o['補完日時'])
     + row('備考', o['備考'])
     + '</table>'
+    + overrideNotice
     + '<div data-sbm-common-close="1" class="actions">'
     + actionButton
+    + overrideButton
     + '<button type="button" class="close" onclick="google.script.host.close()">閉じる</button>'
     + '</div><div id="msg"></div>'
     + '<script>'
     + 'var articleUrl=' + safeJsUrl + ',articleId=' + safeJsId + ',actionType=' + safeAction + ';'
+    + 'function runOverride(){var b=document.getElementById("overrideBtn"),m=document.getElementById("msg");if(b){b.disabled=true;b.textContent="処理中…";}m.textContent="利用者判断の改善ナビを開いています…";google.script.run.withFailureHandler(function(err){if(b){b.disabled=false;b.textContent="利用者判断で改善ナビを開く";}m.textContent=(err&&err.message)?err.message:String(err);}).withSuccessHandler(function(){google.script.host.close();}).sbmRunArticleDetailAction("NAVI",articleId,articleUrl);}'
     + 'function runAction(){'
     + 'var b=document.getElementById("actionBtn"),m=document.getElementById("msg");'
     + 'if(b){b.disabled=true;b.textContent=actionType==="ADDITIONAL_DIAGNOSIS"?"準備中…":"処理中…";}'
@@ -14612,7 +14643,9 @@ function sbmShowRelease1SetupStep_(step) {
   if (step === 1) {
     body = '<div class="field"><label>サイト名</label><input id="blogName" value="'+sbmEscapeHtml_(s.blogName)+'"></div>'
       + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
-      + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>';
+      + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'">'
+      + '<div style="font-size:12px;color:#5f6368;margin-top:6px;line-height:1.6">通常のサイトURLではなく、Google Search Consoleに登録されている<b>プロパティ</b>を入力します。Search Console画面左上のプロパティ選択欄で確認してください。<br>例：URLプレフィックス <code>https://example.com/</code><br>例：ドメイン <code>sc-domain:example.com</code></div>'
+      + '<button id="propertyHelpBtn" type="button" class="helpLink">Search Consoleでプロパティを確認</button></div>';
   } else if (step === 2) {
     // v6.7.63: 新規セットアップでは過去値・テンプレート値を初期表示しない。
     // STEP2完了済みの既存環境だけ、確認用として保存済み番号を表示する。
@@ -14675,6 +14708,7 @@ function sbmShowRelease1SetupStep_(step) {
     + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
     + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=el("msg"),a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
     + 'if(el("runBtn"))el("runBtn").addEventListener("click",executeStep);if(el("skipBtn"))el("skipBtn").addEventListener("click",skipStep);if(el("endBtn"))el("endBtn").addEventListener("click",finishWizard);if(el("completeBtn"))el("completeBtn").addEventListener("click",finishWizard);'
+    + 'if(el("propertyHelpBtn"))el("propertyHelpBtn").addEventListener("click",function(){openExternal("https://search.google.com/search-console");});'
     + 'if(el("createProjectBtn"))el("createProjectBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectCreateUrl_()+'");});'
     + 'if(el("cloudSettingsBtn"))el("cloudSettingsBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectSettingsUrl_()+'");});'
     + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("'+sbmAppsScriptProjectSettingsUrl_()+'");});'
@@ -20315,7 +20349,7 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
       try{sbmUpdateEffectivenessCore_(false,{dailyFast:true});}
       catch(eEffectSync){try{sbmLog_('DoctorExtendedEffectSync','Warning',String(eEffectSync));}catch(ignoreEffectSync){}}
       try{sbmDoctorSupersedeLegacyDuplicatePendingCases_(sourceArticle,String(source.article&&source.article.url||''),n.caseId);}catch(ignoreDupSync){}
-      // v6.7.88: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
+      // v6.7.89: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
       try{sbmMarkTodayImprovementCompleted_(sourceArticle,String(source.article&&source.article.url||''));}
       catch(eTodayMonitor){try{sbmLog_('DoctorExtendedMonitoringToday','Warning',String(eTodayMonitor));}catch(ignoreTodayMonitorLog){}}
       return {ok:true,message:'aDoctor診断結果を登録し、追加の経過観察へ移行しました。',route:'MONITOR',nextTitle:'③ aDoctor判定：追加経過観察です',nextMessage:'記事は変更しません。'+(n.reviewDate?'次回診察予定：'+n.reviewDate+'。':'aDoctor指定の期間まで')+' SIMSが7日単位で追加の経過観察を続けます。',nextRequest:'',monitoring:mon};
