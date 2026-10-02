@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.96",
+  "current_version": "6.7.97",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.96: overdue measurement judgment now renders on two lines with warning styling preserved.",
-  "version": "6.7.96",
-  "starter_display_version": "v6.7.96-ST"
+  "notes": "v6.7.97: overdue measurement judgment now renders on two lines with warning styling preserved.",
+  "version": "6.7.97",
+  "starter_display_version": "v6.7.97-ST"
 }

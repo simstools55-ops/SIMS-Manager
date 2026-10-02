@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.96
+ * Current version: 6.7.97
  * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.95.md.
  */
 
-const SBM_VERSION = '6.7.96';
+const SBM_VERSION = '6.7.97';
+// v6.7.97: Creator登録後の記事管理を通常の記事一覧と同じ正本ソート・表示処理へ統合。
 // v6.7.96: 改善の推移の判定列を拡幅し、期限超過表示を単一行へ統一。v6.7.95の表示一元化は維持。
 // v6.7.93: 日次処理完了時に記事情報不足を軽量点検し、必要時だけ記事情報更新へ進む導線を表示。改善の推移の期限超過表示と改善履歴の経路列幅も調整。
 // v6.7.92: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
@@ -14853,6 +14854,24 @@ function sbmApplyHistoryDisplayTheme_(sh){
  * 旧版: Workflow完了後に、変更された利用者向けシートだけを表示仕上げする。
  * データ再計算・GSC取得・Doctor整合は行わず、既存の閲覧用書式と現在テーマだけを適用する。
  */
+/**
+ * v6.7.97: 記事管理の現在行を、通常の記事一覧と同じ正本ロジックで並べ替え・再表示します。
+ * Creator登録側で独自の書式・ソートを持たず、記事一覧の sbmSortArticleDbRows_ / sbmStyleArticleDbSheet_ を再利用します。
+ */
+function sbmRefreshArticleDbViewCanonical_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return false;
+  sbmEnsureHeaders_(sh,SBM_HEADERS.ARTICLE_DB);
+  var lc=SBM_HEADERS.ARTICLE_DB.length,n=sh.getLastRow()-1;
+  var rows=sh.getRange(2,1,n,lc).getValues();
+  rows=sbmNormalizeRowsToWidth_(sbmSortArticleDbRows_(rows),lc);
+  sh.getRange(2,1,n,lc).setValues(rows);
+  sbmEnsureArticleListFilter_(sh);
+  sbmStyleArticleDbSheet_(sh);
+  sbmApplyArticleDbUserVisibility_(sh);
+  return true;
+}
+
 function sbmFinishUserSheetPresentation_(targets){
   targets=targets||{};
   var ss=SpreadsheetApp.getActiveSpreadsheet();
@@ -22028,7 +22047,8 @@ function sbmCreatorRegisterDirectPublication_(o,url,title,keyword,siteId){
     obj['選択']=false;obj['記事ランク']='🆕 新規';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=effectiveKeyword;obj['H1タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=effectiveTitle||effectiveKeyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='aCreator単独作成の記事を公開直後にSIMSへ登録。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=effectiveTitle?'○':'×';obj['補完日時']=effectiveTitle?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
     sh.appendRow(SBM_HEADERS.ARTICLE_DB.map(function(k){return obj[k]!==undefined?obj[k]:'';}));
   }
-  // Creator登録時の全記事再装飾は行わない。対象行の保存だけで登録を確定する。
+  // v6.7.97: Creator登録後も通常の記事一覧と同じ並び順・チェックボックス・表示書式へ即時同期する。
+  try{sbmRefreshArticleDbViewCanonical_();}catch(eCreatorArticleView){try{sbmLog_('CreatorArticleView','Warning',String(eCreatorArticleView));}catch(ignoreCreatorArticleViewLog){}}
   var rowObj=sbmFindArticleDbByIdentity_(articleId,url)||{},row=SBM_HEADERS.ARTICLE_DB.map(function(k){return rowObj[k]!==undefined?rowObj[k]:'';}),before={clicks:0,impressions:0,ctr:0,position:0,title:effectiveTitle||effectiveKeyword};
   var existingDirect=sbmCreatorDirectExistingHistory_(articleId,url);
   if(existingDirect){
@@ -22106,7 +22126,8 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
     obj['選択']=false;obj['記事ランク']='🆕 新規';obj['作業状態']='👀 モニター中';obj['記事URL']=url;obj['メインクエリ']=keyword;obj['H1タイトル']=title||keyword||'タイトル取得待ち';obj['クリック数']=0;obj['表示回数']=0;obj['CTR']=0;obj['掲載順位']=0;obj['データ更新日']=sbmDateText_(new Date());obj['記事タイトル']=title||keyword||'タイトル取得待ち';obj['詳細']='記事詳細';obj['SEOタイトル']='';obj['メタディスクリプション']='';obj['最終取得日時']=now;obj['元URL件数']=0;obj['備考']='Site Doctor→aCreatorで新規公開。Search Console反映前からモニターします。';obj['ArticleID']=articleId;obj['記事情報補完済み']=title?'○':'×';obj['補完日時']=title?now:'';obj['記事ステータス']='検索露出待ち';obj['最終確認日']=sbmDateText_(new Date());obj['連続未取得日数']=0;obj['管理フラグ']='管理中';
     sh.appendRow(SBM_HEADERS.ARTICLE_DB.map(function(k){return obj[k]!==undefined?obj[k]:'';}));
   }
-  // Creator登録時の全記事再装飾は行わない。対象行の保存だけで登録を確定する。
+  // v6.7.97: Creator登録後も通常の記事一覧と同じ並び順・チェックボックス・表示書式へ即時同期する。
+  try{sbmRefreshArticleDbViewCanonical_();}catch(eCreatorArticleView){try{sbmLog_('CreatorArticleView','Warning',String(eCreatorArticleView));}catch(ignoreCreatorArticleViewLog){}}
   var histId=rec.hm['改善履歴ID']?String(rec.values[rec.hm['改善履歴ID']-1]||'').trim():'';
   if(!histId){
     var rowObj=sbmFindArticleDbByIdentity_(articleId,url)||{},row=SBM_HEADERS.ARTICLE_DB.map(function(k){return rowObj[k]!==undefined?rowObj[k]:'';}),before={clicks:0,impressions:0,ctr:0,position:0,title:title||keyword};
@@ -22124,7 +22145,7 @@ function sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle){
   // 実行するため、Creator登録トランザクション内では呼ばない。
   try{sbmDoctorRemoveCandidateArticle_(articleId,url);}catch(ignoreRemove){}
   try{sbmDoctorPurgeResumeDataAfterEffectTransfer_(articleId,url,[caseId]);}catch(eCreatorPurge){sbmLog_('CreatorMonitoringPurge','Warning',String(eCreatorPurge));}
-  try{sbmFinishUserSheetPresentation_({article:true,effect:true,history:true});}catch(ignoreCreatorPresentation){}
+  try{sbmFinishUserSheetPresentation_({effect:true,history:true});}catch(ignoreCreatorPresentation){}
   return {ok:true,caseId:caseId,articleId:articleId,articleUrl:url,monitorDays:monitorDays,reviewDate:reviewText,message:'aCreator新記事の公開を登録しました。\nArticleID：'+articleId+'\n記事管理：モニター中\n再診予定：'+monitorDays+'日後（'+reviewText+'）'};
 }
 function sbmDoctorCompleteSiteDiagnosisCreatorTreatment(caseId,articleUrl,articleTitle){try{return sbmDoctorCreatorPublishedArticle_(caseId,articleUrl,articleTitle);}catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}}
