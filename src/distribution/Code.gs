@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.93
- * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.93.md.
+ * Current version: 6.7.94
+ * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.94.md.
  */
 
-const SBM_VERSION = '6.7.93';
+const SBM_VERSION = '6.7.94';
+// v6.7.94: 改善の推移の「測定待ち（予定日超過）」を確実に2行表示し、改行後も期限超過の警告色を維持。
 // v6.7.93: 日次処理完了時に記事情報不足を軽量点検し、必要時だけ記事情報更新へ進む導線を表示。改善の推移の期限超過表示と改善履歴の経路列幅も調整。
 // v6.7.92: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
 // v6.7.92: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
@@ -11160,8 +11161,8 @@ function sbmStyleEffectSheetViewOnly_(sh){
     // 閲覧時はデータ再計算をせず、保存済みの「判定」だけを軽量に色分けする。
     if(hm['判定']){
       var jr=sh.getRange(2,hm['判定'],n,1), jv=jr.getDisplayValues(), bgs=[], fgs=[], weights=[];
-      jv.forEach(function(r){var st=sbmHomeJudgmentStyle_(r[0]);bgs.push([st.bg]);fgs.push([st.fg]);weights.push([st.weight]);});
-      jr.setBackgrounds(bgs).setFontColors(fgs).setFontWeights(weights).setHorizontalAlignment('center');
+      jv.forEach(function(r){var raw=String(r[0]||'');var styleValue=raw.replace(/\s+/g,'');var st=sbmHomeJudgmentStyle_(styleValue);bgs.push([st.bg]);fgs.push([st.fg]);weights.push([st.weight]);});
+      jr.setBackgrounds(bgs).setFontColors(fgs).setFontWeights(weights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
     }
     sh.setRowHeights(2,n,42);
   }
@@ -13978,7 +13979,7 @@ function sbmStyleEffectSheetV2_() {
       var judgmentValues = judgmentRange.getDisplayValues();
       var backgrounds = [], fontColors = [], fontWeights = [];
       judgmentValues.forEach(function(r) {
-        var value = String(r[0] || '').trim();
+        var value = String(r[0] || '').trim().replace(/\s+/g,'');
         var bg = '#f1f3f4', fg = '#5f6368', weight = 'normal';
         if (value === '大きく改善') { bg = '#0b8043'; fg = '#ffffff'; weight = 'bold'; }
         else if (value === '改善') { bg = '#b7e1cd'; fg = '#0d652d'; weight = 'bold'; }
@@ -13993,7 +13994,7 @@ function sbmStyleEffectSheetV2_() {
         else if (value === '測定待ち' || value === '未測定' || value === '未判定') { bg = '#e8eaed'; fg = '#5f6368'; }
         backgrounds.push([bg]); fontColors.push([fg]); fontWeights.push([weight]);
       });
-      judgmentRange.setBackgrounds(backgrounds).setFontColors(fontColors).setFontWeights(fontWeights).setHorizontalAlignment('center');
+      judgmentRange.setBackgrounds(backgrounds).setFontColors(fontColors).setFontWeights(fontWeights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
     }
 
     sh.setRowHeights(2, n, 58);
