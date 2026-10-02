@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.95
+ * Current version: 6.7.96
  * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.95.md.
  */
 
-const SBM_VERSION = '6.7.95';
-// v6.7.95: 改善の推移・改善履歴の表示処理を一元化。旧表示処理の競合を解消し、期限超過2行表示と改善経路の可読性を固定。
+const SBM_VERSION = '6.7.96';
+// v6.7.96: 改善の推移の判定列を拡幅し、期限超過表示を単一行へ統一。v6.7.95の表示一元化は維持。
 // v6.7.93: 日次処理完了時に記事情報不足を軽量点検し、必要時だけ記事情報更新へ進む導線を表示。改善の推移の期限超過表示と改善履歴の経路列幅も調整。
 // v6.7.92: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
 // v6.7.92: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
@@ -11023,7 +11023,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
   sh.getRange(1,1,1,lc).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   sh.setRowHeight(1,34);
   var hm=sbmHeaderMap_(sh);
-  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':155,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':125};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':155,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':190};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
   try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
   var n=Math.max(0,sh.getLastRow()-1);
@@ -11040,12 +11040,13 @@ function sbmStyleEffectSheetViewOnly_(sh){
       var jr=sh.getRange(2,hm['判定'],n,1), vals=jr.getValues(), changed=false;
       for(var i=0;i<vals.length;i++){
         var v=String(vals[i][0]||'');
-        if(v.replace(/\s+/g,'')==='測定待ち（予定日超過）' && v.indexOf('\n')<0){vals[i][0]='測定待ち\n（予定日超過）';changed=true;}
+        // v6.7.96: 旧版で挿入した改行を除去し、期限超過判定は単一行表示へ戻す。
+        if(v.replace(/\s+/g,'')==='測定待ち（予定日超過）' && v!=='測定待ち（予定日超過）'){vals[i][0]='測定待ち（予定日超過）';changed=true;}
       }
       if(changed)jr.setValues(vals);
       var jv=jr.getDisplayValues(),bgs=[],fgs=[],weights=[];
       jv.forEach(function(r){var styleValue=String(r[0]||'').replace(/\s+/g,'');var st=sbmHomeJudgmentStyle_(styleValue);bgs.push([st.bg]);fgs.push([st.fg]);weights.push([st.weight]);});
-      jr.setBackgrounds(bgs).setFontColors(fgs).setFontWeights(weights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
+      jr.setBackgrounds(bgs).setFontColors(fgs).setFontWeights(weights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
     }
     sh.setRowHeightsForced(2,n,48);
   }
