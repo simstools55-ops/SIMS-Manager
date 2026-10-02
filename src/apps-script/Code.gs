@@ -3,12 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.97
+ * Current version: 6.7.98
  * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.95.md.
  */
 
-const SBM_VERSION = '6.7.97';
+const SBM_VERSION = '6.7.98';
+// v6.7.98: 利用者判断の任意改善対象にaDoctor診断入口を追加。既存の通常診断フローへ正式に接続。
 // v6.7.97: Creator登録後の記事管理を通常の記事一覧と同じ正本ソート・表示処理へ統合。
 // v6.7.96: 改善の推移の判定列を拡幅し、期限超過表示を単一行へ統一。v6.7.95の表示一元化は維持。
 // v6.7.93: 日次処理完了時に記事情報不足を軽量点検し、必要時だけ記事情報更新へ進む導線を表示。改善の推移の期限超過表示と改善履歴の経路列幅も調整。
@@ -13346,7 +13347,7 @@ function sbmArticleDetailUserOverrideSpec_(o, actionSpec){
   return {
     eligible:true,
     label:'利用者判断で改善ナビを開く',
-    note:'現在、SIMSから改善は推奨していません。現在の評価を保護して観察することを基本とします。内容更新など明確な目的がある場合のみ、利用者の判断で改善ナビへ進んでください。'
+    note:'現在、SIMSから改善は推奨していません。現在の評価を保護して観察することを基本とします。気になる点を専門的に確認したい場合はaDoctor、改善目的が明確な場合は改善ナビを利用してください。'
   };
 }
 
@@ -13461,6 +13462,7 @@ function sbmRunArticleDetailAction(action,articleId,url){
   if(action==='ADDITIONAL_DIAGNOSIS')return sbmDoctorOpenPendingAdditionalDiagnosisFromArticle(articleId,url);
   if(action==='INDEX_REVIEW')return sbmOpenIndexIssueFromArticleDetail(articleId,url);
   if(action==='NEEDS_REVIEW')return sbmOpenNeedsReviewArticles(articleId);
+  if(action==='USER_DOCTOR')return sbmDoctorCreateRequestFromArticleIdentity(articleId,url);
   if(action==='DOCTOR')return sbmDoctorCreateRequestFromArticleDetailTriage(articleId,url);
   if(action==='EFFECT')return sbmOpenArticleEffectFromDetail(articleId,url);
   if(action==='NAVI')return sbmOpenImprovementNaviFromArticleDetail(url);
@@ -13501,6 +13503,9 @@ function sbmArticleDbDetailHtml_(o) {
   var overrideNotice = (url && overrideSpec.eligible)
     ? '<div class="overrideNote"><b>利用者判断で改善する場合</b><br>'+e(overrideSpec.note)+'</div>'
     : '';
+  var overrideDoctorButton = (url && overrideSpec.eligible && sbmIsADoctorEnabled_())
+    ? '<button id="overrideDoctorBtn" type="button" onclick="runOverrideDoctor()" class="doctorBtn">aDoctorで診断する</button>'
+    : '';
   var overrideButton = (url && overrideSpec.eligible)
     ? '<button id="overrideBtn" type="button" onclick="runOverride()" class="overrideBtn">'+e(overrideSpec.label)+'</button>'
     : '';
@@ -13515,6 +13520,7 @@ function sbmArticleDbDetailHtml_(o) {
     + '.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}'
     + '.close{border:1px solid #9aa0a6;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
     + '.overrideNote{margin-top:16px;padding:11px 12px;background:#f8f9fa;border-left:4px solid #9aa0a6;color:#5f6368;font-size:12px}'
+    + '.doctorBtn{border:0;background:#174ea6;color:#fff;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
     + '.overrideBtn{border:1px solid #5f6368;background:#fff;color:#3c4043;padding:9px 16px;border-radius:6px;font-weight:700;cursor:pointer}'
     + '#msg{font-size:12px;color:#5f6368;margin-top:8px;text-align:right}'
     + '</style></head><body>'
@@ -13543,11 +13549,13 @@ function sbmArticleDbDetailHtml_(o) {
     + overrideNotice
     + '<div data-sbm-common-close="1" class="actions">'
     + actionButton
+    + overrideDoctorButton
     + overrideButton
     + '<button type="button" class="close" onclick="google.script.host.close()">閉じる</button>'
     + '</div><div id="msg"></div>'
     + '<script>'
     + 'var articleUrl=' + safeJsUrl + ',articleId=' + safeJsId + ',actionType=' + safeAction + ';'
+    + 'function runOverrideDoctor(){var b=document.getElementById("overrideDoctorBtn"),m=document.getElementById("msg");if(b){b.disabled=true;b.textContent="準備中…";}m.textContent="aDoctor診断依頼を準備しています…";google.script.run.withFailureHandler(function(err){if(b){b.disabled=false;b.textContent="aDoctorで診断する";}m.textContent=(err&&err.message)?err.message:String(err);}).withSuccessHandler(function(){google.script.host.close();}).sbmRunArticleDetailAction("USER_DOCTOR",articleId,articleUrl);}'
     + 'function runOverride(){var b=document.getElementById("overrideBtn"),m=document.getElementById("msg");if(b){b.disabled=true;b.textContent="処理中…";}m.textContent="利用者判断の改善ナビを開いています…";google.script.run.withFailureHandler(function(err){if(b){b.disabled=false;b.textContent="利用者判断で改善ナビを開く";}m.textContent=(err&&err.message)?err.message:String(err);}).withSuccessHandler(function(){google.script.host.close();}).sbmRunArticleDetailAction("NAVI",articleId,articleUrl);}'
     + 'function runAction(){'
     + 'var b=document.getElementById("actionBtn"),m=document.getElementById("msg");'

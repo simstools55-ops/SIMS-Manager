@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.97",
+  "current_version": "6.7.98",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.97: overdue measurement judgment now renders on two lines with warning styling preserved.",
-  "version": "6.7.97",
-  "starter_display_version": "v6.7.97-ST"
+  "notes": "v6.7.98: add optional aDoctor diagnosis entry from article detail while preserving workflow eligibility guards.",
+  "version": "6.7.98",
+  "starter_display_version": "v6.7.98-ST"
 }
