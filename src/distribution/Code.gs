@@ -3,14 +3,14 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.89
+ * Current version: 6.7.90
  * Release summary: Rebuild initial setup STEP2 for first-time users: create a standard Cloud project, link it to Apps Script, then enable Search Console API in the same project.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.89.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.90.md.
  */
 
-const SBM_VERSION = '6.7.89';
-// v6.7.89: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
-// v6.7.89: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
+const SBM_VERSION = '6.7.90';
+// v6.7.90: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
+// v6.7.90: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
 // v6.7.86: Home KPIを「改善効果率」へ再定義。Creator Direct/管理変更を除外し、再改善中件数を別表示。
 // v6.7.85: Home改善率から管理変更履歴を完全除外。
 // v6.7.84: 管理対象外・統合・管理再開などの利用者による記事ライフサイクル変更を、効果測定対象外の「管理変更履歴」として改善履歴へ保存。
@@ -10722,14 +10722,14 @@ function sbmUpdateEffectivenessCore_(showAlert,options){
   });
   perfComputeLoop=sbmSecondsSince_(perfComputeT); perfComputeT=new Date();
   // シート側sort/clear/styleを毎日繰り返さず、配列をメモリ上で並べて一括反映する。
-  rows.sort(function(a,b){
-    var ea=Number(a[2]||0), eb=Number(b[2]||0);
-    if(ea!==eb)return eb-ea;
-    var da=sbmParseDate_(a[1]), db=sbmParseDate_(b[1]);
+  // v6.7.90: 利用者が直近の改善状態を最初に確認できるよう、
+  // B列「改善・治療開始日」の降順を標準表示とする。同日は生成順を維持する。
+  rows=rows.map(function(r,i){return {row:r,order:i};}).sort(function(a,b){
+    var da=sbmParseDate_(a.row[1]), db=sbmParseDate_(b.row[1]);
     var ta=da?da.getTime():0, tb=db?db.getTime():0;
-    if(ta!==tb)return ta-tb;
-    return String(a[5]||'').localeCompare(String(b[5]||''),'ja');
-  });
+    if(ta!==tb)return tb-ta;
+    return a.order-b.order;
+  }).map(function(x){return x.row;});
   perfComputeSort=sbmSecondsSince_(perfComputeT);
   perfCompute=sbmSecondsSince_(perfT);
   perfT=new Date();
@@ -11074,6 +11074,22 @@ function sbmEffectViewNeedsOneTimeRefresh_(sh){
   return false;
 }
 
+function sbmSortSheetByDateDescStable_(sh,dateHeader){
+  if(!sh||sh.getLastRow()<3)return 0;
+  var hm=sbmHeaderMap_(sh),col=hm[String(dateHeader||'')];
+  if(!col)return 0;
+  var n=sh.getLastRow()-1,lc=sh.getLastColumn(),vals=sh.getRange(2,1,n,lc).getValues();
+  var idx=col-1,moved=0;
+  var wrapped=vals.map(function(row,i){
+    var d=sbmParseDate_(row[idx]);
+    return {row:row,order:i,time:d?d.getTime():0};
+  });
+  wrapped.sort(function(a,b){if(a.time!==b.time)return b.time-a.time;return a.order-b.order;});
+  for(var i=0;i<wrapped.length;i++){if(wrapped[i].order!==i){moved=1;break;}}
+  if(moved)sh.getRange(2,1,n,lc).setValues(wrapped.map(function(x){return x.row;}));
+  return moved;
+}
+
 function sbmOpenEffectiveness(){
   // v6.6.29: [EffectViewPerf] 一時診断コードを撤去。v6.6.27までに確定した軽量表示経路は維持する。
   sbmMigrateEffectSheetName_();
@@ -11097,6 +11113,7 @@ function sbmOpenEffectiveness(){
   try{sbmSyncObservationEndedToToday_();sbmPruneObservationEndedFromEffectView_();sh=ss.getSheetByName(SBM_SHEETS.EFFECT)||sh;}catch(eObsMove){try{sbmLog_('ObservationEndedEffectPrune','Warning',String(eObsMove));}catch(ignoreObsMoveLog){}}
   try{sbmEnsureViewStyleCached_(sh,'SBM_EFFECT_VIEW_STYLE_665_'+String(sh.getSheetId()),function(x){sbmStyleEffectSheetViewOnly_(x);sbmApplyEffectDisplayTheme_(x);});}catch(ignoreStyle){}
   try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
+  try{sbmSortSheetByDateDescStable_(sh,'改善・治療開始日');}catch(ignoreEffectSort){}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
@@ -13088,7 +13105,7 @@ function sbmRefreshHome_(options) {
   }
 }
 
-/** v6.7.89: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
+/** v6.7.90: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
 function sbmSetHomeImprovementEffectKpi_(sh,stats){
   stats=stats||{};
   var rate=Number(stats.rate||0), improved=Number(stats.improved||0), assessed=Number(stats.assessed||0), cumulative=Number(stats.cumulative||0);
@@ -13535,6 +13552,7 @@ function sbmOpenImprovementHistory() {
   // ヘッダー整合だけ確認し、通常閲覧では全行テーマ再描画を行わない。
   try{sbmEnsureVisibleMeasurementSchemasV623_('history');sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY)||sh;}catch(ignoreSchema){}
   try{sbmEnsureImprovementHistoryViewLight_();}catch(ignoreView){}
+  try{sbmSortSheetByDateDescStable_(sh,'改善日');}catch(ignoreHistorySort){}
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   try{sbmEnsureViewStyleCached_(sh,'SBM_HISTORY_THEME_664_'+String(sh.getSheetId()),function(x){sbmApplyHistoryDisplayTheme_(x);});}catch(ignoreTheme){}
   if(sh.isSheetHidden())sh.showSheet();
@@ -14706,7 +14724,7 @@ function sbmShowRelease1SetupStep_(step) {
     + 'function executeStep(){setActionsDisabled(true);setBusy("処理しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
     + 'function skipStep(){setActionsDisabled(true);setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
     + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
-    + 'function openExternal(url){var w=window.open(url,"_blank","noopener,noreferrer");if(!w){var m=el("msg"),a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
+    + 'function openExternal(url){var m=el("msg");if(m)m.textContent="";var w=null;try{w=window.open(url,"_blank");if(w){try{w.opener=null;}catch(ignoreOpener){}return;}}catch(ignoreOpen){}if(!w&&m){var a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
     + 'if(el("runBtn"))el("runBtn").addEventListener("click",executeStep);if(el("skipBtn"))el("skipBtn").addEventListener("click",skipStep);if(el("endBtn"))el("endBtn").addEventListener("click",finishWizard);if(el("completeBtn"))el("completeBtn").addEventListener("click",finishWizard);'
     + 'if(el("propertyHelpBtn"))el("propertyHelpBtn").addEventListener("click",function(){openExternal("https://search.google.com/search-console");});'
     + 'if(el("createProjectBtn"))el("createProjectBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectCreateUrl_()+'");});'
@@ -20349,7 +20367,7 @@ function sbmDoctorRegisterResultAndBuildNext(requestJsonText,doctorResultText){
       try{sbmUpdateEffectivenessCore_(false,{dailyFast:true});}
       catch(eEffectSync){try{sbmLog_('DoctorExtendedEffectSync','Warning',String(eEffectSync));}catch(ignoreEffectSync){}}
       try{sbmDoctorSupersedeLegacyDuplicatePendingCases_(sourceArticle,String(source.article&&source.article.url||''),n.caseId);}catch(ignoreDupSync){}
-      // v6.7.89: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
+      // v6.7.90: 再診処置そのものはここで完了。追加経過観察は別状態として継続する。
       try{sbmMarkTodayImprovementCompleted_(sourceArticle,String(source.article&&source.article.url||''));}
       catch(eTodayMonitor){try{sbmLog_('DoctorExtendedMonitoringToday','Warning',String(eTodayMonitor));}catch(ignoreTodayMonitorLog){}}
       return {ok:true,message:'aDoctor診断結果を登録し、追加の経過観察へ移行しました。',route:'MONITOR',nextTitle:'③ aDoctor判定：追加経過観察です',nextMessage:'記事は変更しません。'+(n.reviewDate?'次回診察予定：'+n.reviewDate+'。':'aDoctor指定の期間まで')+' SIMSが7日単位で追加の経過観察を続けます。',nextRequest:'',monitoring:mon};
