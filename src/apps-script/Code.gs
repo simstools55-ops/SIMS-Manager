@@ -3,13 +3,13 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.7.94
+ * Current version: 6.7.95
  * Release summary: Ensure overdue measurement judgments render on two lines in the improvement trend view while preserving warning styling.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.94.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.7.95.md.
  */
 
-const SBM_VERSION = '6.7.94';
-// v6.7.94: 改善の推移の「測定待ち（予定日超過）」を確実に2行表示し、改行後も期限超過の警告色を維持。
+const SBM_VERSION = '6.7.95';
+// v6.7.95: 改善の推移・改善履歴の表示処理を一元化。旧表示処理の競合を解消し、期限超過2行表示と改善経路の可読性を固定。
 // v6.7.93: 日次処理完了時に記事情報不足を軽量点検し、必要時だけ記事情報更新へ進む導線を表示。改善の推移の期限超過表示と改善履歴の経路列幅も調整。
 // v6.7.92: Home改善率の下に効果判定済・効果あり・累計改善実績を表示。累計は別色。
 // v6.7.92: Doctor再診→追加経過観察時に今日の改善を終了同期。Home改善効果率は%のみ強調表示。
@@ -9359,26 +9359,16 @@ function sbmBuildImprovementPlanSnapshotFast_(data,row,before){
 function sbmStyleImprovementHistoryRow_(sh,row){
   if(!sh||row<2)return;
   var hm=sbmHeaderMap_(sh);
-  try{sh.setRowHeight(row,58);}catch(ignoreRow){}
-  if(hm['選択'])try{sh.getRange(row,hm['選択']).insertCheckboxes().setValue(false).setHorizontalAlignment('center');}catch(ignoreCb){}
+  try{sh.setRowHeight(row,76);}catch(ignoreRow){}
+  if(hm['選択'])try{sh.getRange(row,hm['選択']).insertCheckboxes().setValue(false).setHorizontalAlignment('center').setVerticalAlignment('middle');}catch(ignoreCb){}
   if(hm['改善日'])try{sh.getRange(row,hm['改善日']).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
   if(hm['記事タイトル'])try{sh.getRange(row,hm['記事タイトル']).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
   if(hm['改善概要'])try{sh.getRange(row,hm['改善概要']).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
-  if(hm['改善経路'])try{sh.getRange(row,hm['改善経路']).setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
+  if(hm['改善経路'])try{sh.setColumnWidth(hm['改善経路'],200);sh.getRange(row,hm['改善経路']).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
   if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週'])try{
-    var r=sh.getRange(row,hm['1週'],1,hm['最終判定']-hm['1週']+1),vals=r.getDisplayValues()[0];
-    var colors=[],weights=[],backgrounds=[],pending=-1;
+    var r=sh.getRange(row,hm['1週'],1,hm['最終判定']-hm['1週']+1),vals=r.getDisplayValues()[0],colors=[],weights=[],backgrounds=[],pending=-1;
     for(var i=0;i<Math.min(4,vals.length);i++){var pv=String(vals[i]||'').trim();if(pv==='測定待ち'||pv==='未測定'||pv==='未判定'){pending=i;break;}}
-    function st(v,isCurrent){
-      v=String(v||'').trim();
-      if(v==='改善完了'||v==='大きく改善'||v==='改善'||v==='改善傾向')return ['#0b8043','bold','#e6f4ea'];
-      if(v==='再改善必要'||v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold','#fce8e6'];
-      if(v==='要確認'||v==='経過観察'||v==='変化小')return ['#b06000','bold','#fef7e0'];
-      if(v==='データ不足')return ['#674ea7','bold','#f3e8fd'];
-      if(v==='経過観察中'||v==='測定中'||isCurrent)return ['#174ea6','bold','#e8f0fe'];
-      if(v==='測定待ち'||v==='未測定'||v==='未判定')return ['#80868b','normal','#f1f3f4'];
-      return ['#202124','normal','#ffffff'];
-    }
+    function st(v,isCurrent){v=String(v||'').trim();if(v==='改善完了'||v==='大きく改善'||v==='改善'||v==='改善傾向')return ['#0b8043','bold','#e6f4ea'];if(v==='再改善必要'||v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold','#fce8e6'];if(v==='要確認'||v==='経過観察'||v==='変化小')return ['#b06000','bold','#fef7e0'];if(v==='データ不足')return ['#674ea7','bold','#f3e8fd'];if(v==='経過観察中'||v==='測定中'||isCurrent)return ['#174ea6','bold','#e8f0fe'];if(v==='測定待ち'||v==='未測定'||v==='未判定')return ['#80868b','normal','#f1f3f4'];return ['#202124','normal','#ffffff'];}
     vals.forEach(function(v,idx){var x=st(v,idx===pending);colors.push(x[0]);weights.push(x[1]);backgrounds.push(x[2]);});
     r.setFontColors([colors]).setFontWeights([weights]).setBackgrounds([backgrounds]).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   }catch(ignoreJudge){}
@@ -9983,127 +9973,11 @@ function sbmColumnLetter_(column){
 }
 
 function sbmPolishImprovementHistoryView_(){
-  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
   if(!sh)return;
-  var lastCol=sh.getLastColumn(),n=Math.max(0,sh.getLastRow()-1);
-  var headers=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  var hm={};headers.forEach(function(h,i){if(h)hm[h]=i+1;});
-
-  var props=PropertiesService.getDocumentProperties();
-  // UAT37で表示列が変わるため、新しいスタイルキーで一度だけ再構築。
-  var styleKey='SBM_HISTORY_VIEW_STYLE_RC8_FINAL_'+String(sh.getSheetId());
-  var styleReady=props.getProperty(styleKey)==='1';
-
-  if(!styleReady){
-    // 状態列は利用者向け画面から廃止。最終判定が観察状況と最終結論を兼ねる。
-    var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
-
-    sh.setFrozenRows(1);
-    try{sh.showColumns(1,sh.getMaxColumns());}catch(ignoreShow){}
-
-    var runs=[],runStart=-1;
-    for(var c=1;c<=lastCol;c++){
-      var hide=!visible[headers[c-1]];
-      if(hide&&runStart<0)runStart=c;
-      if((!hide||c===lastCol)&&runStart>=0){
-        var end=(hide&&c===lastCol)?c:c-1;
-        runs.push([runStart,end-runStart+1]);
-        runStart=-1;
-      }
-    }
-    runs.forEach(function(r){
-      try{sh.hideColumns(r[0],r[1]);}catch(ignoreHide){}
-    });
-
-    sh.getRange(1,1,1,lastCol)
-      .setBackground('#0b8043')
-      .setFontColor('#ffffff')
-      .setFontWeight('bold')
-      .setVerticalAlignment('middle')
-      .setHorizontalAlignment('center')
-      .setWrap(false);
-    sh.setRowHeight(1,34);
-
-    var widths={
-      '選択':56,'改善日':92,'記事タイトル':300,'ArticleID':88,'改善概要':340,'改善経路':125,
-      '1週':74,'2週':74,'3週':74,'4週':74,'最終判定':112
-    };
-    Object.keys(widths).forEach(function(h){
-      if(hm[h])sh.setColumnWidth(hm[h],widths[h]);
-    });
-
-    props.setProperty(styleKey,'1');
-  }
-
-  if(!n)return;
-
-  sh.setRowHeights(2,n,58);
-
-  if(hm['改善日'])sh.getRange(2,hm['改善日'],n,1)
-    .setNumberFormat('yyyy/M/d')
-    .setHorizontalAlignment('center')
-    .setVerticalAlignment('middle')
-    .setWrap(false);
-
-  if(hm['記事タイトル'])sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('top');
-  if(hm['改善概要'])sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('top');
-  if(hm['改善経路']){
-    var routeRange=sh.getRange(2,hm['改善経路'],n,1);
-    routeRange.setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');
-  }
-
-  var firstJudge=hm['1週'],lastJudge=hm['最終判定'];
-  if(firstJudge&&lastJudge&&lastJudge>=firstJudge){
-    var judgeRange=sh.getRange(2,firstJudge,n,lastJudge-firstJudge+1);
-    var values=judgeRange.getDisplayValues(),colors=[],weights=[],backgrounds=[];
-
-    function statusStyle(v,isCurrentPending){
-      v=String(v||'').trim();
-      if(v==='改善完了'||v==='大きく改善'||v==='改善'||v==='改善傾向')return ['#0b8043','bold','#e6f4ea'];
-      if(v==='再改善必要'||v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold','#fce8e6'];
-      if(v==='要確認'||v==='経過観察'||v==='変化小')return ['#b06000','bold','#fef7e0'];
-      if(v==='データ不足')return ['#674ea7','bold','#f3e8fd'];
-      if(v==='経過観察中')return ['#174ea6','bold','#e8f0fe'];
-      if(v==='測定中')return ['#174ea6','bold','#e8f0fe'];
-      if(v==='測定待ち'||v==='未測定'||v==='未判定')return isCurrentPending?['#174ea6','bold','#e8f0fe']:['#80868b','normal','#f1f3f4'];
-      return ['#202124','normal','#ffffff'];
-    }
-
-    values.forEach(function(row){
-      var cr=[],wr=[],br=[];
-      var currentPending=-1;
-      // 1週〜4週のうち最初の未測定を「次の測定」として強調。最終判定列は対象外。
-      for(var pi=0;pi<Math.min(4,row.length);pi++){
-        var pv=String(row[pi]||'').trim();
-        if(pv==='測定待ち'||pv==='未測定'||pv==='未判定'){currentPending=pi;break;}
-      }
-      row.forEach(function(v,idx){
-        var st=statusStyle(v,idx===currentPending);cr.push(st[0]);wr.push(st[1]);br.push(st[2]);
-      });
-      colors.push(cr);weights.push(wr);backgrounds.push(br);
-    });
-    judgeRange.setFontColors(colors).setFontWeights(weights).setBackgrounds(backgrounds).setHorizontalAlignment('center').setWrap(true);
-  }
-
-  // 最終判定が出た行は「処置サイクルが一区切り」として薄いグレー背景。
-  if(hm['最終判定']){
-    var finals=sh.getRange(2,hm['最終判定'],n,1).getDisplayValues();
-    var doneRanges=[],start=-1;
-    for(var i=0;i<finals.length;i++){
-      var v=String(finals[i][0]||'').trim();
-      var done=(v==='改善完了'||v==='再改善必要');
-      if(done&&start<0)start=i;
-      if((!done||i===finals.length-1)&&start>=0){
-        var end=(done&&i===finals.length-1)?i:i-1;
-        doneRanges.push('A'+(start+2)+':'+sbmColumnLetter_(lastCol)+(end+2));
-        start=-1;
-      }
-    }
-    if(doneRanges.length){
-      try{sh.getRangeList(doneRanges).setBackground('#f1f3f4');}catch(ignoreDoneBg){}
-    }
-  }
-
+  // v6.7.95: 旧RC系の表示設定は廃止し、改善履歴の表示正本へ委譲する。
+  sbmEnsureImprovementHistoryViewLight_();
+  sbmRepairImprovementHistoryPresentationV6792_(sh);
 }
 
 function sbmApplySelectionUiAll_() {
@@ -11097,16 +10971,20 @@ function sbmSortSheetByDateDescStable_(sh,dateHeader){
 
 function sbmRepairImprovementHistoryPresentationV6792_(sh){
   if(!sh||sh.getLastRow()<2)return;
-  var hm=sbmHeaderMap_(sh),n=sh.getLastRow()-1;
-  // v6.7.92で値だけが移動した既存シートも、その場で表示を復旧する。
-  if(hm['選択']){
-    try{sh.getRange(2,hm['選択'],n,1).insertCheckboxes().setHorizontalAlignment('center').setVerticalAlignment('middle');}catch(ignoreCb){}
-  }
+  var hm=sbmHeaderMap_(sh),n=sh.getLastRow()-1,lastCol=sh.getLastColumn();
+  sh.setFrozenRows(1);
+  try{sh.getRange(1,1,1,lastCol).setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);sh.setRowHeight(1,34);}catch(ignoreHeader){}
+  var widths={'選択':56,'改善日':100,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':200,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
+  Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
+  if(hm['選択'])try{sh.getRange(2,hm['選択'],n,1).insertCheckboxes().setHorizontalAlignment('center').setVerticalAlignment('middle');}catch(ignoreCb){}
   try{sh.setRowHeightsForced(2,n,76);}catch(ignoreRows){try{sh.setRowHeights(2,n,76);}catch(ignoreRowsFallback){}}
-  if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
-  if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('top');}catch(ignoreTitle){}
-  if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('top');}catch(ignoreSummary){}
-  if(hm['改善経路'])try{sh.setColumnWidth(hm['改善経路'],170);sh.getRange(2,hm['改善経路'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreRouteWidth){}
+  try{sh.getRange(2,1,n,lastCol).setVerticalAlignment('middle');}catch(ignoreMiddle){}
+  if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setWrap(false);}catch(ignoreDate){}
+  if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
+  if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
+  if(hm['改善経路'])try{sh.getRange(2,hm['改善経路'],n,1).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
+  if(hm['ArticleID'])try{sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);}catch(ignoreAid){}
+  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
 }
 
 function sbmOpenEffectiveness(){
@@ -11145,7 +11023,7 @@ function sbmStyleEffectSheetViewOnly_(sh){
   sh.getRange(1,1,1,lc).setBackground('#1f4e78').setFontColor('#ffffff').setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
   sh.setRowHeight(1,34);
   var hm=sbmHeaderMap_(sh);
-  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110};
+  var widths={'選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':155,'改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':125};
   Object.keys(widths).forEach(function(h){if(hm[h])sh.setColumnWidth(hm[h],widths[h]);});
   try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
   var n=Math.max(0,sh.getLastRow()-1);
@@ -11153,18 +11031,23 @@ function sbmStyleEffectSheetViewOnly_(sh){
     sh.getRange(2,1,n,lc).setVerticalAlignment('middle');
     if(hm['記事タイトル'])sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true);
     if(hm['次回測定予定日'])sh.getRange(2,hm['次回測定予定日'],n,1).setWrap(true).setHorizontalAlignment('center');
-    if(hm['改善・治療開始日'])sh.getRange(2,hm['改善・治療開始日'],n,1).setHorizontalAlignment('center');
+    if(hm['改善・治療開始日'])sh.getRange(2,hm['改善・治療開始日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center');
     if(hm['経過日数'])sh.getRange(2,hm['経過日数'],n,1).setHorizontalAlignment('center');
     if(hm['測定回数'])sh.getRange(2,hm['測定回数'],n,1).setHorizontalAlignment('center');
     if(hm['ArticleID'])sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);
     ['改善前クリック','現在クリック','改善前表示回数','現在表示回数'].forEach(function(h){if(hm[h])sh.getRange(2,hm[h],n,1).setHorizontalAlignment('right');});
-    // 閲覧時はデータ再計算をせず、保存済みの「判定」だけを軽量に色分けする。
     if(hm['判定']){
-      var jr=sh.getRange(2,hm['判定'],n,1), jv=jr.getDisplayValues(), bgs=[], fgs=[], weights=[];
-      jv.forEach(function(r){var raw=String(r[0]||'');var styleValue=raw.replace(/\s+/g,'');var st=sbmHomeJudgmentStyle_(styleValue);bgs.push([st.bg]);fgs.push([st.fg]);weights.push([st.weight]);});
+      var jr=sh.getRange(2,hm['判定'],n,1), vals=jr.getValues(), changed=false;
+      for(var i=0;i<vals.length;i++){
+        var v=String(vals[i][0]||'');
+        if(v.replace(/\s+/g,'')==='測定待ち（予定日超過）' && v.indexOf('\n')<0){vals[i][0]='測定待ち\n（予定日超過）';changed=true;}
+      }
+      if(changed)jr.setValues(vals);
+      var jv=jr.getDisplayValues(),bgs=[],fgs=[],weights=[];
+      jv.forEach(function(r){var styleValue=String(r[0]||'').replace(/\s+/g,'');var st=sbmHomeJudgmentStyle_(styleValue);bgs.push([st.bg]);fgs.push([st.fg]);weights.push([st.weight]);});
       jr.setBackgrounds(bgs).setFontColors(fgs).setFontWeights(weights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
     }
-    sh.setRowHeights(2,n,42);
+    sh.setRowHeightsForced(2,n,48);
   }
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
 }
@@ -12357,129 +12240,30 @@ function sbmActivateHomeAfterRepair_() {
  * シート作成・修復後と改善履歴を開いたときに共通利用します。
  */
 function sbmRebuildImprovementHistoryList_() {
-  var sh = sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);
-
-  // 既存データを非破壊で正規化します。
-  try { sbmEnsureHistoryAndEffectSchemas_(); } catch (e) {}
-  try { sbmRepairImprovementHistoryData_(); } catch (e) {
-    sbmLog_('HistoryRebuildRepair', 'Warning', String(e));
-  }
-
-  sh = sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);
-  if (sh.getLastRow() < 1) {
-    sh.getRange(1, 1, 1, SBM_HISTORY_HEADERS_V2.length).setValues([SBM_HISTORY_HEADERS_V2]);
-  }
-
-  var hm = sbmHeaderMap_(sh);
-  var lastRow = sh.getLastRow();
-  var lastCol = Math.max(sh.getLastColumn(), SBM_HISTORY_HEADERS_V2.length);
-
-  // 改善の推移の判定を改善履歴IDで反映します。
-  var effectByHistoryId = {};
-  try {
-    var effectRows = sbmRowsAsObjects_(SBM_SHEETS.EFFECT) || [];
-    effectRows.forEach(function(o) {
-      var id = String(o['改善履歴ID'] || '').trim();
-      if (id) effectByHistoryId[id] = String(o['判定'] || '測定待ち');
+  var sh=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);
+  try{sbmEnsureHistoryAndEffectSchemas_();}catch(e){}
+  try{sbmRepairImprovementHistoryData_();}catch(e){sbmLog_('HistoryRebuildRepair','Warning',String(e));}
+  sh=sbmGetOrCreateSheet_(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(sh.getLastRow()<1)sh.getRange(1,1,1,SBM_HISTORY_HEADERS_V2.length).setValues([SBM_HISTORY_HEADERS_V2]);
+  var hm=sbmHeaderMap_(sh),lastRow=sh.getLastRow(),lastCol=Math.max(sh.getLastColumn(),SBM_HISTORY_HEADERS_V2.length),effectByHistoryId={};
+  try{(sbmRowsAsObjects_(SBM_SHEETS.EFFECT)||[]).forEach(function(o){var id=String(o['改善履歴ID']||'').trim();if(id)effectByHistoryId[id]=String(o['判定']||'測定待ち');});}catch(e){}
+  if(lastRow>1){
+    var values=sh.getRange(2,1,lastRow-1,lastCol).getValues();
+    values.forEach(function(row){
+      if(hm['選択'])row[hm['選択']-1]=false;
+      if(hm['改善日']){var v=row[hm['改善日']-1];if(v!==''&&v!==null)row[hm['改善日']-1]=sbmDisplayDateText_(v);}
+      if(hm['最終判定']&&hm['改善履歴ID']){var historyId=String(row[hm['改善履歴ID']-1]||'').trim();if(historyId&&effectByHistoryId[historyId]){var isComplete=String(row[hm['状態']-1]||'')==='完了';row[hm['最終判定']-1]=sbmFinalImprovementOutcome_(effectByHistoryId[historyId],isComplete);}else if(!String(row[hm['最終判定']-1]||'').trim())row[hm['最終判定']-1]='経過観察中';}
     });
-  } catch (e) {}
-
-  if (lastRow > 1) {
-    var values = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
-
-    values.forEach(function(row) {
-      if (hm['選択']) row[hm['選択'] - 1] = false;
-
-      if (hm['改善日']) {
-        var v = row[hm['改善日'] - 1];
-        if (v !== '' && v !== null) row[hm['改善日'] - 1] = sbmDisplayDateText_(v);
-      }
-
-
-      if (hm['最終判定'] && hm['改善履歴ID']) {
-        var historyId = String(row[hm['改善履歴ID'] - 1] || '').trim();
-        if (historyId && effectByHistoryId[historyId]) {
-          var isComplete=String(row[hm['状態'] - 1] || '') === '完了';
-          row[hm['最終判定'] - 1] = sbmFinalImprovementOutcome_(effectByHistoryId[historyId],isComplete);
-        } else if (!String(row[hm['最終判定'] - 1] || '').trim()) {
-          row[hm['最終判定'] - 1] = '経過観察中';
-        }
-      }
-    });
-
-    // 改善日の新しい順。解析不能な旧データは末尾へ。
-    var dateIndex = hm['改善日'] ? hm['改善日'] - 1 : -1;
-    values.sort(function(a, b) {
-      if (dateIndex < 0) return 0;
-      var da = new Date(String(a[dateIndex] || '').replace(/年|月/g, '/').replace(/日.*$/, ''));
-      var db = new Date(String(b[dateIndex] || '').replace(/年|月/g, '/').replace(/日.*$/, ''));
-      var ta = isNaN(da.getTime()) ? 0 : da.getTime();
-      var tb = isNaN(db.getTime()) ? 0 : db.getTime();
-      return tb - ta;
-    });
-
-    sh.getRange(2, 1, values.length, lastCol).setValues(values);
+    var dateIndex=hm['改善日']?hm['改善日']-1:-1;
+    values.sort(function(a,b){if(dateIndex<0)return 0;var da=new Date(String(a[dateIndex]||'').replace(/年|月/g,'/').replace(/日.*$/,'')),db=new Date(String(b[dateIndex]||'').replace(/年|月/g,'/').replace(/日.*$/,''));var ta=isNaN(da.getTime())?0:da.getTime(),tb=isNaN(db.getTime())?0:db.getTime();return tb-ta;});
+    sh.getRange(2,1,values.length,lastCol).setValues(values);
   }
-
-  // 利用者向けの一覧列だけを表示します。
-  var visibleHeaders = ['選択','改善日','記事タイトル','改善概要','改善経路','1週','2週','3週','4週','最終判定','状態'];
-
-  sh.showSheet();
-  sh.setFrozenRows(1);
-  sh.getRange(1, 1, 1, lastCol)
-    .setBackground('#0b8043')
-    .setFontColor('#ffffff')
-    .setFontWeight('bold')
-    .setVerticalAlignment('middle')
-    .setHorizontalAlignment('center')
-    .setWrap(false);
-  sh.setRowHeight(1, 34);
-
-  // いったん全列を表示し、内部列だけ隠します。
-  try { sh.showColumns(1, sh.getMaxColumns()); } catch (e) {}
-  for (var col = 1; col <= sh.getLastColumn(); col++) {
-    var header = String(sh.getRange(1, col).getValue() || '').trim();
-    if (visibleHeaders.indexOf(header) < 0) {
-      try { sh.hideColumns(col); } catch (e) {}
-    }
-  }
-
-  var widths = {
-    '選択': 56,
-    '改善日': 105,
-    '記事タイトル': 360,
-    '改善概要': 420,
-    '改善経路': 145,
-    '使用AI': 100,
-    '1週':80,'2週':80,'3週':80,'4週':80,'最終判定':110,'状態':90
-  };
-  Object.keys(widths).forEach(function(header) {
-    if (hm[header]) sh.setColumnWidth(hm[header], widths[header]);
-  });
-
-  if (sh.getLastRow() > 1) {
-    var n = sh.getLastRow() - 1;
-    sh.getRange(2, 1, n, lastCol).setVerticalAlignment('top');
-
-    if (hm['記事タイトル']) {
-      sh.getRange(2, hm['記事タイトル'], n, 1).setWrap(true);
-    }
-    if (hm['改善概要']) {
-      sh.getRange(2, hm['改善概要'], n, 1).setWrap(true);
-    }
-    if (hm['改善日']) {
-      sh.getRange(2, hm['改善日'], n, 1).setWrap(false);
-    }
-
-    sh.setRowHeights(2, n, 58);
-    try { sh.autoResizeRows(2, n); } catch (e) {}
-  }
-
-  // 実データ行だけにチェックボックスを設定します。
-  try { sbmApplySelectionUi_(sh); } catch (e) {}
-
+  // v6.7.95: 再構築処理はデータ更新だけを担当し、表示は正本へ一本化する。
+  try{sbmEnsureImprovementHistoryViewLight_();}catch(ignoreView){}
+  try{sbmApplySelectionUi_(sh);}catch(ignoreSelection){}
+  try{sbmRepairImprovementHistoryPresentationV6792_(sh);}catch(ignoreCanonical){}
   SpreadsheetApp.flush();
-  return Math.max(0, sh.getLastRow() - 1);
+  return Math.max(0,sh.getLastRow()-1);
 }
 
 /**
@@ -12709,22 +12493,9 @@ function sbmParseDateFlexible_(value) {
  * 改善日・週次測定日時は折り返して、日本語表記を見切れなくします。
  */
 function sbmApplyHistoryFinalStyle_() {
-  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
-  if (!sh) return;
-  var hm = sbmHeaderMap_(sh);
-  var n = Math.max(0, sh.getLastRow() - 1);
-
-  if (hm['改善日']) {
-    sh.setColumnWidth(hm['改善日'], 105);
-    if (n) sh.getRange(2, hm['改善日'], n, 1).setNumberFormat('yyyy/M/d').setWrap(false).setHorizontalAlignment('center').setVerticalAlignment('middle');
-  }
-  for(var mi=1;mi<=4;mi++){var jc=hm[mi+'週'];if(jc){sh.setColumnWidth(jc,80);if(n)sh.getRange(2,jc,n,1).setHorizontalAlignment('center');}}
-  if (hm['記事タイトル'] && n) sh.getRange(2, hm['記事タイトル'], n, 1).setWrap(true);
-  if (hm['改善概要'] && n) sh.getRange(2, hm['改善概要'], n, 1).setWrap(true);
-  if (n) {
-    sh.setRowHeights(2, n, 64);
-    try { sh.autoResizeRows(2, n); } catch (e) {}
-  }
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  if(!sh)return;
+  sbmRepairImprovementHistoryPresentationV6792_(sh);
 }
 
 /**
@@ -13465,71 +13236,19 @@ function sbmNormalizeImprovementHistoryDatesLight_(sh,improvedDateCol,lastRow){
 }
 
 function sbmEnsureImprovementHistoryViewLight_(){
-  var ss=SpreadsheetApp.getActiveSpreadsheet();
-  var sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
+  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SHEETS.FEEDBACK_HISTORY);
   if(!sh)return;
-  var lastCol=sh.getLastColumn();
-  if(lastCol<1)return;
+  var lastCol=sh.getLastColumn();if(lastCol<1)return;
   var headers=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  var hm={};headers.forEach(function(h,i){if(h)hm[h]=i+1;});
-
-  // バージョン更新後の最初の1回だけ既存行をまとめて装飾する。
-  // 2回目以降の「改善履歴を開く」は全行再装飾を行わず高速表示する。
-  var props=PropertiesService.getDocumentProperties();
-  var styleKey='SBM_HISTORY_VIEW_STYLE_V6_1_26_'+String(sh.getSheetId());
-  if(props.getProperty(styleKey)==='1'){
-    // v6.6.31: テーマ適用後はヘッダー色が #0b8043 とは限らない。
-    // 色でキャッシュ有効性を判定すると、通常表示のたびに全行書式を再適用してしまうため、
-    // 完了フラグを正本として即時終了する。ヘッダー構造の整合は直前の schema 処理が担当する。
-    return;
-  }
-
   var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
-  sh.setFrozenRows(1);
   try{sh.showColumns(1,lastCol);}catch(ignoreShow){}
   var runStart=0;
   for(var c=1;c<=lastCol;c++){
     var hide=!visible[headers[c-1]];
     if(hide&&!runStart)runStart=c;
-    if((!hide||c===lastCol)&&runStart){
-      var stop=(hide&&c===lastCol)?c:c-1;
-      try{sh.hideColumns(runStart,stop-runStart+1);}catch(ignoreHide){}
-      runStart=0;
-    }
+    if((!hide||c===lastCol)&&runStart){var stop=(hide&&c===lastCol)?c:c-1;try{sh.hideColumns(runStart,stop-runStart+1);}catch(ignoreHide){}runStart=0;}
   }
-  sh.getRange(1,1,1,lastCol).setBackground('#0b8043').setFontColor('#ffffff').setFontWeight('bold').setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);
-  sh.setRowHeight(1,34);
-  var widths={'選択':56,'改善日':94,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':130,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
-  Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
-
-  // 既存データの装飾はこの初回だけ。修復・並べ替え・データ再計算は行わない。
-  var n=Math.max(0,sh.getLastRow()-1);
-  if(n){
-    try{sh.setRowHeights(2,n,58);}catch(ignoreHeights){}
-    try{sh.getRange(2,1,n,lastCol).setVerticalAlignment('middle');}catch(ignoreMiddle){}
-    if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);}catch(ignoreDate){}
-    if(hm['記事タイトル'])try{sh.getRange(2,hm['記事タイトル'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreTitle){}
-    if(hm['改善概要'])try{sh.getRange(2,hm['改善概要'],n,1).setWrap(true).setVerticalAlignment('middle');}catch(ignoreSummary){}
-    if(hm['改善経路'])try{sh.getRange(2,hm['改善経路'],n,1).setHorizontalAlignment('center').setWrap(false).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
-    if(hm['1週']&&hm['最終判定']&&hm['最終判定']>=hm['1週']){
-      var judge=sh.getRange(2,hm['1週'],n,hm['最終判定']-hm['1週']+1),vals=judge.getDisplayValues(),cs=[],ws=[],bs=[];
-      function style(v,current){
-        v=String(v||'').trim();
-        if(v==='改善完了'||v==='大きく改善'||v==='改善'||v==='改善傾向')return ['#0b8043','bold','#e6f4ea'];
-        if(v==='再改善必要'||v==='見直し候補'||v==='悪化'||v==='元に戻す検討')return ['#b31412','bold','#fce8e6'];
-        if(v==='要確認'||v==='経過観察'||v==='変化小')return ['#b06000','bold','#fef7e0'];
-        if(v==='データ不足')return ['#674ea7','bold','#f3e8fd'];
-        if(v==='経過観察中'||v==='測定中'||current)return ['#174ea6','bold','#e8f0fe'];
-        if(v==='測定待ち'||v==='未測定'||v==='未判定')return ['#80868b','normal','#f1f3f4'];
-        return ['#202124','normal','#ffffff'];
-      }
-      vals.forEach(function(row){var pending=-1,cr=[],wr=[],br=[];for(var i=0;i<Math.min(4,row.length);i++){var pv=String(row[i]||'').trim();if(pv==='測定待ち'||pv==='未測定'||pv==='未判定'){pending=i;break;}}row.forEach(function(v,idx){var x=style(v,idx===pending);cr.push(x[0]);wr.push(x[1]);br.push(x[2]);});cs.push(cr);ws.push(wr);bs.push(br);});
-      judge.setFontColors(cs).setFontWeights(ws).setBackgrounds(bs).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(false);
-    }
-  }
-  if(n&&hm['ArticleID'])try{sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);}catch(ignoreAid){}
-  try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
-  props.setProperty(styleKey,'1');
+  sbmRepairImprovementHistoryPresentationV6792_(sh);
 }
 
 function sbmEnsureVisibleMeasurementSchemasV623_(target){
@@ -13575,6 +13294,7 @@ function sbmOpenImprovementHistory() {
   try{sbmRepairImprovementHistoryPresentationV6792_(sh);}catch(ignoreHistoryPresentation){}
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   try{sbmEnsureViewStyleCached_(sh,'SBM_HISTORY_THEME_664_'+String(sh.getSheetId()),function(x){sbmApplyHistoryDisplayTheme_(x);});}catch(ignoreTheme){}
+  try{sbmRepairImprovementHistoryPresentationV6792_(sh);}catch(ignoreHistoryCanonicalFinal){}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
@@ -13914,100 +13634,10 @@ function sbmMeasurementDateTimeText_(value) {
  * 改善の推移の次回測定予定日を朝9:00表示へ統一します。
  */
 function sbmStyleEffectSheetV2_() {
-  var sh = sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
-  sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh, SBM_EFFECT_HEADERS_V2);
-
+  var sh=sbmGetOrCreateSheet_(SBM_SHEETS.EFFECT);
+  sbmEnsureHistoryAndEffectSchemasIfEmpty_(sh,SBM_EFFECT_HEADERS_V2);
   sh.showSheet();
-  sh.setFrozenRows(1);
-
-  var lc = Math.max(sh.getLastColumn(), SBM_EFFECT_HEADERS_V2.length);
-  sh.getRange(1, 1, 1, lc)
-    .setBackground('#1f4e78')
-    .setFontColor('#ffffff')
-    .setFontWeight('bold')
-    .setHorizontalAlignment('center')
-    .setVerticalAlignment('middle')
-    .setWrap(false);
-  sh.setRowHeight(1, 34);
-
-  var hm = sbmHeaderMap_(sh);
-  var widths = {
-    '選択':56,'改善・治療開始日':140,'経過日数':80,'次回測定予定日':185,'測定回数':90,'記事タイトル':330,'ArticleID':92,'改善経路':145,
-    '改善前クリック':110,'現在クリック':110,'改善前表示回数':120,'現在表示回数':120,'判定':110
-  };
-  Object.keys(widths).forEach(function(h) {
-    if (hm[h]) sh.setColumnWidth(hm[h], widths[h]);
-  });
-
-  // 改善の推移は閲覧専用。選択列と内部列は毎回非表示にする。
-  try{sbmApplyEffectUserVisibility_(sh);}catch(ignoreEffectVisibility){}
-
-  var n = Math.max(0, sh.getLastRow() - 1);
-  if (n) {
-    sh.getRange(2, 1, n, Math.min(12, sh.getLastColumn())).setVerticalAlignment('top');
-
-    if (hm['改善・治療開始日']) {
-      sh.getRange(2, hm['改善・治療開始日'], n, 1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center');
-    }
-
-    if (hm['次回測定予定日']) {
-      var range = sh.getRange(2, hm['次回測定予定日'], n, 1);
-      var vals = range.getValues();
-      for (var i = 0; i < vals.length; i++) {
-        if (vals[i][0] !== '' && vals[i][0] !== null) {
-          vals[i][0] = sbmMeasurementDateTimeText_(vals[i][0]);
-        }
-      }
-      range.setValues(vals).setWrap(true).setHorizontalAlignment('center');
-    }
-
-    if (hm['記事タイトル']) sh.getRange(2, hm['記事タイトル'], n, 1).setWrap(true);
-    if (hm['経過日数']) sh.getRange(2, hm['経過日数'], n, 1).setNumberFormat('0');
-    ['改善前クリック','現在クリック','改善前表示回数','現在表示回数'].forEach(function(h) {
-      if (!hm[h]) return;
-      var metricRange = sh.getRange(2, hm[h], n, 1);
-      metricRange.setValues(metricRange.getValues().map(function(r){
-        var v = r[0];
-        if (v === '' || v === null) return [''];
-        var num = Number(String(v).replace(/,/g, '').trim());
-        return [isFinite(num) ? num : v];
-      })).setNumberFormat('#,##0').setHorizontalAlignment('right');
-    });
-
-    if (hm['判定']) {
-      var judgmentRange = sh.getRange(2, hm['判定'], n, 1);
-      var judgmentValues = judgmentRange.getDisplayValues();
-      var backgrounds = [], fontColors = [], fontWeights = [];
-      judgmentValues.forEach(function(r) {
-        var value = String(r[0] || '').trim().replace(/\s+/g,'');
-        var bg = '#f1f3f4', fg = '#5f6368', weight = 'normal';
-        if (value === '大きく改善') { bg = '#0b8043'; fg = '#ffffff'; weight = 'bold'; }
-        else if (value === '改善') { bg = '#b7e1cd'; fg = '#0d652d'; weight = 'bold'; }
-        else if (value === '改善傾向') { bg = '#d9ead3'; fg = '#274e13'; weight = 'bold'; }
-        else if (value === '経過観察' || value === '変化小') { bg = '#fce8b2'; fg = '#7a4f01'; weight = 'bold'; }
-        else if (value === '要確認') { bg = '#f9cb9c'; fg = '#7f6000'; weight = 'bold'; }
-        else if (value === '見直し候補') { bg = '#f4c7c3'; fg = '#b31412'; weight = 'bold'; }
-        else if (value === '元に戻す検討') { bg = '#b31412'; fg = '#ffffff'; weight = 'bold'; }
-        else if (value === 'データ不足') { bg = '#d9d2e9'; fg = '#351c75'; weight = 'bold'; }
-        else if (value === '測定中' || value === '追加経過観察') { bg = '#d2e3fc'; fg = '#174ea6'; weight = 'bold'; }
-        else if (value === '測定期限超過' || value === '測定待ち（予定日超過）') { bg = '#fce8e6'; fg = '#c5221f'; weight = 'bold'; }
-        else if (value === '測定待ち' || value === '未測定' || value === '未判定') { bg = '#e8eaed'; fg = '#5f6368'; }
-        backgrounds.push([bg]); fontColors.push([fg]); fontWeights.push([weight]);
-      });
-      judgmentRange.setBackgrounds(backgrounds).setFontColors(fontColors).setFontWeights(fontWeights).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true);
-    }
-
-    sh.setRowHeights(2, n, 58);
-    try { sh.autoResizeRows(2, n); } catch (e) {}
-  }
-
-  // 閲覧専用のためチェックボックスは生成しない。旧チェックボックスも除去する。
-  try {
-    if (hm['選択'] && sh.getMaxRows() > 1) {
-      sh.getRange(2, hm['選択'], sh.getMaxRows()-1, 1).clearDataValidations().clearContent();
-    }
-  } catch (eClearSelection) {}
-  SpreadsheetApp.flush();
+  sbmStyleEffectSheetViewOnly_(sh);
 }
 
 
