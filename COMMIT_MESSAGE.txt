@@ -1,1 +1,1 @@
-fix: rebuild stale locked Writer referrals on resume (v6.7.83)
+fix: keep Doctor registration independent of optional Drive authorization (v6.7.100)
