@@ -1,3 +1,14 @@
+## v6.8.2 — 改善履歴の表示と概要修復
+- 改善日をDate型へ正規化してyyyy/M/dで表示。
+- [object Object]は元のAI改善結果JSONがある場合だけ復元。復元不能なら変更しない。
+- 新規の改善概要は構造化値を安全に文章化。
+
+## v6.8.1
+aWriterの確定変更一覧から改善概要を自動生成し、固定文言へのフォールバックを削減。既存の登録・測定フローは維持。
+
+## v6.8.1
+- aDoctor RESUME時にrequest.request_idを再採番した後、evidence_package.request_idも同じIDへ同期。CaseIDおよび通常の新規診断フローは維持。
+
 # v6.7.100
 
 - aDoctor診断結果の登録・Writer/Merge紹介状生成という必須経路から、Google Driveを使うPersonal Knowledge自動書込を分離。Drive再承認が必要な環境でも診断フローを止めない。

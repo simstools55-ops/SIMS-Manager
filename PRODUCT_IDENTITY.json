@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "6.7.100",
+  "current_version": "6.8.2",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.100: keep optional Drive-backed learning out of Doctor registration and make Close primary after daily processing.",
-  "version": "6.7.100",
+  "notes": "v6.8.0: synchronize aDoctor resumed request ID with Evidence Package request ID.",
+  "version": "6.8.2",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v6.7.100-ST"
+  "starter_display_version": "v6.8.0-ST"
 }

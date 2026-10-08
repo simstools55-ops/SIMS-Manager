@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "6.7.100",
+  "current_version": "6.8.0",
   "release_status": "REPOSITORY_BASELINE",
-  "notes": "v6.7.100: keep optional Drive-backed learning out of Doctor registration and make Close primary after daily processing.",
-  "version": "6.7.100",
-  "starter_display_version": "v6.7.100-ST"
+  "notes": "v6.8.0: synchronize aDoctor resumed request ID with Evidence Package request ID.",
+  "version": "6.8.0",
+  "starter_display_version": "v6.8.0-ST"
 }
