@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.8.2
- * Release summary: Synchronize aDoctor RESUME request and Evidence Package RequestIDs.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.8.2.md.
+ * Current version: 6.8.3
+ * Release summary: Exclude Creator new-publication histories from Today completed improvement rows.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.8.3.md.
  */
 
-const SBM_VERSION = '6.8.1';
+const SBM_VERSION = '6.8.3';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -13719,6 +13719,30 @@ function sbmTodayCompletedRowsRemembered_(){
   }catch(e){return [];}
 }
 
+/** v6.8.3: 新規記事公開履歴は「今日の改善」の終了案件ではない。 */
+function sbmIsCreatorPublicationHistoryForToday_(h){
+  h=h||{};
+  var route=String(h['改善経路']||'').toUpperCase();
+  var scale=String(h['改善規模']||'').toLowerCase();
+  var ai=String(h['使用AI']||'').toLowerCase();
+  if(scale==='new_article')return true;
+  if(route.indexOf('CREATOR')>=0 && (ai.indexOf('creator')>=0 || route.indexOf('DIRECT')>=0))return true;
+  return false;
+}
+function sbmIsCreatorPublicationTodayArticle_(aid,url){
+  try{
+    var histories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],today=sbmDateText_(new Date());
+    aid=String(aid||'').trim().toUpperCase();url=sbmNormalizeUrl_(url||'');
+    return histories.some(function(h){
+      var d=sbmParseDate_(h['改善日']);
+      if(!d||sbmDateText_(d)!==today||!sbmIsCreatorPublicationHistoryForToday_(h))return false;
+      var hid=String(h['ArticleID']||'').trim().toUpperCase(),hu=sbmNormalizeUrl_(h['記事URL']||'');
+      return !!((aid&&hid===aid)||(url&&hu===url));
+    });
+  }catch(e){try{sbmLog_('TodayCreatorExclusion','Warning',String(e));}catch(ignore){}}
+  return false;
+}
+
 /** v6.7.81: 本日終了した改善を「今日の改善」へ軽量復元する。 */
 function sbmRestoreTodayCompletedRowsLight_(sh){
   sh=sh||SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY);
@@ -13740,7 +13764,7 @@ function sbmRestoreTodayCompletedRowsLight_(sh){
     sh.setRowHeight(row,76);sbmRememberTodayCompletedRow_(sh,row,aid,url);if(aid)existingIds[aid]=true;if(url)existingUrls[url]=true;restored++;return true;
   }
   // 通常は登録時に保存された当日終了行だけを戻す。シート全体の再構築は行わない。
-  (sbmTodayCompletedRowsRemembered_()||[]).forEach(function(x){append_(x.values,x.articleId,x.articleUrl);});
+  (sbmTodayCompletedRowsRemembered_()||[]).forEach(function(x){if(!sbmIsCreatorPublicationTodayArticle_(x.articleId,x.articleUrl))append_(x.values,x.articleId,x.articleUrl);});
   // v6.7.81導入前に消えた当日終了行だけ、1日1回、改善履歴から自己修復する。
   var props=PropertiesService.getDocumentProperties(),repairKey='SBM_TODAY_COMPLETED_HISTORY_REPAIR_DATE_V1';
   if(String(props.getProperty(repairKey)||'')!==today){
@@ -13748,6 +13772,7 @@ function sbmRestoreTodayCompletedRowsLight_(sh){
     articles.forEach(function(a){var aid=String(a['ArticleID']||'').trim().toUpperCase(),u=sbmNormalizeUrl_(a['記事URL']||'');if(aid)articleById[aid]=a;if(u)articleByUrl[u]=a;});
     candidates.forEach(function(c){var aid=String(c&&c.articleId||'').trim().toUpperCase(),u=sbmNormalizeUrl_(c&&c.url||'');if(aid)candidateById[aid]=c;if(u)candidateByUrl[u]=c;});
     histories.forEach(function(h){
+      if(sbmIsCreatorPublicationHistoryForToday_(h))return;
       var d=h['改善日'];if(d instanceof Date)d=sbmDateText_(d);else{var pd=sbmParseDate_(d);d=pd?sbmDateText_(pd):String(d||'').replace(/\//g,'-').substring(0,10);}if(d!==today)return;
       var aid=String(h['ArticleID']||'').trim().toUpperCase(),url=sbmNormalizeUrl_(h['記事URL']||''),a=articleById[aid]||articleByUrl[url];if(!a)return;
       var work=String(a['作業状態']||'');if(work.indexOf('モニター中')<0&&work.indexOf('完了')<0)return;
@@ -13778,9 +13803,15 @@ function sbmNormalizeTodayCompletedLayoutLight_(sh){
     if(kind.indexOf('安全改善')>=0)return 5;
     return 6;
   }
+  var creatorTodayIds={};
+  try{
+    var creatorHistories=sbmRowsAsObjects_(SBM_SHEETS.FEEDBACK_HISTORY)||[],todayKey=sbmDateText_(new Date());
+    creatorHistories.forEach(function(h){var d=sbmParseDate_(h['改善日']);if(d&&sbmDateText_(d)===todayKey&&sbmIsCreatorPublicationHistoryForToday_(h)){var id=String(h['ArticleID']||'').trim().toUpperCase();if(id)creatorTodayIds[id]=true;}});
+  }catch(ignoreCreatorHistory){}
   for(var i=0;i<values.length;i++){
     var aid=String(values[i][idCol-1]||'').trim();
     if(!/^A\d+$/i.test(aid))continue;
+    if(creatorTodayIds[aid.toUpperCase()] && String(values[i][(selectCol||1)-1]||'').trim()==='終了')continue;
     rows.push({values:values[i],priority:priority_(values[i][kindCol-1]),index:i,completed:String(values[i][(selectCol||1)-1]||'').trim()==='終了'});
   }
   if(!rows.length)return 0;
