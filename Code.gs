@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 6.8.3
+ * Current version: 6.8.4
  * Release summary: Exclude Creator new-publication histories from Today completed improvement rows.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.8.3.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v6.8.4.md.
  */
 
-const SBM_VERSION = '6.8.3';
+const SBM_VERSION = '6.8.4';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -399,24 +399,32 @@ function sbmOpenDailyUpdateDialog() {
 /** v6.6.46: 日次処理ダイアログ表示後の軽量事前確認。Settingsは1回だけ読みます。 */
 function sbmGetDailyDialogPreflight() {
   var totalStarted = Date.now();
+  // v6.8.4: ダイアログ表示後に認証し、未認証では実行ボタンを有効にしない。
+  var licenseStarted = Date.now();
+  var license = sbmLicenseRc4Check_(false);
+  var licenseMs = Date.now() - licenseStarted;
+  if (!license || !license.ok) {
+    try { sbmLog_('DailyDialog','LicenseRejected','licenseMs='+licenseMs); } catch(ignore) {}
+    return {ok:false,message:String(license&&license.message||'ライセンスを確認できませんでした。'),timings:{licenseMs:licenseMs,totalMs:Date.now()-totalStarted}};
+  }
   var settingsStarted = Date.now();
   var settings = sbmGetSettingsMap_();
   var settingsMs = Date.now() - settingsStarted;
 
   if (String(settings['SetupBlogInfo'] || 'NO') !== 'YES' || String(settings['ConnectionStatus'] || '') !== 'OK') {
-    return {ok:false, message:'初回セットアップとSearch Console接続テストを完了してください。', timings:{settingsMs:settingsMs,totalMs:Date.now()-totalStarted}};
+    return {ok:false, message:'初回セットアップとSearch Console接続テストを完了してください。', timings:{licenseMs:licenseMs,settingsMs:settingsMs,totalMs:Date.now()-totalStarted}};
   }
 
   var healthStarted = Date.now();
   var activeHealth = sbmDoctorGetHealthRun_(settings);
   var healthMs = Date.now() - healthStarted;
   if (sbmDoctorIsHealthRunActivelyRunning_(activeHealth)) {
-    return {ok:false, message:'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。', timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+    return {ok:false, message:'サイト健康診断が進行中です。健康診断が完了してから日次処理を実行してください。\n\n別ブログで同時に重い処理を行うことも、Google スプレッドシート側の負荷を高めるため避けてください。', timings:{licenseMs:licenseMs,settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
   }
 
   var state = sbmDailyUpdateStatus_(settings);
-  var result = {ok:true, completedToday:state.completedToday, displayText:state.displayText, timings:{settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
-  try { sbmLog_('DailyDialog','Preflight','settings='+settingsMs+'ms health='+healthMs+'ms total='+result.timings.totalMs+'ms'); } catch(ignore) {}
+  var result = {ok:true, completedToday:state.completedToday, displayText:state.displayText, timings:{licenseMs:licenseMs,settingsMs:settingsMs,healthMs:healthMs,totalMs:Date.now()-totalStarted}};
+  try { sbmLog_('DailyDialog','Preflight','license='+licenseMs+'ms settings='+settingsMs+'ms health='+healthMs+'ms total='+result.timings.totalMs+'ms'); } catch(ignore) {}
   return result;
 }
 
@@ -430,6 +438,9 @@ function sbmRunDailyUpdateFromDialog() {
 
 /** STEP 1: Search Consoleデータを取得し、非表示の作業シートへ保存します。 */
 function sbmRunDailyFetchStageFromDialog() {
+  // v6.8.4: preflightはUI上の制御。サーバー側の実行入口でも必ず認証する。
+  var license = sbmLicenseRc4Check_(false);
+  if (!license || !license.ok) throw new Error(String(license&&license.message||'ライセンス認証が必要です。'));
   var lock = LockService.getDocumentLock();
   if (!lock.tryLock(3000)) throw new Error('前の処理がまだ終了していません。画面を閉じてもサーバー側の処理が続く場合があります。数分待ってから再実行してください。');
   var started = new Date();
@@ -1077,8 +1088,11 @@ function sbmHandleDailyUpdateError_(e) {
 }
 
 function sbmRunDailyUpdateManual() {
-  if (!sbmLicenseRequireForProcessing_()) return;
-  return sbmOpenDailyUpdateDialog();
+  // v6.8.4: 外部通信を伴うライセンス照会は表示後の非同期preflightへ移す。
+  var t0 = Date.now();
+  var result = sbmOpenDailyUpdateDialog();
+  try { sbmLog_('DailyDialog','Open','modalCallMs='+(Date.now()-t0)); } catch(ignore) {}
+  return result;
 }
 function sbmMaybePromptDailyUpdate_() { return false; }
 function sbmSkipDailyUpdateToday() { return true; }
@@ -13719,7 +13733,7 @@ function sbmTodayCompletedRowsRemembered_(){
   }catch(e){return [];}
 }
 
-/** v6.8.3: 新規記事公開履歴は「今日の改善」の終了案件ではない。 */
+/** v6.8.4: 新規記事公開履歴は「今日の改善」の終了案件ではない。 */
 function sbmIsCreatorPublicationHistoryForToday_(h){
   h=h||{};
   var route=String(h['改善経路']||'').toUpperCase();
