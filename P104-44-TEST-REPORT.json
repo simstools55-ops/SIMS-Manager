@@ -1,0 +1,13 @@
+{
+  "phase": "P104-44",
+  "baseline": "v6.8.4 / P104-43",
+  "mock_tests": "6/6 PASS",
+  "javascript_syntax": "PASS",
+  "code_gs_copies": 5,
+  "limitations": [
+    "Google Apps Script実環境未試験",
+    "履歴登録処理の内部中断点や複数シート書き込みの完全トランザクション性は未検証",
+    "P105最終統合試験は未実施"
+  ],
+  "release_gate": "NOT_APPROVED"
+}
