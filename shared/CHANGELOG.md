@@ -1,3 +1,6 @@
+## v7.0.14 (2026-10-17)
+- 特別改善進捗の後続Case参照欠落時、元CaseIDと安全な確認手順を表示。推測による完了処理や履歴変更は行わない。
+
 ## v7.0.12 (2026-10-17)
 # SIMS Manager v7.0.12 UAT
 - 特別改善のWriter処置完了は `SPECIAL_TREATMENT_COMPLETED` として保存し、通常改善の `MONITORING` と区別。

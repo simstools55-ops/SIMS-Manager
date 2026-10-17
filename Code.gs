@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.0.13
+ * Current version: 7.0.14
  * Release summary: Isolate special Case errors in resume chooser; relocate menus; improve intake guidance.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.13.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.14.md.
  */
 
-const SBM_VERSION = '7.0.13';
+const SBM_VERSION = '7.0.14';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -23578,7 +23578,7 @@ function sbmDoctorRegisterMergeTreatmentResult(){
  */
 
 /**
- * v7.0.13: Detect legacy history IDs attached to a special-improvement Case.
+ * v7.0.14: Detect legacy history IDs attached to a special-improvement Case.
  * Read-only, conservative. Does not classify by article ID alone.
  */
 function sbmSpecialIsHistoryRecord_(h){
@@ -25501,7 +25501,7 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
     if(String(v[13]||'').trim()==='受付済'&&matching.length===0){
       out[id]={label:'Doctor依頼待ち',action:'「記事管理で対象記事を選択」→「選択記事の特別改善Doctor依頼を作成」'};return;
     }
-    function uncertain(reason){out[id]={label:'要確認（'+reason+'）',action:'未完了の作業を再開からCaseを確認'};}
+    function uncertain(reason,caseId){var ref=String(caseId||'').trim();out[id]={label:'要確認（'+reason+'）'+(ref?'（'+ref+'）':''),action:ref?'Doctor_Casesで '+ref+' の状態と後続Caseの保存を確認してください。元の通常改善は継続し、新しい依頼を発行しないでください。':'受付とCaseの対応記録を確認してください。新しい依頼を発行しないでください。'};}
     if(matching.length!==1){uncertain('受付とCaseの対応が未確定または重複');return;}
     var link=matching[0],cid=String(link[1]||'').trim();
     if(!cid||String(link[2]||'').trim()!==String(v[2]||'').trim()||
@@ -25522,7 +25522,7 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
       if(metaNext&&jsonNext&&metaNext!==jsonNext){uncertain('METAと再診依頼JSONの後続Caseが不一致');return;}
       var next=metaNext||jsonNext;
       if(!next){
-        if(/^SUPERSEDED(?:_|$)/.test(state)){uncertain('後続Caseの参照情報がありません');return;}
+        if(/^SUPERSEDED(?:_|$)/.test(state)){uncertain('移管済みですが後続Caseを確認できません',cid);return;}
         break;
       }
       if(!/^SUPERSEDED(?:_|$)/.test(state)){uncertain('後続Case指定と状態が矛盾');return;}
@@ -26337,7 +26337,7 @@ function sbmSpecialResolveCaseIdentity_(ss,caseId){
   // 特別改善の明示証拠があるCaseは上段で停止済み。
   if(lr.some(function(r){return chain.indexOf(String(r[1]||'').trim())!==-1;}))
     return fail('特別改善対応表にCaseが存在します');
-  // v7.0.13: 経過観察終了後のEFFECT_AFTER_OBSERVATIONも通常Caseの正規証拠とする。特別改善の受付・継続元照合は維持。
+  // v7.0.14: 経過観察終了後のEFFECT_AFTER_OBSERVATIONも通常Caseの正規証拠とする。特別改善の受付・継続元照合は維持。
   // v7.0.11: Writer初回登録時もCase単位のDoctor/META証拠からNORMALを判定する。
   // Doctor結果のCaseID/formatを照合し、特別改善の明示証拠があれば停止する。
   var evidence=false;
