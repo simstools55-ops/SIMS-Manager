@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.0.14
+ * Current version: 7.0.16
  * Release summary: Isolate special Case errors in resume chooser; relocate menus; improve intake guidance.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.15.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.16.md.
  */
 
-const SBM_VERSION = '7.0.14';
+const SBM_VERSION = '7.0.16';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25419,12 +25419,16 @@ function sbmSpecialShowProgress(){
       var uncertain=!done&&/^要確認/.test(String(s.label||''));
       var group=done?'done':uncertain?'review':'active';
       var go=String(v[13])==='受付済'&&s.label==='Doctor依頼待ち'?'<button type="button" class="go" data-id="'+esc(id)+'" onclick="goArticle(this.dataset.id)">記事管理で対象記事を選択</button>':'';
-      return {group:group,html:'<section class="item '+(done?'completed':'')+'"><div class="heading"> <b class="article">'+esc(v[2])+'　'+esc(v[4])+'</b><span class="state">'+esc(s.label)+'</span></div>'+
-        '<div class="meta"><span><b>受付ID：</b>'+esc(id)+'</span><span><b>受付記録：</b>'+esc(v[13])+'</span></div>'+
+      var caseId=String((s.label||'').match(/CASE-[0-9]{8}-A[0-9]+-[0-9]+/)||'');
+      var doneAt=String(s.completedAt||'').trim();
+      var completedAtLabel=doneAt?'処置完了：'+doneAt+'　':'';
+      var detail='変更区分：'+String(v[7]||'未設定')+'　受付日：'+String(v[1]||'未設定');
+      return {group:group,sortDate:doneAt||String(v[1]||''),html:'<section class="item '+(done?'completed':'')+'"><div class="heading"> <b class="article">'+esc(v[2])+'　'+esc(v[4])+'</b><span class="state">'+esc(s.label)+'</span></div>'+
+        '<div class="meta"><span><b>'+esc(completedAtLabel)+'受付ID：</b>'+esc(id)+'</span><span><b>受付記録：</b>'+esc(v[13])+'</span><span>'+esc(detail)+'</span></div>'+
         '<div class="action"><b>次の操作：</b>'+esc(done?'対応不要。通常改善のモニターは継続します。':s.action||next[String(v[13])]||'確認が必要')+go+'</div></section>'};
     });
     var counts={active:0,review:0,done:0};entries.forEach(function(e){counts[e.group]++;});
-    var rows=['active','review','done'].map(function(group){var selected=entries.filter(function(e){return e.group===group;});if(!selected.length)return '';var label={active:'進行中',review:'要確認',done:'完了した案件'}[group];return '<h3 class="group-title">'+label+'（'+selected.length+'件）</h3>'+selected.map(function(e){return e.html;}).join('');}).join('');
+    var rows=['active','review','done'].map(function(group){var selected=entries.filter(function(e){return e.group===group;});if(group==='done')selected.sort(function(a,b){return String(b.sortDate||'').localeCompare(String(a.sortDate||''));});if(!selected.length)return '';var label={active:'進行中',review:'要確認',done:'完了した案件'}[group];return '<h3 class="group-title">'+label+'（'+selected.length+'件）</h3>'+selected.map(function(e){return e.html;}).join('');}).join('');
     var html='<!DOCTYPE html><html lang="ja"><head><base target="_top"><meta charset="UTF-8"><style>'+
       'body{font-family:Arial,"Noto Sans JP",sans-serif;color:#242424;margin:0;padding:16px;font-size:13px;box-sizing:border-box}*{box-sizing:border-box}'+
       'h2{font-size:18px;margin:0 0 8px}.note{color:#555;margin:0 0 12px;line-height:1.6}'+
@@ -25539,11 +25543,11 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
       }
       cid=next;
     }
-    // v7.0.15: a completed special intake is not an active task, even if
+    // v7.0.16: a completed special intake is not an active task, even if
     // the ordinary improvement continues monitoring in its separate history.
     if(state==='SPECIAL_TREATMENT_COMPLETED' ||
        ['追加修正なし・完了','記事変更なし・完了'].indexOf(String(v[13]||''))>=0){
-      out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,
+      out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,completedAt:String(cm['更新日時']?r[cm['更新日時']-1]||'':''),
         action:'対応不要。通常改善のモニターは継続します。'};
       return;
     }
@@ -25569,7 +25573,7 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
         String(writer.referral_compliance&&writer.referral_compliance.treatment_level||'')===
         String(doctor.treatment_plan&&doctor.treatment_plan.strategy||'');
       if(finished){
-        out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,
+        out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,completedAt:String(cm['更新日時']?r[cm['更新日時']-1]||'':''),
           action:'特別改善の追加操作は不要です。通常の改善サイクルはモニター中（履歴・測定は変更しません）。'};
         return;
       }
