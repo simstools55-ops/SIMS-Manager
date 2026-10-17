@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.0.16
+ * Current version: 7.0.17
  * Release summary: Isolate special Case errors in resume chooser; relocate menus; improve intake guidance.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.16.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.17.md.
  */
 
-const SBM_VERSION = '7.0.16';
+const SBM_VERSION = '7.0.17';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25133,7 +25133,7 @@ function sbmSpecialStartIntake(){
     var pending=sbmSpecialFindActiveIntakes_(a.articleId,a.url);
     if(pending.length){sbmSpecialErrorDialogV6840_('進行中の特別改善があります','記事ID：'+a.articleId+'\n受付ID：'+pending.map(function(x){return x.intakeId+'（'+x.status+'）';}).join('、')+'\n新規受付はできません。既存の特別改善を再開してください。');return;}
     var json=JSON.stringify(a).replace(/</g,'\u003c');
-    var html='<!doctype html><html><head><base target="_top"><style>body{font:14px Arial,sans-serif;padding:20px;color:#222}label{display:block;margin-top:12px;font-weight:bold}input,select,textarea{width:100%;box-sizing:border-box;padding:8px;margin-top:4px}button{margin-top:18px;padding:10px 18px}small{color:#555}</style></head><body><h2>特別改善を受付</h2><div id="article"></div><small>この段階では元の作業状態・効果測定を変更しません。</small><label>変更区分</label><select id="kind"><option>サービス名称変更</option><option>料金改定</option><option>仕様変更</option><option>サービス終了</option><option>その他</option></select><label>変更理由（必須）</label><textarea id="reason" rows="2"></textarea><label>変更内容・Doctorに確認してほしい事項（必須）</label><textarea id="detail" rows="4"></textarea><label>変更前</label><input id="before"><label>変更後</label><input id="after"><label>公式情報URL（任意）</label><input id="source" type="url"><button id="save" onclick="save()">受付を保存</button><p id="message" role="status"></p><script>var article='+json+';document.getElementById("article").textContent=article.articleId+"　"+article.title+"（"+article.work+"）";function save(){var b=document.getElementById("save"),m=document.getElementById("message");var p={articleId:article.articleId,url:article.url,kind:document.getElementById("kind").value,reason:document.getElementById("reason").value,detail:document.getElementById("detail").value,before:document.getElementById("before").value,after:document.getElementById("after").value,source:document.getElementById("source").value};if(!p.reason.trim()||!p.detail.trim()){m.textContent="変更理由と確認事項は必須です。";return;}if(!confirm("次の内容で特別改善を受付しますか？\n\n記事ID: "+p.articleId+"\n変更区分: "+p.kind+"\n変更理由: "+p.reason+"\n確認事項: "+p.detail+"\n変更前: "+p.before+"\n変更後: "+p.after+"\n公式情報URL: "+p.source+"\n\n［OK］で確定・保存、［キャンセル］で入力に戻ります。"))return;b.disabled=true;m.textContent="保存しています…";google.script.run.withSuccessHandler(function(r){m.textContent="受付を保存しました："+r.intakeId+"。記事管理メニューの「特別改善の進行状況を確認」で状態を確認してください。Doctor依頼は「記事管理」→「選択記事の特別改善Doctor依頼を作成」から発行してください。受付済みの同じ記事を選択して実行します。";}).withFailureHandler(function(e){b.disabled=false;m.textContent="保存できません："+e.message;}).sbmSpecialSaveIntake(p);}</script></body></html>';
+    var html="<!doctype html><html><head><base target=\"_top\"><style>\nbody{font:14px Arial,sans-serif;padding:18px;color:#222}label{display:block;margin-top:12px;font-weight:bold}input,select,textarea{width:100%;box-sizing:border-box;padding:8px;margin-top:4px;border:1px solid #bbb;border-radius:4px}button{margin:14px 8px 0 0;padding:10px 16px;cursor:pointer}small{color:#555}.hint{font-size:12px;color:#555;margin-top:4px}.error{color:#b42318;white-space:pre-wrap}.ok{color:#067647;white-space:pre-wrap}.preview{background:#f7f7f7;border:1px solid #ddd;border-radius:6px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}#confirmPanel{display:none}#savedPanel{display:none}\n</style></head><body><h2>特別改善を受付</h2><div id=\"article\"></div><small>この段階では元の作業状態・効果測定を変更しません。</small>\n<section id=\"inputPanel\"><label>変更区分</label><select id=\"kind\"><option>サービス名称変更</option><option>料金改定</option><option>仕様変更</option><option>サービス終了</option><option>その他</option></select><label>変更理由（必須）</label><textarea id=\"reason\" rows=\"2\"></textarea><label>変更内容・Doctorに確認してほしい事項（必須）</label><textarea id=\"detail\" rows=\"4\"></textarea><label>変更前</label><input id=\"before\"><label>変更後</label><input id=\"after\"><label>公式情報URL（任意・1行に1URL）</label><textarea id=\"source\" rows=\"5\" placeholder=\"https://example.com/notice1\\nhttps://example.com/notice2\"></textarea><div class=\"hint\">複数のURLは改行で区切ってください。URL同士は結合しません。</div><button id=\"review\" onclick=\"reviewInput()\">入力内容を確認</button></section>\n<section id=\"confirmPanel\"><h3>受付内容の最終確認</h3><div id=\"preview\" class=\"preview\"></div><button id=\"back\" onclick=\"backToInput()\">入力に戻る</button><button id=\"save\" onclick=\"save()\">この内容で受付を保存</button></section><section id=\"savedPanel\"><h3>受付を保存しました</h3><div id=\"receipt\" class=\"ok\"></div></section><p id=\"message\" role=\"status\"></p>\n<script>\nvar article="+json+",payload=null,saving=false,saved=false;\ndocument.getElementById('article').textContent=article.articleId+'　'+article.title+'（'+article.work+'）';\nfunction val(id){return document.getElementById(id).value;}\nfunction setMessage(t,isError){var m=document.getElementById('message');m.className=isError?'error':'ok';m.textContent=t;}\nfunction urls(raw){var lines=String(raw||'').replace(/\\r/g,'\\n').split('\\n').map(function(x){return x.trim();}).filter(Boolean);if(lines.length>20)throw new Error('公式情報URLは20件以内にしてください。');lines.forEach(function(x,i){if(!/^https?:\\/\\/[^\\s]+$/i.test(x))throw new Error('公式情報URLの'+(i+1)+'行目が正しくありません。http(s)://から入力してください。');});return lines;}\nfunction reviewInput(){try{var reason=val('reason').trim(),detail=val('detail').trim();if(!reason||!detail)throw new Error('変更理由と確認事項は必須です。');var links=urls(val('source'));payload={articleId:article.articleId,url:article.url,kind:val('kind'),reason:reason,detail:detail,before:val('before').trim(),after:val('after').trim(),source:links.join('\\n')};document.getElementById('preview').textContent='記事ID: '+payload.articleId+'\\n記事: '+article.title+'\\n変更区分: '+payload.kind+'\\n変更理由: '+payload.reason+'\\n確認事項: '+payload.detail+'\\n変更前: '+payload.before+'\\n変更後: '+payload.after+'\\n公式情報URL ('+links.length+'件):\\n'+(links.join('\\n')||'なし');document.getElementById('inputPanel').style.display='none';document.getElementById('confirmPanel').style.display='block';setMessage('',false);}catch(e){setMessage(e.message,true);}}\nfunction backToInput(){if(saving||saved)return;document.getElementById('confirmPanel').style.display='none';document.getElementById('inputPanel').style.display='block';setMessage('',false);}\nfunction save(){if(saving||saved||!payload)return;saving=true;document.getElementById('save').disabled=true;document.getElementById('back').disabled=true;setMessage('保存しています…',false);google.script.run.withSuccessHandler(function(r){saving=false;saved=true;document.getElementById('confirmPanel').style.display='none';document.getElementById('savedPanel').style.display='block';document.getElementById('receipt').textContent='受付ID: '+r.intakeId+'\\n記事管理メニューから「特別改善の進行状況を確認」できます。\\nDoctor依頼は「選択記事の特別改善Doctor依頼を作成」から発行してください。';setMessage('',false);}).withFailureHandler(function(e){saving=false;document.getElementById('save').disabled=false;document.getElementById('back').disabled=false;setMessage('保存できません: '+(e&&e.message||e),true);}).sbmSpecialSaveIntake(payload);}\n</script></body></html>";
     sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(570).setHeight(690),'特別改善を受付');
   }catch(e){sbmAlert_('特別改善を開始できません',String(e.message||e));}
 }
@@ -25148,8 +25148,10 @@ function sbmSpecialSaveIntake(p){
   if(reason.length>2000||detail.length>10000)throw new Error('入力が長すぎます。');
   var kind=String(p.kind||'その他').trim();
   if(['サービス名称変更','料金改定','仕様変更','サービス終了','その他'].indexOf(kind)<0)throw new Error('変更区分が不正です。');
-  var source=String(p.source||'').trim();
-  if(source&&!/^https?:[/][/]/i.test(source))throw new Error('公式情報URLはhttp(s)形式で入力してください。');
+  var source=String(p.source||'').replace(/\r/g,'\n').split('\n').map(function(x){return String(x||'').trim();}).filter(Boolean);
+  if(source.length>20)throw new Error('公式情報URLは20件以内にしてください。');
+  for(var si=0;si<source.length;si++)if(!/^https?:[/][/][^\s]+$/i.test(source[si]))throw new Error('公式情報URLの'+(si+1)+'行目が正しくありません。');
+  source=source.join('\n');
   var lock=LockService.getDocumentLock()||LockService.getScriptLock();lock.waitLock(20000);
   try{
     var ss=SpreadsheetApp.getActiveSpreadsheet(),db=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);
@@ -25543,7 +25545,7 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
       }
       cid=next;
     }
-    // v7.0.16: a completed special intake is not an active task, even if
+    // v7.0.17: a completed special intake is not an active task, even if
     // the ordinary improvement continues monitoring in its separate history.
     if(state==='SPECIAL_TREATMENT_COMPLETED' ||
        ['追加修正なし・完了','記事変更なし・完了'].indexOf(String(v[13]||''))>=0){

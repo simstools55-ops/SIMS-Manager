@@ -1,9 +1,9 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "7.0.16",
+  "current_version": "7.0.17",
   "release_status": "UAT_CANDIDATE",
-  "notes": "v7.0.16: completed special improvements sorted newest first with intake details",
-  "version": "7.0.16",
+  "notes": "v7.0.17: completed special improvements sorted newest first with intake details",
+  "version": "7.0.17",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
