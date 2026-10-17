@@ -1,0 +1,1 @@
+fix(manager): accept verified aDoctor V2 special improvement treatment handoff (v7.0.4)

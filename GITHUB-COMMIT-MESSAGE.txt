@@ -1,1 +1,1 @@
-feat(manager): integrate v6.8.5 production fixes and P104 safeguards in v7.0.0 UAT
+feat(manager): add special intake confirmation and Doctor request entry in v7.0.2 UAT

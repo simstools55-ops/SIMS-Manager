@@ -1,0 +1,1 @@
+fix(manager): preserve special improvement cases and improve progress UI (v7.0.5)

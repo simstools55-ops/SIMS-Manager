@@ -1,3 +1,70 @@
+## v7.0.12 (2026-10-17)
+# SIMS Manager v7.0.12 UAT
+- 特別改善のWriter処置完了は `SPECIAL_TREATMENT_COMPLETED` として保存し、通常改善の `MONITORING` と区別。
+- 特別改善結果の重複登録を冪等化。
+- 通常改善の旧モニター履歴を終了する直前にCase種別と特別改善履歴リンクを検証し、特別改善による終了を禁止。
+- 既存の通常改善測定履歴・記事管理の作業状態は変更しない。
+- 実Google Apps Scriptでの回帰試験は未実施。特別改善登録画面・Case一覧の新状態表示を要確認。
+
+# v7.0.11 UAT — Special history exclusion hardening
+
+- Prevent legacy special Case histories from entering the bulk/daily effect-row upsert path.
+- Exclude explicitly tagged special histories from ordinary monitoring-cycle selection, active-row repair, and Home cumulative improvement metrics.
+- Exclude special histories from Doctor active monitoring cutoff calculation.
+- Preserve H000033 measured history and H000055 special Case link; no data migration is executed on install.
+- Verification: static syntax and mirrored Code.gs consistency only. Apps Script runtime/daily-run verification pending.
+
+# v7.0.11
+# SIMS Manager v7.0.11 UAT
+- Legacy special-improvement history IDs linked through 特別改善Case対応 → Doctor_Cases are rejected by the ordinary effect-row synchronization path.
+- The check is read-only and matches CaseID, not merely ArticleID.
+- Does not modify H000033, H000055, or the existing 改善の推移 row.
+- Historical repair remains pending; no production Apps Script regression test has been run.
+
+# v7.0.11
+# SIMS Manager v7.0.11 — UAT
+
+- 通常改善Caseと同じ記事に特別改善受付があっても、別Caseであれば通常改善を許可する。
+- 特別改善は継続元CaseIDと特別改善受付・Case対応表で判定する。Case内の特別改善証拠が不整合なら安全停止。
+- Writer初回登録はDoctor結果またはWorkflow METAを証拠として扱う。
+- H000033/H000055の実データ復旧は未実施。履歴・測定行の自動移行はしない。
+- Apps Script実機試験は未実施。
+
+# v7.0.8
+# SIMS Manager v7.0.8 UAT
+
+- 通常Caseの初回Writer結果登録時、Doctor結果だけで通常Caseと識別できるよう修正。
+- 特別改善の受付・Case紐付け検証、同一記事の特別改善受付による安全停止は維持。
+- H000033/H000055の履歴・測定データは変更しない。移行は未実施。
+- Google Apps Script実機での回帰試験は未実施。
+
+# v7.0.7
+# SIMS Manager v7.0.7 — UAT
+- 特別改善CaseのWriter完了時、通常改善履歴の新規作成・旧履歴の終了・効果測定行同期を行わない。
+- Case所属が不明な場合は登録を停止する（fail closed）。
+- 既存のH000033/H000055は自動移行しない。既存の測定行は別途監査する。
+- 通常改善・Merge経路は既存処理を維持。
+- Apps Script実機の回帰試験は未実施。
+
+## v7.0.6 (2026-10-17)
+- 特別改善の進行状況：Doctor/Writer回答の同一性・完了を検証して、通常のMONITORINGとは別に処置完了を表示。
+- 読み取り専用の表示変更。改善履歴、記事管理、効果測定の状態は更新しない。
+- Doctor/Writer原本が不足・不整合の場合は完了とみなさない。
+
+## v7.0.5 (2026-10-17)
+- Preserve special-linked Case/Workflow records during effect-transfer cleanup (single and batch).
+- Responsive special progress cards and explicit missing-Case diagnostic.
+- Existing missing Case is not reconstructed automatically; manual recovery requires independent evidence.
+
+## v7.0.4 (2026-10-17)
+- Doctor V2 special improvement: strictly infer ARTICLE_CHANGE_REQUIRED from matching intake, Case, Request, verified assessment and consistent Writer/Merge handoff. Keep existing KEEP/RESTORE semantics distinct.
+- Preserve explicit decision precedence and fail closed on ambiguity.
+
+## v7.0.3 (2026-10-17) — UAT
+- 特別改善受付済み・Case未発行を正常なDoctor依頼待ちとして表示。
+- 進行状況に対象記事管理行への移動ボタンを追加（読取・選択のみ）。
+- A000001のCase対応は自動補修せず安全側で保留。
+
 ## v7.0.0 (2026-10-17) — UAT統合版
 - 実運用v6.8.5の「統合吸収元・管理対象外を再診処置候補から除外」修正を保持。
 - P104で追加したDoctor依頼のロック・再実行保護、統合完了の二重登録防止、履歴ID欠落時の停止ガードを統合。
@@ -1726,3 +1793,6 @@ v6.6.73
 
 ## v6.8.5
 - 再診候補生成時に統合済み・管理対象外の記事を除外。
+
+## v7.0.2 UAT
+- Add special Doctor request menu entry, intake confirmation, and next-step guidance. No Case auto-repair.
