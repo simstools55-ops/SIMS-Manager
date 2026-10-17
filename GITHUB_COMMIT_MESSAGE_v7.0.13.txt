@@ -1,0 +1,1 @@
+fix(manager): accept observation follow-up workflow in Writer case validation (v7.0.13)

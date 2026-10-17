@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.0.12
+ * Current version: 7.0.13
  * Release summary: Isolate special Case errors in resume chooser; relocate menus; improve intake guidance.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.12.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.13.md.
  */
 
-const SBM_VERSION = '7.0.12';
+const SBM_VERSION = '7.0.13';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -23578,7 +23578,7 @@ function sbmDoctorRegisterMergeTreatmentResult(){
  */
 
 /**
- * v7.0.12: Detect legacy history IDs attached to a special-improvement Case.
+ * v7.0.13: Detect legacy history IDs attached to a special-improvement Case.
  * Read-only, conservative. Does not classify by article ID alone.
  */
 function sbmSpecialIsHistoryRecord_(h){
@@ -26303,7 +26303,7 @@ function sbmSpecialResolveCaseIdentity_(ss,caseId){
     if(m.case_id&&String(m.case_id)!==key)return fail('METAのCaseIDが一致しません');
     if(m.article_id&&String(m.article_id)!==String(current[h['記事ID']-1]||'').trim())return fail('METAの記事IDが一致しません');
     if(m.history_id&&history&&String(m.history_id)!==history)return fail('METAの履歴IDが一致しません');
-    if(m.workflow_type&&m.workflow_type!=='SPECIAL_IMPROVEMENT'&&m.workflow_type!=='NORMAL_IMPROVEMENT')
+    if(m.workflow_type&&['SPECIAL_IMPROVEMENT','NORMAL_IMPROVEMENT','EFFECT_AFTER_OBSERVATION'].indexOf(String(m.workflow_type))===-1)
       return fail('METAのワークフロー種別が不明です');
     if(m.continuation_from_case_id&&j+1<chain.length&&String(m.continuation_from_case_id)!==chain[j+1])
       return fail('METAの継続元が一致しません');
@@ -26337,13 +26337,14 @@ function sbmSpecialResolveCaseIdentity_(ss,caseId){
   // 特別改善の明示証拠があるCaseは上段で停止済み。
   if(lr.some(function(r){return chain.indexOf(String(r[1]||'').trim())!==-1;}))
     return fail('特別改善対応表にCaseが存在します');
+  // v7.0.13: 経過観察終了後のEFFECT_AFTER_OBSERVATIONも通常Caseの正規証拠とする。特別改善の受付・継続元照合は維持。
   // v7.0.11: Writer初回登録時もCase単位のDoctor/META証拠からNORMALを判定する。
   // Doctor結果のCaseID/formatを照合し、特別改善の明示証拠があれば停止する。
   var evidence=false;
   for(var k=0;k<chain.length;k++){
     var cr=byId[chain[k]];
     var metaType=String((metas[chain[k]]||{}).workflow_type||'');
-    if(metaType==='NORMAL_IMPROVEMENT')evidence=true;
+    if(metaType==='NORMAL_IMPROVEMENT'||metaType==='EFFECT_AFTER_OBSERVATION')evidence=true;
     if(!h['Doctor結果JSON'])continue;
     var doctorRaw=String(cr[h['Doctor結果JSON']-1]||'').trim();
     if(!doctorRaw)continue;

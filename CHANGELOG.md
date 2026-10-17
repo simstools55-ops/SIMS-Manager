@@ -1,3 +1,7 @@
+## v7.0.13 (2026-10-17)
+- Fix: Accept EFFECT_AFTER_OBSERVATION as a valid Doctor Case workflow type for aWriter result registration.
+- Preserve Case-chain, article/history matching, and special-intake safety guards.
+
 ## v7.0.12 (2026-10-17)
 # SIMS Manager v7.0.12 UAT
 - 特別改善のWriter処置完了は `SPECIAL_TREATMENT_COMPLETED` として保存し、通常改善の `MONITORING` と区別。
