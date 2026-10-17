@@ -1,7 +1,10 @@
-## v7.0.14 (2026-10-17)
+## v7.0.15
+- 特別改善進捗一覧に完了案件の下部グレーアウト表示を追加。
+
+## v7.0.15 (2026-10-17)
 - 特別改善進捗の後続Case参照欠落時、元CaseIDと安全な確認手順を表示。推測による完了処理や履歴変更は行わない。
 
-## v7.0.14 (2026-10-17)
+## v7.0.15 (2026-10-17)
 - Fix: Accept EFFECT_AFTER_OBSERVATION as a valid Doctor Case workflow type for aWriter result registration.
 - Preserve Case-chain, article/history matching, and special-intake safety guards.
 

@@ -5,7 +5,7 @@
  *
  * Current version: 7.0.14
  * Release summary: Isolate special Case errors in resume chooser; relocate menus; improve intake guidance.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.14.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.0.15.md.
  */
 
 const SBM_VERSION = '7.0.14';
@@ -23578,7 +23578,7 @@ function sbmDoctorRegisterMergeTreatmentResult(){
  */
 
 /**
- * v7.0.14: Detect legacy history IDs attached to a special-improvement Case.
+ * v7.0.15: Detect legacy history IDs attached to a special-improvement Case.
  * Read-only, conservative. Does not classify by article ID alone.
  */
 function sbmSpecialIsHistoryRecord_(h){
@@ -25408,27 +25408,33 @@ function sbmSpecialShowProgress(){
     var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName(SBM_SPECIAL_INTAKE_SHEET);
     if(!sh||sh.getLastRow()<2)return sbmAlert_('特別改善の進行状況','受付済みの特別改善はありません。');
     var vals=sh.getRange(2,1,sh.getLastRow()-1,SBM_SPECIAL_INTAKE_HEADERS.length).getDisplayValues();
-    var active=vals.filter(function(v){return ['受付済','Doctor依頼発行済','旧サイクル中断済','特別改善中'].indexOf(String(v[13]))>=0;});
-    if(!active.length)return sbmAlert_('特別改善の進行状況','進行中の特別改善はありません。');
+    var active=vals.filter(function(v){return ['受付済','Doctor依頼発行済','旧サイクル中断済','特別改善中','追加修正なし・完了','記事変更なし・完了'].indexOf(String(v[13]))>=0;});
+    if(!active.length)return sbmAlert_('特別改善の進行状況','表示対象の特別改善はありません。');
     var next={'受付済':'記事管理からDoctor依頼を発行','Doctor依頼発行済':'Doctor結果の登録と旧サイクル中断の整合確認','旧サイクル中断済':'新サイクルへの移行確認','特別改善中':'未完了の作業を再開からDoctor／Writer処置を継続'};
     var status=sbmSpecialReadOnlyCaseProgress_(ss,active);
     var esc=function(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');};
-    var rows=active.slice().reverse().map(function(v){
+    var entries=active.slice().reverse().map(function(v){
       var id=String(v[0]||''),s=status[id]||{label:'要確認（対応するCaseを特定できません）',action:'Caseと履歴の整合を確認'};
+      var done=!!s.completed||['追加修正なし・完了','記事変更なし・完了'].indexOf(String(v[13]))>=0;
+      var uncertain=!done&&/^要確認/.test(String(s.label||''));
+      var group=done?'done':uncertain?'review':'active';
       var go=String(v[13])==='受付済'&&s.label==='Doctor依頼待ち'?'<button type="button" class="go" data-id="'+esc(id)+'" onclick="goArticle(this.dataset.id)">記事管理で対象記事を選択</button>':'';
-      return '<section class="item"><div class="heading"><b class="article">'+esc(v[2])+'　'+esc(v[4])+'</b><span class="state">'+esc(s.label)+'</span></div>'+
+      return {group:group,html:'<section class="item '+(done?'completed':'')+'"><div class="heading"> <b class="article">'+esc(v[2])+'　'+esc(v[4])+'</b><span class="state">'+esc(s.label)+'</span></div>'+
         '<div class="meta"><span><b>受付ID：</b>'+esc(id)+'</span><span><b>受付記録：</b>'+esc(v[13])+'</span></div>'+
-        '<div class="action"><b>次の操作：</b>'+esc(s.action||next[String(v[13])]||'確認が必要')+go+'</div></section>';
-    }).join('');
+        '<div class="action"><b>次の操作：</b>'+esc(done?'対応不要。通常改善のモニターは継続します。':s.action||next[String(v[13])]||'確認が必要')+go+'</div></section>'};
+    });
+    var counts={active:0,review:0,done:0};entries.forEach(function(e){counts[e.group]++;});
+    var rows=['active','review','done'].map(function(group){var selected=entries.filter(function(e){return e.group===group;});if(!selected.length)return '';var label={active:'進行中',review:'要確認',done:'完了した案件'}[group];return '<h3 class="group-title">'+label+'（'+selected.length+'件）</h3>'+selected.map(function(e){return e.html;}).join('');}).join('');
     var html='<!DOCTYPE html><html lang="ja"><head><base target="_top"><meta charset="UTF-8"><style>'+
       'body{font-family:Arial,"Noto Sans JP",sans-serif;color:#242424;margin:0;padding:16px;font-size:13px;box-sizing:border-box}*{box-sizing:border-box}'+
       'h2{font-size:18px;margin:0 0 8px}.note{color:#555;margin:0 0 12px;line-height:1.6}'+
       '.wrap{max-height:560px;overflow-y:auto;overflow-x:hidden}.item{border:1px solid #ddd;border-radius:7px;padding:14px;margin-bottom:10px}'+
       '.heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.article{flex:1 1 340px;font-size:14px;overflow-wrap:anywhere}.state{flex:0 1 360px;font-weight:bold;overflow-wrap:anywhere}'+
+      '.completed{background:#f2f2f2;color:#777;border-color:#e0e0e0}.completed .meta,.completed .state{color:#888}.completed .action{background:#e9e9e9;color:#777}.group-title{font-size:14px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #ddd}'+
       '.meta{display:flex;gap:10px 24px;flex-wrap:wrap;margin:10px 0;color:#555}.meta span{overflow-wrap:anywhere}.action{background:#f6f6f6;padding:10px;line-height:1.6;overflow-wrap:anywhere}'+
       'button{padding:8px 16px;cursor:pointer;margin-top:12px}.go{display:block}'+
       '</style></head><body><h2>特別改善の進行状況</h2>'+
-      '<p class="note">現在地はDoctor Caseから判定します。受付記録は保存時点の値です（読み取り専用）。全'+active.length+'件。</p>'+
+      '<p class="note">現在地はDoctor Caseから判定します。受付記録は保存時点の値です（読み取り専用）。進行中 '+counts.active+'件｜要確認 '+counts.review+'件｜完了 '+counts.done+'件。</p>'+
       '<div class="wrap">'+rows+'</div><p id="navMessage" role="status"></p><button type="button" onclick="google.script.host.close()">閉じる</button>'+
       '<script>function goArticle(id){var m=document.getElementById("navMessage");m.textContent="対象記事を検索しています…";google.script.run.withSuccessHandler(function(r){if(r&&r.ok){google.script.host.close();}else{m.textContent=r&&r.message||"対象記事を選択できませんでした";}}).withFailureHandler(function(e){m.textContent=e.message;}).sbmSpecialSelectArticleFromIntake(id);}</script></body></html>';
     SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(1160).setHeight(700),'特別改善の進行状況');
@@ -25533,6 +25539,14 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
       }
       cid=next;
     }
+    // v7.0.15: a completed special intake is not an active task, even if
+    // the ordinary improvement continues monitoring in its separate history.
+    if(state==='SPECIAL_TREATMENT_COMPLETED' ||
+       ['追加修正なし・完了','記事変更なし・完了'].indexOf(String(v[13]||''))>=0){
+      out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,
+        action:'対応不要。通常改善のモニターは継続します。'};
+      return;
+    }
     // v7.0.6: special-improvement treatment completion is distinct from
     // the ordinary article monitoring lifecycle. Never infer completion from
     // MONITORING alone; require both persisted original responses and matching
@@ -25555,7 +25569,7 @@ function sbmSpecialReadOnlyCaseProgress_(ss,intakes){
         String(writer.referral_compliance&&writer.referral_compliance.treatment_level||'')===
         String(doctor.treatment_plan&&doctor.treatment_plan.strategy||'');
       if(finished){
-        out[id]={label:'特別改善の処置完了（'+cid+'）',
+        out[id]={label:'特別改善の処置完了（'+cid+'）',completed:true,
           action:'特別改善の追加操作は不要です。通常の改善サイクルはモニター中（履歴・測定は変更しません）。'};
         return;
       }
@@ -26337,7 +26351,7 @@ function sbmSpecialResolveCaseIdentity_(ss,caseId){
   // 特別改善の明示証拠があるCaseは上段で停止済み。
   if(lr.some(function(r){return chain.indexOf(String(r[1]||'').trim())!==-1;}))
     return fail('特別改善対応表にCaseが存在します');
-  // v7.0.14: 経過観察終了後のEFFECT_AFTER_OBSERVATIONも通常Caseの正規証拠とする。特別改善の受付・継続元照合は維持。
+  // v7.0.15: 経過観察終了後のEFFECT_AFTER_OBSERVATIONも通常Caseの正規証拠とする。特別改善の受付・継続元照合は維持。
   // v7.0.11: Writer初回登録時もCase単位のDoctor/META証拠からNORMALを判定する。
   // Doctor結果のCaseID/formatを照合し、特別改善の明示証拠があれば停止する。
   var evidence=false;
