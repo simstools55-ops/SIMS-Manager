@@ -1752,3 +1752,6 @@ v6.6.73
 
 ## v7.1.2 (UAT candidate)
 - Immutable emergency payload and intake commit ordering; structured response requirements.
+
+## v7.1.8
+- Article management selected-row entry, separated menu placement, prefilled read-only article identity.

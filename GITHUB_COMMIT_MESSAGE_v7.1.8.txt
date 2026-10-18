@@ -1,0 +1,1 @@
+feat(manager): launch special improvement from selected article row (v7.1.8)
