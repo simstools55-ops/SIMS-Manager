@@ -1,3 +1,13 @@
+## v7.1.7 — 特別改善ナビUI改修（2026-10-18）
+
+- 受付／Doctor／Writer／公開・完了の固定タブ。依頼文→回答欄の順序を統一。
+- 原本を読み取り専用で再表示し、前工程に戻って参照可能。依頼文コピー・進行状況表示。
+- Full限定・通常改善との独立・原本保存・状態遷移は変更しない。
+- UAT候補：実環境でのUI動作は未確認。
+
+## v7.1.6 (2026-10-18)
+- 特別改善の破棄結果を読み戻し検証し、ログ・UIにCaseIDを明示。UAT診断版。
+
 ## v7.1.4
 - Emergency intake PREPARING reservation, publication finalization lookup, idempotent completion.
 

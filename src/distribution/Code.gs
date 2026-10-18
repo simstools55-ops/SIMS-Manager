@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.1.3
- * Release summary: Independent emergency improvement workflow; normal cycles are untouched.
+ * Current version: 7.1.6
+ * Release summary: Verified emergency cancellation with explicit result and audit logs; normal cycles untouched.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.1.5.md.
  */
 
-const SBM_VERSION = '7.1.3';
+const SBM_VERSION = '7.1.6';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -24642,7 +24642,27 @@ function sbmEmergencyComplete(id,confirmation){
   });
 }
 function sbmEmergencyCancel(id){
-  sbmEmergencyRequireFull_();return sbmEmergencyLock_(function(){var x=sbmEmergencySheets_(),r=sbmEmergencyFind_(x.sh,id);if(r.v[6]==='COMPLETED')throw Error('完了案件は取り消せません。');x.sh.getRange(r.row,7).setValue('ABANDONED');x.sh.getRange(r.row,3).setValue(new Date());return {id:id,stage:'ABANDONED'};});
+  sbmEmergencyRequireFull_();
+  return sbmEmergencyLock_(function(){
+    var x=sbmEmergencySheets_(),r=sbmEmergencyFind_(x.sh,id),before=String(r.v[6]);
+    var audit={operation:'emergency_cancel',case_id:String(id),spreadsheet_id:x.ss.getId(),sheet_id:x.sh.getSheetId(),row:r.row,before:before};
+    console.log('SIMS_EMERGENCY_CANCEL_BEGIN '+JSON.stringify(audit));
+    if(before==='COMPLETED')throw Error('完了案件は取り消せません。');
+    if(before==='ABANDONED'){
+      console.log('SIMS_EMERGENCY_CANCEL_ALREADY_ABANDONED '+JSON.stringify(audit));
+      return {id:String(id),stage:'ABANDONED',verified:true,alreadyAbandoned:true};
+    }
+    if(['PREPARING','DOCTOR_PENDING','WRITER_PENDING','PUBLISH_PENDING'].indexOf(before)<0)
+      throw Error('破棄対象の状態が不正です: '+before);
+    x.sh.getRange(r.row,7).setValue('ABANDONED');
+    x.sh.getRange(r.row,3).setValue(new Date());
+    SpreadsheetApp.flush();
+    var verified=sbmEmergencyFind_(x.sh,id),after=String(verified.v[6]);
+    audit.after=after;
+    console.log('SIMS_EMERGENCY_CANCEL_VERIFY '+JSON.stringify(audit));
+    if(after!=='ABANDONED')throw Error('破棄後の保存確認に失敗しました。状態='+after+' / CaseID='+id);
+    return {id:String(id),stage:'ABANDONED',verified:true};
+  });
 }
 function sbmEmergencyLookupForAbandonment(articleId){
   sbmEmergencyRequireFull_();articleId=String(articleId||'').trim();
@@ -24668,6 +24688,6 @@ function sbmEmergencyLookupForFinalization(articleId){
 }
 function sbmEmergencyOpen(){
   sbmEmergencyRequireFull_();
-  var html=HtmlService.createHtmlOutput('<!doctype html><html lang="ja"><meta charset="utf-8"><style>body{font:14px sans-serif;padding:14px}input,textarea{width:100%;box-sizing:border-box;margin:5px 0 12px;padding:7px}textarea{height:150px}button{padding:9px;margin:5px 4px 5px 0}pre{white-space:pre-wrap;overflow:auto;max-height:250px;background:#f5f5f5;padding:10px}small{color:#555}</style><h3>特別改善・独立完結</h3><small>途中で閉じた場合、既存案件は破棄してから新規受付してください。通常改善の状態は変更しません。公開済みの場合は重複公開しないでください。</small><p>記事ID<input id="aid" placeholder="A000006">記事URL<input id="url" placeholder="https://...">変更理由<textarea id="reason"></textarea><button onclick="start()">新規受付・Doctor依頼作成</button><button onclick="lookupFinal()">公開済み案件の完了確認</button><button onclick="lookupAbandon()">中断案件を確認・破棄</button></p><hr><div id="stage"></div><pre id="out"></pre><script>let cid="",state="";function err(e){alert(e.message||e)}function show(r){cid=r.id;state=r.stage;document.getElementById("out").textContent=r.prompt||r.stage;let s=document.getElementById("stage");s.innerHTML="";if(state==="DOCTOR_PENDING"||state==="WRITER_PENDING"){s.innerHTML="<p>依頼文をコピーして外部AIへ渡し、RequestID・CaseID・記事ID・URLと、Doctorはfindings、Writerはrevised_articleとchange_summaryを含むJSON回答を下欄に貼り付けてください。</p><textarea id=answer></textarea><button id=submit>回答を登録</button><button id=cancel>中断・破棄</button>";document.getElementById("submit").onclick=submit;document.getElementById("cancel").onclick=cancel;}else if(state==="PUBLISH_PENDING"){s.innerHTML="<p>利用者が記事を修正・公開し、公開ページを確認してから完了してください。</p><button id=done>公開確認済み・完了登録</button><button id=cancel>中断・破棄</button>";document.getElementById("done").onclick=done;document.getElementById("cancel").onclick=cancel;}}function lookupAbandon(){google.script.run.withSuccessHandler(function(r){if(!confirm("記事 "+r.articleId+" の進行中案件 "+r.id+"（"+r.stage+"）を破棄しますか？公開済みの場合は重複修正を避け、先に完了確認してください。"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyCancel(r.id)}).withFailureHandler(err).sbmEmergencyLookupForAbandonment(document.getElementById("aid").value)}function lookupFinal(){google.script.run.withSuccessHandler(function(r){cid=r.id;state="PUBLISH_PENDING";show({id:r.id,stage:"PUBLISH_PENDING",prompt:"公開済みの記事URL: "+r.url+"。実際の公開内容を確認してから完了登録してください。"})}).withFailureHandler(err).sbmEmergencyLookupForFinalization(document.getElementById("aid").value)}function start(){if(!confirm("同一記事に進行中の案件がある場合は新規受付できません。公開済みの作業がないことを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyStart(document.getElementById("aid").value,document.getElementById("url").value,document.getElementById("reason").value)}function submit(){let v=document.getElementById("answer").value;let f=state==="DOCTOR_PENDING"?"sbmEmergencyDoctorResult":"sbmEmergencyWriterResult";google.script.run.withSuccessHandler(show).withFailureHandler(err)[f](cid,v)}function done(){if(!confirm("記事を実際に公開し、公開ページを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyComplete(cid,"PUBLISHED_AND_VERIFIED")}function cancel(){if(!confirm("この案件を無効化しますか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyCancel(cid)}</script></html>').setWidth(690).setHeight(690);
+  var html=HtmlService.createHtmlOutput('<!doctype html><html lang="ja"><meta charset="utf-8"><style>body{font:14px sans-serif;padding:14px}input,textarea{width:100%;box-sizing:border-box;margin:5px 0 12px;padding:7px}textarea{height:150px}button{padding:9px;margin:5px 4px 5px 0}pre{white-space:pre-wrap;overflow:auto;max-height:250px;background:#f5f5f5;padding:10px}small{color:#555}</style><h3>特別改善・独立完結</h3><small>途中で閉じた場合、既存案件は破棄してから新規受付してください。通常改善の状態は変更しません。公開済みの場合は重複公開しないでください。</small><p>記事ID<input id="aid" placeholder="A000006">記事URL<input id="url" placeholder="https://...">変更理由<textarea id="reason"></textarea><button onclick="start()">新規受付・Doctor依頼作成</button><button onclick="lookupFinal()">公開済み案件の完了確認</button><button onclick="lookupAbandon()">中断案件を確認・破棄</button></p><hr><div id="stage"></div><pre id="out"></pre><script>let cid="",state="";function err(e){alert(e.message||e)}function show(r){cid=r.id;state=r.stage;document.getElementById("out").textContent=r.prompt||r.stage;let s=document.getElementById("stage");s.innerHTML="";if(state==="DOCTOR_PENDING"||state==="WRITER_PENDING"){s.innerHTML="<p>依頼文をコピーして外部AIへ渡し、RequestID・CaseID・記事ID・URLと、Doctorはfindings、Writerはrevised_articleとchange_summaryを含むJSON回答を下欄に貼り付けてください。</p><textarea id=answer></textarea><button id=submit>回答を登録</button><button id=cancel>中断・破棄</button>";document.getElementById("submit").onclick=submit;document.getElementById("cancel").onclick=cancel;}else if(state==="PUBLISH_PENDING"){s.innerHTML="<p>利用者が記事を修正・公開し、公開ページを確認してから完了してください。</p><button id=done>公開確認済み・完了登録</button><button id=cancel>中断・破棄</button>";document.getElementById("done").onclick=done;document.getElementById("cancel").onclick=cancel;}}function lookupAbandon(){google.script.run.withSuccessHandler(function(r){if(!confirm("記事 "+r.articleId+" の進行中案件 "+r.id+"（"+r.stage+"）を破棄しますか？公開済みの場合は重複修正を避け、先に完了確認してください。"))return;google.script.run.withSuccessHandler(function(result){if(!result||result.stage!=="ABANDONED"||result.verified!==true){alert("破棄結果を確認できません。シートの状態を確認してください。");return;}show(result);alert("特別改善を破棄しました。CaseID: "+result.id);}).withFailureHandler(err).sbmEmergencyCancel(r.id)}).withFailureHandler(err).sbmEmergencyLookupForAbandonment(document.getElementById("aid").value)}function lookupFinal(){google.script.run.withSuccessHandler(function(r){cid=r.id;state="PUBLISH_PENDING";show({id:r.id,stage:"PUBLISH_PENDING",prompt:"公開済みの記事URL: "+r.url+"。実際の公開内容を確認してから完了登録してください。"})}).withFailureHandler(err).sbmEmergencyLookupForFinalization(document.getElementById("aid").value)}function start(){if(!confirm("同一記事に進行中の案件がある場合は新規受付できません。公開済みの作業がないことを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyStart(document.getElementById("aid").value,document.getElementById("url").value,document.getElementById("reason").value)}function submit(){let v=document.getElementById("answer").value;let f=state==="DOCTOR_PENDING"?"sbmEmergencyDoctorResult":"sbmEmergencyWriterResult";google.script.run.withSuccessHandler(show).withFailureHandler(err)[f](cid,v)}function done(){if(!confirm("記事を実際に公開し、公開ページを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyComplete(cid,"PUBLISHED_AND_VERIFIED")}function cancel(){if(!confirm("この案件を無効化しますか？"))return;google.script.run.withSuccessHandler(function(result){if(!result||result.stage!=="ABANDONED"||result.verified!==true){alert("破棄結果を確認できません。");return;}show(result);alert("特別改善を破棄しました。CaseID: "+result.id);}).withFailureHandler(err).sbmEmergencyCancel(cid)}</script></html>').setWidth(690).setHeight(690);
   SpreadsheetApp.getUi().showModalDialog(html,'特別改善・緊急対応');
 }

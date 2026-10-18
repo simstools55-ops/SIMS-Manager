@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "7.1.5",
+  "current_version": "7.1.7",
   "release_status": "UAT_CANDIDATE",
-  "notes": "v7.1.4: immutable emergency payloads, prepare-before-abandon intake, structured response validation; UAT candidate.",
-  "version": "7.1.4",
+  "notes": "v7.1.7: emergency navigator UI, stable stage navigation, copy controls, immutable payload viewing; backend state transitions unchanged.",
+  "version": "7.1.7",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v7.1.5-ST"
+  "starter_display_version": "v7.1.7-ST"
 }
