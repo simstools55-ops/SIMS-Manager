@@ -1,4 +1,11 @@
-# SIMS Manager v7.1.7 — UAT Candidate
+## v7.1.12 UAT — article selection transition
+- Article management, improvement effect and history menu selections use the active single row (cell or full-row selection).
+- No checkbox scan for these three sheets when resolving the target row.
+- Multiple rows or headers are rejected; TODAY keeps its existing workflow.
+- Selection checkboxes remain visible temporarily pending separate UI/data migration audit; they are not the article selection source in these three views.
+- - Invalid multi-row/header selection now opens a centered modal alert rather than a lower-right toast.\n- Do not deploy to production before test-copy validation.
+
+# SIMS Manager v7.1.9 — UAT Candidate
 
 特別改善を独立した緊急対応フローとして再構築。通常改善の作業状態・履歴・測定を変更しません。
 

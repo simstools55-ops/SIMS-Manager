@@ -1,3 +1,18 @@
+## v7.1.12 (UAT)
+- Avoid legacy selection checkbox rebuild and redundant visibility I/O on article-selection hot path.
+- Synchronize Code.gs deployment copies.
+
+## v7.1.11 (UAT)
+- Hide the legacy selection column in article management, improvement effect, and improvement history on article-menu use. Preserve column and all data.
+- Skip old full-column checkbox enforcement in onEdit for those three views. Other checkboxes remain unchanged.
+- No production spreadsheet updates.
+
+## v7.1.10 (UAT)\n- Show a centered modal dialog for invalid article selection rather than a bottom-right toast.\n- Preserve v7.1.9 selection behavior and existing data.\n\n## v7.1.9 — 記事選択の共通化（UAT）
+- 記事管理・改善の推移・改善履歴で単一行選択を共通取得。
+- 選択チェックボックスの全件検索を対象3画面のメニュー実行から除外。
+- 特別改善ナビも同一関数を使用。
+- 既存チェックボックスの表示撤去は後続監査と実画面検証後に実施。
+
 ## v7.1.7 — 特別改善ナビUI改修（2026-10-18）
 
 - 受付／Doctor／Writer／公開・完了の固定タブ。依頼文→回答欄の順序を統一。

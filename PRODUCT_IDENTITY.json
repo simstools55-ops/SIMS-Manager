@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "7.1.7",
+  "current_version": "7.1.9",
   "release_status": "UAT_CANDIDATE",
-  "notes": "v7.1.7: emergency navigator UI, stable stage navigation, copy controls, immutable payload viewing; backend state transitions unchanged.",
-  "version": "7.1.7",
+  "notes": "v7.1.9 UAT: read-only single-row selection for article management, improvement effect and history; no checkbox scan on menu execution.",
+  "version": "7.1.9",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v7.1.7-ST"
+  "starter_display_version": "v7.1.9-ST"
 }

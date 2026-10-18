@@ -3,13 +3,16 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.1.8
+ * Current version: 7.1.12
  * Release summary: Verified emergency cancellation with explicit result and audit logs; normal cycles untouched.
- * v7.1.8: Launch special-improvement navigator from the selected article-management row.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.1.8.md.
+ * v7.1.12: Avoid checkbox regeneration and per-action visibility writes in article-oriented views.
+ * v7.1.11: Hide legacy selection columns on article actions; skip old checkbox scan for three article views.
+ * v7.1.10: Centered alert for invalid article-row selection.
+ * v7.1.9: Unified active-row selection for article management, effect and history; no checkbox scan.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.1.12.md.
  */
 
-const SBM_VERSION = '7.1.8';
+const SBM_VERSION = '7.1.12';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -10012,7 +10015,36 @@ function sbmApplySelectionUiAll_() {
   sbmPolishImprovementHistoryView_();
 }
 
+/** v7.1.11: retire the legacy article-selection UI without moving any columns.
+ * Called only on an explicit article action, never on each cell selection.
+ * Column remains intact for backward compatibility and can be restored manually.
+ */
+function sbmRetireLegacyArticleSelectionUiV7111_(sh){
+  if(!sh||[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())<0)return;
+  try{
+    var first=sh.getRange(1,1,1,Math.min(sh.getLastColumn(),20)).getDisplayValues()[0];
+    var col=first.indexOf('選択')+1;
+    if(!col)return;
+    // Do not clear data or validation; hiding preserves existing column references.
+    if(!sh.isColumnHiddenByUser(col))sh.hideColumns(col);
+  }catch(e){console.warn('Selection UI migration: '+String(e));}
+}
+
+/** v7.1.9: fast, read-only, single-row selection for article-oriented views.
+ * No checkbox scan, edit trigger, property write, or selection-change trigger.
+ */
+function sbmSelectedArticleRowV719_(sh, silent){
+  var allowed=[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY];
+  if(!sh||allowed.indexOf(sh.getName())<0)return 0;
+  var range=sh.getActiveRange();
+  var row=range&&range.getNumRows()===1?range.getRow():0;
+  if(row>=2&&row<=sh.getLastRow())return row;
+  if(!silent)SpreadsheetApp.getUi().alert('対象記事を選択してください','対象記事のセルまたは行番号を1行だけ選択してから、メニューを実行してください。',SpreadsheetApp.getUi().ButtonSet.OK);
+  return 0;
+}
+
 function sbmGetCheckedRow_(sh, silent) {
+  if(sh&&[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())>=0)return sbmSelectedArticleRowV719_(sh,silent);
   if (!sh || sh.getLastRow() < 2) { if(!silent) sbmAlert_('対象を選択してください','一覧に対象データがありません。'); return 0; }
   var hm=sbmHeaderMap_(sh), col=hm['選択'];
   if (!col) { var ar=sh.getActiveRange(); return ar && ar.getRow()>1 ? ar.getRow() : 0; }
@@ -10943,6 +10975,8 @@ function onEdit(e){
   try{
     if(!e||!e.range||e.value!=='TRUE')return;
     var sh=e.range.getSheet(),col=e.range.getColumn(),row=e.range.getRow();
+    // These three views use active-row selection; never scan their checkbox columns.
+    if([SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())>=0)return;
     if(!sbmEnforceSingleSelection_(sh,col,row))return;
     PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
   }catch(err2){console.error(err2);}
@@ -13970,6 +14004,12 @@ function sbmSyncTodayCompletedPresentationLight_(sh){
  */
 function sbmApplySelectionUi_(sh) {
   if (!sh || sh.getLastColumn() < 1) return;
+  // v7.1.12: Article-oriented views use active row; do not rebuild legacy
+  // checkbox validations or clear/write an entire selection column.
+  if ([SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.EFFECT, SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName()) >= 0) {
+    sbmRetireLegacyArticleSelectionUiV7111_(sh);
+    return;
+  }
 
   var hm = sbmHeaderMap_(sh);
   var col = hm['選択'];
@@ -16805,7 +16845,7 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
 function sbmDoctorCreateRequestFromEffect() {
   var sh = SpreadsheetApp.getActiveSheet();
   if (!sh || sh.getName() !== SBM_SHEETS.EFFECT) {
-    return sbmAlert_('aDoctor', '改善の推移を開き、aDoctorで診断する記事を左端のチェックボックスで1件選択してください。');
+    return sbmAlert_('aDoctor', '改善の推移を開き、対象記事のセルまたは行番号を選択してください。');
   }
   var row = sbmGetCheckedRow_(sh, true);
   if (!row) {
@@ -16813,7 +16853,7 @@ function sbmDoctorCreateRequestFromEffect() {
     if (range && range.getRow() >= 2 && range.getNumRows() === 1) row = range.getRow();
   }
   if (!row || row < 2) {
-    return sbmAlert_('aDoctor', '左端のチェックボックスで対象を1件選択してください。');
+    return sbmAlert_('aDoctor', '対象記事のセルまたは行番号を1行だけ選択してください。');
   }
   return sbmDoctorCreateAndSaveRequest_('IMPROVEMENT_EFFECT', sh, row);
 }
@@ -24704,15 +24744,12 @@ function sbmEmergencyOpenFromSelectedArticle(){
   if(!sh||sh.getName()!==SBM_SHEETS.ARTICLE_DB){
     return sbmAlert_('特別改善ナビ','記事管理シートで対象記事のセルを選択してください。');
   }
-  var range=sh.getActiveRange();
-  if(!range||range.getNumRows()!==1||range.getRow()<2){
-    return sbmAlert_('特別改善ナビ','記事管理で対象記事の1行を選択してください。見出し行・複数行は対象外です。');
-  }
+  var row=sbmSelectedArticleRowV719_(sh,false);
+  if(!row)return;
   var hm=sbmHeaderMap_(sh);
   if(!hm['ArticleID']||!hm['記事URL']){
     return sbmAlert_('特別改善ナビ','記事管理のArticleID・記事URL列が見つかりません。');
   }
-  var row=range.getRow();
   var articleId=String(sh.getRange(row,hm['ArticleID']).getDisplayValue()||'').trim();
   var articleUrl=String(sh.getRange(row,hm['記事URL']).getDisplayValue()||'').trim();
   var title=hm['記事タイトル']?String(sh.getRange(row,hm['記事タイトル']).getDisplayValue()||'').trim():'';

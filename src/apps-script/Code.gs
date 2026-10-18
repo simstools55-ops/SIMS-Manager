@@ -3,12 +3,16 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 7.1.6
+ * Current version: 7.1.12
  * Release summary: Verified emergency cancellation with explicit result and audit logs; normal cycles untouched.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.1.5.md.
+ * v7.1.12: Avoid checkbox regeneration and per-action visibility writes in article-oriented views.
+ * v7.1.11: Hide legacy selection columns on article actions; skip old checkbox scan for three article views.
+ * v7.1.10: Centered alert for invalid article-row selection.
+ * v7.1.9: Unified active-row selection for article management, effect and history; no checkbox scan.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v7.1.12.md.
  */
 
-const SBM_VERSION = '7.1.6';
+const SBM_VERSION = '7.1.12';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -10011,7 +10015,36 @@ function sbmApplySelectionUiAll_() {
   sbmPolishImprovementHistoryView_();
 }
 
+/** v7.1.11: retire the legacy article-selection UI without moving any columns.
+ * Called only on an explicit article action, never on each cell selection.
+ * Column remains intact for backward compatibility and can be restored manually.
+ */
+function sbmRetireLegacyArticleSelectionUiV7111_(sh){
+  if(!sh||[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())<0)return;
+  try{
+    var first=sh.getRange(1,1,1,Math.min(sh.getLastColumn(),20)).getDisplayValues()[0];
+    var col=first.indexOf('選択')+1;
+    if(!col)return;
+    // Do not clear data or validation; hiding preserves existing column references.
+    if(!sh.isColumnHiddenByUser(col))sh.hideColumns(col);
+  }catch(e){console.warn('Selection UI migration: '+String(e));}
+}
+
+/** v7.1.9: fast, read-only, single-row selection for article-oriented views.
+ * No checkbox scan, edit trigger, property write, or selection-change trigger.
+ */
+function sbmSelectedArticleRowV719_(sh, silent){
+  var allowed=[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY];
+  if(!sh||allowed.indexOf(sh.getName())<0)return 0;
+  var range=sh.getActiveRange();
+  var row=range&&range.getNumRows()===1?range.getRow():0;
+  if(row>=2&&row<=sh.getLastRow())return row;
+  if(!silent)SpreadsheetApp.getUi().alert('対象記事を選択してください','対象記事のセルまたは行番号を1行だけ選択してから、メニューを実行してください。',SpreadsheetApp.getUi().ButtonSet.OK);
+  return 0;
+}
+
 function sbmGetCheckedRow_(sh, silent) {
+  if(sh&&[SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())>=0)return sbmSelectedArticleRowV719_(sh,silent);
   if (!sh || sh.getLastRow() < 2) { if(!silent) sbmAlert_('対象を選択してください','一覧に対象データがありません。'); return 0; }
   var hm=sbmHeaderMap_(sh), col=hm['選択'];
   if (!col) { var ar=sh.getActiveRange(); return ar && ar.getRow()>1 ? ar.getRow() : 0; }
@@ -10942,6 +10975,8 @@ function onEdit(e){
   try{
     if(!e||!e.range||e.value!=='TRUE')return;
     var sh=e.range.getSheet(),col=e.range.getColumn(),row=e.range.getRow();
+    // These three views use active-row selection; never scan their checkbox columns.
+    if([SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.EFFECT,SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName())>=0)return;
     if(!sbmEnforceSingleSelection_(sh,col,row))return;
     PropertiesService.getDocumentProperties().setProperty('SBM_LAST_CHECKED_'+sh.getSheetId(),String(row));
   }catch(err2){console.error(err2);}
@@ -13969,6 +14004,12 @@ function sbmSyncTodayCompletedPresentationLight_(sh){
  */
 function sbmApplySelectionUi_(sh) {
   if (!sh || sh.getLastColumn() < 1) return;
+  // v7.1.12: Article-oriented views use active row; do not rebuild legacy
+  // checkbox validations or clear/write an entire selection column.
+  if ([SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.EFFECT, SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName()) >= 0) {
+    sbmRetireLegacyArticleSelectionUiV7111_(sh);
+    return;
+  }
 
   var hm = sbmHeaderMap_(sh);
   var col = hm['選択'];
@@ -15118,15 +15159,19 @@ function onOpen() {
     .addItem('選択記事の全改善履歴を見る','sbmOpenSelectedHistoryArticleAll')
     .addToUi();
 
-  ui.createMenu('記事管理')
+  var articleManagementMenu = ui.createMenu('記事管理')
     .addItem('記事一覧を開く','sbmOpenAllBlogArticles')
     .addItem('要確認記事の処理','sbmOpenNeedsReviewArticles')
     .addSeparator()
     .addItem('選択記事の詳細を見る','sbmOpenSelectedArticleDbDetail')
     .addItem('選択記事の改善履歴を見る','sbmOpenSelectedArticleHistory')
     .addSeparator()
-    .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
-    .addToUi();
+    .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog');
+  if (isFullEdition) {
+    articleManagementMenu.addSeparator()
+      .addItem('特別改善ナビを開く','sbmEmergencyOpenFromSelectedArticle');
+  }
+  articleManagementMenu.addToUi();
 
   var healthMenu = ui.createMenu('サイト健康診断')
     .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
@@ -15138,9 +15183,6 @@ function onOpen() {
   }
   healthMenu.addToUi();
 
-  if (isFullEdition) {
-    ui.createMenu('特別改善（緊急対応）').addItem('特別改善を開始','sbmEmergencyOpen').addToUi();
-  }
 
   if (isFullEdition) {
     ui.createMenu('新記事関連')
@@ -16803,7 +16845,7 @@ function sbmDoctorStartExtendedMonitoring_(source,doctor,n){
 function sbmDoctorCreateRequestFromEffect() {
   var sh = SpreadsheetApp.getActiveSheet();
   if (!sh || sh.getName() !== SBM_SHEETS.EFFECT) {
-    return sbmAlert_('aDoctor', '改善の推移を開き、aDoctorで診断する記事を左端のチェックボックスで1件選択してください。');
+    return sbmAlert_('aDoctor', '改善の推移を開き、対象記事のセルまたは行番号を選択してください。');
   }
   var row = sbmGetCheckedRow_(sh, true);
   if (!row) {
@@ -16811,7 +16853,7 @@ function sbmDoctorCreateRequestFromEffect() {
     if (range && range.getRow() >= 2 && range.getNumRows() === 1) row = range.getRow();
   }
   if (!row || row < 2) {
-    return sbmAlert_('aDoctor', '左端のチェックボックスで対象を1件選択してください。');
+    return sbmAlert_('aDoctor', '対象記事のセルまたは行番号を1行だけ選択してください。');
   }
   return sbmDoctorCreateAndSaveRequest_('IMPROVEMENT_EFFECT', sh, row);
 }
@@ -24686,8 +24728,56 @@ function sbmEmergencyLookupForFinalization(articleId){
   if(!sbmEmergencyReadPayload_(x.p,found[0].id,'WRITER_RESPONSE'))throw Error('Writer回答原本がありません。');
   return found[0];
 }
-function sbmEmergencyOpen(){
+function sbmEmergencyGetNavigatorData(id){
   sbmEmergencyRequireFull_();
-  var html=HtmlService.createHtmlOutput('<!doctype html><html lang="ja"><meta charset="utf-8"><style>body{font:14px sans-serif;padding:14px}input,textarea{width:100%;box-sizing:border-box;margin:5px 0 12px;padding:7px}textarea{height:150px}button{padding:9px;margin:5px 4px 5px 0}pre{white-space:pre-wrap;overflow:auto;max-height:250px;background:#f5f5f5;padding:10px}small{color:#555}</style><h3>特別改善・独立完結</h3><small>途中で閉じた場合、既存案件は破棄してから新規受付してください。通常改善の状態は変更しません。公開済みの場合は重複公開しないでください。</small><p>記事ID<input id="aid" placeholder="A000006">記事URL<input id="url" placeholder="https://...">変更理由<textarea id="reason"></textarea><button onclick="start()">新規受付・Doctor依頼作成</button><button onclick="lookupFinal()">公開済み案件の完了確認</button><button onclick="lookupAbandon()">中断案件を確認・破棄</button></p><hr><div id="stage"></div><pre id="out"></pre><script>let cid="",state="";function err(e){alert(e.message||e)}function show(r){cid=r.id;state=r.stage;document.getElementById("out").textContent=r.prompt||r.stage;let s=document.getElementById("stage");s.innerHTML="";if(state==="DOCTOR_PENDING"||state==="WRITER_PENDING"){s.innerHTML="<p>依頼文をコピーして外部AIへ渡し、RequestID・CaseID・記事ID・URLと、Doctorはfindings、Writerはrevised_articleとchange_summaryを含むJSON回答を下欄に貼り付けてください。</p><textarea id=answer></textarea><button id=submit>回答を登録</button><button id=cancel>中断・破棄</button>";document.getElementById("submit").onclick=submit;document.getElementById("cancel").onclick=cancel;}else if(state==="PUBLISH_PENDING"){s.innerHTML="<p>利用者が記事を修正・公開し、公開ページを確認してから完了してください。</p><button id=done>公開確認済み・完了登録</button><button id=cancel>中断・破棄</button>";document.getElementById("done").onclick=done;document.getElementById("cancel").onclick=cancel;}}function lookupAbandon(){google.script.run.withSuccessHandler(function(r){if(!confirm("記事 "+r.articleId+" の進行中案件 "+r.id+"（"+r.stage+"）を破棄しますか？公開済みの場合は重複修正を避け、先に完了確認してください。"))return;google.script.run.withSuccessHandler(function(result){if(!result||result.stage!=="ABANDONED"||result.verified!==true){alert("破棄結果を確認できません。シートの状態を確認してください。");return;}show(result);alert("特別改善を破棄しました。CaseID: "+result.id);}).withFailureHandler(err).sbmEmergencyCancel(r.id)}).withFailureHandler(err).sbmEmergencyLookupForAbandonment(document.getElementById("aid").value)}function lookupFinal(){google.script.run.withSuccessHandler(function(r){cid=r.id;state="PUBLISH_PENDING";show({id:r.id,stage:"PUBLISH_PENDING",prompt:"公開済みの記事URL: "+r.url+"。実際の公開内容を確認してから完了登録してください。"})}).withFailureHandler(err).sbmEmergencyLookupForFinalization(document.getElementById("aid").value)}function start(){if(!confirm("同一記事に進行中の案件がある場合は新規受付できません。公開済みの作業がないことを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyStart(document.getElementById("aid").value,document.getElementById("url").value,document.getElementById("reason").value)}function submit(){let v=document.getElementById("answer").value;let f=state==="DOCTOR_PENDING"?"sbmEmergencyDoctorResult":"sbmEmergencyWriterResult";google.script.run.withSuccessHandler(show).withFailureHandler(err)[f](cid,v)}function done(){if(!confirm("記事を実際に公開し、公開ページを確認しましたか？"))return;google.script.run.withSuccessHandler(show).withFailureHandler(err).sbmEmergencyComplete(cid,"PUBLISHED_AND_VERIFIED")}function cancel(){if(!confirm("この案件を無効化しますか？"))return;google.script.run.withSuccessHandler(function(result){if(!result||result.stage!=="ABANDONED"||result.verified!==true){alert("破棄結果を確認できません。");return;}show(result);alert("特別改善を破棄しました。CaseID: "+result.id);}).withFailureHandler(err).sbmEmergencyCancel(cid)}</script></html>').setWidth(690).setHeight(690);
-  SpreadsheetApp.getUi().showModalDialog(html,'特別改善・緊急対応');
+  var x=sbmEmergencySheets_(),r=sbmEmergencyFind_(x.sh,String(id||''));
+  return {id:String(id),articleId:String(r.v[3]),url:String(r.v[4]),stage:String(r.v[6]),
+    doctorRequest:sbmEmergencyReadPayload_(x.p,id,'DOCTOR_REQUEST'),
+    doctorSaved:sbmEmergencyReadPayload_(x.p,id,'DOCTOR_RESPONSE'),
+    writerRequest:sbmEmergencyReadPayload_(x.p,id,'WRITER_REQUEST'),
+    writerSaved:sbmEmergencyReadPayload_(x.p,id,'WRITER_RESPONSE')};
+}
+/** v7.1.8: Article-management row is the only entry point for special improvement. */
+function sbmEmergencyOpenFromSelectedArticle(){
+  sbmEmergencyRequireFull_();
+  var sh=SpreadsheetApp.getActiveSheet();
+  if(!sh||sh.getName()!==SBM_SHEETS.ARTICLE_DB){
+    return sbmAlert_('特別改善ナビ','記事管理シートで対象記事のセルを選択してください。');
+  }
+  var row=sbmSelectedArticleRowV719_(sh,false);
+  if(!row)return;
+  var hm=sbmHeaderMap_(sh);
+  if(!hm['ArticleID']||!hm['記事URL']){
+    return sbmAlert_('特別改善ナビ','記事管理のArticleID・記事URL列が見つかりません。');
+  }
+  var articleId=String(sh.getRange(row,hm['ArticleID']).getDisplayValue()||'').trim();
+  var articleUrl=String(sh.getRange(row,hm['記事URL']).getDisplayValue()||'').trim();
+  var title=hm['記事タイトル']?String(sh.getRange(row,hm['記事タイトル']).getDisplayValue()||'').trim():'';
+  if(!articleId||!articleUrl){
+    return sbmAlert_('特別改善ナビ','選択行に記事IDまたはURLがありません。別の記事を選択してください。');
+  }
+  sbmEmergencyOpen({articleId:articleId,url:articleUrl,title:title});
+}
+
+function sbmEmergencyOpen(seed){
+  sbmEmergencyRequireFull_();
+  var html=HtmlService.createHtmlOutput("<!doctype html><html lang=\"ja\"><head><meta charset=\"utf-8\"><style>\n*{box-sizing:border-box}body{font:13px/1.55 Arial,'Noto Sans JP',sans-serif;margin:0;color:#202124;background:#fff}header{position:sticky;top:0;background:#fff;z-index:2;border-bottom:1px solid #dadce0;padding:14px 20px}h2{font-size:18px;margin:0}h3{font-size:15px;margin:0 0 10px}.muted{color:#60656c;font-size:12px}.wrap{padding:16px 20px}.summary{padding:12px;background:#f6f7f8;border-radius:8px;margin-bottom:12px}.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:12px 0}.tab{padding:9px 2px;background:#f6f7f8;border:1px solid #dadce0;border-radius:6px;cursor:pointer;font-size:12px}.tab.active{border:2px solid #4169a5;background:#eaf1fb;font-weight:bold}.tab:disabled{opacity:.55;cursor:default}.pane{border:1px solid #dadce0;border-radius:8px;padding:14px;min-height:230px}.field{margin:10px 0}label{display:block;font-weight:600;margin:0 0 5px}input,textarea{width:100%;border:1px solid #b7bdc6;border-radius:5px;padding:9px;font:inherit}textarea{height:125px;resize:vertical}.request{white-space:pre-wrap;word-break:break-word;background:#f5f6f8;border:1px solid #e3e5e9;border-radius:5px;padding:10px;max-height:185px;overflow:auto;font:11px/1.5 Consolas,monospace}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button{cursor:pointer;padding:9px 12px;border:1px solid #aeb5c1;border-radius:5px;background:#fff;color:#202124}button.primary{background:#284f84;color:#fff;border-color:#284f84}button.danger{color:#a72a2a;border-color:#dcb2b2}button:disabled{opacity:.55;cursor:wait}.foot{display:flex;justify-content:space-between;gap:8px;margin:14px 0}.status{padding:8px;background:#f5f6f8;margin:10px 0;border-radius:4px;min-height:33px}.hidden{display:none!important}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.sub{font-size:12px;color:#555}.good{color:#19764d}#loading{color:#284f84;font-size:12px}\n</style></head><body><header><div class=\"row\"><h2>特別改善ナビ</h2><span id=\"loading\"></span></div><div class=\"muted\">緊急対応｜通常改善の状態・履歴とは独立して管理</div></header><main class=\"wrap\"><div class=\"summary\"><div class=\"row\"><b id=\"caseLabel\">新規受付</b><span id=\"statusLabel\">未受付</span></div><div class=\"muted\" id=\"articleLabel\">記事を選んで開始してください</div></div><div class=\"tabs\" id=\"tabs\"><button class=\"tab active\" data-tab=\"intake\" onclick=\"go('intake')\">① 受付</button><button class=\"tab\" data-tab=\"doctor\" onclick=\"go('doctor')\">② Doctor</button><button class=\"tab\" data-tab=\"writer\" onclick=\"go('writer')\">③ Writer</button><button class=\"tab\" data-tab=\"publish\" onclick=\"go('publish')\">④ 公開・完了</button></div>\n<section class=\"pane\" id=\"intake\"><h3>① 受付内容</h3><div class=\"field\"><label for=\"aid\">記事ID</label><input id=\"aid\" placeholder=\"A000006\"></div><div class=\"field\"><label for=\"url\">記事URL</label><input id=\"url\" placeholder=\"https://...\"></div><div class=\"field\"><label for=\"reason\">変更理由</label><textarea id=\"reason\" placeholder=\"緊急対応が必要な理由\"></textarea></div><div class=\"actions\"><button class=\"primary\" id=\"startBtn\" onclick=\"start()\">新規受付・Doctor依頼作成</button></div><hr><div class=\"muted\">中断案件・公開待ち案件は記事IDから確認できます。破棄済み・完了済み案件の原本は上書きしません。</div><div class=\"actions\"><button onclick=\"lookupFinal()\">公開待ち案件を確認</button><button onclick=\"lookupAbandon()\">中断案件を確認・破棄</button></div></section>\n<section class=\"pane hidden\" id=\"doctor\"><h3>② Doctor診断</h3><div class=\"status\" id=\"doctorStatus\">受付後に利用できます</div><div class=\"row\"><label>Doctorへの依頼文</label><button onclick=\"copyText('doctorRequest')\">依頼文をコピー</button></div><pre class=\"request\" id=\"doctorRequest\">未作成</pre><div class=\"field\"><label for=\"doctorAnswer\">Doctor回答JSON</label><textarea id=\"doctorAnswer\" placeholder=\"DoctorのJSON回答を貼り付け\"></textarea></div><div class=\"actions\"><button class=\"primary\" id=\"doctorSubmit\" onclick=\"submitRole('doctor')\">Doctor回答を登録</button></div><div class=\"field\"><label>登録済みDoctor回答</label><pre class=\"request\" id=\"doctorSaved\">未登録</pre></div></section>\n<section class=\"pane hidden\" id=\"writer\"><h3>③ Writerによる修正</h3><div class=\"status\" id=\"writerStatus\">Doctor登録後に利用できます</div><div class=\"row\"><label>Writerへの依頼文</label><button onclick=\"copyText('writerRequest')\">依頼文をコピー</button></div><pre class=\"request\" id=\"writerRequest\">未作成</pre><div class=\"field\"><label for=\"writerAnswer\">Writer回答JSON</label><textarea id=\"writerAnswer\" placeholder=\"WriterのJSON回答を貼り付け\"></textarea></div><div class=\"actions\"><button class=\"primary\" id=\"writerSubmit\" onclick=\"submitRole('writer')\">Writer回答を登録</button></div><div class=\"field\"><label>登録済みWriter回答</label><pre class=\"request\" id=\"writerSaved\">未登録</pre></div></section>\n<section class=\"pane hidden\" id=\"publish\"><h3>④ 公開確認・完了</h3><div class=\"status\" id=\"publishStatus\">Writer登録後に利用できます</div><p>修正内容を実際の記事に反映・公開し、公開ページを確認した後で完了登録してください。</p><div class=\"actions\"><button class=\"primary\" id=\"completeBtn\" onclick=\"done()\">公開確認済み・完了登録</button></div><p class=\"muted\">試験用の模擬公開は実際の公開実績ではありません。実運用では未公開のまま完了登録しないでください。</p></section>\n<div class=\"foot\"><button id=\"prev\" onclick=\"step(-1)\">← 前の工程</button><button id=\"next\" onclick=\"step(1)\">次の工程 →</button></div><hr><div class=\"row\"><span class=\"muted\">操作対象：<span id=\"caseFoot\">未受付</span></span><button class=\"danger\" id=\"cancelBtn\" onclick=\"cancel()\" disabled>案件を中断・破棄</button></div><div class=\"status\" id=\"message\" role=\"status\">受付から順番に進めてください。</div></main>\n<script>\nlet cid='',state='',current='intake',busy=false;const steps=['intake','doctor','writer','publish'];const $=id=>document.getElementById(id);function msg(s){$('message').textContent=s}function err(e){busy=false;lock(false);msg('エラー: '+(e.message||e));alert(e.message||e)}function lock(on){busy=on;$('loading').textContent=on?'処理中…':'';document.querySelectorAll('button').forEach(b=>{if(on)b.disabled=true});if(!on)refresh()}function run(name,args,ok){lock(true);google.script.run.withSuccessHandler(r=>{lock(false);ok(r)}).withFailureHandler(err)[name].apply(google.script.run,args)}function go(tab){if(!steps.includes(tab))return;current=tab;steps.forEach(s=>{$(s).classList.toggle('hidden',s!==tab);document.querySelector('[data-tab=\"'+s+'\"]').classList.toggle('active',s===tab)});refresh()}function step(d){go(steps[Math.max(0,Math.min(3,steps.indexOf(current)+d))])}function refresh(){if(busy)return;$('caseLabel').textContent=cid?'CaseID: '+cid:'新規受付';$('caseFoot').textContent=cid||'未受付';$('statusLabel').textContent=state||'未受付';$('articleLabel').textContent=($('aid').value||'記事ID未入力')+' / '+($('url').value||'URL未入力');$('startBtn').disabled=!!cid&&state!=='ABANDONED'&&state!=='COMPLETED';$('doctorSubmit').disabled=state!=='DOCTOR_PENDING';$('writerSubmit').disabled=state!=='WRITER_PENDING';$('completeBtn').disabled=state!=='PUBLISH_PENDING';$('cancelBtn').disabled=!cid||!['PREPARING','DOCTOR_PENDING','WRITER_PENDING','PUBLISH_PENDING'].includes(state);$('prev').disabled=current==='intake';$('next').disabled=current==='publish';if(['WRITER_PENDING','PUBLISH_PENDING','COMPLETED'].includes(state))$('doctorStatus').textContent='登録済み';if(['PUBLISH_PENDING','COMPLETED'].includes(state))$('writerStatus').textContent='登録済み';$('publishStatus').textContent=state==='COMPLETED'?'完了登録済み':state==='PUBLISH_PENDING'?'公開確認待ち':'Writer登録後に利用できます'}function show(r){cid=r.id;state=r.stage;if(r.articleId)$('aid').value=r.articleId;if(r.url)$('url').value=r.url;if(r.prompt){if(state==='DOCTOR_PENDING')$('doctorRequest').textContent=r.prompt;else if(state==='WRITER_PENDING')$('writerRequest').textContent=r.prompt}if(state==='DOCTOR_PENDING')go('doctor');else if(state==='WRITER_PENDING')go('writer');else if(state==='PUBLISH_PENDING'||state==='COMPLETED')go('publish');else go('intake');msg('案件状態: '+state+' / '+cid);refresh();if(cid)loadHistory(cid)}function loadHistory(id){google.script.run.withSuccessHandler(function(r){if(cid!==id)return;for(let k of ['doctorRequest','doctorSaved','writerRequest','writerSaved'])if(r[k])$(k).textContent=r[k];if(r.articleId)$('aid').value=r.articleId;if(r.url)$('url').value=r.url;refresh()}).withFailureHandler(function(e){msg('原本参照に失敗: '+(e.message||e))}).sbmEmergencyGetNavigatorData(id)}function copyText(id){let v=$(id).textContent;if(!v||v==='未作成'){msg('依頼文がまだありません');return}let t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();try{document.execCommand('copy');msg('依頼文をコピーしました')}catch(e){msg('コピーできません。依頼文を選択してコピーしてください')}t.remove()}function start(){if(!confirm('同一記事に進行中の案件がある場合は新規受付できません。公開済みの作業がないことを確認しましたか？'))return;run('sbmEmergencyStart',[$('aid').value,$('url').value,$('reason').value],show)}function submitRole(role){let key=role==='doctor'?'doctorAnswer':'writerAnswer',v=$(key).value;if(!v.trim()){msg('回答JSONを入力してください');return}let name=role==='doctor'?'sbmEmergencyDoctorResult':'sbmEmergencyWriterResult';run(name,[cid,v],function(r){$(role==='doctor'?'doctorSaved':'writerSaved').textContent=v;$(key).value='';show(r)})}function done(){if(!confirm('記事を実際に公開し、公開ページを確認しましたか？'))return;run('sbmEmergencyComplete',[cid,'PUBLISHED_AND_VERIFIED'],show)}function cancel(){if(!confirm('この案件を破棄しますか？完了済み案件は破棄できません。'))return;run('sbmEmergencyCancel',[cid],function(r){if(!r||r.stage!=='ABANDONED'||r.verified!==true){msg('破棄結果を検証できません');return}show(r);alert('特別改善を破棄しました。CaseID: '+r.id)})}function lookupAbandon(){run('sbmEmergencyLookupForAbandonment',[$('aid').value],function(r){if(!confirm('記事 '+r.articleId+' の進行中案件 '+r.id+'（'+r.stage+'）を破棄しますか？'))return;run('sbmEmergencyCancel',[r.id],function(x){if(!x||x.stage!=='ABANDONED'||x.verified!==true){msg('破棄結果を検証できません');return}show(x);alert('破棄しました: '+x.id)})})}function lookupFinal(){run('sbmEmergencyLookupForFinalization',[$('aid').value],function(r){show({id:r.id,articleId:r.articleId,url:r.url,stage:'PUBLISH_PENDING'});msg('公開待ち案件を読み込みました。実際の公開内容を確認してから完了してください。')})}refresh();\n</script></body></html>").setWidth(760).setHeight(730);
+  if(seed&&seed.articleId&&seed.url){
+    var serialized=JSON.stringify({articleId:String(seed.articleId),url:String(seed.url),title:String(seed.title||'')})
+      .replace(/</g,'\\u003c');
+    var injection=';(()=>{var selected='+serialized+';'+
+      'document.getElementById("aid").value=selected.articleId;'+
+      'document.getElementById("url").value=selected.url;'+
+      'document.getElementById("aid").readOnly=true;'+
+      'document.getElementById("url").readOnly=true;'+
+      'document.getElementById("articleLabel").textContent=(selected.title||"記事タイトル未取得")+" / "+selected.url+" / "+selected.articleId;'+
+      'window.sbmSelectedArticleTitle=selected.title;'+
+      'var oldRefresh=refresh;refresh=function(){oldRefresh();document.getElementById("articleLabel").textContent=(window.sbmSelectedArticleTitle||"記事タイトル未取得")+" / "+document.getElementById("url").value+" / "+document.getElementById("aid").value;};'+
+      'refresh();})();';
+    var content=html.getContent();
+    var marker='refresh();\n</script>';
+    if(content.indexOf(marker)<0)throw Error('特別改善ナビの初期化位置が見つかりません。');
+    html=HtmlService.createHtmlOutput(content.replace(marker,'refresh();'+injection+'\n</script>')).setWidth(760).setHeight(730);
+  }
+  SpreadsheetApp.getUi().showModalDialog(html,'特別改善ナビ｜緊急対応');
 }
