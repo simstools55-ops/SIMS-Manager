@@ -1,0 +1,1 @@
+feat(manager): rebuild independent emergency improvement workflow from v6.8.5 (v7.1.0)

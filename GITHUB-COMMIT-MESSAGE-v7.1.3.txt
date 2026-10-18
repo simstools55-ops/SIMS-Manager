@@ -1,0 +1,1 @@
+fix(manager): make emergency intake and payload transitions fail-closed (v7.1.3)
