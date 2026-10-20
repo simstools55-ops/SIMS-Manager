@@ -1,1 +1,1 @@
-fix(manager): verify emergency cancellation persistence and surface result (v7.1.6)
+fix(manager): avoid redundant workflow fetch in Doctor response dialog and respect diagnosis status

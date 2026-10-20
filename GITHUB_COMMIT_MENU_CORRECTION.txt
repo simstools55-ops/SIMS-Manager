@@ -1,0 +1,1 @@
+fix(manager): distinguish article data refresh and content update menus; hide UAT impact preview

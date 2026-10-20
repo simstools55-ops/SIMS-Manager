@@ -1,15 +1,16 @@
-## v7.1.12 UAT — article selection transition
-- Article management, improvement effect and history menu selections use the active single row (cell or full-row selection).
-- No checkbox scan for these three sheets when resolving the target row.
-- Multiple rows or headers are rejected; TODAY keeps its existing workflow.
-- Selection checkboxes remain visible temporarily pending separate UI/data migration audit; they are not the article selection source in these three views.
-- - Invalid multi-row/header selection now opens a centered modal alert rather than a lower-right toast.\n- Do not deploy to production before test-copy validation.
+# SIMS Manager v9.0.0 — UAT Repository
 
-# SIMS Manager v7.1.9 — UAT Candidate
+開発ベース: v6.8.5。機能名は「記事管理データを更新」（従来機能）と「記事内容の変更・更新」（新機能）。
+受付保存、aDoctor依頼、Doctor回答登録、aWriter依頼、途中終了の安全判定・試験用状態変更コードを含みます。
+**Googleスプレッドシート結合試験および実書き込み検証は未完了。実運用には使用しないでください。**
+通常運用環境のデータを変更せず、複製した試験用スプレッドシートのみで検証してください。
+過去のリリース履歴はCHANGELOG等に保管します。
 
-特別改善を独立した緊急対応フローとして再構築。通常改善の作業状態・履歴・測定を変更しません。
+# v6.8.5
 
-# SIMS Manager v7.1.7
+aWriterの確定変更一覧から改善概要を自動生成し、固定文言へのフォールバックを削減。既存の登録・測定フローは維持。
+
+# SIMS Manager v6.8.5
 
 
 ## v6.8.0 変更点
@@ -161,7 +162,3 @@
 ## v6.7.45
 - エース記事の急落監視を追加。通常カテゴリとは別枠で「今日の改善」へ追加し、aDoctor精密診断へ接続。
 - 完了エースは完了後14日を保護し、その後の急落時だけ90日保護を例外解除。
-
-
-## v7.1.7 特別改善
-Full Editionの「特別改善（緊急対応）」から開始。途中再開なし。通常改善の作業状態・履歴・測定は変更しない。

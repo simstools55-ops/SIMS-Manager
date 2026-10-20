@@ -1,0 +1,1 @@
+fix(manager): add copy button for aDoctor request in article content update dialog

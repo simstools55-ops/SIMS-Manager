@@ -1,0 +1,1 @@
+feat(manager): add read-only improvement-rate impact simulation for interrupted article updates

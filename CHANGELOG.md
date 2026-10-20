@@ -1,46 +1,11 @@
-## v7.1.12 (UAT)
-- Avoid legacy selection checkbox rebuild and redundant visibility I/O on article-selection hot path.
-- Synchronize Code.gs deployment copies.
+## v9.0.3 (2026-10-20)
+- Fix empty Writer request display by generating it on demand.
+- Add explicit cancel/archive for stale Writer-ready session; retain record, do not alter monitoring or history.
+- Exclude cancelled sessions from active selection.
 
-## v7.1.11 (UAT)
-- Hide the legacy selection column in article management, improvement effect, and improvement history on article-menu use. Preserve column and all data.
-- Skip old full-column checkbox enforcement in onEdit for those three views. Other checkboxes remain unchanged.
-- No production spreadsheet updates.
-
-## v7.1.10 (UAT)\n- Show a centered modal dialog for invalid article selection rather than a bottom-right toast.\n- Preserve v7.1.9 selection behavior and existing data.\n\n## v7.1.9 — 記事選択の共通化（UAT）
-- 記事管理・改善の推移・改善履歴で単一行選択を共通取得。
-- 選択チェックボックスの全件検索を対象3画面のメニュー実行から除外。
-- 特別改善ナビも同一関数を使用。
-- 既存チェックボックスの表示撤去は後続監査と実画面検証後に実施。
-
-## v7.1.7 — 特別改善ナビUI改修（2026-10-18）
-
-- 受付／Doctor／Writer／公開・完了の固定タブ。依頼文→回答欄の順序を統一。
-- 原本を読み取り専用で再表示し、前工程に戻って参照可能。依頼文コピー・進行状況表示。
-- Full限定・通常改善との独立・原本保存・状態遷移は変更しない。
-- UAT候補：実環境でのUI動作は未確認。
-
-## v7.1.6 (2026-10-18)
-- 特別改善の破棄結果を読み戻し検証し、ログ・UIにCaseIDを明示。UAT診断版。
-
-## v7.1.4
-- Emergency intake PREPARING reservation, publication finalization lookup, idempotent completion.
-
-## v7.1.3 — UAT candidate
-
-Fail-closed special improvement intake, idempotent payload writes and unique-case guards.
-
-## v7.1.1 — 緊急改善の回答照合・記事識別の強化（UAT候補）
-- Doctor/Writer回答のRequestID、CaseID、ArticleID、記事URLを依頼原本と厳密照合。
-- 受付時・完了時に記事管理のArticleIDと記事URLを読み取り照合（書き込みなし）。
-- 不正JSON・別案件の回答・登録URL不一致はfail-closed。
-- 通常改善への書き込みは追加しない。実環境UATは未実施。
-
-## v7.1.0 — 特別改善独立完結方式
-- v6.8.5を基盤に新規の独立特別改善フローを追加。
-- 通常改善シートは読み書きせず、専用シートへ監査記録・分割原本を保存。
-- 中断時は破棄、公開後は利用者確認を必須化。
-- v7.0.37の旧特別改善コードは移植しない。
+## v9.0.1 (2026-10-20)
+- Article update dialog: phase-specific Doctor request action; Close at bottom; hide completed controls.
+- Preserve legacy sessions and active monitoring data.
 
 ## v6.8.4
 - 日次処理ダイアログの先行表示と非同期ライセンス確認。STEP1の認証を追加。
@@ -1764,9 +1729,3 @@ v6.6.73
 
 ## v6.8.5
 - 再診候補生成時に統合済み・管理対象外の記事を除外。
-
-## v7.1.2 (UAT candidate)
-- Immutable emergency payload and intake commit ordering; structured response requirements.
-
-## v7.1.8
-- Article management selected-row entry, separated menu placement, prefilled read-only article identity.

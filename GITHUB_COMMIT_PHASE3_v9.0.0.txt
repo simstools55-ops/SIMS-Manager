@@ -1,0 +1,1 @@
+feat(manager): register aDoctor response and produce aWriter change request in UAT workflow

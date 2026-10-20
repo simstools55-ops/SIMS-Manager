@@ -1,0 +1,1 @@
+fix(manager): enforce structured aDoctor diagnosis status before aWriter handoff

@@ -1,0 +1,1 @@
+feat(manager): exclude interrupted information-update cycles from home KPI and active recommendation read paths

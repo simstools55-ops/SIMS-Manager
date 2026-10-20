@@ -1,0 +1,6 @@
+feat(manager): start v9.0.0 article information update UAT with safe 3-sheet selection
+
+- branch from v6.8.5 without v7.1.x emergency workflows
+- add canonical article resolution and intake preview
+- keep monitoring and existing workflows unchanged in phase 1
+- align runtime, mirrored Code.gs, identity and version markers

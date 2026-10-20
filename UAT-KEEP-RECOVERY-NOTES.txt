@@ -1,0 +1,15 @@
+SIMS Manager v9.0.0 UAT — Doctor KEEP recovery
+
+対象: A000177のようにDoctor診断結果は保存済みだが、未完了一覧に表示されず、改善ナビが旧aWriter工程を示すケース。
+
+変更: SIMS今日の作業 > 選択記事のDoctor終了判定を確認 を追加。
+記事管理で選択したArticleIDと、保存済みDoctor Case JSONのCaseID・ArticleIDを照合。
+KEEP / CLOSE_MONITORING / NONE / MAINTAIN の全条件が一致した最新Caseのみを表示。
+改善履歴IDがない場合や同時刻の重複候補は停止。Doctor回答の再登録は行わない。
+完了ボタンは既存のsbmDoctorCompleteCloseMonitoringを使用する。
+
+UAT確認: 記事管理A000177選択→新メニュー→KEEP終了画面→完了登録→記事管理が完了、H000114モニター終了。
+注意: 実スプレッドシートでの動作・保存整合は未検証。元ZIPは保持すること。
+
+GitHub commit:
+fix(manager): recover saved Doctor KEEP closure from selected article

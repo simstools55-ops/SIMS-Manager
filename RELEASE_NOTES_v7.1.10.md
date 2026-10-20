@@ -1,1 +1,0 @@
-# SIMS Manager v7.1.10 - UAT candidate\n\nChanged the invalid article selection notification from lower-right toast to a centered Spreadsheet UI alert (OK). Applies to shared article selection across article management, improvement effect and improvement history. No changes to selection logic, article records, or production sheets.\n

@@ -1,1 +1,0 @@
-fix(manager): allow explicit abandonment of stalled emergency cases (v7.1.5)

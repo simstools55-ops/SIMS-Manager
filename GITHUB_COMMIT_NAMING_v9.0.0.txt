@@ -1,0 +1,1 @@
+fix(manager): clarify management data refresh vs article content change/update menu labels

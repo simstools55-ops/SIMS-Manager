@@ -1,0 +1,1 @@
+feat(manager): add read-only article change impact preview dialog to selected article menus

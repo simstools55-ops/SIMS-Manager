@@ -1,3 +1,8 @@
+## v9.0.3 (2026-10-20)
+- Fix empty Writer request display by generating it on demand.
+- Add explicit cancel/archive for stale Writer-ready session; retain record, do not alter monitoring or history.
+- Exclude cancelled sessions from active selection.
+
 # 3.5.0
 
 - Added Platform-wide Human Experience Architecture and Presentation Framework.

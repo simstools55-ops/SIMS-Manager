@@ -1,5 +1,0 @@
-feat(manager): unify emergency improvement navigator UI (v7.1.7)
-
-- Fixed four-stage navigation with stable request/response layout
-- Add immutable Doctor/Writer payload readback and copy controls
-- Preserve existing emergency state machine and normal improvement isolation

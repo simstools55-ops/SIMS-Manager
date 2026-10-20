@@ -1,0 +1,6 @@
+feat(manager): package v9.0.0 article content change/update UAT workflow
+
+- Preserve v6.8.5-based normal improvement features
+- Add selected-article intake, Doctor/Writer handoff, interruption guards
+- Include guarded test transition engine; Google Sheets write-path UAT pending
+- Align root identity and README with UAT status

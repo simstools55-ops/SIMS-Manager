@@ -1,0 +1,1 @@
+fix(manager): preserve interrupted information-update cycles during lifecycle normalization

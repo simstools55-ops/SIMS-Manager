@@ -1,0 +1,8 @@
+UAT hotfix: KEEP / CLOSE_MONITORING and daily navigation
+
+- Doctor V2: explicit KEEP + CLOSE_MONITORING + post_improvement_decision KEEP + intervention NONE + MAINTAIN now enters existing close-monitoring confirmation route.
+- Use Doctor post_improvement_decision.improvement_history_id when source request omits history ID.
+- Daily update: success dialog shows 今日の改善へ進む, invoking existing sbmOpenTodayImprovement without rerunning daily processing.
+- Does not automatically complete Doctor cases on JSON registration; user must confirm closure with existing button.
+- Existing Personal Knowledge remains untouched.
+- Static patch verification only; Apps Script runtime UAT required.

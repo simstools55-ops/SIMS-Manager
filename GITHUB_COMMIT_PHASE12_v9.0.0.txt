@@ -1,0 +1,1 @@
+feat(manager): add fail-closed read-only transition readiness audit for content updates

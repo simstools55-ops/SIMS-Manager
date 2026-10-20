@@ -1,0 +1,1 @@
+fix(manager): fail closed on cross-article or duplicate history IDs in information-update rate preview

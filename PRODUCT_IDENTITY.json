@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "7.1.9",
-  "release_status": "UAT_CANDIDATE",
-  "notes": "v7.1.9 UAT: read-only single-row selection for article management, improvement effect and history; no checkbox scan on menu execution.",
-  "version": "7.1.9",
+  "current_version": "9.0.0",
+  "release_status": "UAT_NOT_PRODUCTION",
+  "notes": "v9.0.0 UAT: article content change/update workflow. Google Sheets integration and write-path verification are pending.",
+  "version": "9.0.7",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v7.1.9-ST"
+  "starter_display_version": "v9.0.0-ST"
 }

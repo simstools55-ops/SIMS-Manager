@@ -1,0 +1,1 @@
+feat(manager): add minimal dry-run transition plan for article content update completion

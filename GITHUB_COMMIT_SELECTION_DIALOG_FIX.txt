@@ -1,0 +1,1 @@
+fix(manager): use active article row only and show selection errors in centered modal

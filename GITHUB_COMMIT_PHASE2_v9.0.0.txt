@@ -1,0 +1,1 @@
+feat(manager): persist article content change intake and generate aDoctor request without changing monitoring state

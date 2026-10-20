@@ -1,0 +1,1 @@
+test(manager): establish fail-closed interruption exclusion contract without mutating monitoring state

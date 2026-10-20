@@ -1,1 +1,0 @@
-fix(manager): harden independent emergency workflow storage and validation (v7.1.2)

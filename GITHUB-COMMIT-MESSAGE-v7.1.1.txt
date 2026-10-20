@@ -1,1 +1,0 @@
-fix(manager): validate emergency Doctor/Writer response identity and article URL (v7.1.1)
