@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.14",
+  "current_version": "9.0.15",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.14: legacy selection checkbox generation disabled on three main sheets; UAT pending.",
-  "version": "9.0.14",
+  "notes": "v9.0.15: continuous Info Change doctor/writer UI; UAT pending.",
+  "version": "9.0.15",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.14-ST"
+  "starter_display_version": "v9.0.15-ST"
 }
