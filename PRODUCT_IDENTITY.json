@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.10",
+  "current_version": "9.0.11",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.10: selection-column visibility and lightweight post-registration sorting; Apps Script live UAT pending.",
-  "version": "9.0.10",
+  "notes": "v9.0.11: active-row selection fix and hidden selection columns; Apps Script UAT pending.",
+  "version": "9.0.11",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.10-ST"
+  "starter_display_version": "v9.0.11-ST"
 }

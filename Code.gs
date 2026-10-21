@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.2
- * Release summary: Repair Writer request display and enable explicit archival of stale article-update sessions.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.8.md.
+ * Current version: 9.0.11
+ * Release summary: Use active-row article selection and hide legacy selection columns.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.11.md.
  */
 
-const SBM_VERSION = '9.0.10';
+const SBM_VERSION = '9.0.11';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -6617,6 +6617,7 @@ function sbmOpenTodayImprovement() {
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
   var tTheme=new Date(); try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){} profiler.lap('表示テーマ適用','','',sbmSecondsSince_(tTheme)+'秒');
   var tCompletedPresentation=new Date(); try{sbmSyncTodayCompletedPresentationLight_(sh);}catch(eCompletedPresentation){try{sbmLog_('TodayCompletedPresentation','Warning',String(eCompletedPresentation));}catch(ignoreCompletedPresentationLog){}} profiler.lap('完了済み行表示同期','','',sbmSecondsSince_(tCompletedPresentation)+'秒');
+  try{sbm9HideSelectionColumn_(sh);}catch(ignoreHideSelection){}
   var tActivate=new Date(); sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); profiler.lap('シート表示・activate','','',sbmSecondsSince_(tActivate)+'秒');
   var tCandidates=new Date();
   var current = sbmGetTodayCandidates_().filter(function(c){
@@ -10239,12 +10240,9 @@ function sbmOpenSelectedImprovementNavi(){
     var props=PropertiesService.getDocumentProperties();
     var pendingKey='SBM_LAST_NAVI_ROW_'+sh.getSheetId();
     var pendingRow=Number(props.getProperty(pendingKey)||0);
-    if(pendingRow>1&&pendingRow<=sh.getLastRow()) row=pendingRow;
-    else row=sbmGetCheckedRow_(sh,true);
-    if(!row){
-      var ar=sh.getActiveRange();
-      if(ar&&ar.getRow()>1)row=ar.getRow();
-    }
+    // Current active row is authoritative; ignore stale saved/checkbox selections.
+    var ar=sh.getActiveRange();
+    if(ar&&ar.getRow()>1&&ar.getRow()<=sh.getLastRow())row=ar.getRow();
     if(!row)return sbmAlert_('対象を選択してください','一覧で対象記事の行を選択してから、もう一度実行してください。');
     props.deleteProperty(pendingKey);
     record=sbmRowRecord_(sh,row);
@@ -11007,7 +11005,7 @@ function sbmRepairImprovementHistoryPresentationV6792_(sh){
   try{sh.getRange(1,1,1,lastCol).setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);sh.setRowHeight(1,34);}catch(ignoreHeader){}
   var widths={'選択':56,'改善日':100,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':200,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
-  if(hm['選択'])try{sh.getRange(2,hm['選択'],n,1).insertCheckboxes().setHorizontalAlignment('center').setVerticalAlignment('middle');}catch(ignoreCb){}
+  try{if(hm['選択'])sh.hideColumns(hm['選択']);}catch(ignoreCb){}
   try{sh.setRowHeightsForced(2,n,76);}catch(ignoreRows){try{sh.setRowHeights(2,n,76);}catch(ignoreRowsFallback){}}
   try{sh.getRange(2,1,n,lastCol).setVerticalAlignment('middle');}catch(ignoreMiddle){}
   if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setWrap(false);}catch(ignoreDate){}
@@ -13276,7 +13274,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   if(!sh)return;
   var lastCol=sh.getLastColumn();if(lastCol<1)return;
   var headers=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
+  var visible={'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
   try{sh.showColumns(1,lastCol);}catch(ignoreShow){}
   var runStart=0;
   for(var c=1;c<=lastCol;c++){

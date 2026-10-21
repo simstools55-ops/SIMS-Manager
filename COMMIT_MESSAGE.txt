@@ -1,1 +1,1 @@
-fix(manager): avoid redundant workflow fetch in Doctor response dialog and respect diagnosis status
+fix(manager): prioritize active row and hide legacy selection columns (v9.0.11)
