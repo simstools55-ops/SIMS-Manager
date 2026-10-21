@@ -8,7 +8,7 @@
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.15.md.
  */
 
-const SBM_VERSION = '9.0.15';
+const SBM_VERSION = '9.0.17';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -24995,7 +24995,7 @@ function sbmInfoChangeWriterCompletionAudit(payload){
     var d=JSON.parse(parts.join(''));
     if(d.format!=='SIMS_WRITER_TREATMENT_RESULT_V1'||String(d.request_id||'')!==r.requestId||String(d.article_id||'')!==r.articleId||String(d.case_id||'')!=='INFOCHANGE-'+r.requestId)throw new Error('Writer回答の識別情報が不一致です。');
     if(d.treatment_status!=='COMPLETED'||!d.publication_result||!Array.isArray(d.publication_result.public_ok_changes)||!d.publication_result.public_ok_changes.length)throw new Error('Writer回答の完了内容または変更箇所を確認できません。');
-    if(d.publication_result.publication_decision!=='PUBLIC_OK')throw new Error('Writer回答の公開判定が完了条件と一致しません。');
+    if(String(d.publication_result.decision||d.publication_result.publication_decision||'')!=='PUBLIC_OK')throw new Error('Writer回答の公開判定が完了条件と一致しません。');
     var changeIds={};
     d.publication_result.public_ok_changes.forEach(function(change){
       var id=String(change&&change.change_id||'');

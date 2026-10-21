@@ -1,4 +1,8 @@
-## v9.0.15 — UAT candidate
+## v9.0.17 — Writer completion audit contract fix
+- Accept publication_result.decision = PUBLIC_OK (Writer contract); retain legacy publication_decision compatibility.
+- No changes to saved Writer responses or monitoring state.
+
+## v9.0.16 — UAT candidate
 - 情報更新受付後にDoctor回答欄が隠れる状態不整合を修正。
 - 依頼文コピーで回答欄を表示。Writer依頼文の親コンテナ表示を修正。
 - 既存保存データと状態遷移・登録検証は維持。
