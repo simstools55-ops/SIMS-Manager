@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.2
- * Release summary: Repair Writer request display and enable explicit archival of stale article-update sessions.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.8.md.
+ * Current version: 9.0.13
+ * Release summary: Remove history selection controls, normalize dates and refresh history display after registration.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.13.md.
  */
 
-const SBM_VERSION = '9.0.10';
+const SBM_VERSION = '9.0.13';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -6617,6 +6617,7 @@ function sbmOpenTodayImprovement() {
   sh = ss.getSheetByName(SBM_SHEETS.TODAY) || sh;
   var tTheme=new Date(); try{sbmApplyTodayDisplayTheme_(sh);}catch(ignoreTodayTheme){} profiler.lap('表示テーマ適用','','',sbmSecondsSince_(tTheme)+'秒');
   var tCompletedPresentation=new Date(); try{sbmSyncTodayCompletedPresentationLight_(sh);}catch(eCompletedPresentation){try{sbmLog_('TodayCompletedPresentation','Warning',String(eCompletedPresentation));}catch(ignoreCompletedPresentationLog){}} profiler.lap('完了済み行表示同期','','',sbmSecondsSince_(tCompletedPresentation)+'秒');
+  try{sbm9HideSelectionColumn_(sh);}catch(ignoreHideSelection){}
   var tActivate=new Date(); sh.showSheet(); ss.setActiveSheet(sh); sh.activate(); profiler.lap('シート表示・activate','','',sbmSecondsSince_(tActivate)+'秒');
   var tCandidates=new Date();
   var current = sbmGetTodayCandidates_().filter(function(c){
@@ -8699,6 +8700,10 @@ function sbmRegisterImprovementFeedback(data, options) {
       try{sbmInvalidateHomeSnapshot_();}catch(eHomeInvalidate){}
     }
     sbmFeedbackTrace_('REGISTER_HOME_DEFERRED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
+    // v9.0.12: The ordinary improvement navigation also commits both views.
+    // Run the lightweight presentation update only after the effect row exists.
+    var viewRefresh=sbm9SortCommittedViewsLight_();
+    sbmFeedbackTrace_('REGISTER_VIEWS_REFRESHED',JSON.stringify(viewRefresh));
     registerLap('completed');
     sbmFeedbackTrace_('REGISTER_COMPLETED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
     return {ok:true,historyId:historyId||'',message:'改善結果を登録しました。\n・記事管理を「モニター中」に更新しました\n・改善履歴を作成しました\n・今日の改善を終了表示にしました\n・'+data.recommended_review_days+'日後を効果確認予定に設定しました'+(mergeFollowUp&&mergeFollowUp.created?'\n・記事統合の利用者判断をaMerge未完了Workflowへ引き継ぎました（CaseID：'+mergeFollowUp.caseId+'）':'')+(pkIngest.total?'\n・Personal Knowledge：候補'+pkIngest.total+'件 / 保存'+pkIngest.written+'件':'')};
@@ -10239,12 +10244,9 @@ function sbmOpenSelectedImprovementNavi(){
     var props=PropertiesService.getDocumentProperties();
     var pendingKey='SBM_LAST_NAVI_ROW_'+sh.getSheetId();
     var pendingRow=Number(props.getProperty(pendingKey)||0);
-    if(pendingRow>1&&pendingRow<=sh.getLastRow()) row=pendingRow;
-    else row=sbmGetCheckedRow_(sh,true);
-    if(!row){
-      var ar=sh.getActiveRange();
-      if(ar&&ar.getRow()>1)row=ar.getRow();
-    }
+    // Current active row is authoritative; ignore stale saved/checkbox selections.
+    var ar=sh.getActiveRange();
+    if(ar&&ar.getRow()>1&&ar.getRow()<=sh.getLastRow())row=ar.getRow();
     if(!row)return sbmAlert_('対象を選択してください','一覧で対象記事の行を選択してから、もう一度実行してください。');
     props.deleteProperty(pendingKey);
     record=sbmRowRecord_(sh,row);
@@ -11007,7 +11009,7 @@ function sbmRepairImprovementHistoryPresentationV6792_(sh){
   try{sh.getRange(1,1,1,lastCol).setVerticalAlignment('middle').setHorizontalAlignment('center').setWrap(false);sh.setRowHeight(1,34);}catch(ignoreHeader){}
   var widths={'選択':56,'改善日':100,'記事タイトル':310,'ArticleID':90,'改善概要':350,'改善経路':200,'1週':96,'2週':96,'3週':96,'4週':96,'最終判定':132};
   Object.keys(widths).forEach(function(h){if(hm[h])try{sh.setColumnWidth(hm[h],widths[h]);}catch(ignoreWidth){}});
-  if(hm['選択'])try{sh.getRange(2,hm['選択'],n,1).insertCheckboxes().setHorizontalAlignment('center').setVerticalAlignment('middle');}catch(ignoreCb){}
+  try{if(hm['選択'])sh.hideColumns(hm['選択']);}catch(ignoreCb){}
   try{sh.setRowHeightsForced(2,n,76);}catch(ignoreRows){try{sh.setRowHeights(2,n,76);}catch(ignoreRowsFallback){}}
   try{sh.getRange(2,1,n,lastCol).setVerticalAlignment('middle');}catch(ignoreMiddle){}
   if(hm['改善日'])try{sh.getRange(2,hm['改善日'],n,1).setNumberFormat('yyyy/M/d').setHorizontalAlignment('center').setWrap(false);}catch(ignoreDate){}
@@ -13229,6 +13231,9 @@ function sbmRefreshImprovementHistorySheet_(updateEffect) {
   try { sbmApplySelectionUi_(sh); } catch (e) {
     sbmLog_('RefreshImprovementHistorySelection', 'Warning', String(e));
   }
+  try { sbm9ClearHistorySelection_(sh); sbmSortSheetByDateDescStable_(sh,'改善日'); } catch (e) {
+    sbmLog_('RefreshImprovementHistoryDisplay', 'Warning', String(e));
+  }
   sh.showSheet();
   SpreadsheetApp.flush();
   return sh;
@@ -13276,7 +13281,7 @@ function sbmEnsureImprovementHistoryViewLight_(){
   if(!sh)return;
   var lastCol=sh.getLastColumn();if(lastCol<1)return;
   var headers=sh.getRange(1,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  var visible={'選択':1,'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
+  var visible={'改善日':1,'記事タイトル':1,'ArticleID':1,'改善概要':1,'改善経路':1,'1週':1,'2週':1,'3週':1,'4週':1,'最終判定':1};
   try{sh.showColumns(1,lastCol);}catch(ignoreShow){}
   var runStart=0;
   for(var c=1;c<=lastCol;c++){
@@ -13365,6 +13370,7 @@ function sbmOpenImprovementHistory() {
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   try{sbmEnsureViewStyleCached_(sh,'SBM_HISTORY_THEME_664_'+String(sh.getSheetId()),function(x){sbmApplyHistoryDisplayTheme_(x);});}catch(ignoreTheme){}
   try{sbmRepairImprovementHistoryPresentationV6792_(sh);}catch(ignoreHistoryCanonicalFinal){}
+  try{sbm9ClearHistorySelection_(sh);}catch(eClean){sbmLog_('SBM9HistoryClearSelection','Warning',String(eClean));}
   try{sbm9HideSelectionColumn_(sh);}catch(eHide){sbmLog_('SBM9HistoryHideSelection','Warning',String(eHide));}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
@@ -13987,16 +13993,45 @@ function sbm9HideSelectionColumn_(sh){
   if(col)sh.hideColumns(col);
 }
 
+/** v9.0.13: clear obsolete history checkboxes/boolean values in one batch. */
+function sbm9ClearHistorySelection_(sh){
+  if(!sh)return;
+  var hm=sbmHeaderMap_(sh),col=hm['選択'];
+  if(!col)return;
+  var n=sh.getLastRow()-1;
+  if(n>0){var r=sh.getRange(2,col,n,1);r.clearDataValidations();r.clearContent();}
+  sh.hideColumns(col);
+}
+
 /** Sort only already-committed rows; never rebuild monitoring or history on the write path. */
 function sbm9SortCommittedViewsLight_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var specs=[[SBM_SHEETS.EFFECT,'改善・治療開始日'],[SBM_SHEETS.FEEDBACK_HISTORY,'改善日']];
+  var result={ok:true,views:[]};
   specs.forEach(function(spec){
+    var detail={sheet:spec[0],sorted:false,selectionHidden:false};
     try{
       var sh=ss.getSheetByName(spec[0]);
-      if(sh){sbmSortSheetByDateDescStable_(sh,spec[1]);sbm9HideSelectionColumn_(sh);}
-    }catch(e){try{sbmLog_('SBM9PostCommitViewSort','Warning',spec[0]+': '+String(e));}catch(ignoreLog){}}
+      if(!sh)throw new Error('対象シートがありません');
+      var hm=sbmHeaderMap_(sh);
+      if(!hm[spec[1]])throw new Error('日付列がありません: '+spec[1]);
+      // One native sort per view; no rebuild, GSC request or active-sheet change.
+      sbmSortSheetByDateDescStable_(sh,spec[1]);
+      detail.sorted=true;
+      if(spec[0]===SBM_SHEETS.FEEDBACK_HISTORY){
+        sbm9ClearHistorySelection_(sh);
+        sbmRepairImprovementHistoryPresentationV6792_(sh);
+      }
+      sbm9HideSelectionColumn_(sh);
+      detail.selectionHidden=!hm['選択']||sh.isColumnHiddenByUser(hm['選択']);
+      if(!detail.selectionHidden)throw new Error('選択列を非表示にできませんでした');
+    }catch(e){
+      result.ok=false;detail.error=String(e&&e.message||e);
+      try{sbmLog_('SBM9PostCommitViewSort','Warning',spec[0]+': '+detail.error);}catch(ignoreLog){}
+    }
+    result.views.push(detail);
   });
+  return result;
 }
 
 function sbmApplySelectionUi_(sh) {
@@ -14061,13 +14096,15 @@ function sbmApplySelectionUi_(sh) {
   }
 
   if (sh.getName() === SBM_SHEETS.FEEDBACK_HISTORY) {
-    // 改善履歴では値を消さず、チェックボックスの入力規則だけを保証する。
-    var dataLastHistory=sbmSelectionDataLastRow_(sh);
-    if(dataLastHistory>=2){
-      var historyRange=sh.getRange(2,col,dataLastHistory-1,1);
-      var checkboxRule=SpreadsheetApp.newDataValidation().requireCheckbox().build();
-      historyRange.setDataValidation(checkboxRule).setHorizontalAlignment('center');
+    // v9.0.13: 改善履歴はセル/行選択のみ。過去のFALSEと入力規則を除去する。
+    // 内部列の位置は互換性のため維持し、列自体は非表示にする。
+    var historyCount=Math.max(0,sh.getLastRow()-1);
+    if(historyCount){
+      var historyRange=sh.getRange(2,col,historyCount,1);
+      historyRange.clearDataValidations();
+      historyRange.clearContent();
     }
+    try{sh.hideColumns(col);}catch(ignoreHistoryHide){}
     return;
   }
 
