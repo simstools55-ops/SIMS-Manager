@@ -8,7 +8,7 @@
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.8.md.
  */
 
-const SBM_VERSION = '9.0.9';
+const SBM_VERSION = '9.0.10';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -6140,6 +6140,7 @@ function sbmApplyCommonNumberFormats_(sh) {
 
 function sbmStyleDataSheet_(sh) { var lc=Math.max(sh.getLastColumn(),1); var lr=Math.max(sh.getLastRow(),1); sh.setFrozenRows(1); sh.getRange(1,1,1,lc).setFontWeight('bold').setBackground('#e8f0fe').setWrap(true); sh.getRange(1,1,lr,lc).setVerticalAlignment('top').setWrap(true); try{ sh.autoResizeColumns(1, Math.min(lc,12)); }catch(e){} try{ sbmApplyCommonNumberFormats_(sh); }catch(e){} }
 function sbmStyleTodaySheet_(sh) {
+  try{sbm9HideSelectionColumn_(sh);}catch(ignoreHideSelection){}
   sbmStyleDataSheet_(sh);
   var widths = [70,70,260,190,230,110,70,70,55,55,85,65,65,55,85,75,65,180,60,1,80,120];
   widths.forEach(function(w,i){ try{ sh.setColumnWidth(i+1,w); }catch(e){} });
@@ -11015,6 +11016,7 @@ function sbmRepairImprovementHistoryPresentationV6792_(sh){
   if(hm['改善経路'])try{sh.getRange(2,hm['改善経路'],n,1).setHorizontalAlignment('center').setVerticalAlignment('middle').setWrap(true).setBackground('#e8f0fe').setFontColor('#174ea6').setFontWeight('bold');}catch(ignoreRoute){}
   if(hm['ArticleID'])try{sh.getRange(2,hm['ArticleID'],n,1).setHorizontalAlignment('center').setWrap(false);}catch(ignoreAid){}
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
+  try{sbm9HideSelectionColumn_(sh);}catch(ignoreHide){}
 }
 
 function sbmOpenEffectiveness(){
@@ -13363,6 +13365,7 @@ function sbmOpenImprovementHistory() {
   try{sbmEnsureArticleListFilter_(sh);}catch(ignoreFilter){}
   try{sbmEnsureViewStyleCached_(sh,'SBM_HISTORY_THEME_664_'+String(sh.getSheetId()),function(x){sbmApplyHistoryDisplayTheme_(x);});}catch(ignoreTheme){}
   try{sbmRepairImprovementHistoryPresentationV6792_(sh);}catch(ignoreHistoryCanonicalFinal){}
+  try{sbm9HideSelectionColumn_(sh);}catch(eHide){sbmLog_('SBM9HistoryHideSelection','Warning',String(eHide));}
   if(sh.isSheetHidden())sh.showSheet();
   if(ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
 }
@@ -13977,6 +13980,25 @@ function sbmSyncTodayCompletedPresentationLight_(sh){
  * 「今日の改善」では、記事タイトルが入っている行だけにチェックボックスを置きます。
  * 空行・残存書式行・内部列だけに値がある行には表示しません。
  */
+/** SBM9: selection values are retained for compatibility; the user chooses a row/cell. */
+function sbm9HideSelectionColumn_(sh){
+  if(!sh)return;
+  var hm=sbmHeaderMap_(sh),col=hm['選択'];
+  if(col)sh.hideColumns(col);
+}
+
+/** Sort only already-committed rows; never rebuild monitoring or history on the write path. */
+function sbm9SortCommittedViewsLight_(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var specs=[[SBM_SHEETS.EFFECT,'改善・治療開始日'],[SBM_SHEETS.FEEDBACK_HISTORY,'改善日']];
+  specs.forEach(function(spec){
+    try{
+      var sh=ss.getSheetByName(spec[0]);
+      if(sh){sbmSortSheetByDateDescStable_(sh,spec[1]);sbm9HideSelectionColumn_(sh);}
+    }catch(e){try{sbmLog_('SBM9PostCommitViewSort','Warning',spec[0]+': '+String(e));}catch(ignoreLog){}}
+  });
+}
+
 function sbmApplySelectionUi_(sh) {
   if (!sh || sh.getLastColumn() < 1) return;
 
@@ -23441,6 +23463,8 @@ function sbmDoctorStoreWriterTreatmentResult_(o){
     // v6.7.0: 改善の推移同期はMONITORING確定前にコミット確認済み。ここでは再実行しない。
     // Homeは次回表示時に最新状態から再構築する。ここでは同期再集計しない。
     try{sbmInvalidateHomeSnapshot_();}catch(eFinalHome){sbmLog_('DoctorWriterHomeInvalidate','Warning',String(eFinalHome));}
+    // SBM9 v9.0.10: committed rows only; two native sorts, no full re-render.
+    sbm9SortCommittedViewsLight_();
     // v6.7.5: 実測でこの同期表示整形だけで約19秒を消費していたため、登録完了の必須経路から外す。
     // 各シートは表示時の軽量整形経路を持つため、ここではデータ確定を優先し再装飾しない。
   }

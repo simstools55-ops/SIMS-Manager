@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.0",
+  "current_version": "9.0.10",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.0 UAT: article content change/update workflow. Google Sheets integration and write-path verification are pending.",
-  "version": "9.0.7",
+  "notes": "v9.0.10: selection-column visibility and lightweight post-registration sorting; Apps Script live UAT pending.",
+  "version": "9.0.10",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.0-ST"
+  "starter_display_version": "v9.0.10-ST"
 }
