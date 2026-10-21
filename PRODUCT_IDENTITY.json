@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.12",
+  "current_version": "9.0.14",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.12: post-commit sorting for ordinary/Doctor improvement registration and hidden legacy selection columns; UAT pending.",
-  "version": "9.0.12",
+  "notes": "v9.0.14: legacy selection checkbox generation disabled on three main sheets; UAT pending.",
+  "version": "9.0.14",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.12-ST"
+  "starter_display_version": "v9.0.14-ST"
 }

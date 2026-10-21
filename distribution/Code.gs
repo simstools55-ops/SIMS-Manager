@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.13
+ * Current version: 9.0.14
  * Release summary: Remove history selection controls, normalize dates and refresh history display after registration.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.13.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.14.md.
  */
 
-const SBM_VERSION = '9.0.13';
+const SBM_VERSION = '9.0.14';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -14040,7 +14040,13 @@ function sbmApplySelectionUi_(sh) {
   var hm = sbmHeaderMap_(sh);
   var col = hm['選択'];
   if (!col) return;
-
+  // v9.0.14: use active-row selection; keep legacy values and column positions.
+  if ([SBM_SHEETS.ARTICLE_DB, SBM_SHEETS.TODAY, SBM_SHEETS.FEEDBACK_HISTORY].indexOf(sh.getName()) >= 0) {
+    var count=Math.max(0,sh.getLastRow()-1);
+    if(count)sh.getRange(2,col,count,1).clearDataValidations();
+    sh.hideColumns(col);
+    return;
+  }
   sh.setColumnWidth(col, 52);
   sh.getRange(1, col).setHorizontalAlignment('center').setWrap(false);
 
@@ -25532,9 +25538,4 @@ function sbmInfoChangeComplete(payload){
 
 // v9.0.8: legacy checkbox data is retained for backward compatibility, but the
 // user interface uses selected rows. Do not expose the selection column.
-var sbmApplySelectionUiLegacy908_ = sbmApplySelectionUi_;
-sbmApplySelectionUi_ = function(sh){
-  var result=sbmApplySelectionUiLegacy908_(sh);
-  try{var hm=sbmHeaderMap_(sh);if(hm['選択'])sh.hideColumns(hm['選択']);}catch(ignoreHideSelection){}
-  return result;
-};
+// v9.0.14: visibility handled in the shared selection UI.
