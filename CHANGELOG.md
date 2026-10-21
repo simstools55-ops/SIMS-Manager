@@ -1,3 +1,7 @@
+## v9.0.12 (2026-10-21) — UAT candidate
+- 通常改善登録後の軽量整列を追加。履歴選択列の非表示確認と警告ログを追加。
+- Code.gsの現行版コメント、README、PRODUCT_IDENTITY、配布版を同期。
+
 ## v9.0.11 (UAT candidate)
 # SIMS Manager v9.0.11 — UAT candidate
 

@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.11
- * Release summary: Use active-row article selection and hide legacy selection columns.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.11.md.
+ * Current version: 9.0.12
+ * Release summary: Sort both committed views on ordinary and Doctor registrations; verify hidden selection column.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.12.md.
  */
 
-const SBM_VERSION = '9.0.11';
+const SBM_VERSION = '9.0.12';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -8700,6 +8700,10 @@ function sbmRegisterImprovementFeedback(data, options) {
       try{sbmInvalidateHomeSnapshot_();}catch(eHomeInvalidate){}
     }
     sbmFeedbackTrace_('REGISTER_HOME_DEFERRED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
+    // v9.0.12: The ordinary improvement navigation also commits both views.
+    // Run the lightweight presentation update only after the effect row exists.
+    var viewRefresh=sbm9SortCommittedViewsLight_();
+    sbmFeedbackTrace_('REGISTER_VIEWS_REFRESHED',JSON.stringify(viewRefresh));
     registerLap('completed');
     sbmFeedbackTrace_('REGISTER_COMPLETED','elapsed=' + ((new Date().getTime()-registerStarted.getTime())/1000).toFixed(2) + 's');
     return {ok:true,historyId:historyId||'',message:'改善結果を登録しました。\n・記事管理を「モニター中」に更新しました\n・改善履歴を作成しました\n・今日の改善を終了表示にしました\n・'+data.recommended_review_days+'日後を効果確認予定に設定しました'+(mergeFollowUp&&mergeFollowUp.created?'\n・記事統合の利用者判断をaMerge未完了Workflowへ引き継ぎました（CaseID：'+mergeFollowUp.caseId+'）':'')+(pkIngest.total?'\n・Personal Knowledge：候補'+pkIngest.total+'件 / 保存'+pkIngest.written+'件':'')};
@@ -13989,12 +13993,27 @@ function sbm9HideSelectionColumn_(sh){
 function sbm9SortCommittedViewsLight_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var specs=[[SBM_SHEETS.EFFECT,'改善・治療開始日'],[SBM_SHEETS.FEEDBACK_HISTORY,'改善日']];
+  var result={ok:true,views:[]};
   specs.forEach(function(spec){
+    var detail={sheet:spec[0],sorted:false,selectionHidden:false};
     try{
       var sh=ss.getSheetByName(spec[0]);
-      if(sh){sbmSortSheetByDateDescStable_(sh,spec[1]);sbm9HideSelectionColumn_(sh);}
-    }catch(e){try{sbmLog_('SBM9PostCommitViewSort','Warning',spec[0]+': '+String(e));}catch(ignoreLog){}}
+      if(!sh)throw new Error('対象シートがありません');
+      var hm=sbmHeaderMap_(sh);
+      if(!hm[spec[1]])throw new Error('日付列がありません: '+spec[1]);
+      // One native sort per view; no rebuild, GSC request or active-sheet change.
+      sbmSortSheetByDateDescStable_(sh,spec[1]);
+      detail.sorted=true;
+      sbm9HideSelectionColumn_(sh);
+      detail.selectionHidden=!hm['選択']||sh.isColumnHiddenByUser(hm['選択']);
+      if(!detail.selectionHidden)throw new Error('選択列を非表示にできませんでした');
+    }catch(e){
+      result.ok=false;detail.error=String(e&&e.message||e);
+      try{sbmLog_('SBM9PostCommitViewSort','Warning',spec[0]+': '+detail.error);}catch(ignoreLog){}
+    }
+    result.views.push(detail);
   });
+  return result;
 }
 
 function sbmApplySelectionUi_(sh) {
