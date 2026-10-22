@@ -1,3 +1,61 @@
+## v9.0.33 (UAT) — aWriter確認事項の見える化
+- aWriterが利用者判断待ちを返した場合、質問を一覧表示して登録を保留。
+- 利用者はaWriterへ回答し、最終結果を再登録する。SBMでYES/NO判断や公開検証はしない。
+- 既存のCOMPLETED登録経路は維持。
+
+# v9.0.31
+- Fix missing-history recheck guard and candidate history ID fallback.
+- Preserve history identity verification and state transition after request persistence.
+
+## v9.0.30 (UAT)
+- Allow re-diagnosis for review candidates despite incomplete weekly measurements; preserve uncertainty.
+- Keep work-state transition after Doctor request save.
+
+## v9.0.29 (UAT)
+- 再診候補と4回測定履歴の整合・状態遷移順序を修正。
+
+## v9.0.28 (UAT)
+- Writer変更番号 C1 形式対応、保存時・完了前の検査共通化、欠落項目の明確化。
+
+## v9.0.27 (UAT)
+- STEP 6未認証時にライセンス認証への導線を追加。
+- 完了表示をライセンス状態と区別。
+- 同梱セットアップ説明を6ステップ版に更新。
+
+## v9.0.26 (UAT)
+- 初回セットアップ操作ボタンの表示改善（CSSのみ）。
+
+## v9.0.25 (UAT)
+- STEP6に保存済みライセンス情報を表示。未認証時は認証メニューへ案内。
+
+## v9.0.24 (UAT)
+- STEP6の完了判定を実際の準備状況と整合。
+- 完了時のみ日次処理画面へのボタンを追加。自動実行はしない。
+
+## v9.0.23 (UAT)
+- 初回セットアップのメニュー名称を統一。
+- サイト未登録時のライセンス認証前案内を追加。
+- 初回日次処理導線などは次段階の検討対象。
+
+## v9.0.22 (2026-10-21)
+- Normalize Writer change IDs CHG-1, 変更1, 1 in information-change completion audit.
+- Preserve case data and prior histories.
+
+## v9.0.21 (2026-10-21)
+- Fix read-only Writer completion audit: recognize change_no and allow multiple edit targets for one Doctor finding; check coverage and distinct targets.
+- Add この記事を開く link above Writer response, opening a separate tab without closing the dialog.
+- Preserve saved responses, history, and monitoring state.
+
+## v9.0.19 (2026-10-21)
+- Force fresh public article retrieval for information-change Doctor and Writer requests; retain cache for other workflows.
+
+# v9.0.18
+
+- 記事内容変更・更新：Writer回答登録後は入力欄と見出しをまとめて非表示にする。
+- 完了登録の処理中表示をダイアログ上部に固定し、スクロール位置に依存せず表示する。
+- 処理中のボタン無効化は既存のbusyStart/busyEndを維持。
+- 完了登録の状態管理・判定条件・履歴生成処理は変更しない。
+
 ## v9.0.17 — Writer completion audit contract fix
 - Accept publication_result.decision = PUBLIC_OK (Writer contract); retain legacy publication_decision compatibility.
 - No changes to saved Writer responses or monitoring state.
@@ -1758,3 +1816,6 @@ v6.6.73
 
 ## v6.8.5
 - 再診候補生成時に統合済み・管理対象外の記事を除外。
+
+## v9.0.20 (2026-10-21)
+- Strengthen information-change aDoctor full-article legacy-name audit and classification; preserve existing cases and monitoring.

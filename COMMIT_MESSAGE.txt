@@ -1,1 +1,1 @@
-fix(manager): accept Writer PUBLIC_OK decision in completion audit (v9.0.17)
+fix(manager): align recheck candidates and guard state transition (v9.0.29)
