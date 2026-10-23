@@ -4,11 +4,11 @@
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
  * Current version: 9.0.33
- * Release summary: Display all pending aWriter user questions and return decisions to aWriter without registration.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.33.md.
+ * Release summary: Accept publication_result.status PUBLIC_OK in info-change completion preflight; preserve pending-question hold.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.35.md.
  */
 
-const SBM_VERSION = '9.0.33';
+const SBM_VERSION = '9.0.35';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25011,9 +25011,26 @@ function sbmInfoChangeNormalizeChangeNumber_(value){
   var n=Number(m[1]);
   return Number.isSafeInteger(n)&&n>0?String(n):'';
 }
+/** v9.0.35: Writer may provide public_ok_changes as IDs referencing performed_changes. */
+function sbmInfoChangeResolvedWriterChanges_(d){
+  var pub=d&&d.publication_result||{};
+  var refs=pub.public_ok_changes;
+  if(!Array.isArray(refs)||!refs.length)throw new Error('Writer変更結果がありません。');
+  var performed=Array.isArray(d.performed_changes)?d.performed_changes:[];
+  var byId={};
+  performed.forEach(function(item){
+    var id=sbmInfoChangeNormalizeChangeNumber_(item&&(item.change_no!==undefined?item.change_no:item.change_id));
+    if(id){if(byId[id])throw new Error('performed_changesに変更番号の重複があります: '+id);byId[id]=item;}
+  });
+  return refs.map(function(ref,index){
+    if(ref&&typeof ref==='object')return ref;
+    var id=sbmInfoChangeNormalizeChangeNumber_(ref);
+    if(!id||!byId[id])throw new Error('公開OK変更の'+(index+1)+'件目に対応するperformed_changesがありません: '+String(ref));
+    return byId[id];
+  });
+}
 function sbmInfoChangeValidateWriterChanges_(d){
-  var changes=d&&d.publication_result&&d.publication_result.public_ok_changes;
-  if(!Array.isArray(changes)||!changes.length)throw new Error('Writer変更結果がありません。');
+  var changes=sbmInfoChangeResolvedWriterChanges_(d);
   var changeTargets={},coveredFindings={};
   changes.forEach(function(change,index){
     var rawId=change&&(change.change_no!==undefined?change.change_no:change.change_id);
@@ -25111,7 +25128,7 @@ function sbmInfoChangeWriterCompletionAudit(payload){
     var d=JSON.parse(parts.join(''));
     if(d.format!=='SIMS_WRITER_TREATMENT_RESULT_V1'||String(d.request_id||'')!==r.requestId||String(d.article_id||'')!==r.articleId||String(d.case_id||'')!=='INFOCHANGE-'+r.requestId)throw new Error('Writer回答の識別情報が不一致です。');
     if(d.treatment_status!=='COMPLETED'||!d.publication_result||!Array.isArray(d.publication_result.public_ok_changes)||!d.publication_result.public_ok_changes.length)throw new Error('Writer回答の完了内容または変更箇所を確認できません。');
-    if(String(d.publication_result.decision||d.publication_result.publication_decision||'')!=='PUBLIC_OK')throw new Error('Writer回答の公開判定が完了条件と一致しません。');
+    if(String(d.publication_result.status||d.publication_result.decision||d.publication_result.publication_decision||'').trim().toUpperCase()!=='PUBLIC_OK')throw new Error('Writer回答の公開判定が完了条件と一致しません。');
     var writerChangeCount=sbmInfoChangeValidateWriterChanges_(d);
     var audit=sbmInfoChangeCycleAudit(payload);if(!audit.ok)throw new Error(audit.message);
     var warnings=(audit.warnings||[]).slice();

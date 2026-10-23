@@ -1,3 +1,13 @@
+## v9.0.35 (UAT) — INFO_CHANGE Writer変更番号参照形式への対応
+- publication_result.public_ok_changes が番号配列の場合、performed_changesの対応する変更内容を検証する。
+- 対応する変更がない、重複番号、変更対象・修正後本文欠落は登録前に拒否する。
+- A000001の20件の変更番号参照形式を受け付ける。
+
+## v9.0.34 (UAT) — INFO_CHANGE 公開判定フィールド互換修正
+- 記事内容の変更・更新の完了前検査で publication_result.status=PUBLIC_OK を受理。従来の decision / publication_decision も維持。
+- published_by_writer=false は公開完了の拒否条件にしない。利用者の公開完了確認と既存の監査・二重登録防止を維持。
+- AWAITING_USER_DECISION の確認事項表示・登録保留は変更しない。
+
 ## v9.0.33 (UAT) — aWriter確認事項の見える化
 - aWriterが利用者判断待ちを返した場合、質問を一覧表示して登録を保留。
 - 利用者はaWriterへ回答し、最終結果を再登録する。SBMでYES/NO判断や公開検証はしない。
