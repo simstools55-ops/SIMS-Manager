@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.36",
+  "current_version": "9.0.38",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.37: hide internal candidate state column; clear stale validation; preserve completed row shading (UAT).",
-  "version": "9.0.36",
+  "notes": "v9.0.38: reduce detailed candidate STEP 2 storage reads; bounded transient retries and diagnostics (UAT).",
+  "version": "9.0.38",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.36-ST"
+  "starter_display_version": "v9.0.38-ST"
 }

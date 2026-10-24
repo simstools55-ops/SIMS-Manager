@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.37
+ * Current version: 9.0.38
  * Release summary: Candidate row selection, retained workflow rows and completed-row shading.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.35.md.
  */
 
-const SBM_VERSION = '9.0.37';
+const SBM_VERSION = '9.0.38';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -18559,6 +18559,24 @@ function sbmDoctorCandidateCompactCase_(row){
   if(!row)return null;
   return {stamp:sbmDoctorCandidateCaseStamp_(row),code:String(row['状態コード']||''),writerResult:!!String(row['Writer結果JSON']||'').trim()};
 }
+/** v9.0.38: Read only columns used by candidate filtering, with bounded retry for transient storage failures. */
+function sbmDoctorCandidateReadColumns_(sheet, header, names, rowCount, stage){
+  var data={},wanted=[];
+  names.forEach(function(name){var col=header[name];if(col&&!data[col]){data[col]=null;wanted.push(col);}});
+  wanted.forEach(function(col){
+    var attempt=0;
+    while(true){
+      try{data[col]=sheet.getRange(2,col,rowCount,1).getValues();break;}
+      catch(e){
+        var message=String(e&&e.message||e),transient=/INTERNAL|ストレージからの読み取り|server error|サーバーエラー|Service error|サービスエラー|一時的/i.test(message);
+        try{sbmLog_('DoctorCandidateStep2','Warning','stage='+stage+' column='+col+' attempt='+(attempt+1)+' rows='+rowCount+' error='+message.slice(0,300));}catch(ignoreLog){}
+        if(!transient||attempt>=2)throw new Error('精密診断候補の読込に失敗しました（'+stage+'、列'+col+'、試行'+(attempt+1)+'回）。'+message);
+        Utilities.sleep(attempt===0?350:900);attempt++;
+      }
+    }
+  });
+  return function(rowIndex,col){return col&&data[col]?data[col][rowIndex][0]:'';};
+}
 function sbmDoctorCandidateProgressStep2_(){
   // QA RC8 Final: 候補表示では旧案件の自己修復や「改善の推移」再計算を行わない。
   // 必要な3シートを各1回だけ読み、最新健康診断に対する除外ID/URLだけを作る。
@@ -18566,12 +18584,12 @@ function sbmDoctorCandidateProgressStep2_(){
   var workById={},workByUrl={},caseById={},caseByUrl={},healthCreatedAt=0;
   if(db&&db.getLastRow()>1){
     var dh=sbmHeaderMap_(db),idc=dh['ArticleID']||dh['記事ID'],uc=dh['記事URL']||dh['URL'],wc=dh['作業状態'];
-    var width=Math.max(idc||0,uc||0,wc||0),vals=width?db.getRange(2,1,db.getLastRow()-1,width).getValues():[];
-    vals.forEach(function(r){var id=idc?String(r[idc-1]||'').trim():'',u=uc?sbmNormalizeUrl_(r[uc-1]||''):'',w=wc?String(r[wc-1]||''):'';if(id)workById[id]=w;if(u)workByUrl[u]=w;});
+    var count=db.getLastRow()-1,get=sbmDoctorCandidateReadColumns_(db,dh,['ArticleID','記事ID','記事URL','URL','作業状態'],count,'記事DB');
+    for(var i=0;i<count;i++){var id=idc?String(get(i,idc)||'').trim():'',u=uc?sbmNormalizeUrl_(get(i,uc)||''):'',w=wc?String(get(i,wc)||''):'';if(id)workById[id]=w;if(u)workByUrl[u]=w;}
   }
   if(cases&&cases.getLastRow()>1){
-    var ch=sbmHeaderMap_(cases),cvals=cases.getRange(2,1,cases.getLastRow()-1,cases.getLastColumn()).getValues();
-    cvals.forEach(function(r){var id=ch['記事ID']?String(r[ch['記事ID']-1]||'').trim():'',u=ch['記事URL']?sbmNormalizeUrl_(r[ch['記事URL']-1]||''):'',stamp=0,raw=ch['更新日時']?r[ch['更新日時']-1]:(ch['作成日時']?r[ch['作成日時']-1]:'');var d=sbmParseDate_(raw||'');stamp=d?d.getTime():0;var c={stamp:stamp,code:ch['状態コード']?String(r[ch['状態コード']-1]||''):'',writerResult:ch['Writer結果JSON']?!!String(r[ch['Writer結果JSON']-1]||'').trim():false};if(id&&(!caseById[id]||stamp>=caseById[id].stamp))caseById[id]=c;if(u&&(!caseByUrl[u]||stamp>=caseByUrl[u].stamp))caseByUrl[u]=c;});
+    var ch=sbmHeaderMap_(cases),count=cases.getLastRow()-1,get=sbmDoctorCandidateReadColumns_(cases,ch,['記事ID','記事URL','更新日時','作成日時','状態コード','Writer結果JSON'],count,'aDoctor案件管理');
+    for(var i=0;i<count;i++){var id=ch['記事ID']?String(get(i,ch['記事ID'])||'').trim():'',u=ch['記事URL']?sbmNormalizeUrl_(get(i,ch['記事URL'])||''):'',stamp=0,raw=ch['更新日時']?get(i,ch['更新日時']):(ch['作成日時']?get(i,ch['作成日時']):'');var d=sbmParseDate_(raw||'');stamp=d?d.getTime():0;var c={stamp:stamp,code:ch['状態コード']?String(get(i,ch['状態コード'])||''):'',writerResult:ch['Writer結果JSON']?!!String(get(i,ch['Writer結果JSON'])||'').trim():false};if(id&&(!caseById[id]||stamp>=caseById[id].stamp))caseById[id]=c;if(u&&(!caseByUrl[u]||stamp>=caseByUrl[u].stamp))caseByUrl[u]=c;}
   }
   try{var run=sbmDoctorGetHealthRun_(),rd=run&&run.createdAt?sbmParseDate_(run.createdAt):null;healthCreatedAt=rd?rd.getTime():0;}catch(ignoreRun){}
   var excludeIds={},excludeUrls={};
