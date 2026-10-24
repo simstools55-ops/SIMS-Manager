@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.36
+ * Current version: 9.0.37
  * Release summary: Candidate row selection, retained workflow rows and completed-row shading.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.35.md.
  */
 
-const SBM_VERSION = '9.0.36';
+const SBM_VERSION = '9.0.37';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -18306,7 +18306,7 @@ function sbmDoctorIsUntreatedCurrentCandidate_(articleId,url){
 
 /** 候補ビューから指定記事を即時除外します。正本は健康診断スナップショットなのでデータは失いません。 */
 function sbmDoctorRemoveCandidateArticle_(articleId,url){
-  // v9.0.36: Legacy callers now refresh the row rather than deleting it.
+  // v9.0.37: Legacy callers now refresh the row rather than deleting it.
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('aDoctor_精密診断候補');
   if(!sh||sh.getLastRow()<7)return;
   var hm=sbmDoctorReferralHeaderMapNoRepair_(sh),idCol=hm['記事ID'],urlCol=hm['記事URL'],norm=sbmNormalizeUrl_(url||'');
@@ -18374,14 +18374,18 @@ function sbmDoctorOpenHealthReport(){
 function sbmDoctorEnsureReferralSelectionColumn_(sh){
   if(!sh)return null;
   var headers=sh.getRange(6,1,1,sh.getLastColumn()).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  // v9.0.36: Remove legacy checkbox values/validations without changing article columns.
+  // v9.0.37: Remove legacy checkbox values/validations without changing article columns.
   if(headers[0]==='選択'){
     sh.getRange(6,1).setValue('状態');
     if(sh.getLastRow()>=7){var rng=sh.getRange(7,1,sh.getLastRow()-6,1);rng.clearDataValidations().clearContent();}
     headers[0]='状態';
   }
-  if(sh.getLastRow()>=7)sbmDoctorApplyReferralRowStates_(sh,7,sh.getLastRow()-6);
-  sh.setColumnWidth(1,135);
+  // v9.0.37: A列は状態管理の内部列。既存の入力規則を解除し、表示から隠す。
+  if(sh.getLastRow()>=7){
+    sh.getRange(7,1,sh.getLastRow()-6,1).clearDataValidations();
+    sbmDoctorApplyReferralRowStates_(sh,7,sh.getLastRow()-6);
+  }
+  try{if(!sh.isColumnHiddenByUser(1))sh.hideColumns(1);}catch(ignoreHideState){}
   return headers;
 }
 
@@ -18505,6 +18509,9 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
     cand.setRowHeights(7,out.length,46);
   }
   try{sbmDoctorApplyCandidateTheme_(cand);}catch(ignoreCandidateTheme){}
+  // テーマ描画後に作業状態の行装飾を適用し、完了行の灰色を上書きさせない。
+  if(out.length)sbmDoctorApplyReferralRowStates_(cand,7,out.length);
+  try{cand.getRange(7,1,Math.max(1,out.length),1).clearDataValidations();cand.hideColumns(1);}catch(ignoreStateColumn){}
   return cand;
 }
 function sbmShowAsyncProgressDialog_(opt){
@@ -18600,7 +18607,7 @@ function sbmDoctorCandidateProgressStep3_(){
   }
   if(!sh) sh=ss.getSheetByName('aDoctor_精密診断候補');
   if(!sh) return sbmAlert_('精密診断候補','まだ精密診断候補は作成されていません。先にサイト健康診断を実行してください。');
-  if(!rebuilt)sbmDoctorEnsureReferralSelectionColumn_(sh);
+  sbmDoctorEnsureReferralSelectionColumn_(sh);
   sh.showSheet();ss.setActiveSheet(sh);
 }
 

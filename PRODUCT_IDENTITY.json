@@ -2,7 +2,7 @@
   "product_name": "SIMS-Blog-Manager",
   "current_version": "9.0.36",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.36: detailed diagnosis candidate row selection and retained status rows (UAT).",
+  "notes": "v9.0.37: hide internal candidate state column; clear stale validation; preserve completed row shading (UAT).",
   "version": "9.0.36",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
