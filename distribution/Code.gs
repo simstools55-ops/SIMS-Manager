@@ -18559,7 +18559,7 @@ function sbmDoctorCandidateCompactCase_(row){
   if(!row)return null;
   return {stamp:sbmDoctorCandidateCaseStamp_(row),code:String(row['状態コード']||''),writerResult:!!String(row['Writer結果JSON']||'').trim()};
 }
-/** v9.0.38: Read only columns used by candidate filtering, with bounded retry for transient storage failures. */
+/** v9.0.39: Read only columns used by candidate filtering, with bounded retry for transient storage failures. */
 function sbmDoctorCandidateReadColumns_(sheet, header, names, rowCount, stage){
   var data={},wanted=[];
   names.forEach(function(name){var col=header[name];if(col&&!data[col]){data[col]=null;wanted.push(col);}});
@@ -18650,7 +18650,10 @@ function sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,url,title,se
   }
   if(!match)throw new Error('選択した候補の表示内容と最新健康診断スナップショットが一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
   var code=String(match[hm['一次検査コード']-1]||''), expected=sbmDoctorSeverityForRow_(code,String(match[hm['優先度']-1]||''),match,hm);
-  if(String(expected)!==String(severity||''))throw new Error('候補の重症度が最新健康診断と一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
+  // v9.0.39: ArticleID＋URLが一致した場合は最新スナップショットの重症度を正本にする。
+  if(String(expected)!==String(severity||'')){
+    try{console.warn('DoctorCandidateSeverityRefresh article='+String(articleId)+' displayed='+String(severity)+' latest='+String(expected)+' healthCheckId='+String(latestId));}catch(ignoreSeverityLog){}
+  }
   return {row:match,code:code,severity:expected,healthCheckId:latestId};
 }
 function sbmDoctorCreateAndSaveResolvedRequest_(context){
@@ -18690,6 +18693,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     // v6.6.28: 旧候補キー（ArticleID|URL|title）も移行互換として許容する。ArticleID＋URLが一致すれば同一記事と判定する。
     if(candidateKey&&candidateKey!==expectedKey&&candidateKey.indexOf(expectedKey+'|')!==0)throw new Error('選択行の候補識別情報（ArticleID＋URL）が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
     var health=sbmDoctorValidateCandidateAgainstHealthSnapshot_(articleId,articleUrl,visibleTitle,severity);
+    severity=health.severity; // 依頼の重症度・緊急度は最新健康診断を採用
     var db=ss.getSheetByName(SBM_SHEETS.ARTICLE_DB);if(!db)throw new Error('記事管理シートがありません。');
     var hm=sbmHeaderMap_(db), vals=db.getLastRow()>1?db.getRange(2,1,db.getLastRow()-1,db.getLastColumn()).getValues():[], dbRow=0;
     var dbIdCol=hm['ArticleID']||hm['記事ID'],dbUrlCol=hm['記事URL']||hm['URL'],dbTitleCol=hm['記事タイトル']||hm['H1タイトル'],targetNorm=sbmNormalizeUrl_(articleUrl);
