@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.0.33
- * Release summary: Accept publication_result.status PUBLIC_OK in info-change completion preflight; preserve pending-question hold.
+ * Current version: 9.0.36
+ * Release summary: Candidate row selection, retained workflow rows and completed-row shading.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.0.35.md.
  */
 
-const SBM_VERSION = '9.0.35';
+const SBM_VERSION = '9.0.36';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -18306,58 +18306,46 @@ function sbmDoctorIsUntreatedCurrentCandidate_(articleId,url){
 
 /** 候補ビューから指定記事を即時除外します。正本は健康診断スナップショットなのでデータは失いません。 */
 function sbmDoctorRemoveCandidateArticle_(articleId,url){
-  var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=ss.getSheetByName('aDoctor_精密診断候補');
+  // v9.0.36: Legacy callers now refresh the row rather than deleting it.
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('aDoctor_精密診断候補');
   if(!sh||sh.getLastRow()<7)return;
   var hm=sbmDoctorReferralHeaderMapNoRepair_(sh),idCol=hm['記事ID'],urlCol=hm['記事URL'],norm=sbmNormalizeUrl_(url||'');
-  for(var r=sh.getLastRow();r>=7;r--){
-    var id=idCol?String(sh.getRange(r,idCol).getDisplayValue()||''):'',u=urlCol?sbmNormalizeUrl_(sh.getRange(r,urlCol).getDisplayValue()||''):'';
-    if((articleId&&id===String(articleId))||(norm&&u===norm))sh.deleteRow(r);
-  }
+  var values=sh.getRange(7,1,sh.getLastRow()-6,sh.getLastColumn()).getDisplayValues();
+  values.forEach(function(v,i){
+    var id=idCol?String(v[idCol-1]||''):'',u=urlCol?sbmNormalizeUrl_(v[urlCol-1]||''):'';
+    if((articleId&&id===String(articleId))||(norm&&u===norm))sbmDoctorApplyReferralRowStates_(sh,i+7,1);
+  });
 }
 
 function sbmDoctorReferralHumanStatus_(articleId,url){
-  var article=sbmFindArticleDbByIdentity_(articleId,url)||{}, work=String(article['作業状態']||'');
-  var c=sbmDoctorLatestCaseForArticle_(articleId,url), code=c?String(c['状態コード']||''):'';
-  // 精密診断候補は「新しくDoctorへ送る記事を選ぶ場所」。
-  // すでにDoctor案件として進行した記事は、重複診断防止のため再選択不可にします。
-  if(work.indexOf('モニター中')>=0||code==='MONITORING')return {label:'⚪ モニター中',completed:true,code:'MONITORING'};
-  if(code==='WRITER_IN_PROGRESS')return {label:'🟠 aWriter処置中',completed:true,code:code};
-  if(code==='PUBLICATION_PENDING')return {label:'🟠 修正済み・結果登録待ち',completed:true,code:code};
-  if(code==='USER_ACTION_REQUIRED')return {label:'🔵 利用者確認待ち',completed:true,code:code};
-  if(code==='FOLLOW_UP_REQUEST_READY')return {label:'🔵 Doctor再診待ち',completed:true,code:code};
-  if(code==='DOCTOR_DIAGNOSIS_PENDING')return {label:'🔵 aDoctor診断待ち',completed:true,code:code};
-  if(code==='USER_DECISION_REQUIRED')return {label:'🟡 利用者判断待ち',completed:true,code:code};
-  if(code==='TREATMENT_FAILED')return {label:'🔴 要確認',completed:true,code:code};
-  if(code==='DOCTOR_DIAGNOSED'||code==='WRITER_REQUEST_READY')return {label:'🔵 処置準備中',completed:true,code:code};
-  return {label:'🔴 要精密診断',completed:false,code:code||'READY'};
+  var article=sbmFindArticleDbByIdentity_(articleId,url)||{},work=String(article['作業状態']||'');
+  var c=sbmDoctorLatestCaseForArticle_(articleId,url),code=c?String(c['状態コード']||''):'';
+  if(work.indexOf('モニター中')>=0||code==='MONITORING'||(c&&String(c['Writer結果JSON']||'').trim()&&code!=='USER_DECISION_REQUIRED'))return {label:'完了',completed:true,code:'MONITORING'};
+  if(code==='WRITER_IN_PROGRESS')return {label:'処理中：aWriter',completed:false,locked:true,code:code};
+  if(code==='PUBLICATION_PENDING')return {label:'処理中：公開待ち',completed:false,locked:true,code:code};
+  if(code==='USER_ACTION_REQUIRED'||code==='USER_DECISION_REQUIRED')return {label:'処理中：利用者確認待ち',completed:false,locked:true,code:code};
+  if(code==='FOLLOW_UP_REQUEST_READY')return {label:'処理中：再診待ち',completed:false,locked:true,code:code};
+  if(code==='DOCTOR_DIAGNOSIS_PENDING')return {label:'処理中：aDoctor',completed:false,locked:true,code:code};
+  if(code==='DOCTOR_DIAGNOSED'||code==='WRITER_REQUEST_READY')return {label:'処理中：改善準備',completed:false,locked:true,code:code};
+  if(code==='TREATMENT_FAILED')return {label:'要確認',completed:false,locked:true,code:code};
+  if(work.indexOf('改善中')>=0)return {label:'処理中',completed:false,locked:true,code:'IN_PROGRESS'};
+  return {label:'未着手',completed:false,locked:false,code:'READY'};
 }
+
 function sbmDoctorApplyReferralRowStates_(sh,startRow,count){
   if(!sh||!count)return;
-  var hm=sbmDoctorReferralHeaderMapNoRepair_(sh), idCol=hm['記事ID'],urlCol=hm['記事URL'],statusCol=hm['状態'];
+  var hm=sbmDoctorReferralHeaderMapNoRepair_(sh),idCol=hm['記事ID'],urlCol=hm['記事URL'],statusCol=hm['状態'];
   if(!idCol&&!urlCol)return;
   for(var i=0;i<count;i++){
-    var row=startRow+i, id=idCol?String(sh.getRange(row,idCol).getDisplayValue()||''):'',url=urlCol?String(sh.getRange(row,urlCol).getDisplayValue()||''):'';
+    var row=startRow+i,id=idCol?String(sh.getRange(row,idCol).getDisplayValue()||''):'',url=urlCol?String(sh.getRange(row,urlCol).getDisplayValue()||''):'';
+    if(!id&&!url)continue;
     var st=sbmDoctorReferralHumanStatus_(id,url);
     if(statusCol)sh.getRange(row,statusCol).setValue(st.label);
-    var range=sh.getRange(row,1,1,Math.min(5,sh.getLastColumn()));
-    if(st.completed){
-      // 入力規則だけ外して false を残すとセルに FALSE と表示される。
-      // 完了・モニター中は選択不可の空欄セルとして扱う。
-      sh.getRange(row,1).clearDataValidations().clearContent().setBackground('#eeeeee');
-      range.setBackground('#eeeeee').setFontColor('#777777');
-    }else{
-      var selectCell=sh.getRange(row,1);
-      var current=selectCell.getValue()===true;
-      selectCell.insertCheckboxes().setValue(current);
-      var bg='#ffffff';
-      if(st.code==='WRITER_IN_PROGRESS'||st.code==='PUBLICATION_PENDING') bg='#fff2cc';
-      else if(st.code==='DOCTOR_DIAGNOSIS_PENDING'||st.code==='TREATMENT_FAILED'||st.code==='READY') bg='#fce8e6';
-      else if(st.code==='USER_DECISION_REQUIRED') bg='#fff2cc';
-      else if(st.code.indexOf('USER_')===0||st.code==='FOLLOW_UP_REQUEST_READY') bg='#e8f0fe';
-      range.setBackground(bg).setFontColor('#202124');
-    }
+    var range=sh.getRange(row,1,1,Math.min(12,sh.getLastColumn()));
+    range.setBackground(st.completed?'#eeeeee':st.locked?'#fff2cc':'#ffffff').setFontColor(st.completed?'#777777':'#202124');
   }
 }
+
 function sbmDoctorReferralHeaderMapNoRepair_(sh){
   var lastCol=Math.max(1,sh.getLastColumn()),headers=sh.getRange(6,1,1,lastCol).getDisplayValues()[0],map={};
   headers.forEach(function(v,i){v=String(v||'').trim();if(v)map[v]=i+1;});return map;
@@ -18384,33 +18372,16 @@ function sbmDoctorOpenHealthReport(){
 }
 
 function sbmDoctorEnsureReferralSelectionColumn_(sh){
-  if(!sh) return null;
-  var lastCol=Math.max(1,sh.getLastColumn());
-  var headers=sh.getRange(6,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  var selectionIndex=headers.indexOf('選択');
-  if(selectionIndex<0){
-    sh.insertColumnBefore(1);
-    sh.getRange(6,1).setValue('選択').setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
-    sh.setColumnWidth(1,60);
-    var lastRow=sh.getLastRow();
-    if(lastRow>=7) sh.getRange(7,1,lastRow-6,1).insertCheckboxes().setValue(false);
-    lastCol=sh.getLastColumn();
-    headers=sh.getRange(6,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
-  }else if(selectionIndex!==0){
-    sh.moveColumns(sh.getRange(1,selectionIndex+1,sh.getMaxRows(),1),1);
-    lastCol=sh.getLastColumn();
-    headers=sh.getRange(6,1,1,lastCol).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  if(!sh)return null;
+  var headers=sh.getRange(6,1,1,sh.getLastColumn()).getDisplayValues()[0].map(function(v){return String(v||'').trim();});
+  // v9.0.36: Remove legacy checkbox values/validations without changing article columns.
+  if(headers[0]==='選択'){
+    sh.getRange(6,1).setValue('状態');
+    if(sh.getLastRow()>=7){var rng=sh.getRange(7,1,sh.getLastRow()-6,1);rng.clearDataValidations().clearContent();}
+    headers[0]='状態';
   }
-  var last=sh.getLastRow();
-  if(last>=7){
-    var rng=sh.getRange(7,1,last-6,1);
-    rng.insertCheckboxes();
-    var vals=rng.getValues();
-    for(var i=0;i<vals.length;i++) if(vals[i][0]!==true) vals[i][0]=false;
-    rng.setValues(vals);
-  }
-  sh.setColumnWidth(1,60);
-  try { if(last>=7 && headers.indexOf('状態')>=0) sbmDoctorApplyReferralRowStates_(sh,7,last-6); } catch(eState) {}
+  if(sh.getLastRow()>=7)sbmDoctorApplyReferralRowStates_(sh,7,sh.getLastRow()-6);
+  sh.setColumnWidth(1,135);
   return headers;
 }
 
@@ -18509,20 +18480,20 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
     cand.clear();
     try{cand.showColumns(1,cand.getMaxColumns());}catch(ignoreCols){}
   }
-  var headers=['選択','重症度','記事タイトル','記事管理番号','記事URL','記事ランク','傾向','クリック','表示','順位','CTR','記事ID','内部URL','候補キー'];
+  var headers=['状態','重症度','記事タイトル','記事管理番号','記事URL','記事ランク','傾向','クリック','表示','順位','CTR','記事ID','内部URL','候補キー'];
   cand.setHiddenGridlines(true);
   cand.getRange('A1:K1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
-  cand.getRange('A2:K2').merge().setValue('サイト健康診断の最新結果をもとに、詳しい診断が必要な未処理記事を表示しています。診断済み・モニター中の記事を除外し、優先度の高い記事を候補として表示します。1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。候補抽出はサイト健康診断、1記事の精密診断はaDoctorが担当します。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
+  cand.getRange('A2:K2').merge().setValue('対象記事のセルまたは行を1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。処理中・完了した記事は一覧に残り、重複診断はできません。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
-  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl;return [false,sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
+  var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl;return ['',sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');
   cand.setFrozenRows(6);
-  var widths=[62,92,300,105,260,95,145,125,135,120,115,110,220,260];for(var wi=0;wi<widths.length;wi++)cand.setColumnWidth(wi+1,widths[wi]);
+  var widths=[135,92,300,105,260,95,145,125,135,120,115,110,220,260];for(var wi=0;wi<widths.length;wi++)cand.setColumnWidth(wi+1,widths[wi]);
   try{cand.hideColumns(12,3);}catch(ignoreHide){}
   cand.setRowHeight(1,36);cand.setRowHeight(2,44);cand.setRowHeights(3,3,6);cand.setRowHeight(6,28);
   cand.getRange(1,1,Math.max(7,6+out.length),headers.length).setWrap(true).setVerticalAlignment('middle').setFontFamily('Arial');
   if(out.length){
-    cand.getRange(7,1,out.length,1).insertCheckboxes().setValue(false);
+    sbmDoctorApplyReferralRowStates_(cand,7,out.length);
     cand.getRange(7,2,out.length,1).setNumberFormat('@').setFontWeight('bold').setHorizontalAlignment('left');
     cand.getRange(7,4,out.length,1).setNumberFormat('@').setHorizontalAlignment('left');
     cand.getRange(7,5,out.length,1).setFontColor('#1155cc').setHorizontalAlignment('left');
@@ -18622,7 +18593,7 @@ function sbmDoctorIsUntreatedCurrentCandidateCached_(ctx,articleId,url){
 function sbmDoctorCandidateProgressStep3_(){
   var ss=SpreadsheetApp.getActiveSpreadsheet(),sh=null,ctx=sbmDoctorCandidateLoadContext_(),rebuilt=false;
   // 最新スナップショットから候補ビューを再生成。候補作成後の重複チェックボックス再設定は行わない。
-  try{sh=sbmDoctorRebuildCandidateViewFromSnapshot_(ctx);rebuilt=!!sh;}catch(eRebuild){
+  try{sh=ss.getSheetByName('aDoctor_精密診断候補');if(!sh||sh.getLastRow()<7){sh=sbmDoctorRebuildCandidateViewFromSnapshot_(ctx);rebuilt=!!sh;}}catch(eRebuild){
     // Spreadsheetサービス障害時にログ書込みまで重ねて二次タイムアウトを起こさない。
     try{console.warn('DoctorCandidateOpenRebuild: '+String(eRebuild));}catch(ignoreConsole){}
     throw eRebuild;
@@ -18680,15 +18651,16 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     if(!sh)throw new Error('精密診断候補がありません。先にサイト健康診断を完了してください。');
     var col=sbmDoctorReferralHeaderMap_(sh),last=sh.getLastRow();
     if(last<7)throw new Error('診断対象の記事がありません。');
-    if(!col['選択'])throw new Error('候補一覧の選択欄を準備できませんでした。シートを閉じてもう一度開いてください。');
-    var checks=sh.getRange(7,col['選択'],last-6,1).getValues(),selected=[];
-    checks.forEach(function(v,i){if(v[0]===true)selected.push(i+7);});
-    if(selected.length===0)throw new Error('A列の「選択」にチェックを入れてください。');
-    if(selected.length>1)throw new Error('一度に依頼できるのは1記事です。チェックを1件だけ残してください。');
-    var row=selected[0], rowValues=sh.getRange(row,1,1,sh.getLastColumn()).getDisplayValues()[0];
+    var selection=sh.getActiveRange();
+    if(!selection||selection.getNumRows()!==1)throw new Error('対象記事のセルまたは行を1行だけ選択してください。');
+    var row=selection.getRow();
+    if(row<7||row>last)throw new Error('見出しではなく、記事の行を選択してください。');
+    var rowValues=sh.getRange(row,1,1,sh.getLastColumn()).getDisplayValues()[0];
     function val(name){return col[name]?String(rowValues[col[name]-1]||'').trim():'';}
     var articleId=val('記事ID')||val('ArticleID'), articleUrl=val('記事URL')||val('URL'), visibleTitle=val('記事タイトル'), severity=val('重症度'), candidateKey=val('候補キー');
     if(!articleId||!articleUrl||!visibleTitle)throw new Error('選択行の記事ID・URL・タイトルを取得できません。候補シートを開き直してください。');
+    var rowState=sbmDoctorReferralHumanStatus_(articleId,articleUrl);
+    if(rowState.completed||rowState.locked)throw new Error('この候補は「'+rowState.label+'」です。重複診断せず、未完了の作業を再開してください。');
     var expectedKey=String(articleId)+'|'+sbmNormalizeUrl_(articleUrl);
     // v6.6.28: 旧候補キー（ArticleID|URL|title）も移行互換として許容する。ArticleID＋URLが一致すれば同一記事と判定する。
     if(candidateKey&&candidateKey!==expectedKey&&candidateKey.indexOf(expectedKey+'|')!==0)throw new Error('選択行の候補識別情報（ArticleID＋URL）が一致しません。誤診断防止のため停止しました。候補シートを開き直してください。');
@@ -18709,7 +18681,7 @@ function sbmDoctorCreateRequestFromDetailedCandidate(){
     if(result&&result.ok){
       // 作成した依頼のArticleIDが選択行と一致することを最後に確認してから、選択した行だけを候補から外す。
       if(String(result.articleId||'')!==articleId)throw new Error('生成されたaDoctor依頼の記事IDが選択行と一致しません。候補は変更していません。');
-      sh.deleteRow(row);
+      sbmDoctorApplyReferralRowStates_(sh,row,1);
     }
     return result;
   }catch(e){sbmAlert_('aDoctor診断依頼を作成できません',String(e.message||e));}

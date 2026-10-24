@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.0.31",
+  "current_version": "9.0.36",
   "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.0.31: allow re-diagnosis without 4 completed measurements; mark evidence incomplete.",
-  "version": "9.0.31",
+  "notes": "v9.0.36: detailed diagnosis candidate row selection and retained status rows (UAT).",
+  "version": "9.0.36",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.0.31-ST"
+  "starter_display_version": "v9.0.36-ST"
 }

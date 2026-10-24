@@ -1,3 +1,6 @@
+## v9.0.36 UAT
+- 精密診断候補をセル/行選択へ変更。処理中・完了行を保持し、完了をグレー表示。
+
 ## v9.0.3 (2026-10-20)
 - Fix empty Writer request display by generating it on demand.
 - Add explicit cancel/archive for stale Writer-ready session; retain record, do not alter monitoring or history.

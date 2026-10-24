@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "9.0.0",
+  "current_version": "9.0.36",
   "release_status": "UAT_PHASE_1",
-  "notes": "v9.0.0 phase 1: safe selection and read-only article information update intake preview.",
-  "version": "9.0.7",
-  "starter_display_version": "v9.0.0-ST"
+  "notes": "v9.0.36: detailed diagnosis candidate row selection and retained status rows (UAT).",
+  "version": "9.0.36",
+  "starter_display_version": "v9.0.36-ST"
 }

@@ -1,3 +1,6 @@
+## v9.0.36 UAT
+- 精密診断候補をセル/行選択へ変更。処理中・完了行を保持し、完了をグレー表示。
+
 ## v9.0.35 (UAT) — INFO_CHANGE Writer変更番号参照形式への対応
 - publication_result.public_ok_changes が番号配列の場合、performed_changesの対応する変更内容を検証する。
 - 対応する変更がない、重複番号、変更対象・修正後本文欠落は登録前に拒否する。
