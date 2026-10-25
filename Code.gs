@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.1.0
+ * Current version: 9.1.1
  * Release summary: User-facing menu labels/order and aDoctor confirmation UI safeguards.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.0.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.1.md.
  */
 
-const SBM_VERSION = '9.1.0';
+const SBM_VERSION = '9.1.1';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -10771,6 +10771,36 @@ function sbmApplyNeedsReviewDisposition(payload){
     return {ok:true,message:'「'+label+'」として管理対象外へ整理しました。'};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
+/** インデックス未登録と確認済みの記事を一覧から既存の詳細・改善導線へ渡す。 */
+function sbmOpenIndexReviewArticles(){
+  if(!sbmLicenseRequireForProcessing_())return;
+  var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
+  var items=rows.filter(function(r){return String(r['管理フラグ']||'').trim()==='インデックス要確認';}).map(function(r){
+    var note=String(r['備考']||'');
+    var m=note.match(/Search Console: Googleに未登録 \/ 理由: ([^/]+)/);
+    return {id:String(r['ArticleID']||''),title:String(r['記事タイトル']||r['H1タイトル']||''),work:String(r['作業状態']||''),last:String(r['データ更新日']||r['最終確認日']||''),reason:m?m[1].trim():'未登録理由は記事詳細の備考を確認'};
+  });
+  if(!items.length)return sbmAlert_('インデックス未登録記事を改善','現在、インデックス要確認の記事はありません。');
+  var payload=JSON.stringify(items).replace(/</g,'\\u003c');
+  var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:20px;color:#202124}h2{font-size:19px;color:#174ea6}.hint{color:#5f6368;font-size:13px}.item{padding:12px;border:1px solid #dadce0;border-radius:9px;margin:10px 0}.title{font-weight:bold}.meta{font-size:12px;color:#5f6368;margin:6px 0}button{background:#174ea6;color:white;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}.status{margin:8px 0;color:#b06000}</style></head><body><h2>インデックス未登録記事を改善</h2><p class="hint">インデックス要確認として登録した記事です。詳細画面の「インデックス問題を処置する」から既存の改善フローに進みます。</p><div id="items"></div><div id="status" class="status"></div><script>var items='+payload+';function esc(s){return String(s==null?"":s).replace(/[&<>\"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;", "\\\"":"&quot;"}[c]||"&quot;"})}document.getElementById("items").innerHTML=items.map(function(x){return "<div class=item><div class=title>"+esc(x.id)+"　"+esc(x.title)+"</div><div class=meta>作業状態："+esc(x.work)+" ／ 最終データ取得："+esc(x.last)+"</div><div class=meta>GSC："+esc(x.reason)+"</div><button onclick=\"openArticle("+JSON.stringify(x.id).replace(/\"/g,"&quot;")+")\">記事詳細・改善へ</button></div>"}).join("");function openArticle(id){document.getElementById("status").textContent="記事詳細を開いています…";google.script.run.withSuccessHandler(function(){document.getElementById("status").textContent="記事詳細画面を開きました。"}).withFailureHandler(function(e){document.getElementById("status").textContent=String(e&&e.message||e)}).sbmOpenIndexReviewArticleDetail(id)}</script></body></html>';
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'インデックス未登録記事を改善');
+}
+function sbmOpenIndexReviewArticleDetail(articleId){
+  if(!sbmLicenseRequireForProcessing_())return;
+  var sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
+  var hm=sbmHeaderMap_(sh),col=hm['ArticleID'];
+  if(!col)throw new Error('記事ID列が見つかりません。');
+  var last=sh.getLastRow();
+  if(last<2)throw new Error('記事がありません。');
+  var ids=sh.getRange(2,col,last-1,1).getDisplayValues();
+  for(var i=0;i<ids.length;i++)if(String(ids[i][0]).trim()===String(articleId).trim()){
+    var flagCol=hm['管理フラグ'];
+    if(!flagCol||String(sh.getRange(i+2,flagCol).getDisplayValue()).trim()!=='インデックス要確認')throw new Error('この記事は現在インデックス要確認ではありません。');
+    return sbmShowArticleDbDetailForRow_(sh,i+2);
+  }
+  throw new Error('対象の記事IDが見つかりません。');
+}
+
 function sbmOpenNeedsReviewArticles(focusArticleId){
   if (!sbmLicenseRequireForProcessing_()) return;
   var items=sbmNeedsReviewArticleList_();
@@ -10780,13 +10810,13 @@ function sbmOpenNeedsReviewArticles(focusArticleId){
       if(String(items[fi].articleId||'').trim()===focusArticleId){var focused=items.splice(fi,1)[0];items.unshift(focused);break;}
     }
   }
-  if(!items.length)return sbmAlert_('要確認記事の処理','現在、処理が必要な要確認記事はありません。');
+  if(!items.length)return sbmAlert_('インデックス状況を確認すべき記事','現在、処理が必要な要確認記事はありません。');
   var itemsJson=JSON.stringify(items).replace(/</g,'\\u003c');
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+ 
     'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;padding:18px;color:#202124;line-height:1.55}h2{margin:0 0 6px;color:#174ea6}.sub{color:#5f6368;font-size:13px;margin-bottom:12px}.card{background:#f8f9fa;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.title{font-weight:700;font-size:15px}.meta{font-size:13px;color:#5f6368;margin-top:7px}.warn{background:#fef7e0;border-left:4px solid #f9ab00;padding:9px 11px;margin:10px 0;font-size:13px}.checks label,.gscbox label{display:block;border:1px solid #dadce0;border-radius:7px;padding:8px 10px;margin:6px 0;background:#fff}.gscbox{margin-top:12px;padding-top:4px}.gscbox h3{font-size:14px;margin:6px 0}.reasonbox{display:none;margin:8px 0 0 22px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}button{border:0;border-radius:6px;padding:9px 13px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.indexbtn{background:#fef7e0;color:#8a4b00}.danger{background:#fce8e6;color:#b31412}.nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.status{margin-top:10px;font-size:13px;font-weight:700;white-space:pre-wrap}.ok{color:#188038}.err{color:#b31412}.dispositions{display:none;border-top:1px solid #dadce0;margin-top:12px;padding-top:10px}</style></head><body>'+ 
-    '<h2>要確認記事の処理</h2><div class="sub">最終データ取得から14日以上GSCページデータを取得できない記事を、1件ずつ確認します。</div><div id="root"></div>'+ 
+    '<h2>インデックス状況を確認すべき記事</h2><div class="sub">最終データ取得から14日以上GSCページデータを取得できない記事を、1件ずつ確認します。</div><div id="root"></div>'+ 
     '<script>var items='+itemsJson+',idx=0;function esc(v){return String(v==null?"":v).replace(/[&<>\"]/g,function(c){return({"&":"&amp;","<":"&lt;",">":"&gt;","\\\"":"&quot;"})[c]||c})}function render(){if(!items.length){document.getElementById("root").innerHTML="<div class=card>処理が必要な要確認記事はありません。</div>";return}if(idx>=items.length)idx=items.length-1;if(idx<0)idx=0;var x=items[idx],h="<div class=nav><b>"+(idx+1)+" / "+items.length+"件</b><span><button class=secondary onclick=move(-1)>前へ</button> <button class=secondary onclick=move(1)>次へ</button></span></div>";h+="<div class=card><div class=title>"+esc(x.articleId+"　"+x.title)+"</div><div class=meta>記事ランク："+esc(x.rank||"ー")+"　／　作業状態："+esc(x.work||"ー")+"<br>最終データ取得日："+esc(x.lastData||"ー")+"　／　未取得：<b>"+esc(x.missingDays)+"日</b><br><a href="+esc(x.url)+" target=_blank>記事を開く</a></div></div>";h+="<div class=warn>14日以上取得できないこと自体は、削除やnoindexを意味しません。記事の状態とSearch ConsoleのURL検査結果を確認してください。</div>";h+="<div class=checks><label><input type=checkbox class=baseck> 記事は現在も公開されている</label><label><input type=checkbox class=baseck> noindexではない</label><label><input type=checkbox class=baseck> 削除・非公開にしていない</label><label><input type=checkbox class=baseck> URL変更・リダイレクトをしていない</label><label><input type=checkbox class=baseck> 他の記事へ統合していない</label></div>";h+="<div class=gscbox><h3>Search ConsoleでURLを検査してください</h3><label><input type=radio name=indexState value=registered onchange=indexChanged()> Googleに登録されています</label><label><input type=radio name=indexState value=unregistered onchange=indexChanged()> Googleに登録されていません</label><div id=reasonbox class=reasonbox><b>表示されている理由を選択してください。</b><select id=indexReason><option value=>選択してください</option><option value=crawl_not_indexed>クロール済み - インデックス未登録</option><option value=discovered_not_indexed>検出 - インデックス未登録</option><option value=noindex_excluded>noindexによって除外</option><option value=duplicate_canonical>重複・別URLが正規URL</option><option value=not_found>404・ソフト404</option><option value=other>その他</option></select></div></div>";h+="<div class=actions><button id=improveBtn class=primary style=display:none onclick=improve()>問題なし・改善対象へ</button><button id=indexIssueBtn class=indexbtn style=display:none onclick=indexIssue()>インデックス問題として登録</button><button class=danger onclick=showDisposition()>意図的な変更あり</button></div><div id=disp class=dispositions><b>意図的に変更した状態を選択してください。</b><div class=actions><button class=danger onclick=disposition(0)>noindex</button><button class=danger onclick=disposition(1)>非公開・削除</button><button class=danger onclick=disposition(2)>URL変更・リダイレクト</button><button class=danger onclick=disposition(3)>他記事へ統合</button></div></div><div id=status class=status></div>";document.getElementById("root").innerHTML=h}function move(n){idx=Math.max(0,Math.min(items.length-1,idx+n));render()}function indexChanged(){var v=document.querySelector("input[name=indexState]:checked"),reg=v&&v.value==="registered",unreg=v&&v.value==="unregistered";document.getElementById("reasonbox").style.display=unreg?"block":"none";document.getElementById("improveBtn").style.display=reg?"inline-block":"none";document.getElementById("indexIssueBtn").style.display=unreg?"inline-block":"none"}function showDisposition(){document.getElementById("disp").style.display="block"}function disposition(n){var actions=["noindex","unpublished","urlchange","merged"];if(n<0||n>=actions.length)return;apply(actions[n])}function baseChecked(){var all=true;document.querySelectorAll(".baseck").forEach(function(c){if(!c.checked)all=false});return all}function improve(){var st=document.getElementById("status"),v=document.querySelector("input[name=indexState]:checked");if(!baseChecked()){st.className="status err";st.textContent="上の5項目をすべて確認してください。";return}if(!v){st.className="status err";st.textContent="Search ConsoleのURL検査結果を選択してください。";return}if(v.value!=="registered"){st.className="status err";st.textContent="Googleに登録されていない場合は、未登録理由を選んで「インデックス問題として登録」を押してください。";return}apply("improve",true)}function indexIssue(){var st=document.getElementById("status"),v=document.querySelector("input[name=indexState]:checked"),reason=document.getElementById("indexReason");if(!baseChecked()){st.className="status err";st.textContent="上の5項目をすべて確認してください。";return}if(!v||v.value!=="unregistered"){st.className="status err";st.textContent="「Googleに登録されていません」を選択してください。";return}if(!reason||!reason.value){st.className="status err";st.textContent="Search Consoleに表示されている未登録理由を選択してください。";return}apply("index_issue",true,reason.value)}function apply(action,confirmed,indexReason){var x=items[idx],st=document.getElementById("status");st.className="status";st.textContent="登録しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";items.splice(idx,1);if(idx>=items.length)idx=Math.max(0,items.length-1);setTimeout(render,900)}).withFailureHandler(function(e){st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyNeedsReviewDisposition({articleId:x.articleId,articleUrl:x.url,action:action,confirmed:confirmed===true,indexReason:indexReason||""})}render();</script></body></html>';
-  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(760),'要確認記事の処理');
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(780).setHeight(760),'インデックス状況を確認すべき記事');
 }
 
 function sbmArticleManagementReasonCode_(article){
@@ -15205,7 +15235,8 @@ function onOpen() {
 
   ui.createMenu('記事管理')
     .addItem('記事一覧を開く','sbmOpenAllBlogArticles')
-    .addItem('要確認記事の処理','sbmOpenNeedsReviewArticles')
+    .addItem('インデックス状況を確認すべき記事','sbmOpenNeedsReviewArticles')
+     .addItem('インデックス未登録記事を改善','sbmOpenIndexReviewArticles')
     .addSeparator()
     .addItem('選択記事の詳細を見る','sbmOpenSelectedArticleDbDetail')
     .addItem('選択記事の改善履歴を見る','sbmOpenSelectedArticleHistory')
@@ -15234,7 +15265,7 @@ function onOpen() {
       .addToUi();
   }
 
-  // v9.1.0: 日常操作→ライセンス→導入・設定→保守の順。既存の実行関数は維持。
+  // v9.1.1: 日常操作→ライセンス→導入・設定→保守の順。既存の実行関数は維持。
   var maintenanceMenu = ui.createMenu('設定・メンテナンス')
     .addItem('記事管理データベースの更新','sbmOpenArticleInfoUpdate')
     .addSeparator()

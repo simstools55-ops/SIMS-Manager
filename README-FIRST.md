@@ -1,3 +1,3 @@
-# SIMS Manager v9.1.0 — UAT candidate
+# SIMS Manager v9.1.1 — UAT candidate
 
 再診候補と実行条件を一致させ、再診依頼作成前の作業状態変更を廃止。既存データは変更しません。実機検証が必要です。
