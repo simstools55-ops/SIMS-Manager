@@ -1,0 +1,1 @@
+fix(doctor): clarify confirmation steps and guard unverified responses (v9.1.29)
