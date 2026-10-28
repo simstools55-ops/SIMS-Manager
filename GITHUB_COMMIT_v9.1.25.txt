@@ -1,0 +1,1 @@
+fix(history): guard canonical 52-column writes and disable automatic rebuild (v9.1.25)

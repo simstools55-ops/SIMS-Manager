@@ -1,0 +1,1 @@
+test(history): add read-only guard self-test for history integrity (v9.1.26)

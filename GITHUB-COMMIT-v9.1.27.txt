@@ -1,0 +1,1 @@
+fix(history): stop implicit history rewrites on display and refresh (v9.1.27)

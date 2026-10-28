@@ -1,1 +1,1 @@
-fix(manager): align recheck candidates and guard state transition (v9.0.29)
+fix(manager): surface info-change revision outcomes and scroll to generated request (v9.1.5)

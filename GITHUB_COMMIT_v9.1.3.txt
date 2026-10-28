@@ -1,0 +1,1 @@
+fix(manager): allow safe revision of pending info-change intake (v9.1.3)

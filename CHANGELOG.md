@@ -1,3 +1,9 @@
+# v9.1.24 — UAT
+- Manual guarded history repair for misaligned duplicate rows, with full snapshot, quarantine, pre/post checks. Based on v9.1.7.
+
+## v9.1.7
+- Accept explicit DELETE_SECTION with empty after; surface Writer registration errors.
+
 ## v9.1.0 UAT (2026-10-25)
 - 記事管理メニュー：記載サービス・広告の変更・更新へ表示名変更（既存データの改善経路・内部識別子は維持）。
 - 設定・メンテナンス：日常利用順へ並び替え、記事管理データベースの更新・ライセンスの有効性を確認へ名称変更。
@@ -1859,3 +1865,11 @@ v6.6.73
 
 ## v9.0.20 (2026-10-21)
 - Strengthen information-change aDoctor full-article legacy-name audit and classification; preserve existing cases and monitoring.
+
+## v9.1.5 (UAT)
+- Show revision success/failure clearly and scroll to request or error.
+
+## v9.1.6 (UAT)
+- 紹介サービス差し替えの広告URLと広告HTMLコードを別項目に分離。
+- 旧受付のreplacementScopeに混入したHTMLを新しい広告HTML欄へ移行。
+- aDoctor依頼文の詳細項目を読みやすい日本語ラベルで出力。

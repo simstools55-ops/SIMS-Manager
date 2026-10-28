@@ -1,3 +1,7 @@
+# Current UAT version: SIMS Manager v9.1.7
+
+See RELEASE_NOTES_v9.1.7.md at repository root. Previous notes below are historical.
+
 # SIMS Manager v9.0.10 — UAT
 
 チェックボックス選択列の非表示と、aDoctor→aWriter登録後の改善の推移・改善履歴の軽量整列。実環境での処理時間と画面検証は未実施。
@@ -110,3 +114,5 @@
 ## v6.7.45
 - エース記事の急落監視を追加。通常カテゴリとは別枠で「今日の改善」へ追加し、aDoctor精密診断へ接続。
 - 完了エースは完了後14日を保護し、その後の急落時だけ90日保護を例外解除。
+
+変更: 広告URLと広告HTMLコードを分離。旧replacementScope内の広告HTMLは表示時・保存時に移行します。

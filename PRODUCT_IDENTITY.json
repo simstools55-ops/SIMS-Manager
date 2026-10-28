@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.1.0",
-  "release_status": "UAT_NOT_PRODUCTION",
-  "notes": "v9.1.0 UAT: menu order and naming, hidden unavailable aDoctor confirmation action.",
-  "version": "9.1.0",
+  "current_version": "9.1.28",
+  "release_status": "PRODUCTION_CANDIDATE",
+  "notes": "v9.1.28 production candidate: remove one-time history repair and UAT self-test entry points; retain canonical 52-column and unique history ID guards; no automatic history sheet deletion.",
+  "version": "9.1.28",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.1.0-ST"
+  "starter_display_version": "v9.1.28-ST"
 }
