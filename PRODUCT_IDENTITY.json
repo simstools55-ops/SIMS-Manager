@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
   "current_version": "9.1.29",
-  "release_status": "PRODUCTION_CANDIDATE",
-  "notes": "v9.1.29 production candidate: remove one-time history repair and UAT self-test entry points; retain canonical 52-column and unique history ID guards; no automatic history sheet deletion.",
+  "release_status": "UAT",
+  "notes": "v9.1.29 confirmation UX UAT; all Code.gs copies synchronized to canonical 9.1.29.",
   "version": "9.1.29",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",

@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.1.28
+ * Current version: 9.1.29
  * Release summary: Contextual service/advertising replacement intake and aDoctor handoff.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.28.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.29.md.
  */
 
-const SBM_VERSION = '9.1.28';
+const SBM_VERSION = '9.1.29';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
