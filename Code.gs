@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.1.38
+ * Current version: 9.1.39
  * Release summary: Contextual service/advertising replacement intake and aDoctor handoff.
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.38.md.
  */
 
-const SBM_VERSION = '9.1.38';
+const SBM_VERSION = '9.1.39';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25750,11 +25750,21 @@ function sbmHistoryAssertCanonicalV9125_(sh) {
   var actual=sh.getRange(1,1,1,52).getDisplayValues()[0];
   for(var i=0;i<52;i++) if(String(actual[i]||'').trim()!==String(heads[i]||'').trim())
     throw new Error('改善履歴のヘッダー不一致：'+(i+1)+'列目。書き込みを停止しました。');
-  // 履歴全件の走査は毎回行わず、直近行の構造のみ検査する。
+  // v9.1.39: 最終行の根拠を明示。空欄/旧形式の疑いだけで自動修復しない。
+  // getLastRow() は非表示列の値も含むため、画面上の最終表示行と異なる場合がある。
   if(sh.getLastRow()>1){
-    var tail=sh.getRange(sh.getLastRow(),4,1,3).getDisplayValues()[0];
-    if(!/^A\d{6,}$/.test(String(tail[0]||'').trim()) && /^A\d{6,}$/.test(String(tail[1]||tail[2]||'').trim()))
-      throw new Error('改善履歴の末尾行に列ずれを検出しました。書き込みを停止しました。');
+    var last=sh.getLastRow();
+    var tail=sh.getRange(last,4,1,3).getDisplayValues()[0];
+    var d=String(tail[0]||'').trim(),e=String(tail[1]||'').trim(),f=String(tail[2]||'').trim();
+    var idPattern=/^A\d{6,}$/;
+    if(!idPattern.test(d) && (idPattern.test(e)||idPattern.test(f))){
+      throw new Error('改善履歴の列ずれ疑い：'+last+'行目 D='+JSON.stringify(d.slice(0,60))+' / E='+JSON.stringify(e.slice(0,60))+' / F='+JSON.stringify(f.slice(0,60))+'。データは変更していません。');
+    }
+    // E/Fの先頭部分が記事IDに見えても、説明文の一部なら列ずれと判定しない。
+    // 末尾が空欄の場合も、データを勝手に削除せず記録して調査できるようにする。
+    if(!d && !e && !f){
+      try{sbmLog_('HistoryTailAudit','Warning','改善履歴の最終行 '+last+' のD:Fが空欄です。非表示列を含めて確認してください。');}catch(ignoreTailAudit){}
+    }
   }
 }
 function sbmHistoryAssertRowV9125_(row) {

@@ -1,0 +1,1 @@
+fix(manager): diagnose improvement-history tail alignment without mutating data (v9.1.39)

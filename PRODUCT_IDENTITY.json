@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.1.38",
+  "current_version": "9.1.39",
   "release_status": "UAT",
-  "notes": "v9.1.38: fix malformed dialog JavaScript string; verified Code.gs syntax.",
-  "version": "9.1.32",
+  "notes": "v9.1.39: improve history tail row diagnostic without automatic data changes",
+  "version": "9.1.39",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.1.31-ST"
+  "starter_display_version": "v9.1.39-ST"
 }
