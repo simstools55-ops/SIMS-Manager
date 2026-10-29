@@ -1,0 +1,1 @@
+fix(manager): correct emitted dialog script newline escaping and validate runtime JS (v9.1.38)

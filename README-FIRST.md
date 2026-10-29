@@ -1,4 +1,4 @@
-# SIMS Manager v9.1.34 — Clipboard Reliability Fix
+# SIMS Manager v9.1.35 — Clipboard Reliability Fix
 
 「経過観察終了後の処置」のaWriter依頼文コピーを修正。配布用Code.gsは全コピーを同一内容に統一。実機でコピーを検証してください。
 

@@ -1,0 +1,1 @@
+fix(manager): recover writer registration after error and guard retry (v9.1.36)

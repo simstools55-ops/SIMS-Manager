@@ -1,0 +1,1 @@
+fix(manager): isolate post-monitoring writer copy handler and align version metadata (v9.1.35)

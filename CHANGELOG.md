@@ -1,4 +1,7 @@
-## v9.1.34 — UAT
+## v9.1.36
+- Recover writer result registration after errors and add timeout guidance.
+
+## v9.1.35 — UAT
 - Reuse copyNextRequest/copyArea for post-monitoring aWriter request; remove duplicate click handler.
 
 # v9.1.24 — UAT

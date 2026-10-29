@@ -1,8 +1,8 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.1.32",
+  "current_version": "9.1.38",
   "release_status": "UAT",
-  "notes": "v9.1.33 clipboard handler audit; canonical Code.gs copies synchronized.",
+  "notes": "v9.1.38: fix malformed dialog JavaScript string; verified Code.gs syntax.",
   "version": "9.1.32",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
