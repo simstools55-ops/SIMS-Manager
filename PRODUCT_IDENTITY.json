@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.1.29",
+  "current_version": "9.1.31",
   "release_status": "UAT",
-  "notes": "v9.1.29 confirmation UX UAT; all Code.gs copies synchronized to canonical 9.1.29.",
-  "version": "9.1.29",
+  "notes": "v9.1.31 confirmation UX UAT; all Code.gs copies synchronized to canonical 9.1.31.",
+  "version": "9.1.31",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.1.29-ST"
+  "starter_display_version": "v9.1.31-ST"
 }

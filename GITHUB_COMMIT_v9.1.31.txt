@@ -1,0 +1,1 @@
+fix(manager): stabilize aWriter referral copy button in post-monitoring dialog (v9.1.31)

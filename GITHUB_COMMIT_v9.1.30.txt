@@ -1,0 +1,1 @@
+fix(manager): repair clipboard fallback and clarify aWriter referral copy button (v9.1.30)
