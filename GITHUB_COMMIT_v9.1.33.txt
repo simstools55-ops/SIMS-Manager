@@ -1,0 +1,1 @@
+fix(manager): bind aWriter referral copy to safe first-script handler (v9.1.33)

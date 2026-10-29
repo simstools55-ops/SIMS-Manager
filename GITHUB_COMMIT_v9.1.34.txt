@@ -1,0 +1,1 @@
+fix(manager): unify post-monitoring aWriter copy with existing dialog copy handler (v9.1.34)

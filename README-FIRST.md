@@ -1,3 +1,7 @@
+# SIMS Manager v9.1.34 — Clipboard Reliability Fix
+
+「経過観察終了後の処置」のaWriter依頼文コピーを修正。配布用Code.gsは全コピーを同一内容に統一。実機でコピーを検証してください。
+
 # SIMS Manager v9.1.28 — Production Candidate
 
 履歴の自動再構築を抑止し、52列・ArticleID位置・履歴ID重複の書き込みガードを維持。UAT自己診断と一時修復メニューは削除。既存シートは自動削除しません。

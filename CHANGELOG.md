@@ -1,3 +1,6 @@
+## v9.1.34 — UAT
+- Reuse copyNextRequest/copyArea for post-monitoring aWriter request; remove duplicate click handler.
+
 # v9.1.24 — UAT
 - Manual guarded history repair for misaligned duplicate rows, with full snapshot, quarantine, pre/post checks. Based on v9.1.7.
 

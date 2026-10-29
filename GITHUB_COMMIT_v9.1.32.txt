@@ -1,0 +1,1 @@
+fix(manager): repair aWriter clipboard action and sync distributed Code.gs copies (v9.1.32)
