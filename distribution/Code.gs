@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.0
- * Release summary: Backup and restore management promoted after successful live restore UAT; rollback remains unverified.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.0.md.
+ * Current version: 9.2.2
+ * Release summary: Blog-specific backup folder identity guard and safe migration of existing bindings; rollback remains unverified.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.2.md.
  */
 
-const SBM_VERSION = '9.2.1';
+const SBM_VERSION = '9.2.2';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25843,34 +25843,62 @@ function sbmBackupDestinationFolder_() {
   var props=PropertiesService.getDocumentProperties();
   var siteId=String(sbmGetSetting_('SiteID','')||'').trim();
   var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
+  var blogUrl=String(sbmGetSetting_('BlogUrl','')||'').trim();
   if(!siteId || !blogName) throw new Error('バックアップ保存先を設定できません。SettingsのSiteIDとBlogNameを確認してください。');
   var bindingKey='SIMS_DRIVE_BACKUP_BINDING_V1';
   var saved=props.getProperty(bindingKey);
+  function fail_(message) { throw new Error('バックアップ保存先の安全確認: '+message+'。自動変更せず停止します。'); }
+  function hasParent_(folder,parentId) {
+    var parents=folder.getParents();
+    while(parents.hasNext()) if(parents.next().getId()===parentId) return true;
+    return false;
+  }
   if(saved) {
     var binding;
-    try {binding=JSON.parse(saved);}catch(e){throw new Error('バックアップ保存先の管理情報が壊れています。自動作成せず停止します。');}
-    if(binding.spreadsheetId!==ss.getId() || binding.siteId!==siteId)
-      throw new Error('バックアップ保存先のサイト識別が一致しません。別ブログへの誤保存を防ぐため停止します。');
+    try {binding=JSON.parse(saved);}catch(e){fail_('保存先の管理情報が壊れています');}
+    if(!binding || binding.spreadsheetId!==ss.getId() || binding.siteId!==siteId)
+      fail_('スプレッドシートIDまたはSiteIDが一致しません');
+    if(binding.blogName && binding.blogName!==blogName) fail_('ブログ名が登録時から変更されています');
+    if(binding.blogUrl && blogUrl && binding.blogUrl!==blogUrl) fail_('ブログURLが登録時から変更されています');
     try {
+      var root=DriveApp.getRootFolder();
+      var sims=DriveApp.getFolderById(binding.rootFolderId);
+      var site=DriveApp.getFolderById(binding.siteFolderId);
       var folder=DriveApp.getFolderById(binding.backupFolderId);
-      if(folder.isTrashed()) throw new Error('保存先がゴミ箱にあります');
+      var parents=folder.getParents(),manager=null;
+      while(parents.hasNext()) {
+        var p=parents.next();
+        if(p.getName()==='Manager' && hasParent_(p,site.getId())) {manager=p;break;}
+      }
+      if(sims.isTrashed() || site.isTrashed() || folder.isTrashed() ||
+         sims.getName()!=='SIMS' || !hasParent_(sims,root.getId()) ||
+         site.getName()!==blogName || !hasParent_(site,sims.getId()) ||
+         folder.getName()!=='Backups' || !manager) fail_('フォルダー名または親子関係が一致しません');
+      // v9.2.1で作成した既存bindingは、検証成功後に安全に補完する。
+      if(!binding.blogName || (!binding.blogUrl && blogUrl)) {
+        binding.blogName=blogName;
+        if(blogUrl) binding.blogUrl=blogUrl;
+        props.setProperty(bindingKey,JSON.stringify(binding));
+      }
       return folder;
-    } catch(e) {throw new Error('登録済みバックアップ保存先にアクセスできません: '+String(e.message||e));}
+    } catch(e) {
+      if(String(e.message||e).indexOf('バックアップ保存先の安全確認:')===0) throw e;
+      fail_('登録済みフォルダーにアクセスできません: '+String(e.message||e));
+    }
   }
   function findOrCreate(parent,name) {
     var found=parent.getFoldersByName(name), matches=[];
     while(found.hasNext()) {var f=found.next();if(!f.isTrashed())matches.push(f);}
-    if(matches.length>1) throw new Error('同名フォルダーが複数あります: '+name+'。手動確認が必要です。');
+    if(matches.length>1) fail_('同名フォルダーが複数あります: '+name);
     return matches.length===1?matches[0]:parent.createFolder(name);
   }
-  // 既存のSIMS/ブログ名フォルダーを再利用する。初回の曖昧な候補は自動選択しない。
   var root=DriveApp.getRootFolder();
   var sims=findOrCreate(root,'SIMS');
   var site=findOrCreate(sims,blogName);
   var manager=findOrCreate(site,'Manager');
   var backup=findOrCreate(manager,'Backups');
   props.setProperty(bindingKey,JSON.stringify({spreadsheetId:ss.getId(),siteId:siteId,
-    rootFolderId:sims.getId(),siteFolderId:site.getId(),backupFolderId:backup.getId()}));
+    blogName:blogName,blogUrl:blogUrl,rootFolderId:sims.getId(),siteFolderId:site.getId(),backupFolderId:backup.getId()}));
   return backup;
 }
 function sbmBackupSnapshot_(kind) {

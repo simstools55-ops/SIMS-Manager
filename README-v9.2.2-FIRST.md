@@ -8,3 +8,6 @@ Before installing: make a copy of the active spreadsheet and Apps Script source.
 Changes: folder identity guard; checks site name, optional URL, spreadsheet/site ID and folder ancestry. Existing v9.2.1 binding is migrated on first successful access.
 
 Known limitations: renaming a blog stops backups pending manual migration; daily scheduling and rollback failure UAT pending.
+
+
+CORRECTED PACKAGE: All Code.gs distribution entrypoints are identical v9.2.2. Obsolete Code.base.gs removed. Use src/distribution/Code.gs. Live UAT pending.
