@@ -1,1 +1,0 @@
-fix(manager): guard blog-specific backup binding against site and folder mismatches (v9.2.2)

@@ -1,3 +1,8 @@
+## v9.2.3 (2026-11-03)
+- Backup binding guard rejects a cleared BlogUrl when a stored blogUrl exists.
+- Distribution and release metadata synchronized.
+- No backup/restore algorithm changes.
+
 ## v9.2.0 — Backup/restore management release candidate
 - Remove trial label from backup/restore menu.
 - Promote previously tested daily backup, three-generation retention, preflight, and restore workflow.

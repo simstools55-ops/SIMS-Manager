@@ -1,0 +1,1 @@
+fix(manager): reject missing blog URL on existing backup binding and align v9.2.3 package

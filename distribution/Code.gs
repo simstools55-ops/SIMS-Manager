@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.2
- * Release summary: Blog-specific backup folder identity guard and safe migration of existing bindings; rollback remains unverified.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.2.md.
+ * Current version: 9.2.3
+ * Release summary: Reject cleared blog URL on existing backup bindings; preserve folder identity guard and existing backup behavior.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.3.md.
  */
 
-const SBM_VERSION = '9.2.2';
+const SBM_VERSION = '9.2.3';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25837,7 +25837,7 @@ function sbmBackupCompareContents_(source, copy) {
   }
   return true;
 }
-/** v9.2.1: バックアップ保存先は復元対象外のDocumentPropertiesで固定する。 */
+/** v9.2.3: 保存先bindingのブログ識別とフォルダー階層を検証し、不一致時は停止する。 */
 function sbmBackupDestinationFolder_() {
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var props=PropertiesService.getDocumentProperties();
@@ -25859,7 +25859,7 @@ function sbmBackupDestinationFolder_() {
     if(!binding || binding.spreadsheetId!==ss.getId() || binding.siteId!==siteId)
       fail_('スプレッドシートIDまたはSiteIDが一致しません');
     if(binding.blogName && binding.blogName!==blogName) fail_('ブログ名が登録時から変更されています');
-    if(binding.blogUrl && blogUrl && binding.blogUrl!==blogUrl) fail_('ブログURLが登録時から変更されています');
+    if(binding.blogUrl && binding.blogUrl!==blogUrl) fail_('ブログURLが登録時から変更または削除されています');
     try {
       var root=DriveApp.getRootFolder();
       var sims=DriveApp.getFolderById(binding.rootFolderId);
