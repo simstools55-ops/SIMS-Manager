@@ -1,0 +1,12 @@
+{
+  "version": "9.2.2",
+  "runtime": "9.2.2",
+  "distribution_files_equal": true,
+  "legacy_base_version": "9.1.32",
+  "legacy_base_not_for_distribution": true,
+  "known_pending": [
+    "scheduled daily backup UAT",
+    "restore failure rollback UAT",
+    "full repository historical comments audit"
+  ]
+}
