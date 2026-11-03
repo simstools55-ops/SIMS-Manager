@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.1.56
- * Release summary: Restore horizontal alignment verification compatibility and precise mismatch diagnostics.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.56.md.
+ * Current version: 9.2.0
+ * Release summary: Backup and restore management promoted after successful live restore UAT; rollback remains unverified.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.0.md.
  */
 
-const SBM_VERSION = '9.1.56';
+const SBM_VERSION = '9.2.0';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -12724,7 +12724,7 @@ function sbmMigrateLegacyMonitoringLabels_(){
  * RC8 Final: * 同一Product Version内でHomeレイアウトを変更した場合でも、旧レイアウトを自動検出して
  * 一度だけ再構築します。Homeの表示ラベルと集計値の行ずれを防止します。
  */
-/** v9.1.56: Repair only Home A1:I1 header merge; preserve J1 and all data sheets. */
+/** v9.2.0: Repair only Home A1:I1 header merge; preserve J1 and all data sheets. */
 function sbmEnsureHomeHeaderMerge_(sh) {
   if (!sh) return;
   var header=sh.getRange('A1:I1');
@@ -15291,7 +15291,7 @@ function onOpen() {
     .addItem('ライセンス認証','sbmLicenseActivate')
     .addItem('ライセンスの有効性を確認','sbmLicenseRevalidate')
     .addSeparator()
-    .addItem('バックアップ一覧・復元（試験用）','sbmBackupRestoreInteractive')
+    .addItem('バックアップ一覧・復元','sbmBackupRestoreInteractive')
     .addSeparator()
     .addItem('初回セットアップ','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
@@ -26028,7 +26028,7 @@ function sbmBackupRestoreWriteMetadata_(sheet, rows, cols, m) {
   r.setDataValidations(m.validations);
 }
 function sbmBackupRestoreAssertMetadata_(expected, actual, name) {
-  // v9.1.56: Sheets may report an implicit "general" alignment as "general-left"
+  // v9.2.0: Sheets may report an implicit "general" alignment as "general-left"
   // after a write. Treat this one observed API representation difference as
   // equivalent; preserve strict comparison for all other alignment values.
   // Report the first exact cell and property for any real mismatch.
