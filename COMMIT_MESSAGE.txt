@@ -1,1 +1,1 @@
-feat(manager): store aMerge artifacts under verified per-blog Merge folders
+fix(manager): route Doctor IMPROVE referrals to Writer and fail closed

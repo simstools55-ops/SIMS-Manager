@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.4
+ * Current version: 9.2.5
  * Release summary: Store new aMerge artifacts in identity-verified per-blog SIMS/Merge/Results folders; retain historical artifact links.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.4.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.5.md.
  */
 
-const SBM_VERSION = '9.2.4';
+const SBM_VERSION = '9.2.5';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -19347,7 +19347,7 @@ function sbmDoctorNormalizeCaseResult_(o){
     // concrete workflow/treatment instructions outrank LOW_SAMPLE SERP labels.
     // LOW_PRIORITY_SERP_STRUCTURE means "avoid heavy investment", not "close the case"
     // when Doctor explicitly requests WRITER/MERGE/MONITOR/etc.
-    var writerReadyV2=(explicitNextActionV2==='WRITER'||refDestinationV2==='SIMS_WRITER'||refDestinationV2==='WRITER');
+    var writerReadyV2=(explicitNextActionV2==='WRITER'||refDestinationV2==='SIMS_WRITER'||refDestinationV2==='WRITER'||(explicitNextActionV2==='IMPROVE'&&String(handoff.referral_target||'').toUpperCase()==='WRITER'));
     var mergeReadyV2=(explicitNextActionV2==='MERGE'||refDestinationV2==='SIMS_MERGE'||refDestinationV2==='MERGE'||strategyV2==='MERGE');
     if(mergeReadyV2||restoreV2)writerReadyV2=false;
     if(restoreV2)mergeReadyV2=false;
@@ -19384,7 +19384,7 @@ function sbmDoctorNormalizeCaseResult_(o){
     var handoffWriter=!!(o.workflow_handoff&&o.workflow_handoff.writer_request_text);
     var handoffMerge=!!(o.workflow_handoff&&o.workflow_handoff.merge_request_text);
     var mergeReady=!restore&&(explicitNextAction==='MERGE'||activeMerge.length>0||handoffMerge);
-    var writerReady=!restore&&!mergeReady&&(explicitNextAction==='WRITER'||activeWriter.length>0||handoffWriter);
+    var writerReady=!restore&&!mergeReady&&(explicitNextAction==='WRITER'||activeWriter.length>0||handoffWriter||(explicitNextAction==='IMPROVE'&&String(o.workflow_handoff&&o.workflow_handoff.referral_target||'').toUpperCase()==='WRITER'));
     var diagnosisStatus=o.overall_verdict||o.diagnosis&&o.diagnosis.overall_status||o.diagnosis&&o.diagnosis.overall_status_label_ja||'';
     var primaryCode=o.overall_verdict||o.diagnosis&&o.diagnosis.overall_status||'';
     var reviewDate=o.next_review&&o.next_review.recommended_date||o.workflow&&o.workflow.next_review_recommended||'';

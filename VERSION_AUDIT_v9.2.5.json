@@ -1,0 +1,11 @@
+{
+  "version": "9.2.5",
+  "canonical_code": "apps-script/Code.gs",
+  "code_sha256": "43163f3ae9a77bb325cdcc47d31f1ead752a996e4951a8cc4ac8eabbe6763cad",
+  "checks": {
+    "version_constant": true,
+    "writer_improve_route": true,
+    "existing_merge_path_retained": true
+  },
+  "uat": "NOT_TESTED"
+}

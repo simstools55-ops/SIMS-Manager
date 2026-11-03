@@ -1,3 +1,6 @@
+## v9.2.5 (2026-11-04)
+- Doctor IMPROVE + referral_target WRITER をWriter依頼へ正規化。未判定IMPROVEを成功扱いしない。
+
 ## v9.2.4 (2026-11-03)
 - Route newly stored aMerge result JSON and merged Markdown to SIMS/<BlogName>/Merge/Results/<CaseID> using verified backup binding. No migration or rewrite of historical artifacts.
 
