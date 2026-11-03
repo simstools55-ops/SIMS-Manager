@@ -1,0 +1,13 @@
+{
+  "version": "9.2.4",
+  "canonical_code": "apps-script/Code.gs",
+  "code_sha256": "8c865729315749d21f95ebd9ff0025b3a3c3bba834d5a746be437faae0ebd62b",
+  "code_count": 1,
+  "checks": {
+    "version_constant": true,
+    "single_source": true,
+    "new_merge_path": true,
+    "legacy_files_unchanged": true
+  },
+  "uat": "NOT_TESTED"
+}

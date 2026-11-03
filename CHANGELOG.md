@@ -1,3 +1,6 @@
+## v9.2.4 (2026-11-03)
+- Route newly stored aMerge result JSON and merged Markdown to SIMS/<BlogName>/Merge/Results/<CaseID> using verified backup binding. No migration or rewrite of historical artifacts.
+
 ## v9.2.3 (2026-11-03)
 - Backup binding guard rejects a cleared BlogUrl when a stored blogUrl exists.
 - Distribution and release metadata synchronized.

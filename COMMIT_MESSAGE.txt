@@ -1,1 +1,1 @@
-chore(manager): consolidate v9.2.3 Apps Script source under apps-script/Code.gs
+feat(manager): store aMerge artifacts under verified per-blog Merge folders

@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.3
- * Release summary: Reject cleared blog URL on existing backup bindings; preserve folder identity guard and existing backup behavior.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.3.md.
+ * Current version: 9.2.4
+ * Release summary: Store new aMerge artifacts in identity-verified per-blog SIMS/Merge/Results folders; retain historical artifact links.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.4.md.
  */
 
-const SBM_VERSION = '9.2.3';
+const SBM_VERSION = '9.2.4';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -23310,9 +23310,9 @@ function sbmDoctorCompactMergeResultForCell_(o,m,artifactError){
   };
 }
 
-/* RC8.20-HF7: SIMS Artifact storage foundation.
- * The user does not choose folders. Artifacts are stored next to the SBM spreadsheet:
- * SIMS-Artifacts / Merge-Results / <CaseID> /
+/* v9.2.4: aMerge artifacts share the verified per-blog SIMS root with backups.
+ * SIMS / <BlogName> / Merge / Results / <CaseID> /
+ * Existing artifacts and stored URLs/IDs are not moved or rewritten.
  */
 function sbmArtifactSafeName_(value){
   return String(value||'artifact').replace(/[\\\/:*?"<>|#%{}~&]/g,'-').replace(/\s+/g,' ').trim().substring(0,120)||'artifact';
@@ -23321,8 +23321,16 @@ function sbmArtifactChildFolder_(parent,name){
   var it=parent.getFoldersByName(name);return it.hasNext()?it.next():parent.createFolder(name);
 }
 function sbmArtifactBaseFolder_(){
-  var ss=SpreadsheetApp.getActiveSpreadsheet(),file=DriveApp.getFileById(ss.getId()),parents=file.getParents(),parent=parents.hasNext()?parents.next():DriveApp.getRootFolder();
-  return sbmArtifactChildFolder_(parent,'SIMS-Artifacts');
+  // Resolve through the same identity-guarded binding used by Manager backups.
+  // Never guess a blog folder from spreadsheet location or create one on mismatch.
+  sbmBackupDestinationFolder_();
+  var saved=PropertiesService.getDocumentProperties().getProperty('SIMS_DRIVE_BACKUP_BINDING_V1');
+  if(!saved)throw new Error('aMerge成果物保存先: ブログ別保存先の管理情報がありません。');
+  var binding=JSON.parse(saved);
+  var site=DriveApp.getFolderById(binding.siteFolderId);
+  if(site.isTrashed() || site.getName()!==String(sbmGetSetting_('BlogName','')||'').trim())
+    throw new Error('aMerge成果物保存先: ブログフォルダーの照合に失敗しました。');
+  return sbmArtifactChildFolder_(site,'Merge');
 }
 function sbmArtifactUpsertTextFile_(folder,name,content,mimeType){
   var files=folder.getFilesByName(name),file=null;
@@ -23332,7 +23340,7 @@ function sbmArtifactUpsertTextFile_(folder,name,content,mimeType){
 }
 function sbmArtifactStoreMergeResult_(o,m){
   m=m||sbmDoctorNormalizeMergeResult_(o);
-  var base=sbmArtifactBaseFolder_(),mergeRoot=sbmArtifactChildFolder_(base,'Merge-Results'),caseFolder=sbmArtifactChildFolder_(mergeRoot,sbmArtifactSafeName_(m.caseId||'unknown-case'));
+  var base=sbmArtifactBaseFolder_(),mergeRoot=sbmArtifactChildFolder_(base,'Results'),caseFolder=sbmArtifactChildFolder_(mergeRoot,sbmArtifactSafeName_(m.caseId||'unknown-case'));
   var rid=sbmArtifactSafeName_(m.resultId||m.requestId||'latest'),jsonName=rid+'-result.json',mdName=rid+'-merged-article.md';
   var jsonText=JSON.stringify(o,null,2),jsonFile=sbmArtifactUpsertTextFile_(caseFolder,jsonName,jsonText,MimeType.PLAIN_TEXT);
   var article=m.mergedArticle||{},md=String(article.content_markdown||'');
