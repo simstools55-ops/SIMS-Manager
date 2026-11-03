@@ -1,0 +1,5 @@
+feat(manager): promote backup/restore management menu in v9.2.0
+
+- Remove trial-only menu label
+- Align runtime version and release metadata
+- Record successful restore UAT and unverified rollback

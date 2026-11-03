@@ -1,0 +1,1 @@
+feat(backup): add read-only restore preflight and snapshot diagnostics (v9.1.42 candidate)

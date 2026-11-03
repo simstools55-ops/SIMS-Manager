@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.1.39",
-  "release_status": "UAT",
-  "notes": "v9.1.39: improve history tail row diagnostic without automatic data changes",
-  "version": "9.1.39",
+  "current_version": "9.2.0",
+  "release_status": "RELEASE_CANDIDATE",
+  "notes": "Backup/restore management live UAT passed; automatic rollback not yet verified. Menu trial label removed.",
+  "version": "9.2.0",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.1.39-ST"
+  "starter_display_version": "v9.2.0-ST"
 }

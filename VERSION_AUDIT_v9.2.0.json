@@ -1,0 +1,13 @@
+{
+  "version": "9.2.0",
+  "source": "v9.1.56 uploaded candidate",
+  "checks": {
+    "runtime_version": true,
+    "code_files_identical": true,
+    "menu_trial_label_removed": true,
+    "version_file": true,
+    "product_identity": true,
+    "rollback_verified": false
+  },
+  "note": "Historical version references, historical Code.base.gs, and shared/PRODUCT_IDENTITY.json intentionally preserved."
+}

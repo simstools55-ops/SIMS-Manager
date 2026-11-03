@@ -1,0 +1,1 @@
+feat(backup): restore selected cell metadata with guarded validation (v9.1.46 candidate)

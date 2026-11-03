@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.1.39
- * Release summary: Contextual service/advertising replacement intake and aDoctor handoff.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.38.md.
+ * Current version: 9.1.56
+ * Release summary: Restore horizontal alignment verification compatibility and precise mismatch diagnostics.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.1.56.md.
  */
 
-const SBM_VERSION = '9.1.39';
+const SBM_VERSION = '9.1.56';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -447,6 +447,10 @@ function sbmRunDailyFetchStageFromDialog() {
   var startedText = sbmNowText_();
   var profiler = sbmCreateProfiler_('日次処理 STEP1 Search Console取得');
   try {
+    // v9.1.41: verified checkpoint before any daily mutation. Fail closed.
+    if (PropertiesService.getDocumentProperties().getProperty('SIMS_RESTORE_RECOVERY_REQUIRED'))
+      throw new Error('復元失敗の復旧確認が必要です。日次処理を停止しました。');
+    sbmDailyBackupEnsure_();
     var tRuntime = new Date();
     sbmPersistDailyRuntime_({DailyUpdateRunning:'YES',DailyUpdateContinuationRequired:'NO',DailyUpdatePhase:'FETCH',DailyUpdateProgress:'10',DailyUpdateMessage:'Search Consoleからデータを取得しています。',DailyUpdateStartedEpoch:String(started.getTime()),DailyUpdateHeartbeatEpoch:String(Date.now()),DailyUpdateLastError:''});
     var runtimeSec = sbmSecondsSince_(tRuntime);
@@ -12720,6 +12724,18 @@ function sbmMigrateLegacyMonitoringLabels_(){
  * RC8 Final: * 同一Product Version内でHomeレイアウトを変更した場合でも、旧レイアウトを自動検出して
  * 一度だけ再構築します。Homeの表示ラベルと集計値の行ずれを防止します。
  */
+/** v9.1.56: Repair only Home A1:I1 header merge; preserve J1 and all data sheets. */
+function sbmEnsureHomeHeaderMerge_(sh) {
+  if (!sh) return;
+  var header=sh.getRange('A1:I1');
+  var merges=header.getMergedRanges();
+  if (merges.length===1 && merges[0].getA1Notation()==='A1:I1') return;
+  if (merges.length) throw new Error('Home見出しの結合範囲が想定外: '+merges.map(function(r){return r.getA1Notation();}).join(','));
+  sh.getRange('B1:I1').clearContent();
+  header.merge();
+  header.setWrap(false);
+}
+
 function sbmHomeLayoutNeedsRebuild_(sh) {
   if (!sh) return true;
   try {
@@ -12736,6 +12752,8 @@ function sbmHomeLayoutNeedsRebuild_(sh) {
         if (v.indexOf('改善モニター中｜')!==0 || v.indexOf('｜判定内訳')<0) return true;
       } else if (v !== expected[i][1]) return true;
     }
+    var homeHeaderMerges=sh.getRange('A1:I1').getMergedRanges();
+    if(homeHeaderMerges.length!==1 || homeHeaderMerges[0].getA1Notation()!=='A1:I1') return true;
     return false;
   } catch(e) { return true; }
 }
@@ -12834,11 +12852,12 @@ function sbmRefreshHome_(options) {
 
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(sh) sbmEnsureHomeHeaderMerge_(sh);
   if(!sh||String(sh.getRange('J1').getValue())!==('v'+SBM_DISPLAY_VERSION)||sbmHomeLayoutNeedsRebuild_(sh)){
     sbmBuildHomeSheet_();
     sh=ss.getSheetByName(SBM_SHEETS.HOME);
   }
-  try{sh.getRange('A1:I1').setValue(sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
+  try{sh.getRange('A1').setValue(sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home');}catch(ignoreHomeTitleSync){}
 
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
@@ -14873,7 +14892,8 @@ function sbmSyncHomeVersionOnly_(){
     var expected='v'+SBM_DISPLAY_VERSION;
     if(String(sh.getRange('J1').getValue()||'')!==expected) sh.getRange('J1').setValue(expected);
     var expectedTitle=sbmEffectiveEdition_()==='STARTER' ? 'SIMS Manager Starter Home' : 'SIMS Manager  Home';
-    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1:I1').setValue(expectedTitle);
+    sbmEnsureHomeHeaderMerge_(sh);
+    if(String(sh.getRange('A1').getValue()||'')!==expectedTitle) sh.getRange('A1').setValue(expectedTitle);
   }catch(e){
     try{sbmLog_('HomeVersionSync','Warning',String(e));}catch(ignore){}
   }
@@ -15270,6 +15290,8 @@ function onOpen() {
     .addItem('ライセンス状態を確認','sbmLicenseRc4StatusDialog')
     .addItem('ライセンス認証','sbmLicenseActivate')
     .addItem('ライセンスの有効性を確認','sbmLicenseRevalidate')
+    .addSeparator()
+    .addItem('バックアップ一覧・復元（試験用）','sbmBackupRestoreInteractive')
     .addSeparator()
     .addItem('初回セットアップ','sbmStartInitialSetup')
     .addItem('サイト設定','sbmOpenBlogInfoChange')
@@ -25750,7 +25772,7 @@ function sbmHistoryAssertCanonicalV9125_(sh) {
   var actual=sh.getRange(1,1,1,52).getDisplayValues()[0];
   for(var i=0;i<52;i++) if(String(actual[i]||'').trim()!==String(heads[i]||'').trim())
     throw new Error('改善履歴のヘッダー不一致：'+(i+1)+'列目。書き込みを停止しました。');
-  // v9.1.39: 最終行の根拠を明示。空欄/旧形式の疑いだけで自動修復しない。
+  // v9.1.41: 最終行の根拠を明示。空欄/旧形式の疑いだけで自動修復しない。
   // getLastRow() は非表示列の値も含むため、画面上の最終表示行と異なる場合がある。
   if(sh.getLastRow()>1){
     var last=sh.getLastRow();
@@ -25780,4 +25802,426 @@ function sbmHistoryAssertIdUniqueV9125_(sh,historyId) {
   if(idx<1) throw new Error('改善履歴ID列がありません。');
   var found=sh.getRange(2,idx,sh.getLastRow()-1,1).createTextFinder(String(historyId)).matchEntireCell(true).findNext();
   if(found) throw new Error('改善履歴IDが重複しています：'+historyId);
+}
+
+
+
+/** v9.1.49: 日次開始前のスナップショット。バックアップファイルは元DBとは別のSpreadsheet。 */
+function sbmBackupRequiredSheets_() {
+  return ['記事管理','改善の推移','改善履歴','Settings','設定','改善中','測定履歴','Doctor_Cases','Doctor_Workflow_State','Doctor_治療待ち','Platform_Cases','Platform_Treatments','Platform_Events','Platform_Errors'].filter(function(n){return !!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(n);});
+}
+function sbmBackupDateKey_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Asia/Tokyo', 'yyyyMMdd');
+}
+function sbmBackupCatalog_() {
+  var props = PropertiesService.getDocumentProperties();
+  return JSON.parse(props.getProperty('SIMS_BACKUP_CATALOG_V1') || '[]');
+}
+function sbmBackupWriteCatalog_(items) {
+  PropertiesService.getDocumentProperties().setProperty('SIMS_BACKUP_CATALOG_V1',JSON.stringify(items));
+}
+/** v9.1.49: 保存前後の値・数式を分割照合。大規模DBでも一括配列を保持しない。 */
+function sbmBackupCompareContents_(source, copy) {
+  var rows=source.getLastRow(), cols=source.getLastColumn();
+  if(rows!==copy.getLastRow() || cols!==copy.getLastColumn()) return false;
+  if(!rows || !cols) return true;
+  var batch=Math.max(1,Math.floor(12000/cols));
+  for(var start=1;start<=rows;start+=batch){
+    var count=Math.min(batch,rows-start+1);
+    var a=source.getRange(start,1,count,cols),b=copy.getRange(start,1,count,cols);
+    var av=a.getValues(),bv=b.getValues(),af=a.getFormulas(),bf=b.getFormulas();
+    for(var i=0;i<count;i++) for(var j=0;j<cols;j++) {
+      if(af[i][j]!==bf[i][j]) return false;
+      if(sbmBackupRestoreCanonical_(av[i][j])!==sbmBackupRestoreCanonical_(bv[i][j])) return false;
+    }
+  }
+  return true;
+}
+function sbmBackupSnapshot_(kind) {
+  var original = SpreadsheetApp.getActiveSpreadsheet();
+  var names = sbmBackupRequiredSheets_();
+  var missing=['記事管理','改善の推移','改善履歴'].filter(function(n){return !original.getSheetByName(n);});
+  if(missing.length) throw new Error('バックアップ対象がありません: '+missing.join(', '));
+  var now=new Date(), stamp=Utilities.formatDate(now,Session.getScriptTimeZone()||'Asia/Tokyo','yyyyMMdd_HHmmss');
+  var dest=SpreadsheetApp.create('SIMS_Manager_Backup_'+kind+'_'+stamp+'_'+Utilities.getUuid().slice(0,8));
+  var temp=dest.getSheets()[0];
+  var meta=[];
+  try {
+    names.forEach(function(name){
+      var source=original.getSheetByName(name);
+      var copy=source.copyTo(dest).setName(name);
+      meta.push({name:name,rows:source.getLastRow(),cols:source.getLastColumn(),copiedRows:copy.getLastRow(),copiedCols:copy.getLastColumn()});
+      if(!sbmBackupCompareContents_(source,copy)) throw new Error('バックアップのセル内容・数式照合に失敗: '+name);
+    });
+    dest.deleteSheet(temp);
+    dest.insertSheet('_SIMS_BACKUP_META').getRange(1,1,1,4).setValues([['sourceSpreadsheetId','timestamp','kind','schema']]);
+    dest.getSheetByName('_SIMS_BACKUP_META').getRange(2,1,1,4).setValues([[original.getId(),now.toISOString(),kind,JSON.stringify(meta)]]);
+    SpreadsheetApp.flush();
+    return {id:dest.getId(),date:sbmBackupDateKey_(),timestamp:now.toISOString(),kind:kind};
+  } catch(e) {
+    try {DriveApp.getFileById(dest.getId()).setTrashed(true);}catch(ignore){}
+    throw e;
+  }
+}
+function sbmDailyBackupEnsure_() {
+  var today=sbmBackupDateKey_(), entries=sbmBackupCatalog_();
+  var existing=entries.filter(function(x){return x.kind==='DAILY'&&x.date===today;})[0];
+  if(existing) {
+    try {
+      var file=SpreadsheetApp.openById(existing.id);
+      var meta=file.getSheetByName('_SIMS_BACKUP_META');
+      if(meta&&meta.getRange(2,1).getValue()===SpreadsheetApp.getActiveSpreadsheet().getId()&&sbmBackupRequiredSheets_().every(function(n){return !!file.getSheetByName(n);})&&sbmBackupVerify_(file)) return existing;
+    } catch(ignore){}
+    throw new Error('本日分のバックアップを検証できません。日次処理を停止しました。バックアップ一覧を確認してください。');
+  }
+  var item=sbmBackupSnapshot_('DAILY');
+  if(!sbmBackupVerify_(SpreadsheetApp.openById(item.id))) throw new Error('バックアップ内容の検証に失敗しました。日次処理を中止します。');
+  entries.unshift(item);
+  sbmBackupWriteCatalog_(entries);
+  // 3世代を超えた場合、削除成功を確認したファイルだけを台帳から除外する。
+  // 削除に失敗したものは復旧可能性のため台帳に残す。
+  var daily=entries.filter(function(x){return x.kind==='DAILY';});
+  if(daily.length>3){
+    var obsolete=daily.slice(3);
+    var removedIds=[];
+    obsolete.forEach(function(x){
+      try {
+        var oldFile=DriveApp.getFileById(x.id);
+        oldFile.setTrashed(true);
+        if(oldFile.isTrashed()) removedIds.push(x.id);
+      } catch(e) {
+        console.warn('バックアップ世代整理に失敗（台帳保持）: '+x.id+' / '+String(e));
+      }
+    });
+    if(removedIds.length){
+      entries=entries.filter(function(x){return removedIds.indexOf(x.id)<0;});
+      sbmBackupWriteCatalog_(entries);
+    }
+  }
+  return item;
+}
+
+
+/** 保存時に記録したシート構造とバックアップ実体の整合性を確認する（読取専用）。 */
+function sbmBackupVerify_(file) {
+  var metaSheet=file.getSheetByName('_SIMS_BACKUP_META');
+  if(!metaSheet) return false;
+  var meta;
+  try { meta=JSON.parse(String(metaSheet.getRange(2,4).getValue()||'[]')); } catch(e) { return false; }
+  if(!Array.isArray(meta)||meta.length<3) return false;
+  return meta.every(function(m){
+    var sh=file.getSheetByName(m.name);
+    return !!sh && sh.getLastRow()===m.rows && sh.getLastColumn()===m.cols && m.rows===m.copiedRows && m.cols===m.copiedCols;
+  });
+}
+
+/** v9.1.49: 復元前の読取専用検査。未対応の書式・入力規則を拒否する。 */
+function sbmBackupRestorePreflight_(backupId) {
+  var original=SpreadsheetApp.getActiveSpreadsheet();
+  var item=sbmBackupCatalog_().filter(function(x){return x.kind==='DAILY'&&x.id===backupId;})[0];
+  if(!item) throw new Error('登録済みの日次バックアップではありません。');
+  var backup=SpreadsheetApp.openById(backupId);
+  var metaSheet=backup.getSheetByName('_SIMS_BACKUP_META');
+  if(!metaSheet || String(metaSheet.getRange(2,1).getValue())!==original.getId())
+    throw new Error('バックアップの作成元が一致しません。');
+  if(!sbmBackupVerify_(backup)) throw new Error('バックアップの構造検証に失敗しました。');
+  var meta=JSON.parse(String(metaSheet.getRange(2,4).getValue()));
+  var issues=[], rows=[];
+  meta.forEach(function(m){
+    var current=original.getSheetByName(m.name), saved=backup.getSheetByName(m.name);
+    if(!current) issues.push('現行シートなし: '+m.name);
+    if(!saved) issues.push('保存シートなし: '+m.name);
+    if(current&&saved){
+      rows.push({name:m.name,currentRows:current.getLastRow(),backupRows:saved.getLastRow(),
+        currentCols:current.getLastColumn(),backupCols:saved.getLastColumn(),
+        currentSheetId:current.getSheetId()});
+      if(current.getLastColumn()!==saved.getLastColumn()) issues.push('列数差: '+m.name);
+      if(current.getDataRange().getMergedRanges().length || saved.getDataRange().getMergedRanges().length) issues.push('結合セルあり: '+m.name);
+      if(current.getProtections(SpreadsheetApp.ProtectionType.SHEET).length ||
+         current.getProtections(SpreadsheetApp.ProtectionType.RANGE).length)
+        issues.push('保護設定あり: '+m.name);
+      if(saved.getProtections(SpreadsheetApp.ProtectionType.SHEET).length ||
+         saved.getProtections(SpreadsheetApp.ProtectionType.RANGE).length)
+        issues.push('バックアップ側に保護設定あり: '+m.name);
+      if(current.getConditionalFormatRules().length || saved.getConditionalFormatRules().length)
+        issues.push('条件付き書式あり（現版では完全復元不可）: '+m.name);
+      try {
+        sbmBackupRestoreMetadata_(saved,saved.getLastRow(),saved.getLastColumn());
+        sbmBackupRestoreMetadata_(current,current.getLastRow(),current.getLastColumn());
+      } catch(metadataError) { issues.push('入力規則・保護の制約: '+m.name+' / '+String(metadataError.message||metadataError)); }
+    }
+  });
+  ['記事管理','改善の推移','改善履歴'].forEach(function(n){
+    if(!meta.some(function(m){return m.name===n;})) issues.push('必須DBなし: '+n);
+  });
+  return {backupId:backupId,date:item.date,sourceId:original.getId(),sheets:rows,
+    issues:issues,restoreEnabled:issues.length===0};
+}
+/** 復元の安全性が確定するまではプレビューのみ。 */
+function sbmBackupRestoreDialog(){
+  var ui=SpreadsheetApp.getUi();
+  var items=sbmBackupCatalog_().filter(function(x){return x.kind==='DAILY';});
+  if(!items.length){ui.alert('バックアップはまだありません。');return;}
+  var report=items.map(function(x){
+    try{
+      var p=sbmBackupRestorePreflight_(x.id);
+      return x.date+' / '+p.sheets.length+'シート / '+(p.issues.length?p.issues.join('、'):'構造確認OK');
+    }catch(e){return x.date+' / 検査エラー: '+String(e.message||e);}
+  });
+  ui.alert('バックアップ一覧（読取専用）\n'+report.join('\n')+
+    '\n\n復元実行は未提供です。既存シートIDと参照を保護する方式の検証後に有効化します。');
+}
+
+
+/** v9.1.49 復元処理（保守用）。未対応メタデータを事前拒否し、元シートIDを維持する。 */
+function sbmBackupRestoreCellMatrix_(sheet) {
+  var r=sheet.getLastRow(),c=sheet.getLastColumn();
+  if(!r||!c) return {rows:r,cols:c,data:[]};
+  var range=sheet.getRange(1,1,r,c),vals=range.getValues(),formulas=range.getFormulas();
+  for(var i=0;i<r;i++) for(var j=0;j<c;j++) if(formulas[i][j]) vals[i][j]=formulas[i][j];
+  return {rows:r,cols:c,data:vals};
+}
+/** v9.1.49: 値・数式の厳密な照合。Dateは時刻値に正規化する。 */
+function sbmBackupRestoreCanonical_(value) {
+  if(value instanceof Date) return 'DATE:'+value.getTime();
+  if(value===null||value===undefined) return 'EMPTY';
+  return typeof value+':'+String(value);
+}
+function sbmBackupRestoreAssertCells_(expected,actual,name) {
+  if(expected.rows!==actual.rows||expected.cols!==actual.cols)
+    throw new Error('復元後のサイズ不一致: '+name);
+  for(var r=0;r<expected.rows;r++) for(var c=0;c<expected.cols;c++) {
+    if(sbmBackupRestoreCanonical_(expected.data[r][c])!==sbmBackupRestoreCanonical_(actual.data[r][c]))
+      throw new Error('復元後の値・数式不一致: '+name+'!R'+(r+1)+'C'+(c+1));
+  }
+}
+/** v9.1.49: 復元時に扱うセル付帯情報。保護シートと参照型入力規則は安全のため復元を拒否する。 */
+function sbmBackupRestoreMetadata_(sheet, rows, cols) {
+  if(sheet.getProtections(SpreadsheetApp.ProtectionType.SHEET).length ||
+     sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE).length)
+    throw new Error('保護設定を含むため自動復元を停止しました: '+sheet.getName());
+  if(!rows||!cols) return null;
+  var r=sheet.getRange(1,1,rows,cols), validations=r.getDataValidations();
+  validations.forEach(function(line){line.forEach(function(rule){
+    if(!rule) return;
+    var type=rule.getCriteriaType();
+    if(type===SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE ||
+       type===SpreadsheetApp.DataValidationCriteria.CUSTOM_FORMULA)
+      throw new Error('参照型の入力規則があるため自動復元を停止しました: '+sheet.getName());
+  });});
+  return {numberFormats:r.getNumberFormats(),backgrounds:r.getBackgrounds(),
+    fontColors:r.getFontColors(),fontWeights:r.getFontWeights(),
+    horizontalAlignments:r.getHorizontalAlignments(),
+    verticalAlignments:r.getVerticalAlignments(),
+    notes:r.getNotes(),validations:validations};
+}
+function sbmBackupRestoreWriteMetadata_(sheet, rows, cols, m) {
+  if(!m||!rows||!cols) return;
+  var r=sheet.getRange(1,1,rows,cols);
+  r.setNumberFormats(m.numberFormats);
+  r.setBackgrounds(m.backgrounds);
+  r.setFontColors(m.fontColors);
+  r.setFontWeights(m.fontWeights);
+  r.setHorizontalAlignments(m.horizontalAlignments);
+  r.setVerticalAlignments(m.verticalAlignments);
+  r.setNotes(m.notes);
+  r.setDataValidations(m.validations);
+}
+function sbmBackupRestoreAssertMetadata_(expected, actual, name) {
+  // v9.1.56: Sheets may report an implicit "general" alignment as "general-left"
+  // after a write. Treat this one observed API representation difference as
+  // equivalent; preserve strict comparison for all other alignment values.
+  // Report the first exact cell and property for any real mismatch.
+  var attributes=['numberFormats','backgrounds','fontColors','fontWeights',
+    'horizontalAlignments','verticalAlignments','notes'];
+  attributes.forEach(function(attribute){
+    var left=expected[attribute],right=actual[attribute];
+    if(!left||!right||left.length!==right.length)
+      throw new Error('復元後の書式照合サイズ不一致: '+name+' / '+attribute);
+    for(var row=0;row<left.length;row++) {
+      if(!right[row]||left[row].length!==right[row].length)
+        throw new Error('復元後の書式照合列数不一致: '+name+'!R'+(row+1)+' / '+attribute);
+      for(var col=0;col<left[row].length;col++) {
+        var a=left[row][col],b=right[row][col];
+        if(attribute==='horizontalAlignments' && a==='general' && b==='general-left')
+          continue;
+        if(a!==b) throw new Error('復元後のセル書式・注記照合に失敗: '+name+
+          '!R'+(row+1)+'C'+(col+1)+' / '+attribute+
+          ' / backup='+JSON.stringify(a)+' / current='+JSON.stringify(b));
+      }
+    }
+  });
+  // 入力規則はオブジェクトを直接JSON化できないため条件種別と引数を照合する。
+  for(var i=0;i<expected.validations.length;i++) for(var j=0;j<expected.validations[i].length;j++) {
+    var a=expected.validations[i][j],b=actual.validations[i][j];
+    if(!!a!==!!b || (a&&b&&String(a.getCriteriaType())!==String(b.getCriteriaType())))
+      throw new Error('復元後の入力規則照合に失敗: '+name+'!R'+(i+1)+'C'+(j+1));
+    if(a&&b) {
+      // NUMBER_BETWEEN等の条件引数も比較する。表示文言・無効入力の扱いも復元対象。
+      var argsA=a.getCriteriaValues(),argsB=b.getCriteriaValues();
+      if(argsA.length!==argsB.length ||
+         argsA.some(function(v,k){
+           var w=argsB[k];
+           if(v instanceof Date || w instanceof Date)
+             return !(v instanceof Date && w instanceof Date && v.getTime()===w.getTime());
+           return String(v)!==String(w);
+         }) ||
+         a.getAllowInvalid()!==b.getAllowInvalid() ||
+         a.getHelpText()!==b.getHelpText())
+        throw new Error('復元後の入力規則条件照合に失敗: '+name+'!R'+(i+1)+'C'+(j+1));
+    }
+  }
+}
+/** v9.1.54: Sheets may coerce an empty checkbox to boolean false when validation is reapplied.
+ * Re-clear only checkbox cells whose snapshot value is truly empty, AFTER validation is restored.
+ * This preserves the distinction between empty string and false; verification remains strict.
+ */
+function sbmBackupRestoreEmptyCheckboxes_(sheet, content, metadata) {
+  if(!metadata || !content.rows || !content.cols) return;
+  var addresses=[];
+  for(var row=0; row<content.rows; row++) {
+    var start=-1;
+    for(var col=0; col<=content.cols; col++) {
+      var rule=col<content.cols ? metadata.validations[row][col] : null;
+      var isEmptyCheckbox=col<content.cols && content.data[row][col]==='' &&
+        rule && rule.getCriteriaType()===SpreadsheetApp.DataValidationCriteria.CHECKBOX;
+      if(isEmptyCheckbox && start<0) start=col;
+      if(!isEmptyCheckbox && start>=0) {
+        addresses.push(sheet.getRange(row+1,start+1,1,col-start).getA1Notation());
+        start=-1;
+      }
+    }
+  }
+  // RangeList reduces API overhead for many unchecked-but-empty checkboxes.
+  for(var i=0; i<addresses.length; i+=100) {
+    sheet.getRangeList(addresses.slice(i,i+100)).clearContent();
+  }
+}
+function sbmBackupRestoreApply_(backup,meta,original) {
+  // 先に全データを読込み、途中で読み込みに失敗した場合は一切変更しない。
+  var payload=meta.map(function(m){
+    var current=original.getSheetByName(m.name), saved=backup.getSheetByName(m.name);
+    if(!current||!saved) throw new Error('復元対象シートがありません: '+m.name);
+    var content=sbmBackupRestoreCellMatrix_(saved);
+    // 単純なsetValuesでは文字列の先頭「=」が数式化される可能性がある。
+    // 破壊的変更の前に対象外のデータを検出する。
+    var sourceFormulas=content.rows&&content.cols?saved.getRange(1,1,content.rows,content.cols).getFormulas():[];
+    for(var ri=0;ri<content.rows;ri++) for(var ci=0;ci<content.cols;ci++) {
+      var v=content.data[ri][ci];
+      if(typeof v==='string'&&v.charAt(0)==='='&&!sourceFormulas[ri][ci])
+        throw new Error('先頭=の文字列があり安全に復元できません: '+m.name+'!R'+(ri+1)+'C'+(ci+1));
+    }
+    if(current.getDataRange().getMergedRanges().length || saved.getDataRange().getMergedRanges().length)
+      throw new Error('結合セルがあるため安全に復元できません: '+m.name);
+    // 書き込み開始前に両側の保護・入力規則を検査する。
+    if(current.getConditionalFormatRules().length || saved.getConditionalFormatRules().length)
+      throw new Error('条件付き書式を含むため完全復元できません: '+m.name);
+    var savedMetadata=sbmBackupRestoreMetadata_(saved,content.rows,content.cols);
+    sbmBackupRestoreMetadata_(current,current.getLastRow(),current.getLastColumn());
+    return {name:m.name,current:current,content:content,metadata:savedMetadata};
+  });
+  payload.forEach(function(p){
+    var sh=p.current,c=p.content;
+    if(sh.getMaxRows()<Math.max(c.rows,1)) sh.insertRowsAfter(sh.getMaxRows(),Math.max(c.rows,1)-sh.getMaxRows());
+    if(sh.getMaxColumns()<Math.max(c.cols,1)) sh.insertColumnsAfter(sh.getMaxColumns(),Math.max(c.cols,1)-sh.getMaxColumns());
+    // v9.1.52: Clear stale validations in the previously used data range as well.
+    // This is a managed-data restore, not a full sheet-layout restoration.
+    var previousDataRange=sh.getDataRange();
+    previousDataRange.clearContent();
+    previousDataRange.clearDataValidations();
+    if(c.rows&&c.cols) {
+      var target=sh.getRange(1,1,c.rows,c.cols);
+      target.setValues(c.data);
+      sbmBackupRestoreWriteMetadata_(sh,c.rows,c.cols,p.metadata);
+      sbmBackupRestoreEmptyCheckboxes_(sh,c,p.metadata);
+    }
+  });
+  SpreadsheetApp.flush();
+  payload.forEach(function(p){
+    sbmBackupRestoreAssertCells_(p.content,sbmBackupRestoreCellMatrix_(p.current),p.name);
+    if(p.metadata) sbmBackupRestoreAssertMetadata_(p.metadata,
+      sbmBackupRestoreMetadata_(p.current,p.content.rows,p.content.cols),p.name);
+  });
+  return payload.map(function(p){return p.name;});
+}
+/** 復元対象のスナップショットを指定して実行。ユーザー承認、緊急退避、ロックを必須とする。 */
+function sbmBackupRestoreExecute_(backupId,confirmation) {
+  var lock=LockService.getDocumentLock();
+  if(!lock.tryLock(30000)) throw new Error('他の処理が実行中です。終了後に再試行してください。');
+  try {
+    var check=sbmBackupRestorePreflight_(backupId);
+    if(check.issues.length) throw new Error('復元前検査で問題があります: '+check.issues.join(' / '));
+    if(confirmation!=='RESTORE '+check.date) throw new Error('復元確認文字列が一致しません。');
+    var original=SpreadsheetApp.getActiveSpreadsheet(),backup=SpreadsheetApp.openById(backupId);
+    var meta=JSON.parse(String(backup.getSheetByName('_SIMS_BACKUP_META').getRange(2,4).getValue()));
+    // 復元直前の緊急バックアップを作成し、検証してから変更する。
+    var emergency=sbmBackupSnapshot_('PRE_RESTORE');
+    var emergencyFile=SpreadsheetApp.openById(emergency.id);
+    if(!sbmBackupVerify_(emergencyFile)) throw new Error('復元直前バックアップの検証に失敗しました。');
+    // 緊急退避の参照を永続化。失敗時にもファイルを特定できる。
+    PropertiesService.getDocumentProperties().setProperty('SIMS_LAST_PRE_RESTORE_BACKUP_ID',emergency.id);
+    try {
+      var restored=sbmBackupRestoreApply_(backup,meta,original);
+      PropertiesService.getDocumentProperties().deleteProperty('SIMS_RESTORE_RECOVERY_REQUIRED');
+      return {ok:true,restored:restored,emergencyBackupId:emergency.id};
+    } catch (restoreError) {
+      // Recover from the pre-restore snapshot while retaining original sheet IDs.
+      // Never report a successful rollback unless the recovery write and verification pass.
+      try {
+        var emergencyMeta=JSON.parse(String(emergencyFile.getSheetByName('_SIMS_BACKUP_META').getRange(2,4).getValue()));
+        sbmBackupRestoreApply_(emergencyFile,emergencyMeta,original);
+        throw new Error('復元に失敗しました。緊急バックアップから元のデータを復旧しました。原因: '+String(restoreError.message||restoreError));
+      } catch (rollbackError) {
+        if (String(rollbackError.message||'').indexOf('緊急バックアップから元のデータを復旧しました')===0) throw rollbackError;
+        PropertiesService.getDocumentProperties().setProperty('SIMS_RESTORE_RECOVERY_REQUIRED',JSON.stringify({
+          emergencyBackupId:emergency.id,originalError:String(restoreError),rollbackError:String(rollbackError),at:new Date().toISOString()
+        }));
+        throw new Error('重大: 復元と自動復旧の両方に失敗しました。操作を中止してください。緊急退避ID: '+emergency.id+' / '+String(rollbackError.message||rollbackError));
+      }
+    }
+  } finally {lock.releaseLock();}
+}
+/** 復元操作はメニューから起動。対象の日付を表示し、明示的な確認入力を要求する。 */
+function sbmBackupRestoreInteractive(){
+  var ui=SpreadsheetApp.getUi();
+  // Display and selection use the same explicitly sorted array; no dependence on catalog insertion order.
+  var entries=sbmBackupCatalog_().filter(function(x){return x.kind==='DAILY';}).slice()
+    .sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+  if(!entries.length){ui.alert('日次バックアップがありません。');return;}
+  var choices=entries.map(function(x,i){return (i+1)+': '+x.date;}).join('\n');
+  var selected=ui.prompt('バックアップから復元',
+    '復元する番号、または8桁の日付を入力してください。\n'+choices,ui.ButtonSet.OK_CANCEL);
+  if(selected.getSelectedButton()!==ui.Button.OK) return;
+  var input=String(selected.getResponseText()).trim();
+  var item;
+  if(/^\d{8}$/.test(input)){
+    var matches=entries.filter(function(x){return String(x.date)===input;});
+    if(matches.length!==1){ui.alert('指定日付のバックアップが一意に見つかりません。');return;}
+    item=matches[0];
+  } else if(/^\d+$/.test(input)){
+    var index=Number(input)-1;
+    if(!Number.isSafeInteger(index)||index<0||index>=entries.length){ui.alert('番号が正しくありません。');return;}
+    item=entries[index];
+  } else {ui.alert('番号または8桁の日付を入力してください。');return;}
+  var check;
+  try{check=sbmBackupRestorePreflight_(item.id);}catch(e){ui.alert('事前検査エラー: '+e.message);return;}
+  if(check.issues.length){ui.alert('復元不可: '+check.issues.join('\n'));return;}
+  // Refuse a mismatch between selected catalog entry and validated backup.
+  if(String(check.date)!==String(item.date)||String(check.backupId)!==String(item.id)){
+    ui.alert('復元対象の整合性エラー。処理を中止しました。');return;
+  }
+  var phrase='RESTORE '+check.date;
+  var confirm=ui.prompt('復元の最終確認：'+check.date,
+    '復元対象：'+check.date+'（バックアップID：'+item.id+'）\n'+
+    '現在のデータを緊急退避した後、'+check.sheets.length+'シートの値と数式を上書きします。\n'+
+    'シートIDを維持し、一部の書式・入力規則も復元します。保護・条件付き書式・外部プロパティ等は完全復元対象外です。\n'+
+    '続行するには「'+phrase+'」と正確に入力してください。',ui.ButtonSet.OK_CANCEL);
+  if(confirm.getSelectedButton()!==ui.Button.OK)return;
+  try{
+    var result=sbmBackupRestoreExecute_(item.id,String(confirm.getResponseText()).trim());
+    ui.alert('復元しました（'+check.date+'）: '+result.restored.join('、')+'\n緊急退避ID: '+result.emergencyBackupId);
+  }catch(e){
+    ui.alert('復元処理の結果を確認してください。自動復旧の成否は以下の詳細に記載されています。\n'+
+      '他の操作を行わず、緊急退避IDを確認して保守担当に連絡してください。\n'+String(e.message||e));
+  }
 }

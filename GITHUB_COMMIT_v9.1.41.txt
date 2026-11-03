@@ -1,0 +1,3 @@
+feat(backup): include workflow state and verify daily snapshot structure (v9.1.41 candidate)
+
+Restore remains disabled pending safe recovery testing.

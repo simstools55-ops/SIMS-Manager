@@ -1,0 +1,1 @@
+fix(backup): grant spreadsheets OAuth scope for snapshot creation (v9.1.50 candidate)

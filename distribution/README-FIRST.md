@@ -1,3 +1,7 @@
+# SIMS Manager v9.1.49 — Development Candidate
+
+Apps Script実機試験未実施。
+
 # Current UAT version: SIMS Manager v9.1.7
 
 See RELEASE_NOTES_v9.1.7.md at repository root. Previous notes below are historical.

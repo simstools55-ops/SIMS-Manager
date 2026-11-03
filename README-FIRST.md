@@ -1,3 +1,30 @@
+> Live backup, retention and restore checks passed. Automatic rollback on restore failure remains unverified.
+
+# SIMS Manager v9.2.0 — Backup and restore management release candidate
+
+- Treat only the observed horizontal alignment API readback `general` (backup) vs `general-left` (restored) as equivalent. Other alignments remain strictly checked.
+- Report first differing sheet, cell, attribute and values for metadata mismatches.
+- Preserve strict cell value/formula and validation verification, including blank-vs-FALSE checkbox semantics.
+- No intended changes to daily backup creation, 3-generation retention, or restore selection.
+- Static checks only; live restore and rollback remain unverified.
+- Scope: managed cell content/selected metadata, not full spreadsheet layout, external properties or conditional formatting.
+
+## v9.1.54 — Restore empty checkbox fidelity (UAT candidate)
+- After restoring validation, clear snapshot-empty checkbox cells so Sheets does not leave FALSE instead of blank.
+- Apply in both normal restore and emergency rollback through shared apply path.
+- Strict value/type/formula verification remains enabled. Real Apps Script verification pending.
+
+# SIMS Manager v9.1.52 — Restore Verification Hardening Candidate
+
+候補版・復元実機試験未実施。実ブログへの導入・復元実行は禁止。
+変更点: フォント色と水平・垂直配置の復元後照合を追加。旧データ範囲の入力規則残存を防止。
+復元範囲は管理データ中心であり、列幅・行高・シート全体の書式を含む完全復元ではありません。
+バックアップ・3世代管理の処理は変更していません。
+
+# SIMS Manager v9.1.51 — Backup/Restore Validation Check Candidate
+
+開発候補版です。Apps Script実機試験未実施。実環境への導入前にバックアップと検証を行ってください。
+
 # SIMS Manager v9.1.35 — Clipboard Reliability Fix
 
 「経過観察終了後の処置」のaWriter依頼文コピーを修正。配布用Code.gsは全コピーを同一内容に統一。実機でコピーを検証してください。

@@ -1,3 +1,45 @@
+## v9.2.0 — Backup/restore management release candidate
+- Remove trial label from backup/restore menu.
+- Promote previously tested daily backup, three-generation retention, preflight, and restore workflow.
+- Live restore on 2026-11-03 passed for 11 data sheets; Home header repair verified.
+- Automatic rollback after a failed restore is NOT yet verified.
+- No backup/restore algorithm changes in this version.
+
+## v9.1.56 — Home header guard
+- Restore A1:I1 merge if absent before Home refresh and version sync.
+- Write Home title to A1 only, avoiding duplicate values.
+- Validate Home header merge state.
+- Backup/restore logic unchanged; live restore not yet re-tested.
+
+# SIMS Manager v9.1.55 — Restore metadata verification (UAT candidate)
+
+- Treat only the observed horizontal alignment API readback `general` (backup) vs `general-left` (restored) as equivalent. Other alignments remain strictly checked.
+- Report first differing sheet, cell, attribute and values for metadata mismatches.
+- Preserve strict cell value/formula and validation verification, including blank-vs-FALSE checkbox semantics.
+- No intended changes to daily backup creation, 3-generation retention, or restore selection.
+- Static checks only; live restore and rollback remain unverified.
+- Scope: managed cell content/selected metadata, not full spreadsheet layout, external properties or conditional formatting.
+
+## v9.1.54 — Restore empty checkbox fidelity (UAT candidate)
+- After restoring validation, clear snapshot-empty checkbox cells so Sheets does not leave FALSE instead of blank.
+- Apply in both normal restore and emergency rollback through shared apply path.
+- Strict value/type/formula verification remains enabled. Real Apps Script verification pending.
+
+## v9.1.53 — Restore selection mapping fix (UAT candidate)
+- Sort daily backups newest first before rendering and selecting.
+- Allow unambiguous YYYYMMDD date selection.
+- Show selected date and backup ID in final confirmation.
+- Abort if preflight target differs from selected target.
+- No changes to daily backup and retention routines.
+
+# v9.1.52 (UAT Candidate)
+- Restore verification: font colors, horizontal/vertical alignments.
+- Clear stale data validations in previously used data range.
+- Restore runtime tests pending; no backup/retention logic changes.
+
+## v9.1.47 (candidate)
+- Compare backed-up sheet values and formulas in bounded batches; detect merged cells before restore; correct restore warning.
+
 ## v9.1.36
 - Recover writer result registration after errors and add timeout guidance.
 

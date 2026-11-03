@@ -1,0 +1,1 @@
+fix(backup): retain catalog entries when generation cleanup fails (v9.1.51 candidate)
