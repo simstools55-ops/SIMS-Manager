@@ -1,1 +1,1 @@
-SIMS Manager v6.8.5 — see FILE_MANIFEST.json for SHA-256 file inventory.
+SIMS Manager v9.2.3 — see FILE_MANIFEST.json for SHA-256 inventory (manifest itself excluded).

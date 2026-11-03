@@ -1,15 +1,17 @@
 {
   "version": "9.2.3",
-  "entrypoints": {
-    "Code.gs": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
-    "distribution/Code.gs": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
-    "apps-script/Code.gs": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
-    "src/distribution/Code.gs": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
-    "src/apps-script/Code.gs": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea"
-  },
-  "obsolete_Code_base_present": false,
-  "blog_url_guard": "if(binding.blogUrl && binding.blogUrl!==blogUrl) fail_('ブログURLが登録時から変更または削除されています');",
+  "package": "single-code-source",
+  "canonical_code_path": "apps-script/Code.gs",
+  "sha256": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
+  "code_byte_identical_to_prior_v9_2_3": true,
+  "removed_duplicate_paths": [
+    "Code.gs",
+    "Code.gs.bak6657",
+    "distribution/Code.gs",
+    "src/apps-script/Code.gs",
+    "src/distribution/Code.gs"
+  ],
   "static_audit": "PASS",
-  "live_uat": "NOT_RUN",
+  "live_uat_v9_2_3": "NOT_RUN",
   "rollback_test": "NOT_RUN"
 }

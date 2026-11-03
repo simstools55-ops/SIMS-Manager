@@ -1,5 +1,6 @@
 {
-  "version": "6.8.4",
+  "version": "9.2.3",
+  "note": "SHA-256 for all ZIP files except this manifest",
   "files": [
     {
       "path": ".github/workflows/deploy.yml",
@@ -63,28 +64,13 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "9397098e15126cf81890beb4558e4dc6ff8a96217ebc5f3191c61fcacd542663",
-      "size": 115892
+      "sha256": "dcab11f0541ba530cde39226515a27f61e76079f700dc0b5b59a6c8acc990038",
+      "size": 127184
     },
     {
       "path": "COMMIT_MESSAGE.txt",
-      "sha256": "3192ccddc58cc9c04759c4794f12f849e329e2b6e066e4d8df46076344247ce3",
-      "size": 68
-    },
-    {
-      "path": "Code.base.gs",
-      "sha256": "ce8f1b0e11788a8e12da8326db238d8bda4ddcb3e2406d320ea41d8176f51b25",
-      "size": 1847910
-    },
-    {
-      "path": "Code.gs",
-      "sha256": "fed59aee10c4202734f9064859d775f1ba2204abd0dbdcd66e1f04a952f09f7a",
-      "size": 1857113
-    },
-    {
-      "path": "Code.gs.bak6657",
-      "sha256": "06598dcb546be9f94e7bbd38511a1ade5580267ec9a61eb6d3cf4240e74eb04f",
-      "size": 1747581
+      "sha256": "6ff65543ae906a833ff66074879ee98d1d98b283eb41576dc050a7f2172434aa",
+      "size": 80
     },
     {
       "path": "EDITION_POLICY-v6.6.0.md",
@@ -95,6 +81,21 @@
       "path": "EDITION_POLICY.md",
       "sha256": "4f779cfbcf59c23d951723e6964fc890649cf3e369d411ea8608f3ff759f1402",
       "size": 1725
+    },
+    {
+      "path": "FILE_MANIFEST.txt",
+      "sha256": "fe3ece9e3161f0d7cbba7ed191e2ed498544abf662c12f61f77458b7b2ac5645",
+      "size": 97
+    },
+    {
+      "path": "GITHUB-COMMIT-v9.1.27.txt",
+      "sha256": "5988d844d83def0e00aaa8f26f06e5d4b7de335c3c9138135192b387b2b45621",
+      "size": 78
+    },
+    {
+      "path": "GITHUB-COMMIT-v9.1.29.txt",
+      "sha256": "1a2c32b6835b510fab580435b73d76b2d0bf5e97f0be92206509ebc08593a839",
+      "size": 81
     },
     {
       "path": "GITHUB-RELEASE-NOTES-v6.1.42.md",
@@ -627,6 +628,351 @@
       "size": 816
     },
     {
+      "path": "GITHUB_COMMIT_COMPLETION_GATE.txt",
+      "sha256": "314c30fb401b038d25e203b1a839a14d8f7806529a62187a8122f333aa1d74e2",
+      "size": 105
+    },
+    {
+      "path": "GITHUB_COMMIT_COPY.txt",
+      "sha256": "b479bd282994ad7ed9a22c3f0659fc165720b78e5ac2858ab4a2e820d1690882",
+      "size": 83
+    },
+    {
+      "path": "GITHUB_COMMIT_DOCTOR_STATUS_GATE.txt",
+      "sha256": "fadbea155ade575b9896c4e52628d5f9973f9e4412d72c2250d142c9ad639c41",
+      "size": 81
+    },
+    {
+      "path": "GITHUB_COMMIT_KEEP_DAILY_NAVIGATION.txt",
+      "sha256": "2013e2a533aa581c6e8714a1132f5c381ab9e4a5f7ebda1550033fae6a98e9bd",
+      "size": 74
+    },
+    {
+      "path": "GITHUB_COMMIT_KEEP_PERMANENT.txt",
+      "sha256": "f7fb18d2971efaaf33c0a232777f95626314df624c95f4bfdfb1ee9ddebc0800",
+      "size": 101
+    },
+    {
+      "path": "GITHUB_COMMIT_MENU_CORRECTION.txt",
+      "sha256": "d8bbd079a0832fbb3c56d9c8854274b7f8e5849d3a7343b237163a0d3439c31c",
+      "size": 97
+    },
+    {
+      "path": "GITHUB_COMMIT_MESSAGE_v9.0.13.txt",
+      "sha256": "bd88ac75880300e9eb2dfcb7f15c213e903bd8958e985d057ee9d036b32ea2eb",
+      "size": 84
+    },
+    {
+      "path": "GITHUB_COMMIT_MESSAGE_v9.0.14.txt",
+      "sha256": "cc31bd6e8f98963c71989a93d4b5d4d3f09f8d44ce6413dc44ab098f547de921",
+      "size": 67
+    },
+    {
+      "path": "GITHUB_COMMIT_MESSAGE_v9.0.15.txt",
+      "sha256": "a59ddaa889637921189ad7bbbcb4276270f8f036781c9f5d19d3c58ea157e474",
+      "size": 79
+    },
+    {
+      "path": "GITHUB_COMMIT_MESSAGE_v9.0.31.txt",
+      "sha256": "369bee827cc94e8a990ac8575ce42cec8cfca1493856177c3ec0af48f66de19f",
+      "size": 82
+    },
+    {
+      "path": "GITHUB_COMMIT_NAMING_v9.0.0.txt",
+      "sha256": "d700c35ac5ecf64d21ebba36f5bf97dbd8851a7bf748f1a065054807732c2e98",
+      "size": 91
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE10_v9.0.0.txt",
+      "sha256": "3b9290cd0fd8fe9f2302167b2c14060cbf73fedd7771e11e52c0fe5280c1b21e",
+      "size": 112
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE11_v9.0.0.txt",
+      "sha256": "5715880a06d5fce27a888a203589f45a7e04a53a1b715c5c0a32694b31859c93",
+      "size": 87
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE12_v9.0.0.txt",
+      "sha256": "95ff3270ad804c48767f2398800ed2e18ad0eb068a20cb44aff64a3a916fc36c",
+      "size": 88
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE13_v9.0.0.txt",
+      "sha256": "4779dae4a9605406b5d24dcc34d40275ac860ca20431a26badca23be12ad1fa6",
+      "size": 80
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE14_v9.0.0.txt",
+      "sha256": "6f847118c08a0f44af9e1b53df075c23049375c9c523fa220abbdf5c15f517e7",
+      "size": 95
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE15.txt",
+      "sha256": "b9e0508581005504892de06a0947f024d77f296029d415dfdf11576a464068df",
+      "size": 89
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE16_v9.0.0.txt",
+      "sha256": "8d21702855a5a0e0a2701249cf826dfe80b7a56ac7a9387a88bb609ac39145ed",
+      "size": 92
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE17_v9.0.0.txt",
+      "sha256": "4c5ab3f46c39dbebf4a06aff627377ece69a2ead168cb2515f01145a0cb3730b",
+      "size": 97
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE2_v9.0.0.txt",
+      "sha256": "f6cd0c3c6cf7fb69e59f4aab43cb04ca354428dda12f7c4190593f1274caa6ab",
+      "size": 116
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE3_v9.0.0.txt",
+      "sha256": "138b42cc5fd70ec64744cffc8fe2e3af05e1bedca4cc5393319a7ea64b77d5e3",
+      "size": 92
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE4_v9.0.0.txt",
+      "sha256": "ca849e216ebf32584145eeb6c34d8065618ad2c2f3ea852a71a51f604189f96d",
+      "size": 80
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE5_v9.0.0.txt",
+      "sha256": "411a989ea9bd7a7a79d6008031bd708f33f234955dbf4ebc18a34115d08a8669",
+      "size": 91
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE6_v9.0.0.txt",
+      "sha256": "9143272d60a43b31667528339bfb46664f4d14f897996cbcd9c584ad719e75d7",
+      "size": 96
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE7_v9.0.0.txt",
+      "sha256": "6aa14f0e9ef3859fb3c59369b0925665d314aaf003e2f73e340338a533ffc26d",
+      "size": 92
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE8_v9.0.0.txt",
+      "sha256": "9754ee0d0b7cd053664a184c38238a7b29ecd2dc362b9e37f674d6670038bc2b",
+      "size": 103
+    },
+    {
+      "path": "GITHUB_COMMIT_PHASE9_v9.0.0.txt",
+      "sha256": "4303457c8b3535f9a27dbb37a8f699b18d46c20831cd443c2a6c3d8970cb9763",
+      "size": 103
+    },
+    {
+      "path": "GITHUB_COMMIT_SELECTION_DIALOG_FIX.txt",
+      "sha256": "d1463e897625e64caf392cabb1d5584110fe8f2cbd1ffc87ddfe45735d7047a0",
+      "size": 86
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.0.0-UAT.txt",
+      "sha256": "91005fb86aaf10355c31b3119a78b121892875d99292db3d05c8bb41ce119e7e",
+      "size": 328
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.0.0.txt",
+      "sha256": "b9f474e7c2950c3707ae94a53eb1fc2517d37d785106cf884ebb696dfbf37e07",
+      "size": 324
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.0.10.txt",
+      "sha256": "15ffceabecfd6f8d1f7928fab971cfb6dc9862c935960874a7b285f8afbc93fc",
+      "size": 90
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.1.txt",
+      "sha256": "2285f1d11d302b46e94db812d748a8d75b18e62ab4e6adf09e8f2d36a6e7f989",
+      "size": 85
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.2.txt",
+      "sha256": "e7ade5407019d7c5a0194dca0864d97ee5d74a62fc64744eb5753ef77c314cf6",
+      "size": 85
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.25.txt",
+      "sha256": "d17fa8c51325e090fae2e19a5e12087453ab195df299ac467aec728cf84cd5db",
+      "size": 87
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.26.txt",
+      "sha256": "2d54e9ecd9eb1c920dea4e04274ddd3d31ab7ff6fd25b495f5035a413d9b513a",
+      "size": 77
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.28.txt",
+      "sha256": "915691afe6e6667fc5f0f685fd37f46adab5762b233cc56d1da585d555a13c64",
+      "size": 95
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.3.txt",
+      "sha256": "c296e3f6b25a02b32c382618e71d05c2ca088ec62e79d876efaab1f806fde3b8",
+      "size": 73
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.30.txt",
+      "sha256": "d42886d55f15ba1a8ce681029f809af2a927e0ed7d40a83f6cd7df72f04c3994",
+      "size": 91
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.31.txt",
+      "sha256": "0a652a64ba21142e0e3d6803d761e432116ce638fc509b33bc105a26ce88cc76",
+      "size": 89
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.32.txt",
+      "sha256": "4f8b32faaaf1c582def45261030b709e165d40f5eee36c0c4736a439b557f6e7",
+      "size": 92
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.33.txt",
+      "sha256": "51b5731e3ff7b069012e4c871a7db10ff33ee1e6d0de742ae5f35cc2273c6756",
+      "size": 80
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.34.txt",
+      "sha256": "dd1af41c9a25bcbf6870c1c7c225ed657d2c9349776e05a7d6d87854bf4eeafa",
+      "size": 93
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.35.txt",
+      "sha256": "1b537aef2a3270211fec6f08c15cd4c43ac7d3aa0cc62ae81b37123830f4dc8f",
+      "size": 95
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.36.txt",
+      "sha256": "0b9fb1bc6aeb6897d199bd70afbddf33521c53e805d800580df602c6f1aa35d2",
+      "size": 80
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.37.txt",
+      "sha256": "f404df86f926fd17bdde51a802141383eb510f0208b4922e4a4c67c73cb5269e",
+      "size": 71
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.38.txt",
+      "sha256": "b0d75edab58d71520172a0cb17890bef384c8a0f5df0d7fd6d7b82e6ceef93d3",
+      "size": 95
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.39.txt",
+      "sha256": "15c3f81b3bcd95fda77bb1939b27be5612fa04f1d9504595951d3c6b10b0aad2",
+      "size": 90
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.40.txt",
+      "sha256": "a92f5e08ae296234deabf090ddf483ac25e71dafce4fe60fe059a6a4544b13e4",
+      "size": 81
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.41.txt",
+      "sha256": "6a740b3fe0443512c9265a41eea642f7e9b8a09e90ba04462bfbf70702a7b4ed",
+      "size": 150
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.42.txt",
+      "sha256": "8a74fd9c1e72c5615f2d566380025bc8e3e52e781b4955877c5d6068a884d06e",
+      "size": 91
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.43.txt",
+      "sha256": "0b1c8cc7699ed2bb2aafd2e7490dcede4c0c62a5964de9801c6e1d2bbacb10e0",
+      "size": 92
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.44.txt",
+      "sha256": "41190533c3a021e7784fbdf20742ed5641c23a375080d77f27de1602a4e73970",
+      "size": 93
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.45.txt",
+      "sha256": "d2e4e460b8b0d4dab83b5521955ed8804e1bb02412b3d7bbaa18db1e881c437b",
+      "size": 103
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.46.txt",
+      "sha256": "2c4ebf8e192e2e6075a9b9a4459f61bf48cbfabbea9b80720db694353d9ea03a",
+      "size": 89
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.47.txt",
+      "sha256": "366d6e5177c9d78833b46d9d9a447f7752afc57799a461af46c1e8162844bf91",
+      "size": 98
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.48.txt",
+      "sha256": "a49613eabc866925dd01b0b21ec9f9d543418d09a97836d77e876c655549c8fd",
+      "size": 85
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.49.txt",
+      "sha256": "9b06b1d8fa3ddc81cb30f7229e233b92cbdef68558dc7c5211870759b1be1d86",
+      "size": 84
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.50.txt",
+      "sha256": "d01d1711fca4b142c91037fcb40230861c38f95a601ff114df2f4e1b2d4a7395",
+      "size": 86
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.51.txt",
+      "sha256": "8a6efba2408102be079c7d0433c5ba96a40ab99f37c49f933d8cfb7a3661b0a2",
+      "size": 86
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.52.txt",
+      "sha256": "a2f399cce9333c5ea66fbd24645b12f36e4622ce0860f7615c6d1ae8face9ad4",
+      "size": 84
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.53.txt",
+      "sha256": "f3199bc50c898fe1bc6f001249152a7ae62698e1adc316877b2375c99ea459dc",
+      "size": 75
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.54.txt",
+      "sha256": "590201009f328aa115794fc7968679126905977032a8266b79280c85fac59294",
+      "size": 71
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.55.txt",
+      "sha256": "143dc40fef8bf665f16977243b18f5aa1a91c7773c2f2ce3c26c0d1a5339b678",
+      "size": 102
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.56.txt",
+      "sha256": "0390ef8ddf46139bf9cd8afa12f2da3fae62d646022921fe025ad8bec783b1fe",
+      "size": 81
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.6.txt",
+      "sha256": "46933082d16c34968a6f5a84d6e1406562f78988c38f8da9f810f38be32570d9",
+      "size": 70
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.1.7.txt",
+      "sha256": "c2d71e11f2e0c71bea94dd389335b5ad07895a5e185637d9d054b5789a056b60",
+      "size": 75
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.2.0.txt",
+      "sha256": "7d7b3972b08934e7aeac4d8f8c084a9aadff7c592862cadcfaa9085d84724615",
+      "size": 197
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.2.1-CANDIDATE.txt",
+      "sha256": "7e060295328af7f3429f37ed68265e4d6cb8523e448e89b77c1e8117eb9213af",
+      "size": 264
+    },
+    {
+      "path": "GITHUB_COMMIT_v9.2.3.txt",
+      "sha256": "a299c2c32c55ff17ed72d1cca70ffd4ceb91e64334eff2646704a004577ed220",
+      "size": 90
+    },
+    {
       "path": "GITHUB_RELEASE_NOTES.md",
       "sha256": "8dd8c4be1bd9511910e83589245735508d12c74a4a61caf0a68c9eb040e5814b",
       "size": 844
@@ -640,6 +986,21 @@
       "path": "LICENSE",
       "sha256": "bb5cae32bb654e283d17c1ca9891d6e188df0cda943a1a079d072a71fae2419e",
       "size": 1082
+    },
+    {
+      "path": "MENU_CORRECTION_NOTES.md",
+      "sha256": "8523ce0713689e586e05e5f05a495c618e90b345a840fb28850e62b025675ed7",
+      "size": 537
+    },
+    {
+      "path": "NAMING_POLICY_v9.0.0.md",
+      "sha256": "8ac3b3007aee0ef431279ae7d111c7ed34841ceaf77bf28f0b445a75dabf6719",
+      "size": 729
+    },
+    {
+      "path": "OAUTH_TEST_INSTRUCTIONS_v9.1.50.md",
+      "sha256": "1d79d4e3cc23cc96a013f52516d89718bd89c704d253ece778af0624461490c7",
+      "size": 913
     },
     {
       "path": "PERSONAL-KNOWLEDGE-BOUNDARY.md",
@@ -657,9 +1018,89 @@
       "size": 727
     },
     {
+      "path": "PHASE10_READ_PATHS.md",
+      "sha256": "9ce0e661e8c80c9acad125fc6d9b8ae09b9e7cce108b9688a664734a55424a1e",
+      "size": 868
+    },
+    {
+      "path": "PHASE11_COMPLETION_GATE.md",
+      "sha256": "f493f1b855c414948f88b27fe0953053bdf64b0269f76d6518cb14977bc3cadd",
+      "size": 1135
+    },
+    {
+      "path": "PHASE12_TRANSITION_READINESS_AUDIT.md",
+      "sha256": "2ab6fe047b57c5a4c69807b3aea55fc09dc35bb06ff4bf871c17d7591aff72f3",
+      "size": 1800
+    },
+    {
+      "path": "PHASE13_IDENTITY_GUARD_AUDIT.md",
+      "sha256": "d512f3cb6db5697ba0001260e1bbe36794d451194a0e8d89fd51742849787530",
+      "size": 927
+    },
+    {
+      "path": "PHASE14_VERIFICATION.md",
+      "sha256": "05034f940a7dfa41582e3a2311a6e53e96a1c6af71e77b468d2fb164a6b6504a",
+      "size": 1262
+    },
+    {
+      "path": "PHASE15_SCOPE.md",
+      "sha256": "398c4e73a6e4becb880520d45d7086ec8c29ca7e52bdf72d801c278c1d3828dd",
+      "size": 905
+    },
+    {
+      "path": "PHASE16_LIFECYCLE_FIX.md",
+      "sha256": "5c03e038cde211c9bc12f9a9f65da22a2199014332147044083800e04ccf076b",
+      "size": 841
+    },
+    {
+      "path": "PHASE17_SAFETY.md",
+      "sha256": "2188ddbeea0adcfea4de3b3315d30f7d89be2e6a264f27f6be83d7a1e5fed10b",
+      "size": 951
+    },
+    {
+      "path": "PHASE2_README.md",
+      "sha256": "17f18ce61e0eb8c5680312ba3d7f17a0e6fd8a42b04c3bbdbfea05f15b24cb26",
+      "size": 713
+    },
+    {
+      "path": "PHASE3_README.md",
+      "sha256": "6f0919e017a213fc2cf622388fd517480e87bfb5aaa89743396b8b30f392a11d",
+      "size": 808
+    },
+    {
+      "path": "PHASE4_MONITORING_AUDIT.md",
+      "sha256": "d5e4550fe7f0cc617259c628c3856ae3e42f7f14bc804eb7fa4a2ca86a2a6e35",
+      "size": 1450
+    },
+    {
+      "path": "PHASE5_CYCLE_IMPACT_AUDIT.md",
+      "sha256": "6b6095dd771ae044665506a16aa9ef467b2a0a0952946184901485f241c8fad8",
+      "size": 2019
+    },
+    {
+      "path": "PHASE6_RATE_SIMULATION.md",
+      "sha256": "68a72debb7ce18dd53731f4a335d87d614c2af504b8715a9638ce428622b074d",
+      "size": 982
+    },
+    {
+      "path": "PHASE7_README.md",
+      "sha256": "4ee7e6bd1c5b2fa167ebfa9039e1c0f47105a1f5a0b5c6eef8222d15773b50c0",
+      "size": 624
+    },
+    {
+      "path": "PHASE8_RATE_AUDIT.md",
+      "sha256": "b8723027e45a5acc306956389e40f10cac51e963db19821c70f9d785fdaa1157",
+      "size": 1652
+    },
+    {
+      "path": "PHASE9_EXCLUSION_CONTRACT.md",
+      "sha256": "853202d1619fd923b0a57cd0ab69eef2861c65303a49dc8f361e6c81380799c0",
+      "size": 756
+    },
+    {
       "path": "PRODUCT_IDENTITY.json",
-      "sha256": "d5abb2b33917a547b649f5ed06ccade0a412e3f87eaf8b1a82a3c48bafa443f4",
-      "size": 378
+      "sha256": "f5f7f8d5913acf471a92b4fe53f9971e8757eea887201e8a5471fd4f59b77a85",
+      "size": 401
     },
     {
       "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -898,8 +1339,8 @@
     },
     {
       "path": "README-FIRST.md",
-      "sha256": "31949517b22ba18312cb505234a547c79ffb95b31226c83d8cacab89e7c3f88b",
-      "size": 11889
+      "sha256": "d66c84a0d0562ed41d84c8048c968a92decd1a3666266790e5fbebc7a8f6574c",
+      "size": 2754
     },
     {
       "path": "README-RC8.17.txt",
@@ -1017,8 +1458,13 @@
       "size": 1171
     },
     {
+      "path": "README-v9.2.3-FIRST.md",
+      "sha256": "9b641a2f60c0856652289a9b3827a631b78013d2886ded3f8580b943876b1bd7",
+      "size": 1199
+    },
+    {
       "path": "README.md",
-      "sha256": "1f3ae8fe34afcf3c586eee57db0ee134367e7afff67bc7e2862213148e37d123",
+      "sha256": "378c1316337ac501c84e9406d597e529048f201fbabcbb17fbf8460e62440b92",
       "size": 12919
     },
     {
@@ -1915,6 +2361,16 @@
       "path": "RELEASE-NOTES-v6.6.9.md",
       "sha256": "6b66d6f99d5d569fde20b9838167d1b9eabfad6b45de65cd765f8acea7b3482e",
       "size": 750
+    },
+    {
+      "path": "RELEASE-NOTES-v9.1.27.md",
+      "sha256": "fbdad8b5fb829449cea1f03b15ac778526a1d09a6271c09206cada2ef6fd984e",
+      "size": 521
+    },
+    {
+      "path": "RELEASE-NOTES-v9.1.29.md",
+      "sha256": "5064ad2182399eb3e549484378df1f1969541518586ac34c982908221dcc5e73",
+      "size": 430
     },
     {
       "path": "RELEASE_NOTES-v5.10.1.md",
@@ -3637,14 +4093,449 @@
       "size": 335
     },
     {
+      "path": "RELEASE_NOTES_v6.8.3.md",
+      "sha256": "40284cb27e5997ccebc68d0d83d439111541cb64b49f8821197a251450ae9171",
+      "size": 277
+    },
+    {
       "path": "RELEASE_NOTES_v6.8.4.md",
       "sha256": "e37f170ac7acd754d84fdfcf9218358ce3722962eeed2d6faa556dce0b9335ad",
       "size": 427
     },
     {
+      "path": "RELEASE_NOTES_v6.8.5.md",
+      "sha256": "ff4a8a3197881bc926abe25c4f3af6d782ee6e9ae871d989a39d5e2c6c2e39eb",
+      "size": 256
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.0.md",
+      "sha256": "76d8ced70d20a7e15050d71de7f29be77d86720042fda89c51a9d38ae20211e8",
+      "size": 927
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.1.md",
+      "sha256": "ab1754f31e2ceafe6c71aff0bb1d822e0f06a79dcd629922b8e164e31ceaf16f",
+      "size": 852
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.10.md",
+      "sha256": "542c841624abf746dca533f49cde1cabee5757c4dd9cb87371cd3bf8f746b733",
+      "size": 452
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.11.md",
+      "sha256": "3718fd88f07ebd70db3490e6deaf0ffaeb87097752cc66b1841364a6591d2257",
+      "size": 492
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.12.md",
+      "sha256": "15a8fc1df2bffb725bf412e520e7b8fbea2a142baa6d3e421bd5a7ab80fee7c8",
+      "size": 588
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.13.md",
+      "sha256": "45071f4515fa0c669a19486f2f14419061579e5fa01a43bd9de61feda8061cd7",
+      "size": 617
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.14.md",
+      "sha256": "ee3ccf7a7f00c45e716c59fb4f6a0d8bab218e672ea8d422bef897853b57fdca",
+      "size": 123
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.15.md",
+      "sha256": "ace58ae11f4b80e15f116f9cd15863a49ac27fa3e4178875448b583788a86988",
+      "size": 110
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.16.md",
+      "sha256": "f6e04ac4f0ec08ed0b1c9da87a1c8f204df9218169f8d16ef80b75e233bf0a84",
+      "size": 428
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.17.md",
+      "sha256": "8dfffe065bb55f81efbcc3d04bb62a3616e74f4a63063b658a97459190f260b2",
+      "size": 289
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.18.md",
+      "sha256": "d47d5aae151b7f32f0240a00fa79375b40ff306f2479fa05a82dfb26f4ac43e6",
+      "size": 409
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.19.md",
+      "sha256": "f38e1793528e7d7d673d3f1f1f660e324c19c67b7ac61c9028b5404bb0c76f40",
+      "size": 450
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.2.md",
+      "sha256": "72c38096fd532db2f4b6e474da0d56cf0ce76e6f4292ba1d91cf84c19c0f54dd",
+      "size": 342
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.20.md",
+      "sha256": "e00b509a3c821ea9ebe0dd18d4683ffd88161f38c2dae8320e1bb5bd0c4142ae",
+      "size": 753
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.21.md",
+      "sha256": "a47feff88bd23a6aca96818607aa8c7558b2eb331f41e232e5a73e9b8e270dba",
+      "size": 339
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.22.md",
+      "sha256": "0f028c7e4c069498e33e7923bf08153432a16ce2ba57df46a97593120904dfd8",
+      "size": 220
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.23.md",
+      "sha256": "352d5df66ebfcef1212957e9aa20cc1a49bd1252c6663ad8fc7582a9d603b0b7",
+      "size": 449
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.24.md",
+      "sha256": "a28f08e7e6801a7ab4f651747967fcf211b375556570c7ce5613d35471b9c10a",
+      "size": 309
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.25.md",
+      "sha256": "ba1354d1d8bed8850a497d04417bd417a1548312180fb04fa7d1c2a805cca580",
+      "size": 257
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.26.md",
+      "sha256": "13d9d89105efce0371d7a1348e3b1e982c8d2c875dcadf42aa993ec0f6c67f95",
+      "size": 410
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.27.md",
+      "sha256": "0e146344263fc077af9d14bb966a197592e553e67e60ae3095f4451d3654d002",
+      "size": 624
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.28.md",
+      "sha256": "2dd6a8a0207816b532d801d1a9c72ed9290a3feea543f6f05b1a1134aa3ac069",
+      "size": 546
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.29.md",
+      "sha256": "ed19ac66c452e819d4c4068cca9a0f3980d867994f1304d3190edda037a45de3",
+      "size": 297
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.30.md",
+      "sha256": "346dce3aae6458be0a25e3cec6cf1a8b358ce9b1eae4088a91b30cf3d3f2f2de",
+      "size": 278
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.31.md",
+      "sha256": "d09050092dd803092d68f90abebfc332774bcdd93b94a57b9d76d48548785ab3",
+      "size": 385
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.33.md",
+      "sha256": "0bc924941d3ce425da0d091ef10afabaf49240c0b4f22da31c02f7b601154baa",
+      "size": 799
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.34.md",
+      "sha256": "84d6aa8e2fae96a4985d5271dd3a7d47fa335664755020c46acfe270053bdc90",
+      "size": 473
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.35.md",
+      "sha256": "dac6efef15968034978917a04f0efea00d80d9207f6615f51efad18577b4d8f7",
+      "size": 365
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.36.md",
+      "sha256": "f0df50ec85fdfb93dc05ae66744b6e38b74f9b2ae3c1b3abcadd773c0e17304b",
+      "size": 433
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.37.md",
+      "sha256": "d4276874116e177a1189546318df76ef0c437bc8b4a68326cd258ae76b5ee665",
+      "size": 267
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.38.md",
+      "sha256": "24e6183b6eb3e6db248a6fbb12d829cc9e7207035b23b5bacdc67acf3020732a",
+      "size": 263
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.39.md",
+      "sha256": "3e7565f0bf7b5ba76bb8f62513c788040da5666e2559363876dcd31254a4bf0e",
+      "size": 190
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.4.md",
+      "sha256": "f4eee500026a71cfcf1560262b3ac991245616c78a275224fac676e1319a0131",
+      "size": 426
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.40.md",
+      "sha256": "af982a4618288dcf3913c7f4ded43da7abf574edb360d4d74b3212e1377fb1e5",
+      "size": 155
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.6.md",
+      "sha256": "aba5a87864fc9034ffb9bc9ea8f3bec1d87c1ec893e18c1a70f30a3c58528117",
+      "size": 333
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.7.md",
+      "sha256": "a0516731310ced800562e74b01f1656090dd1ea43692bbfffd8c003a753574b9",
+      "size": 455
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.8.md",
+      "sha256": "1aac793be3728d8814f4baaa42b8a5eaafe843b394a4d0122c927defc4cf4615",
+      "size": 401
+    },
+    {
+      "path": "RELEASE_NOTES_v9.0.9.md",
+      "sha256": "308bb1a35ab6c588836dbf2bcce3885f97d39a663e1e39b5fd4447e520d7eefd",
+      "size": 405
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.0.md",
+      "sha256": "e7115a55347ed686a0dc158b0a3d7eb07a68637036a3882a91e776b5b2aed7ba",
+      "size": 634
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.1.md",
+      "sha256": "0afe0ae4c209f87abf6ca120954422072f9c995985afc3d5c17b840fda3e06b0",
+      "size": 524
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.2.md",
+      "sha256": "bdd0af746a763841144ebb97ba7fb1d3d484a074e11b0a36e6672480aac24a35",
+      "size": 562
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.24.md",
+      "sha256": "aa6ef58e69ba9db0ac51745af66e31e668f9c2415b228a7155320ee169b06615",
+      "size": 264
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.25.md",
+      "sha256": "ffb09c19b107d7f177ea0a0735305de9f59ace0bed62943139b58a545aefcaa1",
+      "size": 468
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.26.md",
+      "sha256": "c093d5e295323d5e9b4c967ed1b575230fcd29dd0f84c92fb4e02e0a9c02925c",
+      "size": 241
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.28.md",
+      "sha256": "b8c47e09e6437a7a32ca4b65ffa077c4d7cb5c7722c47ad74ba98b1a11ef4c93",
+      "size": 552
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.3.md",
+      "sha256": "92a6a4c8e1e10048909b2bbfdaba0349e312bf093357e205d1f5731b62d6fbff",
+      "size": 254
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.30.md",
+      "sha256": "331d901b37ea18353a269264ebbe00ce1dc344719c852ba05506d7e7abe7a33f",
+      "size": 620
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.31.md",
+      "sha256": "965462761415336bf4a8cfeab45e4ecc98cb60846146351ffdd75fb4bad2f32f",
+      "size": 441
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.32.md",
+      "sha256": "bdd738a22bfbd6132095df7af361aed96e25aa87535f3759ac68ce1402e0513d",
+      "size": 614
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.33.md",
+      "sha256": "332fd447f55bbc66d235a281b4065bc05ecbc9ab21eccfc584ea731ed2cd1e93",
+      "size": 464
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.34.md",
+      "sha256": "794f412a310e5ce65686ce6bf8675b24438bb984e15ba7f3c321023bc77d86a2",
+      "size": 591
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.35.md",
+      "sha256": "a28ac84e105903c648c86c911423ce0c8a0966b5c2c9a1e4b8855997bc354d19",
+      "size": 261
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.36.md",
+      "sha256": "d10879ca64f1df1687a1e1deebebdd2e4b5b0976de6dfd8547793d452c828dff",
+      "size": 319
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.37.md",
+      "sha256": "20081a6479839e3ff8fe1fb9b1be0273add52e3e919349ca3f3ac4ab72d1e676",
+      "size": 399
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.38.md",
+      "sha256": "7a44ed85e27a47f7c6f33dea739a592402fb5970b0382bd997d0f7359f89fa4b",
+      "size": 393
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.39.md",
+      "sha256": "03d50767234570d2d3f0ff2b5529c7d230455e9ccad70e3816d984e1bf7deb7a",
+      "size": 366
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.4.md",
+      "sha256": "10011a5694d7910c3b4857f9c027891790bffab2280338a0e9b65cd268aa29c5",
+      "size": 350
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.40.md",
+      "sha256": "2f719ccf9dd16f1accd6e00bd8f6676c5f889f4ca66da983c42635ec58cd6f80",
+      "size": 393
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.41.md",
+      "sha256": "fcccf644a657d164248653189231209ae65773751d6a4ddb6eb256d33e1bf3e2",
+      "size": 574
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.42.md",
+      "sha256": "38c9634b48946243324962a09e041996a2bfb628507e80ae3392e9885f5787e4",
+      "size": 303
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.43.md",
+      "sha256": "3b4c7671402df49ecf04ab1ca94b50ae5daad95765ddbf9a61bdf31d70726496",
+      "size": 553
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.44.md",
+      "sha256": "9abe767d1664dcab8999fe0181b55a64eeb77e2ff692ddacdc56e876558d8fd5",
+      "size": 586
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.45.md",
+      "sha256": "b65027bf4da3a11ad4bcc4cc056b21791c27bab2bca457d19b951eb99ebd04b1",
+      "size": 250
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.46.md",
+      "sha256": "ec55aa227bf2659d29bfe7adc6bada76b2f99f4b52465502e2c75ad8a8b571a7",
+      "size": 539
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.47.md",
+      "sha256": "44d1d6924663d70f00c4e53f5fdd95efa9856cb8c7aa156f6651f5145672ebf1",
+      "size": 710
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.48.md",
+      "sha256": "22fadd615482fbdc5a58e2da3d4be756747a7916ae587ad8b8a04ee549f5fa3a",
+      "size": 379
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.49.md",
+      "sha256": "9cd7a58e2db15c4d1f0b63f5530d2842003280d6218931ffc14e8352e2d4c5eb",
+      "size": 255
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.5.md",
+      "sha256": "549e91916471208a8e0e96a67988a3f98b1bb40235a631e631b95a44309c0a42",
+      "size": 323
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.50.md",
+      "sha256": "335a129c2ce9b5cf96ecaa7a03a1e3096ab29b40ca43d3afc9caf85442c29ba2",
+      "size": 622
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.51.md",
+      "sha256": "ac594bbf553bee5ba17b6e48bf92734f91707e908e9285321721b4e292b52023",
+      "size": 389
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.52.md",
+      "sha256": "f57d8faa2f02d99ad74f9cccc46923036f761f11dd6f636e9cf221f2c81b4edf",
+      "size": 657
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.53.md",
+      "sha256": "bbe75193af26493b773b5315cd15a6bcefc17d637588f408a4f7e6f9a0f64804",
+      "size": 130
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.54.md",
+      "sha256": "710d4f5f542423ae9f9307658236e9c06e6a8596bde4510bab7c03270fec3a06",
+      "size": 501
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.55.md",
+      "sha256": "6995aab75156472b57a216b8f0db32330990a8bb996e9fb2b45d70fae4ac4b09",
+      "size": 720
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.56.md",
+      "sha256": "d717cd62d68d7d6a83f53c0e0bc0aad3266660f67e57b6d0dfa23ae5c1e172a8",
+      "size": 152
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.6.md",
+      "sha256": "5633ad4c10c9c7fdb6255a837800cd4a614e7a2c244366d0a73b69627c3d1e8d",
+      "size": 172
+    },
+    {
+      "path": "RELEASE_NOTES_v9.1.7.md",
+      "sha256": "499b1ffaae7a3e2a4e59bbe6acbef5c005b22b1016bd869f1906f00e9e3beb25",
+      "size": 319
+    },
+    {
+      "path": "RELEASE_NOTES_v9.2.0.md",
+      "sha256": "6e97a8d1e1365e7f36c3da50badee7a6474a8ac7a92126a70da563ab359a84da",
+      "size": 702
+    },
+    {
+      "path": "RELEASE_NOTES_v9.2.1-CANDIDATE.md",
+      "sha256": "26c2cc2d4a81f30b2f4a9ff7ec060a6123637cb533a2a4ebecf0193541fc7c71",
+      "size": 637
+    },
+    {
+      "path": "RELEASE_NOTES_v9.2.2.md",
+      "sha256": "5f54c36d271cdb909ec60ad15cbdebbe627e5910b3d1d528db060fb4710d869a",
+      "size": 645
+    },
+    {
+      "path": "RELEASE_NOTES_v9.2.3.md",
+      "sha256": "59082518d7367c98a118a02a8fe0f1f8ee919e04d60ba82056ade0adba4b81c4",
+      "size": 644
+    },
+    {
       "path": "REVENUE_FIRST_IMPROVEMENT_POLICY.md",
       "sha256": "368542822052db885fe7344b6b4b6808c8c3b514ce5a8e6b795fdb7ae6980618",
       "size": 8420
+    },
+    {
+      "path": "SBM9_DOCTOR_STATUS_GATE_UAT.md",
+      "sha256": "6246dbb4b0484ae4c6c881bff2b1d008a50ecf451017d109628bf50dd4d51431",
+      "size": 647
+    },
+    {
+      "path": "SBM9_DOCTOR_UI_TIMEOUT_HOTFIX.md",
+      "sha256": "6b7183546f5859091350dea8b66d8ce013277446679363d97b1439c132cc4696",
+      "size": 429
+    },
+    {
+      "path": "SBM9_INFO_CHANGE_ARTICLE_ATTACHMENT_UAT.md",
+      "sha256": "2d0769c083a91f0cfb98d3668a4693ce62f24e59efcb8a66d5547bd0cb039100",
+      "size": 1043
+    },
+    {
+      "path": "SBM9_UAT_PROGRESS_FEEDBACK.md",
+      "sha256": "3ace67e7b8f73b8503b1a23ea500d8096ea5755b96d88fb72eacab427349ce3e",
+      "size": 673
     },
     {
       "path": "SECURITY.md",
@@ -3683,12 +4574,12 @@
     },
     {
       "path": "SHA256SUMS.txt",
-      "sha256": "6d5ef0b93c574650bb26c526ed1cbeb70b9f4a59e44907ea681df5112c5d9416",
-      "size": 198497
+      "sha256": "318ba53ae98a0d8878ba3461674745eb181e4c65929a344a994cccaa250e37aa",
+      "size": 595
     },
     {
       "path": "SHARED_VERSION",
-      "sha256": "0eba6381ad17549c16e9415909951123179029ff27e63247575304e95d1d9b02",
+      "sha256": "87ec4531f62abb4015e2569dfe85741f6283ee3b4ceca5947d534a36619b2342",
       "size": 7
     },
     {
@@ -3772,6 +4663,86 @@
       "size": 550
     },
     {
+      "path": "UAT-INFOCHANGE-WRITER-CONTRACT-NOTES.md",
+      "sha256": "8cd46c25b7a6e5d1deecd8ef24feb97d29376f3570c7b92b594234c546d60e65",
+      "size": 877
+    },
+    {
+      "path": "UAT-ISOLATED-COMPLETION-LEDGER.md",
+      "sha256": "e5bcceaa53037718a45c417614a5b1e8f0c5b54b2cf06de35818de16c4409a0a",
+      "size": 699
+    },
+    {
+      "path": "UAT-KEEP-DAILY-NAVIGATION-NOTES.txt",
+      "sha256": "f972a8fb06b273949e03ce6fe3cf7eded1b9f298dea5b4aa62ffee13e7bb39c0",
+      "size": 700
+    },
+    {
+      "path": "UAT-KEEP-RECOVERY-NOTES.txt",
+      "sha256": "091e6bfaf002a241df64828af455f31c5a0ce9e8704eef377edf9ea0468c013e",
+      "size": 1025
+    },
+    {
+      "path": "UAT_COMPLETION_GATE_FIX.md",
+      "sha256": "75e99047585b6590907b0a25278a5dacef66a0392c650bed00db38b8f10f5dc8",
+      "size": 901
+    },
+    {
+      "path": "UAT_CONTEXTUAL_BUTTONS.md",
+      "sha256": "916258a3960e0e43324f4b8aa1ef19529e517c2f9dd878b4a08c5c07bda56e03",
+      "size": 203
+    },
+    {
+      "path": "UAT_COPY_CHANGELOG.md",
+      "sha256": "7cfb1b42a91f6233e0d3fd3e1fb67e8f2eff93c45c7b30d9cae9af675c67eea4",
+      "size": 399
+    },
+    {
+      "path": "UAT_INFO_CHANGE_EVIDENCE_POLICY.md",
+      "sha256": "9d1d702e0c9270c610d1aa8edfb4961f25b7df7a7e4eebdfce049d47b3dd93bc",
+      "size": 512
+    },
+    {
+      "path": "UAT_KEEP_PERMANENT_FIX.txt",
+      "sha256": "63e02130c0c1ae493b6b8dc0743fd800ea26341b026c72299c089177093b34b7",
+      "size": 439
+    },
+    {
+      "path": "UAT_LICENSE_TIMEOUT_GUARD.md",
+      "sha256": "c1543bf9dd4fe86f8087e2ecdf21e41a72dba5ac2835a3f42e5f4b21d11e4aac",
+      "size": 254
+    },
+    {
+      "path": "UAT_REDIAGNOSIS_ANSWER_FLOW_FIX.md",
+      "sha256": "fe23204fcde3954b2df9db17cd5fb48f402719702176d83f0d43ef7575e0bffe",
+      "size": 591
+    },
+    {
+      "path": "UAT_REDIAGNOSIS_ANSWER_UI_FIX.md",
+      "sha256": "86af431b5a7ae0b9445b093be00ffe2401439536979d16c19d6e29e8347229df",
+      "size": 445
+    },
+    {
+      "path": "UAT_REDIAGNOSIS_NOTES.txt",
+      "sha256": "a65f194708bc8ab5dbb6ae9bced33b5651da6a43aeac0cbf16eb7b98a11ac662",
+      "size": 128
+    },
+    {
+      "path": "UAT_RELEASE_NOTES_v9.0.0.md",
+      "sha256": "7b4f3449569c1390691ecb0f224b7bc82d58eb43824c9c66c1df39154c94350b",
+      "size": 644
+    },
+    {
+      "path": "UAT_SELECTION_DIALOG_FIX.md",
+      "sha256": "e300653e5a097600578ab0092ef017d2bef06d5539fc3fb10130ce45e1d78d83",
+      "size": 608
+    },
+    {
+      "path": "UAT_SINGLE_SESSION_COMPLETION_NOTES.md",
+      "sha256": "61d63cca68efe7b7eb9e6004b75c457d1b68938738ca2e1f30b84e2423ed8ca4",
+      "size": 1229
+    },
+    {
       "path": "UPDATE_GUIDE.md",
       "sha256": "56ec6d597b39d38d213cdfab694f56f9becbada79889a90360cf08a8d1e96a8d",
       "size": 880
@@ -3788,8 +4759,8 @@
     },
     {
       "path": "VERSION",
-      "sha256": "0eba6381ad17549c16e9415909951123179029ff27e63247575304e95d1d9b02",
-      "size": 7
+      "sha256": "b812d779af9dc9e088bb86175f14efd2d06bf5f8e09ce7d9532a8ae7d40ef6e2",
+      "size": 6
     },
     {
       "path": "VERSION-AUDIT-v5.10.1.md",
@@ -4037,19 +5008,84 @@
       "size": 215
     },
     {
+      "path": "VERSION_AUDIT_v9.0.11.md",
+      "sha256": "7693153c7133aef4ed3cdfc84c90fcc1afbcbaf5cdc591991f519ae86b337a2f",
+      "size": 285
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.12.md",
+      "sha256": "67b555ad0557e7434dc13c20b8102271c121f8a9dee2a4b6208bfbaf2206daff",
+      "size": 627
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.14.md",
+      "sha256": "95e2cccc23f2c8cf91ead070f68d0c6fa9210ef8d68fa5e8d2d9f0d3b57482f9",
+      "size": 158
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.16.md",
+      "sha256": "759db58471c9221373eb978d500de8a3b0e82720489da1d3c9a2be767243d8dc",
+      "size": 179
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.17.md",
+      "sha256": "6303ace556137494f02e027632c14e2dd58b7095de5fad56757b26aedd2eaf9f",
+      "size": 210
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.18.md",
+      "sha256": "d53dd5c8327ba21304e7554e807bc730acad8fd48f551a5b25153f3695475a65",
+      "size": 130
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.19.md",
+      "sha256": "fdd1e6db42e82fb6e2b1e2afe34e590690999d729202ca3e3ab29cfc95eaee4c",
+      "size": 218
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.20.md",
+      "sha256": "23b57c679a412c7f31c85acd89d1fafbc2f9952ce566d36b4cd765026c0961e6",
+      "size": 219
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.21.md",
+      "sha256": "98005ec65af86802ee2e51d2c54e47108a7646710493fdc0eb8ef3b39c7a2258",
+      "size": 144
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.22.md",
+      "sha256": "e8e3c86615556ee2e90dd97ebbca9e5e1d6aa5087690af427e3dc82d69b01e87",
+      "size": 151
+    },
+    {
+      "path": "VERSION_AUDIT_v9.0.33.md",
+      "sha256": "ef06278aeba2cba8710e56c5d46c69707673c1303e8feaf7fabb958b31aa62d8",
+      "size": 184
+    },
+    {
+      "path": "VERSION_AUDIT_v9.2.0.json",
+      "sha256": "bfdcfcb4627967637c949bb275cc71ff474550018d3d6d31b7262103ff15e732",
+      "size": 401
+    },
+    {
+      "path": "VERSION_AUDIT_v9.2.3.json",
+      "sha256": "81b0b10651953da6367e59a4f3938ac0c5a84ce5d7ffedc059e99df17c6f26a6",
+      "size": 487
+    },
+    {
       "path": "VERSION_POLICY.md",
       "sha256": "9517798acee0a05d925ff7960adf71f73fdbf8ea49cae930f527dc9c5e299cf9",
       "size": 738
     },
     {
       "path": "apps-script/Code.gs",
-      "sha256": "fed59aee10c4202734f9064859d775f1ba2204abd0dbdcd66e1f04a952f09f7a",
-      "size": 1857113
+      "sha256": "66ac6c8164beac81c87c6399b9ed177ba6c0fc3658d278c83d701555ceda13ea",
+      "size": 2022709
     },
     {
       "path": "apps-script/appsscript.json",
-      "sha256": "ce8197e08b4fc80b7930f43bd16b04fea370d597f0aeabacdd7a3224f15b3735",
-      "size": 407
+      "sha256": "4ed46940d0dca3e6b562b502f4ae38201f0e6c26c21dd1df17d6f28e6ca2074d",
+      "size": 395
     },
     {
       "path": "config/template-url.example.json",
@@ -4362,19 +5398,14 @@
       "size": 410
     },
     {
-      "path": "distribution/Code.gs",
-      "sha256": "fed59aee10c4202734f9064859d775f1ba2204abd0dbdcd66e1f04a952f09f7a",
-      "size": 1857113
-    },
-    {
       "path": "distribution/DISTRIBUTION_POLICY.md",
       "sha256": "30b942f10342fb05906e0f5c767fdcc9e27ae0bf55cb2e9683aeda267aec5566",
       "size": 1171
     },
     {
       "path": "distribution/README-FIRST.md",
-      "sha256": "d1222c5bbc3aebfe7d0706bbe28e51ff6ef5e8b232562a5aa1991594ef10d2a4",
-      "size": 7926
+      "sha256": "5658196b474f81d55e2e9c335ced94113a30bb147301e6b485be52ea0328ce8b",
+      "size": 8495
     },
     {
       "path": "distribution/TEMPLATE_REFERENCE.json",
@@ -4383,8 +5414,8 @@
     },
     {
       "path": "distribution/appsscript.json",
-      "sha256": "ce8197e08b4fc80b7930f43bd16b04fea370d597f0aeabacdd7a3224f15b3735",
-      "size": 407
+      "sha256": "4ed46940d0dca3e6b562b502f4ae38201f0e6c26c21dd1df17d6f28e6ca2074d",
+      "size": 395
     },
     {
       "path": "docs/Architecture/article_snapshot_observation.md",
@@ -4582,6 +5613,11 @@
       "size": 700
     },
     {
+      "path": "docs/REPOSITORY_LAYOUT.md",
+      "sha256": "d15079b328751e43c857ee6f0e31b7727d0c703fa254a4d6646070640508aed7",
+      "size": 842
+    },
+    {
       "path": "docs/Release/ARCHITECTURE_FREEZE_v1.0.0-RC1.md",
       "sha256": "0da4da291632fae512c56e84256d8aab50ffb752e16ded666253eff4b68e4b2d",
       "size": 556
@@ -4607,14 +5643,14 @@
       "size": 586
     },
     {
-      "path": "docs/daily-workflow/index.md",
-      "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969",
-      "size": 1515
-    },
-    {
       "path": "docs/daily-workflow.md",
       "sha256": "e49fb76ec206de1c22dc117a2a75096490ea793b28d0bd8c26feaafdc5efbdec",
       "size": 3541
+    },
+    {
+      "path": "docs/daily-workflow/index.md",
+      "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969",
+      "size": 1515
     },
     {
       "path": "docs/download.md",
@@ -4627,24 +5663,24 @@
       "size": 395
     },
     {
-      "path": "docs/faq/index.md",
-      "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967",
-      "size": 1672
-    },
-    {
       "path": "docs/faq.md",
       "sha256": "fb8895bbeb5106b1e6ea587b54862e32f3887e693486a86fc8aaf7c8b53a8cd7",
       "size": 183
     },
     {
-      "path": "docs/getting-started/index.md",
-      "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083",
-      "size": 1229
+      "path": "docs/faq/index.md",
+      "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967",
+      "size": 1672
     },
     {
       "path": "docs/getting-started.md",
       "sha256": "8908455958fb09919997b642de3396b3150a85b0200258e1e7c2ff2433fec22d",
       "size": 252
+    },
+    {
+      "path": "docs/getting-started/index.md",
+      "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083",
+      "size": 1229
     },
     {
       "path": "docs/google-cloud-api-guide.md",
@@ -4697,6 +5733,16 @@
       "size": 198
     },
     {
+      "path": "docs/setup-guide.md",
+      "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e",
+      "size": 482
+    },
+    {
+      "path": "docs/setup.html",
+      "sha256": "1f1b25218ef0513ca9c319b77be8e462090b3ce4e10f3a9370afbe5912935e7d",
+      "size": 2579
+    },
+    {
       "path": "docs/setup/article-db-foundation.md",
       "sha256": "c3f85876300981507686c5fb4c0aac18c3fb09c0524fa355766f3295e57462e3",
       "size": 1458
@@ -4732,16 +5778,6 @@
       "size": 588
     },
     {
-      "path": "docs/setup-guide.md",
-      "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e",
-      "size": 482
-    },
-    {
-      "path": "docs/setup.html",
-      "sha256": "f9dea44ae69454e616131ade0f13a5cc98a1ee8852e5aeb2930fb499c6572b33",
-      "size": 1951
-    },
-    {
       "path": "docs/spreadsheet-guide.md",
       "sha256": "6c089cbe99ff4104887698da7daea77a2c874590f1572c99cb23b2dfffaa023f",
       "size": 1052
@@ -4755,6 +5791,16 @@
       "path": "docs/todays-improvement.html",
       "sha256": "febaa74b6beb8d716a2cdf0c349f88414a32e69802d4f5244c7a032dc9e43599",
       "size": 1813
+    },
+    {
+      "path": "docs/troubleshooting.html",
+      "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817",
+      "size": 1791
+    },
+    {
+      "path": "docs/troubleshooting.md",
+      "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5",
+      "size": 241
     },
     {
       "path": "docs/troubleshooting/common-errors.md",
@@ -4780,16 +5826,6 @@
       "path": "docs/troubleshooting/urlfetch-auth.md",
       "sha256": "06482d76ef7657d8cf4a052cb3993def516933b7b22e1aa850e61758184802c7",
       "size": 525
-    },
-    {
-      "path": "docs/troubleshooting.html",
-      "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817",
-      "size": 1791
-    },
-    {
-      "path": "docs/troubleshooting.md",
-      "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5",
-      "size": 241
     },
     {
       "path": "docs/user-guide/data-list.md",
@@ -4827,14 +5863,14 @@
       "size": 533
     },
     {
-      "path": "docs/user-guide/todays-improvement/index.md",
-      "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140",
-      "size": 1495
-    },
-    {
       "path": "docs/user-guide/todays-improvement.md",
       "sha256": "33608c8347948f51e3f1004f164412bda5ea59b5ba76ade16af7cfc28d4521e9",
       "size": 551
+    },
+    {
+      "path": "docs/user-guide/todays-improvement/index.md",
+      "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140",
+      "size": 1495
     },
     {
       "path": "integration/SBM_BATCH_INTEGRATION.md",
@@ -5773,13 +6809,18 @@
     },
     {
       "path": "shared/CHANGELOG.md",
-      "sha256": "1652340a2e8a8ccb667e9d8d42a33927e73dcbce0ebcece852cec70fc0bc2e43",
-      "size": 10205
+      "sha256": "48a72bcf5398c42c15f8cb3813076db1036e868e32432b4ff22a70e27d47e96e",
+      "size": 10588
     },
     {
       "path": "shared/COMPATIBILITY_MATRIX.md",
       "sha256": "f5310184c548121ea3d548a25fc8bc8e09634e9652d6a209d0ac1642c6a27afc",
       "size": 348
+    },
+    {
+      "path": "shared/FILE_MANIFEST.txt",
+      "sha256": "eb3bafc2725400614364a76e05b45aae61f06ed03cc58a62d461065c7bf53baf",
+      "size": 31897
     },
     {
       "path": "shared/LICENSE",
@@ -5798,8 +6839,8 @@
     },
     {
       "path": "shared/PRODUCT_IDENTITY.json",
-      "sha256": "0d480c7d145dbc9c684d38f257270708044d90bfdb0ed8646d9aea11e97b1d0e",
-      "size": 479
+      "sha256": "4c12b45a75bd013686789952f8e924c909b0b1ea118b2c5b91a48c4c1783e757",
+      "size": 494
     },
     {
       "path": "shared/README.md",
@@ -5993,7 +7034,7 @@
     },
     {
       "path": "shared/VERSION",
-      "sha256": "0eba6381ad17549c16e9415909951123179029ff27e63247575304e95d1d9b02",
+      "sha256": "87ec4531f62abb4015e2569dfe85741f6283ee3b4ceca5947d534a36619b2342",
       "size": 7
     },
     {
@@ -7162,16 +8203,6 @@
       "size": 0
     },
     {
-      "path": "src/apps-script/Code.gs",
-      "sha256": "fed59aee10c4202734f9064859d775f1ba2204abd0dbdcd66e1f04a952f09f7a",
-      "size": 1857113
-    },
-    {
-      "path": "src/distribution/Code.gs",
-      "sha256": "fed59aee10c4202734f9064859d775f1ba2204abd0dbdcd66e1f04a952f09f7a",
-      "size": 1857113
-    },
-    {
       "path": "src/tests/product5100_rc820_hf4_merge_ui_resume_progress_test.js",
       "sha256": "1ff337bd13eabb6f7a678e63536400c9593cad84127d098ddd5c62630d4cadfe",
       "size": 846
@@ -7965,6 +8996,11 @@
       "path": "tests/integration/test_vital_score_service.py",
       "sha256": "e3f4f799fa062c9be6d081a1d2eb899edfde7821698539945817441dfef4ec5b",
       "size": 955
+    },
+    {
+      "path": "tests/phase14_exclusion_contract.test.js",
+      "sha256": "bc1d73cb62635e46b983f0717f1e16fc133556697439610d56fc015ea51ab1fb",
+      "size": 1525
     },
     {
       "path": "tests/product5100_rc1_doctor_algorithm_site_impact_test.js",
