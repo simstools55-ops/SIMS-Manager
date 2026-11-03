@@ -8,7 +8,7 @@
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.0.md.
  */
 
-const SBM_VERSION = '9.2.0';
+const SBM_VERSION = '9.2.1';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -25837,16 +25837,54 @@ function sbmBackupCompareContents_(source, copy) {
   }
   return true;
 }
+/** v9.2.1: バックアップ保存先は復元対象外のDocumentPropertiesで固定する。 */
+function sbmBackupDestinationFolder_() {
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var props=PropertiesService.getDocumentProperties();
+  var siteId=String(sbmGetSetting_('SiteID','')||'').trim();
+  var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
+  if(!siteId || !blogName) throw new Error('バックアップ保存先を設定できません。SettingsのSiteIDとBlogNameを確認してください。');
+  var bindingKey='SIMS_DRIVE_BACKUP_BINDING_V1';
+  var saved=props.getProperty(bindingKey);
+  if(saved) {
+    var binding;
+    try {binding=JSON.parse(saved);}catch(e){throw new Error('バックアップ保存先の管理情報が壊れています。自動作成せず停止します。');}
+    if(binding.spreadsheetId!==ss.getId() || binding.siteId!==siteId)
+      throw new Error('バックアップ保存先のサイト識別が一致しません。別ブログへの誤保存を防ぐため停止します。');
+    try {
+      var folder=DriveApp.getFolderById(binding.backupFolderId);
+      if(folder.isTrashed()) throw new Error('保存先がゴミ箱にあります');
+      return folder;
+    } catch(e) {throw new Error('登録済みバックアップ保存先にアクセスできません: '+String(e.message||e));}
+  }
+  function findOrCreate(parent,name) {
+    var found=parent.getFoldersByName(name), matches=[];
+    while(found.hasNext()) {var f=found.next();if(!f.isTrashed())matches.push(f);}
+    if(matches.length>1) throw new Error('同名フォルダーが複数あります: '+name+'。手動確認が必要です。');
+    return matches.length===1?matches[0]:parent.createFolder(name);
+  }
+  // 既存のSIMS/ブログ名フォルダーを再利用する。初回の曖昧な候補は自動選択しない。
+  var root=DriveApp.getRootFolder();
+  var sims=findOrCreate(root,'SIMS');
+  var site=findOrCreate(sims,blogName);
+  var manager=findOrCreate(site,'Manager');
+  var backup=findOrCreate(manager,'Backups');
+  props.setProperty(bindingKey,JSON.stringify({spreadsheetId:ss.getId(),siteId:siteId,
+    rootFolderId:sims.getId(),siteFolderId:site.getId(),backupFolderId:backup.getId()}));
+  return backup;
+}
 function sbmBackupSnapshot_(kind) {
   var original = SpreadsheetApp.getActiveSpreadsheet();
   var names = sbmBackupRequiredSheets_();
   var missing=['記事管理','改善の推移','改善履歴'].filter(function(n){return !original.getSheetByName(n);});
   if(missing.length) throw new Error('バックアップ対象がありません: '+missing.join(', '));
   var now=new Date(), stamp=Utilities.formatDate(now,Session.getScriptTimeZone()||'Asia/Tokyo','yyyyMMdd_HHmmss');
+  var destinationFolder=sbmBackupDestinationFolder_();
   var dest=SpreadsheetApp.create('SIMS_Manager_Backup_'+kind+'_'+stamp+'_'+Utilities.getUuid().slice(0,8));
   var temp=dest.getSheets()[0];
   var meta=[];
   try {
+    DriveApp.getFileById(dest.getId()).moveTo(destinationFolder);
     names.forEach(function(name){
       var source=original.getSheetByName(name);
       var copy=source.copyTo(dest).setName(name);
@@ -25875,7 +25913,10 @@ function sbmDailyBackupEnsure_() {
     throw new Error('本日分のバックアップを検証できません。日次処理を停止しました。バックアップ一覧を確認してください。');
   }
   var item=sbmBackupSnapshot_('DAILY');
-  if(!sbmBackupVerify_(SpreadsheetApp.openById(item.id))) throw new Error('バックアップ内容の検証に失敗しました。日次処理を中止します。');
+  if(!sbmBackupVerify_(SpreadsheetApp.openById(item.id))) {
+    try {DriveApp.getFileById(item.id).setTrashed(true);}catch(ignoreBackupCleanup){}
+    throw new Error('バックアップ内容の検証に失敗しました。日次処理を中止します。');
+  }
   entries.unshift(item);
   sbmBackupWriteCatalog_(entries);
   // 3世代を超えた場合、削除成功を確認したファイルだけを台帳から除外する。

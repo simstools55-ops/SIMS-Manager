@@ -1,0 +1,6 @@
+feat: SIMS Manager v9.2.1 candidate - blog-scoped Drive backup folders
+
+- Bind backup destination to SiteID and spreadsheet ID
+- Reuse SIMS/blog/Manager/Backups folders
+- Preserve existing backup catalog and restore compatibility
+- Require live UAT before release
