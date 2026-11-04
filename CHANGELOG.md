@@ -1,3 +1,6 @@
+## v9.2.12
+- Setup STEP1 reading-device selection and site-settings save feedback.
+
 ## v9.2.11 — サイト別閲覧環境設定
 - サイト設定に3択を追加し、既存サイトは両対応を既定値とする。既存記事・モニター・改善状態は変更しない。
 - aシリーズ連携は次段階。

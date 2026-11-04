@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.11
- * Release summary: Add per-site reading-device policy with backward-compatible default and no retroactive article changes.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.11.md.
+ * Current version: 9.2.12
+ * Release summary: Add reading-device policy to setup STEP1 and visible site-settings save progress.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.12.md.
  */
 
-const SBM_VERSION = '9.2.11';
+const SBM_VERSION = '9.2.12';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -14497,7 +14497,12 @@ function sbmShowRelease1SetupStep_(step) {
       + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
       + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'">'
       + '<div style="font-size:12px;color:#5f6368;margin-top:6px;line-height:1.6">通常のサイトURLではなく、Google Search Consoleに登録されている<b>プロパティ</b>を入力します。Search Console画面左上のプロパティ選択欄で確認してください。<br>例：URLプレフィックス <code>https://example.com/</code><br>例：ドメイン <code>sc-domain:example.com</code></div>'
-      + '<button id="propertyHelpBtn" type="button" class="helpLink">Search Consoleでプロパティを確認</button></div>';
+      + '<button id="propertyHelpBtn" type="button" class="helpLink">Search Consoleでプロパティを確認</button></div>'
+      + '<div class="field"><label for="readingDevicePolicy">記事の閲覧環境</label><select id="readingDevicePolicy" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:6px">'
+      + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>両方に対応（標準）</option>'
+      + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ重視</option>'
+      + '<option value="DESKTOP_FIRST"'+(sbmGetReadingDevicePolicy_()==='DESKTOP_FIRST'?' selected':'')+'>PC重視</option>'
+      + '</select><p style="font-size:12px;margin:6px 0">新記事の執筆方針です。変更しても公開済み記事や改善状態は変わりません。</p></div>';
   } else if (step === 2) {
     // 新規セットアップでは過去値・テンプレート値を初期表示しない。
     // STEP2完了済みの既存環境だけ、確認用として保存済み番号を表示する。
@@ -14561,7 +14566,7 @@ function sbmShowRelease1SetupStep_(step) {
     + ''
     + 'function setBusy(text){var m=el("msg"),sp=document.createElement("span"),tx=document.createElement("span");sp.className="spinner";tx.id="busyText";tx.textContent=text||"処理しています…";m.textContent="";m.appendChild(sp);m.appendChild(tx);}'
     + 'function clearBusy(text){el("msg").textContent=text||"";}'
-    + 'function payload(){if(step===1)return {blogName:el("blogName").value,blogUrl:el("blogUrl").value,property:el("property").value};if(step===2)return {cloudProjectNumber:el("cloudProjectNumber").value};return {};}'
+    + 'function payload(){if(step===1)return {blogName:el("blogName").value,blogUrl:el("blogUrl").value,property:el("property").value,readingDevicePolicy:el("readingDevicePolicy").value};if(step===2)return {cloudProjectNumber:el("cloudProjectNumber").value};return {};}'
     + 'function showExternalAuthIfRequired(message){if(step!==3)return;var h=el("externalAuthHelp");if(h&&String(message||"").indexOf("EXTERNAL_ACCESS_AUTH_REQUIRED")>=0)h.style.display="block";}'
     + 'function executeStep(){setActionsDisabled(true);setBusy("処理しています…");google.script.run.withFailureHandler(function(e){var m=(e&&e.message)?e.message:String(e);clearBusy(m.replace("EXTERNAL_ACCESS_AUTH_REQUIRED: ",""));showExternalAuthIfRequired(m);setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmExecuteRelease1SetupStep(step,payload());}'
     + 'function verifyExternalAuth(){var b=el("externalAuthBtn");if(b)b.disabled=true;setBusy("外部通信権限を確認しています…");google.script.run.withFailureHandler(function(e){clearBusy("この画面から承認できませんでした。Apps Scriptエディタで sbmAuthorizeExternalAccess を直接実行してGoogleの権限を承認してください。詳細: "+((e&&e.message)?e.message:String(e)));if(b)b.disabled=false;}).withSuccessHandler(function(code){clearBusy("外部通信権限を確認しました（HTTP "+code+"）。STEP3の「実行」を押してください。");if(b)b.disabled=false;var h=el("externalAuthHelp");if(h)h.style.display="none";}).sbmAuthorizeExternalAccess();}'
@@ -14601,6 +14606,10 @@ function sbmExecuteRelease1SetupStep(step, payload) {
     var siteName=blogName;
     var property=String(payload.property||'').trim();
     if(!blogName||!blogUrl||!property)throw new Error('サイト名、サイトURL、Search Consoleプロパティをすべて入力してください。');
+    var readingPolicyRaw=String(payload.readingDevicePolicy||'').trim();
+    var readingPolicy=sbmNormalizeReadingDevicePolicy_(readingPolicyRaw);
+    if(readingPolicyRaw && readingPolicy!==readingPolicyRaw)throw new Error('記事の閲覧環境の指定が不正です。');
+    var oldReadingPolicy=sbmGetReadingDevicePolicy_();
 
     sbmSetupSetSettingsBulk_([
       {key:'BlogName',value:blogName,desc:'管理するブログ名'},
@@ -14608,8 +14617,15 @@ function sbmExecuteRelease1SetupStep(step, payload) {
       {key:'SiteID',value:siteId,desc:'SIMS製品間でサイトを識別するID'},
       {key:'SiteName',value:siteName,desc:'SIMS製品間で表示するサイト名'},
       {key:'SearchConsoleProperty',value:property,desc:'Search Console property'},
-      {key:'SetupBlogInfo',value:'YES',desc:'STEP1完了状態'}
+      {key:'SetupBlogInfo',value:'YES',desc:'STEP1完了状態'},
+      {key:'ReadingDevicePolicy',value:readingPolicy,desc:'記事の閲覧環境：BALANCED / MOBILE_FIRST / DESKTOP_FIRST'}
     ]);
+    if(oldReadingPolicy!==readingPolicy){
+      sbmSetupSetSettingsBulk_([
+        {key:'ReadingDevicePolicyPrevious',value:oldReadingPolicy,desc:'記事の閲覧環境：直前の設定'},
+        {key:'ReadingDevicePolicyChangedAt',value:sbmNowText_(),desc:'記事の閲覧環境：最終変更日時'}
+      ]);
+    }
     sbmLog_('Release1SetupStep1','Done',blogName+' / '+property);
     sbmShowRelease1SetupStep_(2);
     return true;
@@ -14719,9 +14735,9 @@ function sbmOpenBlogInfoChange() {
     + '<div id="msg"></div><div class="actions">'
     + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
     + '</div><script>'
-    + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});'
-    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
-    + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
+    + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});var m=document.getElementById("msg");m.style.color="#333";m.innerHTML="<span class=\"spinner\"></span> 設定を保存しています…";'
+    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").style.color="#b3261e";document.getElementById("msg").textContent="保存できませんでした："+((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
+    + '.withSuccessHandler(function(){var m=document.getElementById("msg");m.style.color="#137333";m.textContent="✓ 設定を保存しました。画面を閉じます。";setTimeout(function(){google.script.host.close();},1100);}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
     + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');

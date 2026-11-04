@@ -1,0 +1,1 @@
+fix(manager): show save feedback and add reading-device policy to setup STEP1 (v9.2.12)

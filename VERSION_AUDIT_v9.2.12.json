@@ -1,0 +1,10 @@
+{
+  "version": "9.2.12",
+  "code_version": "9.2.12",
+  "source": "v9.2.11",
+  "changes": [
+    "setup step1 policy",
+    "site settings save feedback"
+  ],
+  "live_tested": false
+}
