@@ -1,3 +1,7 @@
+# SIMS Manager v9.2.10
+
+最新版の導入手順は README-v9.2.10-FIRST.md を参照してください。
+
 # SIMS Manager v9.2.8 — Starter記事管理メニュー制御
 
 Starterではインデックス関連2項目と記載サービス・広告の変更・更新を非表示にします。Fullでは従来通りです。

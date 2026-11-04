@@ -36,3 +36,7 @@ Full-only UI: 新記事作成・aCreator新記事登録、aWriter改善結果登
 
 ## v9.2.7 exception
 「新記事関連 → 新記事キーワードの参入余地を確認」は両Editionで利用可能。Starterは参入余地判定のみで、aCreator紹介状生成と新記事登録は不可。
+
+## v9.2.10 boundary
+
+Personal Knowledge inspection UI is Full-only (menu and direct entry guard). Background Personal Knowledge operations are unchanged.

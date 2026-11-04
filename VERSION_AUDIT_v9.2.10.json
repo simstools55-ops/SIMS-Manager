@@ -1,0 +1,8 @@
+{
+  "version": "9.2.10",
+  "code_version": "9.2.10",
+  "edition_menu": "Full only",
+  "direct_entry_guard": true,
+  "legacy_release_comments": "consolidated",
+  "live_uat": "pending"
+}

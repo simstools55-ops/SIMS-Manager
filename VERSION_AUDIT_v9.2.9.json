@@ -1,0 +1,12 @@
+{
+  "version": "9.2.9",
+  "checks": [
+    "Code.gs runtime version",
+    "PRODUCT_IDENTITY",
+    "shared/PRODUCT_IDENTITY",
+    "VERSION",
+    "release notes",
+    "GitHub commit"
+  ],
+  "status": "static checks pending"
+}

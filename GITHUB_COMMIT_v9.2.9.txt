@@ -1,0 +1,1 @@
+fix(manager): move external access authorization guidance into setup step 3 (v9.2.9)
