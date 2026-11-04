@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.12
+ * Current version: 9.2.13
  * Release summary: Add reading-device policy to setup STEP1 and visible site-settings save progress.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.12.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.13.md.
  */
 
-const SBM_VERSION = '9.2.12';
+const SBM_VERSION = '9.2.13';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -14735,7 +14735,7 @@ function sbmOpenBlogInfoChange() {
     + '<div id="msg"></div><div class="actions">'
     + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
     + '</div><script>'
-    + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});var m=document.getElementById("msg");m.style.color="#333";m.innerHTML="<span class=\"spinner\"></span> 設定を保存しています…";'
+    + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});var m=document.getElementById("msg");m.style.color="#333";m.textContent="設定を保存しています…";'
     + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").style.color="#b3261e";document.getElementById("msg").textContent="保存できませんでした："+((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
     + '.withSuccessHandler(function(){var m=document.getElementById("msg");m.style.color="#137333";m.textContent="✓ 設定を保存しました。画面を閉じます。";setTimeout(function(){google.script.host.close();},1100);}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
     + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'

@@ -1,3 +1,6 @@
+## v9.2.13
+- サイト設定ダイアログの保存ボタンが無反応となるHTML内JavaScriptの構文不具合を修正。
+
 ## v9.2.12
 - Setup STEP1 reading-device selection and site-settings save feedback.
 

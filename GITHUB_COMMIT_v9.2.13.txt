@@ -1,0 +1,1 @@
+fix(manager): repair site settings save button JavaScript quoting (v9.2.13)

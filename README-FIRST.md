@@ -1,4 +1,4 @@
-# SIMS Manager v9.2.12
+# SIMS Manager v9.2.13
 
 最新版の導入手順は README-v9.2.11-FIRST.md を参照してください。
 
