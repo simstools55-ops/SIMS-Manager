@@ -8,7 +8,7 @@
  * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.7.md.
  */
 
-const SBM_VERSION = '9.2.7';
+const SBM_VERSION = '9.2.8';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -10791,6 +10791,7 @@ function sbmApplyNeedsReviewDisposition(payload){
 }
 /** インデックス未登録と確認済みの記事を一覧から既存の詳細・改善導線へ渡す。 */
 function sbmOpenIndexReviewArticles(){
+  if(sbmEffectiveEdition_()!=='FULL')return sbmAlert_('Full Edition専用','この機能はFull Editionで利用できます。');
   if(!sbmLicenseRequireForProcessing_())return;
   var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[];
   var items=rows.filter(function(r){return String(r['管理フラグ']||'').trim()==='インデックス要確認';}).map(function(r){
@@ -10804,6 +10805,7 @@ function sbmOpenIndexReviewArticles(){
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'インデックス未登録記事を改善');
 }
 function sbmOpenIndexReviewArticleDetail(articleId){
+  if(sbmEffectiveEdition_()!=='FULL')return sbmAlert_('Full Edition専用','この機能はFull Editionで利用できます。');
   if(!sbmLicenseRequireForProcessing_())return;
   var sh=sbmGetOrCreateSheet_(SBM_SHEETS.ARTICLE_DB);
   var hm=sbmHeaderMap_(sh),col=hm['ArticleID'];
@@ -10820,6 +10822,7 @@ function sbmOpenIndexReviewArticleDetail(articleId){
 }
 
 function sbmOpenNeedsReviewArticles(focusArticleId){
+  if(sbmEffectiveEdition_()!=='FULL')return sbmAlert_('Full Edition専用','この機能はFull Editionで利用できます。');
   if (!sbmLicenseRequireForProcessing_()) return;
   var items=sbmNeedsReviewArticleList_();
   focusArticleId=String(focusArticleId||'').trim();
@@ -15251,18 +15254,22 @@ function onOpen() {
     .addItem('選択記事の全改善履歴を見る','sbmOpenSelectedHistoryArticleAll')
     .addToUi();
 
-  ui.createMenu('記事管理')
-    .addItem('記事一覧を開く','sbmOpenAllBlogArticles')
-    .addItem('インデックス状況を確認すべき記事','sbmOpenNeedsReviewArticles')
-     .addItem('インデックス未登録記事を改善','sbmOpenIndexReviewArticles')
-    .addSeparator()
+  var articleMenu=ui.createMenu('記事管理')
+    .addItem('記事一覧を開く','sbmOpenAllBlogArticles');
+  if(isFullEdition){
+    articleMenu.addItem('インデックス状況を確認すべき記事','sbmOpenNeedsReviewArticles')
+      .addItem('インデックス未登録記事を改善','sbmOpenIndexReviewArticles');
+  }
+  articleMenu.addSeparator()
     .addItem('選択記事の詳細を見る','sbmOpenSelectedArticleDbDetail')
     .addItem('選択記事の改善履歴を見る','sbmOpenSelectedArticleHistory')
     .addSeparator()
-    .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog')
-    .addSeparator()
-    .addItem('記載サービス・広告の変更・更新','sbmOpenSelectedInfoUpdate')
-    .addToUi();
+    .addItem('選択記事の管理状態を変更','sbmOpenSelectedArticleManagementDialog');
+  if(isFullEdition){
+    articleMenu.addSeparator()
+      .addItem('記載サービス・広告の変更・更新','sbmOpenSelectedInfoUpdate');
+  }
+  articleMenu.addToUi();
 
   var healthMenu = ui.createMenu('サイト健康診断')
     .addItem('サイト健康診断を実施','sbmDoctorRunHealthCheck')
@@ -24778,6 +24785,7 @@ function sbmInfoUpdateShowErrorDialog_(message){
   return null;
 }
 function sbmOpenSelectedInfoUpdate(){
+  if(sbmEffectiveEdition_()!=='FULL')return sbmAlert_('Full Edition専用','この機能はFull Editionで利用できます。');
   if(!sbmLicenseRequireForProcessing_())return;
   var r=sbmInfoChangeActiveContext_();
   if(!r.ok){if(r.message==='LEGACY_MULTIPLE_ACTIVE')return sbmInfoChangeShowLegacyPicker_();return sbmInfoUpdateShowErrorDialog_(r.message);}

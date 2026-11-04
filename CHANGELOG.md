@@ -1,3 +1,6 @@
+## v9.2.8
+- Starter記事管理メニューのFull専用3項目を非表示、直接呼出しも拒否。
+
 ## v9.2.7 — Starter SERP entry opportunity access
 - Starter and Full can open SERP entry opportunity checking and view four-color results.
 - Starter does not show Creator referral, yellow GO decision, or registration controls, including resumed workflows.

@@ -1,3 +1,7 @@
+# SIMS Manager v9.2.8 — Starter記事管理メニュー制御
+
+Starterではインデックス関連2項目と記載サービス・広告の変更・更新を非表示にします。Fullでは従来通りです。
+
 # SIMS Manager v9.2.7 — Starter SERP判定対応
 
 - Starter/Fullとも「新記事キーワードの参入余地を確認」を表示します。
