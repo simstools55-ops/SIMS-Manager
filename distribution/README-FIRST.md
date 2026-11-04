@@ -1,3 +1,7 @@
+# SIMS Manager v9.2.7 — UAT candidate
+
+Starter/Full共通のSERP参入余地判定。aCreatorへの依頼はFull限定。実機試験前。
+
 # SIMS Manager v9.1.49 — Development Candidate
 
 Apps Script実機試験未実施。

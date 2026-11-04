@@ -32,4 +32,7 @@ Starter uses the same executable body as Full with `SBM_EDITION = 'STARTER'`. Ed
 
 Starter-visible core: SIMS今日の作業、改善の推移・履歴、記事管理、サイト健康診断、aDoctor精密診断、設定・基本修復。
 
-Full-only UI: 新記事関連、aWriter改善結果登録、Merge補正、Creator Direct整理、Site Doctor advanced treatment routes.
+Full-only UI: 新記事作成・aCreator新記事登録、aWriter改善結果登録、Merge補正、Creator Direct整理、Site Doctor advanced treatment routes.
+
+## v9.2.7 exception
+「新記事関連 → 新記事キーワードの参入余地を確認」は両Editionで利用可能。Starterは参入余地判定のみで、aCreator紹介状生成と新記事登録は不可。

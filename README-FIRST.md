@@ -1,3 +1,9 @@
+# SIMS Manager v9.2.7 — Starter SERP判定対応
+
+- Starter/Fullとも「新記事キーワードの参入余地を確認」を表示します。
+- Starterは判定結果まで。aCreator紹介状・新記事登録はFull限定です。
+- 本版は静的検査済み、実機試験前です。
+
 > Live backup, retention and restore checks passed. Automatic rollback on restore failure remains unverified.
 
 # SIMS Manager v9.2.0 — Backup and restore management release candidate

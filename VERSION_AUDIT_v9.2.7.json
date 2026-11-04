@@ -1,0 +1,10 @@
+{
+  "version": "9.2.7",
+  "runtime_code": "apps-script/Code.gs",
+  "runtime_version": "9.2.7",
+  "product_identity": "9.2.7",
+  "shared_product_identity": "unchanged (separate product)",
+  "node_syntax": "PASS",
+  "live_apps_script": "NOT_TESTED",
+  "starter_creator_referral_server_guard": true
+}

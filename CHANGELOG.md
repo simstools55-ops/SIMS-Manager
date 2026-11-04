@@ -1,3 +1,9 @@
+## v9.2.7 — Starter SERP entry opportunity access
+- Starter and Full can open SERP entry opportunity checking and view four-color results.
+- Starter does not show Creator referral, yellow GO decision, or registration controls, including resumed workflows.
+- Creator referral generation is denied server-side for Starter; Full workflow preserved.
+- Live Apps Script testing pending.
+
 ## v9.2.6 — SERP entry opportunity four-color labels
 - LIGHT_BLUE / GREEN / YELLOW / RED, legacy workflow restore compatibility.
 
