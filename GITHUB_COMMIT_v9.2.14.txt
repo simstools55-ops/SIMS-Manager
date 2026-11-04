@@ -1,0 +1,1 @@
+fix(manager): harden improvement navi launch and defer state changes (v9.2.14)

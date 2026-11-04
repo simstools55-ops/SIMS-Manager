@@ -1,0 +1,9 @@
+{
+  "version": "9.2.14",
+  "source": "v9.2.13",
+  "tests": [
+    "node --check",
+    "zip integrity"
+  ],
+  "runtime_uat": "pending"
+}
