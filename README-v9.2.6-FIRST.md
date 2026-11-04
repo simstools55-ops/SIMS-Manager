@@ -1,4 +1,4 @@
-# SIMS Manager v9.2.5
+# SIMS Manager v9.2.6
 
 Apps Scriptの正本は `apps-script/Code.gs` です。v9.2.4からDoctorのIMPROVE→Writer分岐だけを修正しました。
 

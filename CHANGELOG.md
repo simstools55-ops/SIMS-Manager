@@ -1,3 +1,6 @@
+## v9.2.6 — SERP entry opportunity four-color labels
+- LIGHT_BLUE / GREEN / YELLOW / RED, legacy workflow restore compatibility.
+
 ## v9.2.5 (2026-11-04)
 - Doctor IMPROVE + referral_target WRITER をWriter依頼へ正規化。未判定IMPROVEを成功扱いしない。
 

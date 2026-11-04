@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.5
+ * Current version: 9.2.6
  * Release summary: Store new aMerge artifacts in identity-verified per-blog SIMS/Merge/Results folders; retain historical artifact links.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.5.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.6.md.
  */
 
-const SBM_VERSION = '9.2.5';
+const SBM_VERSION = '9.2.6';
 // v6.8.1: CaseID再開時にrequest.request_idとevidence_package.request_idを一致させる。
 // v6.7.100: aDoctor結果登録の必須経路からDrive依存のPersonal Knowledge自動書込を分離。日次処理完了画面は閉じるを主操作、記事情報更新を補助操作へ変更。
 // v6.7.99: 記事詳細の操作階層を整理。閉じるを主操作、任意のaDoctor/改善ナビを小型補助操作とし、利用者判断見出しを赤字強調。
@@ -23982,15 +23982,15 @@ function sbmSerpBuildAiRequest_(keyword,cannibal){
     'checked_count には実際に確認できた件数を入れてください。10件未満でも推測で埋めず、取得できた結果だけで評価してください。',
     '確認できない順位を推測で埋めないでください。10件未満の場合も、取得済みSERPだけで entry_assessment を返し、evidence_note に不足順位と評価上の制約を明記してください。','',
     '【重要】',
-    '最終色判定はSIMS Managerが行います。あなたは entry_assessment を GREEN / YELLOW / PINK / RED のいずれかで返してください。',
-    'GREEN＝参入余地が明確、YELLOW＝参入可能性はあるが人間判断が必要、PINK＝参入優先度が低く原則見送り、RED＝参入困難です。',
+    '最終色判定はSIMS Managerが行います。あなたは entry_assessment を LIGHT_BLUE / GREEN / YELLOW / RED のいずれかで返してください。',
+    'LIGHT_BLUE＝特に参入余地が大きい、GREEN＝参入余地あり、YELLOW＝慎重に判断、RED＝参入困難です。',
     'estimated_reachable_rank は参考値として整数で返してください。検索結果を見ずに一般論だけで推定しないでください。','',
     '【JSON出力】','説明の後、最後に次の形式のJSONを1個だけコードブロックで返してください。','{',
     '  "format": "SIMS_MANAGER_SERP_ENTRY_REVIEW_V2",','  "keyword": "'+safe+'",','  "review_status": "COMPLETE|INSUFFICIENT",',
     '  "checked_count": 10,','  "additional_review_needed": false,','  "serp_results": [',
     '    {"rank":1,"title":"...","url":"https://...","site_type":"OFFICIAL","weakness_or_strength":"..."}','  ],',
     '  "personal_blog_count": 0,','  "best_personal_blog_rank": null,','  "serp_strength": "LOW|MEDIUM|HIGH|VERY_HIGH",',
-    '  "entry_assessment": "GREEN|YELLOW|PINK|RED",','  "estimated_reachable_rank": 12,','  "confidence_percent": 80,',
+    '  "entry_assessment": "LIGHT_BLUE|GREEN|YELLOW|RED",','  "estimated_reachable_rank": 12,','  "confidence_percent": 80,',
     '  "search_intent": "...",','  "content_gap": ["..."],','  "rationale": ["..."],','  "risks": ["..."],',
     '  "recommended_angle": "...",','  "evidence_note": "上位10件、または必要時20件をどのように確認したか簡潔に記述"','}'
   ].join('\\n');
@@ -24023,24 +24023,25 @@ function sbmSerpExtractReviewJson_(raw){
   }
   throw new Error('SIMS_MANAGER_SERP_ENTRY_REVIEW_V2 / V1 のJSONを読み取れませんでした。Claudeの回答全文をそのまま貼り付けてください。');
 }
+/** SERP 4-tier grade. The rank is the authoritative classification. */
 function sbmSerpGradeFromRank_(rank){
   var r=Number(rank);
   if(!isFinite(r)||r<=0)return {code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'};
-  if(r<=10)return {code:'GREEN',label:'GREEN',rankBand:'参入余地が明確',bg:'#0b8043',fg:'#ffffff'};
-  if(r<=20)return {code:'YELLOW',label:'YELLOW',rankBand:'要判断',bg:'#f9ab00',fg:'#202124'};
-  if(r<=30)return {code:'PINK',label:'PINK',rankBand:'優先度低・原則見送り',bg:'#f4cccc',fg:'#202124'};
+  if(r<=10)return {code:'LIGHT_BLUE',label:'LIGHT BLUE',rankBand:'ブルーオーシャン・最優先',bg:'#b3e5fc',fg:'#12445c'};
+  if(r<=20)return {code:'GREEN',label:'GREEN',rankBand:'参入余地あり',bg:'#c8e6c9',fg:'#1b5e20'};
+  if(r<=30)return {code:'YELLOW',label:'YELLOW',rankBand:'慎重に判断',bg:'#fff2b3',fg:'#765700'};
   return {code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'};
 }
 function sbmSerpGradeFromReview_(o){
-  var a=String(o&&o.entry_assessment||'').toUpperCase().replace(/\s+/g,'_');
-  if(a==='PALE_PINK'||a==='PALEPINK')a='PINK';
-  var map={
-    GREEN:{code:'GREEN',label:'GREEN',rankBand:'参入余地が明確',bg:'#0b8043',fg:'#ffffff'},
-    YELLOW:{code:'YELLOW',label:'YELLOW',rankBand:'要判断',bg:'#f9ab00',fg:'#202124'},
-    PINK:{code:'PINK',label:'PINK',rankBand:'優先度低・原則見送り',bg:'#f4cccc',fg:'#202124'},
-    RED:{code:'RED',label:'RED',rankBand:'参入困難',bg:'#c62828',fg:'#ffffff'}
-  };
-  return map[a]||sbmSerpGradeFromRank_(o&&o.estimated_reachable_rank);
+  // Legacy Claude responses used GREEN/YELLOW/PINK/RED with different meanings.
+  // Use estimated rank whenever present, so legacy labels cannot shift a tier.
+  var rank=Number(o&&o.estimated_reachable_rank);
+  if(isFinite(rank)&&rank>0)return sbmSerpGradeFromRank_(rank);
+  var a=String(o&&o.entry_assessment||'').toUpperCase().replace(/[\s-]+/g,'_');
+  if(a==='LIGHT_BLUE'||a==='LIGHTBLUE'||a==='BLUE')return sbmSerpGradeFromRank_(1);
+  if(a==='GREEN')return sbmSerpGradeFromRank_(11);
+  if(a==='YELLOW')return sbmSerpGradeFromRank_(21);
+  return sbmSerpGradeFromRank_(31);
 }
 function sbmSerpRegisterReview(keyword,raw){
   try{
@@ -24060,8 +24061,8 @@ function sbmSerpRegisterReview(keyword,raw){
     else if(o.additional_review_needed===true&&actualCount<20)dataNotice='追加調査が必要とされていますが、取得済み'+actualCount+'件のSERPを基に暫定判定しています。追加データが得られれば判定が変わる可能性があります。';
     o.original_confidence_percent=rawConfidence;o.confidence_percent=adjustedConfidence;o.serp_checked_count_actual=actualCount;o.serp_expected_count=expectedCount;o.data_notice=dataNotice;
     var rank=Number(o.estimated_reachable_rank||0),grade=sbmSerpGradeFromReview_(o);
-    var creatorEligible=grade.code==='GREEN';
-    var guidance=grade.code==='GREEN'?'aCreatorへ進めます。':(grade.code==='YELLOW'?'参入可能性はありますが、人間判断が必要です。aCreatorへは自動で進めません。':(grade.code==='PINK'?'参入優先度が低いため、原則見送ります。':'参入困難のため見送ります。'));
+    var creatorEligible=grade.code==='LIGHT_BLUE'||grade.code==='GREEN';
+    var guidance=grade.code==='LIGHT_BLUE'?'ブルーオーシャン候補です。aCreatorへ進めます。':(grade.code==='GREEN'?'参入余地があります。aCreatorへ進めます。':(grade.code==='YELLOW'?'慎重な判断が必要です。記事化する場合は利用者が選択してください。':'参入困難のため見送ります。'));
     return {ok:true,complete:true,keyword:kw,grade:grade,estimatedReachableRank:rank,confidencePercent:adjustedConfidence,rawConfidencePercent:rawConfidence,checkedCount:actualCount,expectedCount:expectedCount,dataNotice:dataNotice,serpStrength:String(o.serp_strength||''),personalBlogCount:Number(o.personal_blog_count||0),bestPersonalBlogRank:o.best_personal_blog_rank,searchIntent:String(o.search_intent||''),rationale:Array.isArray(o.rationale)?o.rationale:[],risks:Array.isArray(o.risks)?o.risks:[],recommendedAngle:String(o.recommended_angle||''),creatorEligible:creatorEligible,guidance:guidance,review:o};
   }catch(e){return {ok:false,message:String(e&&e.message?e.message:e)};}
 }
@@ -24146,9 +24147,9 @@ function sbmOpenSerpEntryCheckDialog(workflowId){
     '<script>let REVIEW=null,WORKFLOW_ID='+JSON.stringify(workflowId)+',RESTORE_ENC='+JSON.stringify(restoreEnc)+';function e(id){return document.getElementById(id)}function show(id){e(id).classList.remove("hidden")}function hide(id){e(id).classList.add("hidden")}function setStatus(id,msg,cls){e(id).className="status "+(cls||"");e(id).textContent=msg||""}function decRestore(v){if(!v)return {};try{v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";var b=atob(v),s="";for(var i=0;i<b.length;i++)s+="%"+("00"+b.charCodeAt(i).toString(16)).slice(-2);return JSON.parse(decodeURIComponent(s))}catch(z){return {}}}function checkpoint(stage,extra,cb){var p=extra||{};p.keyword=e("kw").value.trim();google.script.run.withSuccessHandler(function(r){if(r&&r.ok)WORKFLOW_ID=r.workflowId||WORKFLOW_ID;if(cb)cb(r)}).sbmSerpWorkflowSave(WORKFLOW_ID,stage,p)}function copyFallback(x){try{x.focus();x.select();return document.execCommand("copy")}catch(z){return false}}function copyText(id,btnId,statusId,successMsg,showRegister){const x=e(id),b=e(btnId);if(!x)return;const original=b?b.textContent:"";if(b){b.disabled=true;b.textContent="コピー中…"}function ok(){if(b){b.textContent="✓ コピーしました";b.disabled=false;setTimeout(function(){b.textContent=original},2200)}setStatus(statusId,"✓ "+successMsg,"ok");if(showRegister)show("creatorRegisterArea")}function ng(){if(b){b.textContent=original;b.disabled=false}setStatus(statusId,"コピーできませんでした。テキスト欄を選択して手動でコピーしてください。","err")}try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(x.value).then(ok).catch(function(){copyFallback(x)?ok():ng()})}else{copyFallback(x)?ok():ng()}}catch(z){copyFallback(x)?ok():ng()}}function openCreatorRegister(){google.script.host.close();google.script.run.sbmOpenCreatorPublicationRegisterDialog(WORKFLOW_ID||"")}'+
     'function prepare(){const kw=e("kw").value.trim(),b=e("prepBtn");if(!kw){setStatus("prepStatus","キーワードを入力してください。","err");return}b.disabled=true;b.textContent="確認中…";setStatus("prepStatus","Manager内のクエリ・記事情報と照合しています…","");e("matches").innerHTML="";hide("aiCard");hide("resultCard");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="カニバリ確認して次へ";if(!r||!r.ok){setStatus("prepStatus",r&&r.message?r.message:"確認できませんでした。","err");return}if(r.blocked){setStatus("prepStatus","カニバリの可能性があるため処理を終了します。SERP精査は実行しません。","err");const a=(r.cannibal&&r.cannibal.matches)||[];e("matches").innerHTML="<b>想定される既存クエリ・記事</b>"+a.map(function(x){return "<div class=\\"match\\"><b>"+esc(x.query)+"</b> ["+esc(x.risk)+"]<br>"+esc(x.articleTitle||"記事タイトル未取得")+"<br>"+esc(x.url||"")+"<br>理由："+esc(x.reason||"")+" / 表示 "+Number(x.impressions||0)+" / クリック "+Number(x.clicks||0)+" / 平均順位 "+(Number(x.position||0)?Number(x.position).toFixed(1):"-")+"</div>"}).join("");return}setStatus("prepStatus",r.message||"カニバリ疑いはありません。","ok");e("req").value=r.request||"";show("aiCard");checkpoint("CLAUDE_REQUEST_READY",{request:r.request||""})}).withFailureHandler(function(x){b.disabled=false;b.textContent="カニバリ確認して次へ";setStatus("prepStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpPrepareCheck(kw)}'+
     'function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;"}[c]})}'+
-    'function judge(){const raw=e("ans").value.trim(),kw=e("kw").value.trim(),b=e("judgeBtn");if(!raw){setStatus("judgeStatus","AI回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="判定中…";setStatus("judgeStatus","SERP上位10件の確認状況を検証しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="SERP結果を判定";if(!r||!r.ok){setStatus("judgeStatus",r&&r.message?r.message:"判定できませんでした。","err");return}if(!r.complete){setStatus("judgeStatus",r.message||"SERP結果を確認できませんでした。","err");return}REVIEW=r.review;checkpoint("SERP_REVIEW_READY",{request:e("req").value||"",answer:raw,review:REVIEW,grade:r.grade});setStatus("judgeStatus","SERP確認結果を受理しました。","ok");show("resultCard");const g=r.grade;e("grade").className="grade";e("grade").style.background=g.bg;e("grade").style.color=g.fg;e("grade").textContent=g.label+" — "+g.rankBand;e("detail").textContent="推定到達順位："+r.estimatedReachableRank+"位\\n確信度："+r.confidencePercent+"%\\n確認件数："+(r.checkedCount||0)+"/"+(r.expectedCount||10)+"件"+(r.dataNotice?"\\n注意："+r.dataNotice:"")+"\\nSERP強度："+(r.serpStrength||"-")+"\\n個人ブログ件数："+r.personalBlogCount+"\\n最上位の個人ブログ："+(r.bestPersonalBlogRank==null?"-":r.bestPersonalBlogRank+"位")+"\\n検索意図："+(r.searchIntent||"-")+"\\n\\n理由：\\n"+(r.rationale||[]).map(function(x){return "・"+x}).join("\\n")+"\\n\\n推奨切り口：\\n"+(r.recommendedAngle||"-")+"\\n\\n判定後の扱い：\\n"+(r.guidance||"-");if(g.code==="GREEN"){show("creatorArea");hide("yellowDecision")}else if(g.code==="YELLOW"){hide("creatorArea");show("yellowDecision");setStatus("yellowDecisionStatus","","")}else{hide("creatorArea");hide("yellowDecision");if(WORKFLOW_ID)google.script.run.sbmSerpWorkflowComplete(WORKFLOW_ID,"SERP_NO_ENTRY")}}).withFailureHandler(function(x){b.disabled=false;b.textContent="SERP結果を判定";setStatus("judgeStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpRegisterReview(kw,raw)}'+
+    'function judge(){const raw=e("ans").value.trim(),kw=e("kw").value.trim(),b=e("judgeBtn");if(!raw){setStatus("judgeStatus","AI回答を貼り付けてください。","err");return}b.disabled=true;b.textContent="判定中…";setStatus("judgeStatus","SERP上位10件の確認状況を検証しています…","");google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="SERP結果を判定";if(!r||!r.ok){setStatus("judgeStatus",r&&r.message?r.message:"判定できませんでした。","err");return}if(!r.complete){setStatus("judgeStatus",r.message||"SERP結果を確認できませんでした。","err");return}REVIEW=r.review;checkpoint("SERP_REVIEW_READY",{request:e("req").value||"",answer:raw,review:REVIEW,grade:r.grade});setStatus("judgeStatus","SERP確認結果を受理しました。","ok");show("resultCard");const g=r.grade;e("grade").className="grade";e("grade").style.background=g.bg;e("grade").style.color=g.fg;e("grade").textContent=g.label+" — "+g.rankBand;e("detail").textContent="推定到達順位："+r.estimatedReachableRank+"位\\n確信度："+r.confidencePercent+"%\\n確認件数："+(r.checkedCount||0)+"/"+(r.expectedCount||10)+"件"+(r.dataNotice?"\\n注意："+r.dataNotice:"")+"\\nSERP強度："+(r.serpStrength||"-")+"\\n個人ブログ件数："+r.personalBlogCount+"\\n最上位の個人ブログ："+(r.bestPersonalBlogRank==null?"-":r.bestPersonalBlogRank+"位")+"\\n検索意図："+(r.searchIntent||"-")+"\\n\\n理由：\\n"+(r.rationale||[]).map(function(x){return "・"+x}).join("\\n")+"\\n\\n推奨切り口：\\n"+(r.recommendedAngle||"-")+"\\n\\n判定後の扱い：\\n"+(r.guidance||"-");if(g.code==="LIGHT_BLUE"||g.code==="GREEN"){show("creatorArea");hide("yellowDecision")}else if(g.code==="YELLOW"){hide("creatorArea");show("yellowDecision");setStatus("yellowDecisionStatus","","")}else{hide("creatorArea");hide("yellowDecision");if(WORKFLOW_ID)google.script.run.sbmSerpWorkflowComplete(WORKFLOW_ID,"SERP_NO_ENTRY")}}).withFailureHandler(function(x){b.disabled=false;b.textContent="SERP結果を判定";setStatus("judgeStatus",x&&x.message?x.message:String(x),"err")}).sbmSerpRegisterReview(kw,raw)}'+
     'function proceedYellow(){if(!REVIEW)return;hide("yellowDecision");show("creatorArea");setStatus("yellowDecisionStatus","記事作成へ進む判断を選択しました。aCreator紹介状を作成します。","ok");checkpoint("CREATOR_DECISION_GO",{request:e("req").value||"",answer:e("ans").value||"",review:REVIEW,userDecision:"GO"},function(){makeCreator("GO")})}function skipYellow(){hide("creatorArea");setStatus("yellowDecisionStatus","今回は記事作成を見送りました。判定結果は変更しません。","ok");if(WORKFLOW_ID)google.script.run.sbmSerpWorkflowComplete(WORKFLOW_ID,"YELLOW_SKIPPED")}function makeCreator(userDecision){if(!REVIEW)return;const b=e("creatorBtn");b.disabled=true;b.textContent="作成中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="aCreator紹介状を作成";if(!r||!r.ok){alert(r&&r.message?r.message:"紹介状を作成できませんでした。");return}e("creator").value=r.referral||"";show("creator");show("creatorActions");b.style.display="none";checkpoint("CREATOR_REFERRAL_READY",{request:e("req").value||"",answer:e("ans").value||"",review:REVIEW,userDecision:String(userDecision||""),referral:r.referral||""})}).withFailureHandler(function(x){b.disabled=false;b.textContent="aCreator紹介状を作成";alert(x&&x.message?x.message:String(x))}).sbmSerpCreateCreatorReferral(e("kw").value.trim(),JSON.stringify(REVIEW),userDecision||"")}'+
-    'function restoreWorkflow(){var p=decRestore(RESTORE_ENC);if(!p||!p.keyword)return;e("kw").value=p.keyword||"";setStatus("prepStatus","保存済みのSERP参入余地チェックを再開しました。","ok");if(p.request){e("req").value=p.request;show("aiCard")}if(p.answer)e("ans").value=p.answer;if(p.review){REVIEW=p.review;show("resultCard");var gc=String(p.grade&&p.grade.code||p.grade||p.review.grade&&p.review.grade.code||p.review.grade||"YELLOW");e("grade").className="grade";e("grade").style.background=gc==="GREEN"?"#e6f4ea":"#fef7e0";e("grade").style.color=gc==="GREEN"?"#137333":"#7a4b00";e("grade").textContent=gc+" — 保存済み判定から再開";e("detail").textContent="保存済みのSERP判定から再開しました。必要に応じてClaude回答を再判定できます。";if(gc==="YELLOW")show("yellowDecision");else if(gc==="GREEN")show("creatorArea")}if(p.userDecision==="GO"){hide("yellowDecision");show("creatorArea")}if(p.referral){e("creator").value=p.referral;show("creator");show("creatorActions");e("creatorBtn").style.display="none";show("creatorRegisterArea")}}document.addEventListener("DOMContentLoaded",restoreWorkflow);'+
+    'function restoreWorkflow(){var p=decRestore(RESTORE_ENC);if(!p||!p.keyword)return;e("kw").value=p.keyword||"";setStatus("prepStatus","保存済みのSERP参入余地チェックを再開しました。","ok");if(p.request){e("req").value=p.request;show("aiCard")}if(p.answer)e("ans").value=p.answer;if(p.review){REVIEW=p.review;show("resultCard");var rank=Number(p.review.estimated_reachable_rank||0),legacy=String(p.grade&&p.grade.code||p.grade||""),gc=rank>0?(rank<=10?"LIGHT_BLUE":rank<=20?"GREEN":rank<=30?"YELLOW":"RED"):(legacy==="PINK"?"YELLOW":legacy==="GREEN"?"LIGHT_BLUE":legacy==="YELLOW"?"GREEN":legacy||"RED"),palette={LIGHT_BLUE:["#b3e5fc","#12445c"],GREEN:["#c8e6c9","#1b5e20"],YELLOW:["#fff2b3","#765700"],RED:["#c62828","#ffffff"]},colors=palette[gc]||palette.RED;e("grade").className="grade";e("grade").style.background=colors[0];e("grade").style.color=colors[1];e("grade").textContent=(gc==="LIGHT_BLUE"?"LIGHT BLUE":gc)+" — 保存済み判定から再開";e("detail").textContent="保存済みのSERP判定から再開しました。必要に応じてClaude回答を再判定できます。";if(gc==="YELLOW")show("yellowDecision");else if(gc==="GREEN"||gc==="LIGHT_BLUE")show("creatorArea")}if(p.userDecision==="GO"){hide("yellowDecision");show("creatorArea")}if(p.referral){e("creator").value=p.referral;show("creator");show("creatorActions");e("creatorBtn").style.display="none";show("creatorRegisterArea")}}document.addEventListener("DOMContentLoaded",restoreWorkflow);'+
     '</script></body></html>').setWidth(860).setHeight(820);
   sbmShowThemedModalDialog_(html,'SERP参入余地チェック');
 }

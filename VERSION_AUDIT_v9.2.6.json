@@ -1,0 +1,11 @@
+{
+  "version": "9.2.6",
+  "canonical_code": "apps-script/Code.gs",
+  "code_sha256": "ef481dc4feb125354d01c302e40e960c2312623b12002a6fc1295382130a864a",
+  "checks": {
+    "version_constant": true,
+    "four_color_serp_grade": true,
+    "legacy_checkpoint_restore": true
+  },
+  "uat": "NOT_TESTED"
+}
