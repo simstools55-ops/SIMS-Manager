@@ -1,6 +1,6 @@
-# SIMS Manager v9.2.10
+# SIMS Manager v9.2.11
 
-最新版の導入手順は README-v9.2.10-FIRST.md を参照してください。
+最新版の導入手順は README-v9.2.11-FIRST.md を参照してください。
 
 # SIMS Manager v9.2.8 — Starter記事管理メニュー制御
 

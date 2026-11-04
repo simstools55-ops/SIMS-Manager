@@ -1,0 +1,8 @@
+{
+  "version": "9.2.11",
+  "scope": "site settings only",
+  "runtime": "SBM_VERSION",
+  "backward_compatible_default": "BALANCED",
+  "historical_version_references": "retained in changelog and historical docs",
+  "live_uat": "pending"
+}

@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.10
- * Release summary: Restrict Personal Knowledge inspection to Full Edition; preserve background knowledge operations.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.10.md.
+ * Current version: 9.2.11
+ * Release summary: Add per-site reading-device policy with backward-compatible default and no retroactive article changes.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.11.md.
  */
 
-const SBM_VERSION = '9.2.10';
+const SBM_VERSION = '9.2.11';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -14691,6 +14691,15 @@ function sbmSkipRelease1SetupStep(step) {
   return true;
 }
 
+/** 閲覧環境ポリシー。未設定の既存サイトは両対応として扱う。 */
+function sbmNormalizeReadingDevicePolicy_(value) {
+  var policy = String(value || '').trim();
+  return (policy === 'MOBILE_FIRST' || policy === 'DESKTOP_FIRST' || policy === 'BALANCED') ? policy : 'BALANCED';
+}
+function sbmGetReadingDevicePolicy_() {
+  return sbmNormalizeReadingDevicePolicy_(sbmGetSetting_('ReadingDevicePolicy','BALANCED'));
+}
+
 /* ---------- サイト設定 ---------- */
 
 function sbmOpenBlogInfoChange() {
@@ -14702,12 +14711,17 @@ function sbmOpenBlogInfoChange() {
     + '<div class="field"><label>サイト名</label><input id="blogName" value="'+sbmEscapeHtml_(s.blogName)+'"></div>'
     + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
     + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>'
+    + '<div class="field"><label for="readingDevicePolicy">記事の閲覧環境</label><select id="readingDevicePolicy" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:6px">'
+    + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>両方に対応（標準）</option>'
+    + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ重視</option>'
+    + '<option value="DESKTOP_FIRST"'+(sbmGetReadingDevicePolicy_()==='DESKTOP_FIRST'?' selected':'')+'>PC重視</option>'
+    + '</select><p style="font-size:12px;margin:6px 0">新記事の執筆方針に使用する設定です。変更しても公開済みの記事や改善・モニター状態は変わりません。</p></div>'
     + '<div id="msg"></div><div class="actions">'
     + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
     + '</div><script>'
     + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});'
     + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").textContent=(e&&e.message)?e.message:String(e);document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
-    + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value});}'
+    + '.withSuccessHandler(function(){google.script.host.close();}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
     + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');
@@ -14721,12 +14735,24 @@ function sbmSaveBlogInfoChange(payload) {
   var siteName = blogName;
   var property = String(payload.property || '').trim();
   if (!blogName || !blogUrl || !property) throw new Error('すべての項目を入力してください。');
+  var policy = sbmNormalizeReadingDevicePolicy_(payload.readingDevicePolicy);
+  if (String(payload.readingDevicePolicy || '').trim() && policy !== String(payload.readingDevicePolicy).trim()) {
+    throw new Error('記事の閲覧環境の指定が不正です。');
+  }
+  var previousPolicy = sbmGetReadingDevicePolicy_();
   sbmSetSetting_('BlogName',blogName,'管理するブログ名');
   sbmSetSetting_('BlogUrl',blogUrl,'ブログURL');
   sbmSetSetting_('SiteID',siteId,'SIMS製品間でサイトを識別するID');
   sbmSetSetting_('SiteName',siteName,'SIMS製品間で表示するサイト名');
   sbmSetSetting_('SearchConsoleProperty',property,'Search Console property');
   sbmSetSetting_('SetupBlogInfo','YES','ブログ情報登録済み');
+  if (policy !== previousPolicy || String(sbmGetSetting_('ReadingDevicePolicy','') || '').trim() === '') {
+    sbmSetSetting_('ReadingDevicePolicy',policy,'記事の閲覧環境：BALANCED / MOBILE_FIRST / DESKTOP_FIRST');
+    if (policy !== previousPolicy) {
+      sbmSetSetting_('ReadingDevicePolicyPrevious',previousPolicy,'記事の閲覧環境：直前の設定');
+      sbmSetSetting_('ReadingDevicePolicyChangedAt',sbmNowText_(),'記事の閲覧環境：最終変更日時');
+    }
+  }
   sbmRefreshHome_();
   return true;
 }
