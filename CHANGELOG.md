@@ -1,3 +1,9 @@
+## v9.2.16
+- Site settings and setup wizard: place actions after scrollable content (no sticky footer).
+- Site settings: keep save confirmation visible until user closes; scroll status into view.
+- New article direct Creator request: explain the active reading mode and how to change it.
+- Existing-article referral enrichment deferred pending schema and relevance audit; no unverified links generated.
+
 ## v9.2.15
 - 閲覧環境の2択化とaCreatorへのスタイル連携（4経路）。
 - 旧DESKTOP_FIRST設定をBALANCEDとして扱う互換対応。

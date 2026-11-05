@@ -1,0 +1,1 @@
+fix(manager): improve setup and site-settings dialog usability (v9.2.16)

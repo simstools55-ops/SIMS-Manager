@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.15
+ * Current version: 9.2.16
  * Release summary: Two reading modes and backward-compatible aCreator referral style mapping.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.15.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.16.md.
  */
 
-const SBM_VERSION = '9.2.15';
+const SBM_VERSION = '9.2.16';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -14450,7 +14450,7 @@ function sbmRelease1WizardBaseCss_() {
     + 'input{box-sizing:border-box;width:100%;padding:9px;border:1px solid #bdc1c6;border-radius:6px;font-size:14px}'
     + '.status{display:inline-block;border-radius:14px;padding:3px 9px;font-size:12px;font-weight:700}'
     + '.done{background:#e6f4ea;color:#137333}.todo{background:#fef7e0;color:#b06000}'
-    + '.actions{position:sticky;bottom:0;z-index:2;display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;padding:14px 0 12px;border-top:1px solid #e5e7eb;background:#fff;box-shadow:0 -6px 10px rgba(255,255,255,.95)}'
+    + '.actions{position:static;display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px;padding:14px 0 12px;border-top:1px solid #e5e7eb;background:#fff}'
     + 'button{border:0;border-radius:7px;padding:10px 16px;font-weight:700;cursor:pointer}'
     + '.run{background:#0b8043;color:#fff}.skip{background:#e8f0fe;color:#174ea6}.end{background:#fff;color:#3c4043;border:1px solid #9aa0a6}'
     + '#msg{font-size:12px;color:#5f6368;margin-top:10px;white-space:pre-wrap;display:flex;align-items:center;gap:8px}'
@@ -14743,12 +14743,12 @@ function sbmOpenBlogInfoChange() {
     + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>バランス型（PC/スマホ対応）</option>'
     + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ特化型</option>'
     + '</select><p style="font-size:12px;margin:6px 0">新記事の執筆方針に使用する設定です。変更しても公開済みの記事や改善・モニター状態は変わりません。</p></div>'
-    + '<div id="msg"></div><div class="actions">'
+    + '<div class="actions">'
     + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
-    + '</div><script>'
+    + '</div><div id="msg" role="status" aria-live="polite" style="min-height:24px;margin-top:10px;font-weight:700"></div><script>'
     + 'function save(){document.querySelectorAll("button").forEach(function(b){b.disabled=true});var m=document.getElementById("msg");m.style.color="#333";m.textContent="設定を保存しています…";'
-    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").style.color="#b3261e";document.getElementById("msg").textContent="保存できませんでした："+((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false;});})'
-    + '.withSuccessHandler(function(){var m=document.getElementById("msg");m.style.color="#137333";m.textContent="✓ 設定を保存しました。画面を閉じます。";setTimeout(function(){google.script.host.close();},1100);}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
+    + 'google.script.run.withFailureHandler(function(e){document.getElementById("msg").style.color="#b3261e";document.getElementById("msg").textContent="保存できませんでした："+((e&&e.message)?e.message:String(e));document.querySelectorAll("button").forEach(function(b){b.disabled=false;});document.getElementById("msg").scrollIntoView({block:"nearest"});})'
+    + '.withSuccessHandler(function(){var m=document.getElementById("msg");m.style.color="#137333";m.textContent="✓ 設定を保存しました。確認後に「閉じる」を押してください。";document.getElementById("siteCloseBtn").disabled=false;m.scrollIntoView({block:"nearest"});}).sbmSaveBlogInfoChange({blogName:document.getElementById("blogName").value,blogUrl:document.getElementById("blogUrl").value,property:document.getElementById("property").value,readingDevicePolicy:document.getElementById("readingDevicePolicy").value});}'
     + 'document.getElementById("siteSaveBtn").addEventListener("click",save);document.getElementById("siteCloseBtn").addEventListener("click",function(){google.script.host.close();});'
     + '</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(570),'サイト設定');
@@ -22013,6 +22013,7 @@ function sbmNewArticleBuildCreatorRequest_(caseId,draft){
     site:{site_id:siteId,site_name:siteName,site_url:siteUrl},
     reading_device_style:sbmCreatorReadingStyle_(),
     reading_device_instruction:sbmCreatorReadingInstruction_(),
+    reading_device_setting_notice:'現在のサイト設定に基づく閲覧スタイルです。変更する場合はSIMS Managerの「サイト設定」で保存後、依頼文を再生成してください。',
     article_type:articleType,
     monetization:articleType==='AFFILIATE'?'AFFILIATE':'ADSENSE',
     user_selected_fields:selected,

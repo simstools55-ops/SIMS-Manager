@@ -1,4 +1,4 @@
-# SIMS Manager v9.2.15
+# SIMS Manager v9.2.16
 
 閲覧環境を2択に統一し、aCreator依頼文にサイト設定を自動反映します。
 
