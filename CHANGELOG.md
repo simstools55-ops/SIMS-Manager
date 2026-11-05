@@ -1,3 +1,7 @@
+## v9.2.15
+- 閲覧環境の2択化とaCreatorへのスタイル連携（4経路）。
+- 旧DESKTOP_FIRST設定をBALANCEDとして扱う互換対応。
+
 ## v9.2.14
 - 改善ナビ起動の各段階をApps Script実行ログへ記録。
 - UI表示前のWorkflow・記事状態更新を撤廃し、表示後のCheckpointに移動。

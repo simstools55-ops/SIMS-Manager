@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.14
- * Release summary: Harden improvement-navi launch diagnostics and defer workflow mutation until dialog display.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.14.md.
+ * Current version: 9.2.15
+ * Release summary: Two reading modes and backward-compatible aCreator referral style mapping.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.15.md.
  */
 
-const SBM_VERSION = '9.2.14';
+const SBM_VERSION = '9.2.15';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -14502,9 +14502,8 @@ function sbmShowRelease1SetupStep_(step) {
       + '<div style="font-size:12px;color:#5f6368;margin-top:6px;line-height:1.6">通常のサイトURLではなく、Google Search Consoleに登録されている<b>プロパティ</b>を入力します。Search Console画面左上のプロパティ選択欄で確認してください。<br>例：URLプレフィックス <code>https://example.com/</code><br>例：ドメイン <code>sc-domain:example.com</code></div>'
       + '<button id="propertyHelpBtn" type="button" class="helpLink">Search Consoleでプロパティを確認</button></div>'
       + '<div class="field"><label for="readingDevicePolicy">記事の閲覧環境</label><select id="readingDevicePolicy" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:6px">'
-      + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>両方に対応（標準）</option>'
-      + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ重視</option>'
-      + '<option value="DESKTOP_FIRST"'+(sbmGetReadingDevicePolicy_()==='DESKTOP_FIRST'?' selected':'')+'>PC重視</option>'
+      + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>バランス型（PC/スマホ対応）</option>'
+      + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ特化型</option>'
       + '</select><p style="font-size:12px;margin:6px 0">新記事の執筆方針です。変更しても公開済み記事や改善状態は変わりません。</p></div>';
   } else if (step === 2) {
     // 新規セットアップでは過去値・テンプレート値を初期表示しない。
@@ -14611,7 +14610,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
     if(!blogName||!blogUrl||!property)throw new Error('サイト名、サイトURL、Search Consoleプロパティをすべて入力してください。');
     var readingPolicyRaw=String(payload.readingDevicePolicy||'').trim();
     var readingPolicy=sbmNormalizeReadingDevicePolicy_(readingPolicyRaw);
-    if(readingPolicyRaw && readingPolicy!==readingPolicyRaw)throw new Error('記事の閲覧環境の指定が不正です。');
+    if(readingPolicyRaw && ['BALANCED','MOBILE_FIRST','DESKTOP_FIRST'].indexOf(readingPolicyRaw)<0)throw new Error('記事の閲覧環境の指定が不正です。');
     var oldReadingPolicy=sbmGetReadingDevicePolicy_();
 
     sbmSetupSetSettingsBulk_([
@@ -14621,7 +14620,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
       {key:'SiteName',value:siteName,desc:'SIMS製品間で表示するサイト名'},
       {key:'SearchConsoleProperty',value:property,desc:'Search Console property'},
       {key:'SetupBlogInfo',value:'YES',desc:'STEP1完了状態'},
-      {key:'ReadingDevicePolicy',value:readingPolicy,desc:'記事の閲覧環境：BALANCED / MOBILE_FIRST / DESKTOP_FIRST'}
+      {key:'ReadingDevicePolicy',value:readingPolicy,desc:'記事の閲覧環境：BALANCED / MOBILE_FIRST（旧DESKTOP_FIRSTはBALANCEDへ正規化）'}
     ]);
     if(oldReadingPolicy!==readingPolicy){
       sbmSetupSetSettingsBulk_([
@@ -14713,10 +14712,20 @@ function sbmSkipRelease1SetupStep(step) {
 /** 閲覧環境ポリシー。未設定の既存サイトは両対応として扱う。 */
 function sbmNormalizeReadingDevicePolicy_(value) {
   var policy = String(value || '').trim();
-  return (policy === 'MOBILE_FIRST' || policy === 'DESKTOP_FIRST' || policy === 'BALANCED') ? policy : 'BALANCED';
+  return policy === 'MOBILE_FIRST' ? 'MOBILE_FIRST' : 'BALANCED';
 }
 function sbmGetReadingDevicePolicy_() {
   return sbmNormalizeReadingDevicePolicy_(sbmGetSetting_('ReadingDevicePolicy','BALANCED'));
+}
+
+/** aCreator v2.1.0向けの閲覧スタイル。旧DESKTOP_FIRSTもBALANCEDとして扱う。 */
+function sbmCreatorReadingStyle_() {
+  return sbmGetReadingDevicePolicy_() === 'MOBILE_FIRST' ? 'MOBILE_STORY' : 'DESKTOP_FIRST';
+}
+function sbmCreatorReadingInstruction_() {
+  return sbmCreatorReadingStyle_() === 'MOBILE_STORY'
+    ? '閲覧スタイルはMOBILE_STORY（スマホ特化型）。短文・短段落を優先し、必要な情報を省略しない。'
+    : '閲覧スタイルはDESKTOP_FIRST（バランス型・従来型）。PCとスマホの双方で読みやすい標準記事を作成する。';
 }
 
 /* ---------- サイト設定 ---------- */
@@ -14731,9 +14740,8 @@ function sbmOpenBlogInfoChange() {
     + '<div class="field"><label>サイトURL</label><input id="blogUrl" value="'+sbmEscapeHtml_(s.blogUrl)+'"></div>'
     + '<div class="field"><label>Search Consoleプロパティ</label><input id="property" value="'+sbmEscapeHtml_(s.property)+'"></div>'
     + '<div class="field"><label for="readingDevicePolicy">記事の閲覧環境</label><select id="readingDevicePolicy" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:6px">'
-    + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>両方に対応（標準）</option>'
-    + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ重視</option>'
-    + '<option value="DESKTOP_FIRST"'+(sbmGetReadingDevicePolicy_()==='DESKTOP_FIRST'?' selected':'')+'>PC重視</option>'
+    + '<option value="BALANCED"'+(sbmGetReadingDevicePolicy_()==='BALANCED'?' selected':'')+'>バランス型（PC/スマホ対応）</option>'
+    + '<option value="MOBILE_FIRST"'+(sbmGetReadingDevicePolicy_()==='MOBILE_FIRST'?' selected':'')+'>スマホ特化型</option>'
     + '</select><p style="font-size:12px;margin:6px 0">新記事の執筆方針に使用する設定です。変更しても公開済みの記事や改善・モニター状態は変わりません。</p></div>'
     + '<div id="msg"></div><div class="actions">'
     + '<button id="siteSaveBtn" type="button" class="run">保存</button><button id="siteCloseBtn" type="button" class="end">閉じる</button>'
@@ -14755,7 +14763,7 @@ function sbmSaveBlogInfoChange(payload) {
   var property = String(payload.property || '').trim();
   if (!blogName || !blogUrl || !property) throw new Error('すべての項目を入力してください。');
   var policy = sbmNormalizeReadingDevicePolicy_(payload.readingDevicePolicy);
-  if (String(payload.readingDevicePolicy || '').trim() && policy !== String(payload.readingDevicePolicy).trim()) {
+  if (String(payload.readingDevicePolicy || '').trim() && ['BALANCED','MOBILE_FIRST','DESKTOP_FIRST'].indexOf(String(payload.readingDevicePolicy).trim())<0) {
     throw new Error('記事の閲覧環境の指定が不正です。');
   }
   var previousPolicy = sbmGetReadingDevicePolicy_();
@@ -14765,8 +14773,8 @@ function sbmSaveBlogInfoChange(payload) {
   sbmSetSetting_('SiteName',siteName,'SIMS製品間で表示するサイト名');
   sbmSetSetting_('SearchConsoleProperty',property,'Search Console property');
   sbmSetSetting_('SetupBlogInfo','YES','ブログ情報登録済み');
-  if (policy !== previousPolicy || String(sbmGetSetting_('ReadingDevicePolicy','') || '').trim() === '') {
-    sbmSetSetting_('ReadingDevicePolicy',policy,'記事の閲覧環境：BALANCED / MOBILE_FIRST / DESKTOP_FIRST');
+  if (policy !== previousPolicy || String(sbmGetSetting_('ReadingDevicePolicy','') || '').trim() !== policy) {
+    sbmSetSetting_('ReadingDevicePolicy',policy,'記事の閲覧環境：BALANCED / MOBILE_FIRST（旧DESKTOP_FIRSTはBALANCEDへ正規化）');
     if (policy !== previousPolicy) {
       sbmSetSetting_('ReadingDevicePolicyPrevious',previousPolicy,'記事の閲覧環境：直前の設定');
       sbmSetSetting_('ReadingDevicePolicyChangedAt',sbmNowText_(),'記事の閲覧環境：最終変更日時');
@@ -21874,6 +21882,7 @@ function sbmDoctorBuildCreatorReferral_(o,id){
   return {
     format:'SIMS_ARTICLE_CREATOR_REFERRAL_V1',contract_version:'1.0',source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_ARTICLE_CREATOR',generated_at:sbmDoctorIso_(new Date()),
     case_id:id.caseId,site_id:id.siteId||String(sbmGetSetting_('SiteID','')||''),site_diagnosis_batch_id:id.siteDiagnosisBatchId,site_diagnosis_case_id:id.siteDiagnosisCaseId,
+    reading_device_style:sbmCreatorReadingStyle_(),reading_device_instruction:sbmCreatorReadingInstruction_(),
     request_mode:'SITE_DIAGNOSIS_NEW_ARTICLE',candidate_keyword:String(p.candidate_keyword||''),source_keyword:String(p.source_keyword||''),added_intent_term:String(p.added_intent_term||''),
     search_intent:String(p.search_intent||''),serp_independence:String(p.serp_independence||''),new_article_reason:String(p.new_article_reason||''),role_with_existing_articles:String(p.role_with_existing_articles||''),
     do_not_target:Array.isArray(p.do_not_target)?p.do_not_target:[],internal_link_candidates:links,monitor_days:Number(p.monitor_days||28)||28,post_publish_policy:String(p.post_publish_policy||''),
@@ -22002,6 +22011,8 @@ function sbmNewArticleBuildCreatorRequest_(caseId,draft){
     generated_at:sbmDoctorIso_(new Date()),
     case_id:caseId,
     site:{site_id:siteId,site_name:siteName,site_url:siteUrl},
+    reading_device_style:sbmCreatorReadingStyle_(),
+    reading_device_instruction:sbmCreatorReadingInstruction_(),
     article_type:articleType,
     monetization:articleType==='AFFILIATE'?'AFFILIATE':'ADSENSE',
     user_selected_fields:selected,
@@ -24093,6 +24104,8 @@ function sbmSerpBuildCreatorReferral_(keyword,review,grade,userDecision){
     site_id:String(sbmGetSetting_('SiteID','')||''),
     site_name:String(sbmGetSetting_('SiteName','')||sbmGetSetting_('BlogName','')||''),
     candidate_keyword:String(keyword||''),
+    reading_device_style:sbmCreatorReadingStyle_(),
+    reading_device_instruction:sbmCreatorReadingInstruction_(),
     serp_entry_assessment:{
       grade:grade.code,
       estimated_reachable_rank:Number(review.estimated_reachable_rank||0),
@@ -24264,7 +24277,7 @@ function sbmNewArticleReviewRequest_(c){
   return 'SIMS 新記事候補適格性レビュー\n\n対象サイト：'+site+'\n候補クエリ：'+c.query+'\nGSC表示回数：'+c.impressions+'\nクリック数：'+c.clicks+'\n平均順位：'+Number(c.position||0).toFixed(1)+'\n既存表示URL数：'+c.sourceUrlCount+'\n既存表示URL：'+(c.sourceUrls||[]).join(', ')+'\n\nWeb/SERPを確認し、既存記事で扱うべき検索意図か、独立した新記事として成立するか、カニバリの危険、検索需要、SERP参入余地を精査してください。親記事を押し上げるだけの薄い記事はGREENにしないでください。\n\nJSONで返してください：\n{"format":"SIMS_NEW_ARTICLE_OPPORTUNITY_REVIEW_V1","query":"'+c.query.replace(/"/g,'\\"')+'","decision":"GREEN|YELLOW|BLOCK","reason":"...","search_intent":"...","cannibalization_risk":"LOW|MEDIUM|HIGH","creator_brief":"GREENの場合のみ新記事の境界・狙いを記述"}';
 }
 function sbmNewArticleCreatorReferral_(c,review){
-  return JSON.stringify({format:'SIMS_CREATOR_REFERRAL_V1',requested_by:'SIMS',site_id:String(sbmGetSetting_('SiteID','')||''),site_name:String(sbmGetSetting_('SiteName','')||''),candidate_keyword:c.query,source:'GSC_ZERO_TODAY_IMPROVEMENT_FALLBACK',gsc_signal:{clicks:c.clicks,impressions:c.impressions,average_position:c.position,observed_urls:c.sourceUrls},opportunity_review:review,instructions:{goal:'独立した検索価値を持つ新記事を作成する',must_avoid:['既存記事とのカニバリ','親記事を押し上げるだけの薄い記事','SERP上位記事の模倣'],return_publication_json:true}},null,2);
+  return JSON.stringify({format:'SIMS_CREATOR_REFERRAL_V1',requested_by:'SIMS',site_id:String(sbmGetSetting_('SiteID','')||''),site_name:String(sbmGetSetting_('SiteName','')||''),candidate_keyword:c.query,reading_device_style:sbmCreatorReadingStyle_(),reading_device_instruction:sbmCreatorReadingInstruction_(),source:'GSC_ZERO_TODAY_IMPROVEMENT_FALLBACK',gsc_signal:{clicks:c.clicks,impressions:c.impressions,average_position:c.position,observed_urls:c.sourceUrls},opportunity_review:review,instructions:{goal:'独立した検索価値を持つ新記事を作成する',must_avoid:['既存記事とのカニバリ','親記事を押し上げるだけの薄い記事','SERP上位記事の模倣'],return_publication_json:true}},null,2);
 }
 function sbmRegisterNewArticleOpportunityReview_(candidateJson,raw){
   var c=JSON.parse(candidateJson), t=String(raw||'').trim(); if(!t)throw new Error('精査結果を貼り付けてください。');
