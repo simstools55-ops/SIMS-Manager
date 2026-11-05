@@ -1,3 +1,25 @@
+## v9.2.20 (2026-11-05)
+- Route both improvement-feedback entry points through pre-registration follow-up gate.
+- Auto-decide actionable Doctor referral from initial Writer warnings.
+- Persist initial response, Doctor request/response and final Writer request/response in WorkflowState.
+- Resume follow-up stages without NAVI_OPEN overwrite; prevent repeated Doctor referral.
+- Register final Writer response directly through the existing registration validation; retain existing deduplication.
+- Static tests passed; Apps Script live UAT pending.
+
+## v9.2.19 — Writer-to-Doctor follow-up preview
+- aWriter warningsから追加診断候補を読み取り専用で抽出し、改善結果の確認文に表示。
+- 診断Caseの作成・永続化・Claude送信は未実装。通常の改善登録は変更なし。
+
+## v9.2.18 — aWriter閲覧スタイル連携
+- 改善ナビとaDoctor経由のaWriter紹介状へサイト設定の閲覧スタイルを引き継ぐ。
+- 軽微な改善で記事全文を不要に書き換えないよう指示。
+
+## v9.2.17
+- 新記事aCreator依頼文の4経路に記事管理由来の関連記事候補を連携。
+- 既存の内部リンク採点を再利用。メインクエリ完全一致記事は候補から除外し重複注意として報告。
+- 候補は未検証として明示し、リンクの捏造・自動挿入を行わない。
+- v9.2.16のUI・閲覧環境2択は維持。
+
 ## v9.2.16
 - Site settings and setup wizard: place actions after scrollable content (no sticky footer).
 - Site settings: keep save confirmation visible until user closes; scroll status into view.

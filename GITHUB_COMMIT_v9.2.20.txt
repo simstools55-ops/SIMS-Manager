@@ -1,0 +1,1 @@
+feat(manager): add one-shot resumable Writer-to-Doctor follow-up (v9.2.20)

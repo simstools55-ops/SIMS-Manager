@@ -1,0 +1,3 @@
+feat(manager): preview aWriter-to-aDoctor follow-up candidates (v9.2.19)
+
+Extract read-only content-accuracy and keyword-strategy candidates from Writer warnings without creating Doctor cases or blocking improvement registration.

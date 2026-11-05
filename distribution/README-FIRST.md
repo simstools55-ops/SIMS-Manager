@@ -1,3 +1,7 @@
+# SIMS Manager v9.2.19
+
+aWriter回答のwarningsからaDoctor追加診断候補を読み取り専用で表示します。診断Caseの自動作成・保存・送信は行いません。既存の改善登録とモニター処理は維持します。
+
 # SIMS Manager v9.2.7 — UAT candidate
 
 Starter/Full共通のSERP参入余地判定。aCreatorへの依頼はFull限定。実機試験前。

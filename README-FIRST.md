@@ -1,6 +1,16 @@
-# SIMS Manager v9.2.16
+# SIMS Manager v9.2.20
 
-閲覧環境を2択に統一し、aCreator依頼文にサイト設定を自動反映します。
+初回aWriter回答の追加診断要否をSBMが自動判定し、必要時は登録を保留します。aDoctor診断→aWriter再依頼→最終登録の経路を追加しました。2回目のaWriter回答では再診断しません。途中経過は既存WorkflowStateに保存し「未完了の作業を再開」から復元します。
+
+**Apps Scriptでの実運用試験前です。** 通常の公開確認を行ってから改善登録してください。
+
+# SIMS Manager v9.2.19
+
+aWriter回答のwarningsからaDoctor追加診断候補を読み取り専用で表示します。診断Caseの自動作成・保存・送信は行いません。既存の改善登録とモニター処理は維持します。
+
+# SIMS Manager v9.2.18
+
+既存の内部リンク候補抽出機能を新記事aCreator依頼文へ連携します。閲覧環境2択は維持します。
 
 # SIMS Manager v9.2.13
 

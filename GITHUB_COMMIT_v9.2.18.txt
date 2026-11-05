@@ -1,0 +1,1 @@
+fix(manager): propagate site reading style to aWriter referrals (v9.2.18)
