@@ -1,3 +1,14 @@
+## v9.2.22 - Improvement history date-desc sorting
+- 改善履歴の閲覧時・登録後に「改善日」の降順で行全体をソート。
+- 改善の推移と同じネイティブ範囲ソートを使用し、行データ・書式の整合を維持。
+- v9.2.21の追加診断・登録フローは変更しない。
+
+## v9.2.21 (2026-11-06)
+- 改善ナビ登録時の進捗をボタン直下に表示。
+- Doctor追加診断判定後の自動モーダル切り替えを廃止し、明示的な遷移ボタンに変更。
+- 通信失敗時は再登録前に未完了・履歴の確認を案内。
+- Apps Script実環境での検証は未実施。
+
 ## v9.2.20 (2026-11-05)
 - Route both improvement-feedback entry points through pre-registration follow-up gate.
 - Auto-decide actionable Doctor referral from initial Writer warnings.

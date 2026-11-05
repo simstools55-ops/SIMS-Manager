@@ -1,0 +1,1 @@
+fix(manager): show feedback registration progress and defer follow-up modal (v9.2.21)
