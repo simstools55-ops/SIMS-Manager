@@ -1,4 +1,4 @@
-# SIMS Manager v9.2.23 — Backup timezone verification UAT
+# SIMS Manager v9.2.24 — Backup timezone verification UAT
 
 日次処理のバックアップ先タイムゾーンを元シートと一致させ、コピー後のセル・数式照合は維持します。異常時は不一致の行列と型を実行ログに記録し、停止します。STEP1のエラー表示を修正しました。Apps Script実環境では未検証です。
 

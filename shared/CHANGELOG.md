@@ -1,3 +1,7 @@
+## v9.2.24 — Article identity safety
+- Hidden selection column now uses the currently active row, not a stale cached selection.
+- aDoctor request lookup requires ArticleID and normalized URL to match the same unique row; mismatches fail closed.
+
 ## v9.0.36 UAT
 - 精密診断候補をセル/行選択へ変更。処理中・完了行を保持し、完了をグレー表示。
 

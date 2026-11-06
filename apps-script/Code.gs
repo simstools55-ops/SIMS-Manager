@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.23
+ * Current version: 9.2.24
  * Release summary: Improvement history sorted by improvement date descending on open and after registration.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.23.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.24.md.
  */
 
-const SBM_VERSION = '9.2.23';
+const SBM_VERSION = '9.2.24';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -10085,19 +10085,20 @@ function sbmApplySelectionUiAll_() {
 function sbmGetCheckedRow_(sh, silent) {
   if (!sh || sh.getLastRow() < 2) { if(!silent) sbmAlert_('対象を選択してください','一覧に対象データがありません。'); return 0; }
   var hm=sbmHeaderMap_(sh), col=hm['選択'];
-  if(col && sh.isColumnHiddenByUser(col)){var ar=sh.getActiveRange();if(ar&&ar.getRow()>1)return ar.getRow();}
+  // Hidden selection column: the visible active row is authoritative, never a cached row.
+  if(col && sh.isColumnHiddenByUser(col)){
+    var active=sh.getActiveRange(), activeRow=active?active.getRow():0;
+    if(activeRow>1 && activeRow<=sh.getLastRow())return activeRow;
+    if(!silent)sbmAlert_('対象を選択してください','記事管理で対象記事の行を選択してください。');
+    return 0;
+  }
   if (!col) { var ar=sh.getActiveRange(); return ar && ar.getRow()>1 ? ar.getRow() : 0; }
   var vals=sh.getRange(2,col,sh.getLastRow()-1,1).getValues(), found=[];
   vals.forEach(function(v,i){ if(v[0]===true) found.push(i+2); });
   if(found.length===1)return found[0];
-  if(found.length===0){
-    var saved=Number(PropertiesService.getDocumentProperties().getProperty('SBM_LAST_CHECKED_'+sh.getSheetId())||0);
-    if(saved>1&&saved<=sh.getLastRow())return saved;
-  }
   if(!silent) sbmAlert_('対象を1件選択してください', found.length>1?'チェックは1件だけにしてください。':'左端のチェックボックスで対象を1件選択してください。');
   return 0;
 }
-
 
 function sbmStyleTodaySheetSelection_(){
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.TODAY); if(!sh)return;
@@ -13716,10 +13717,17 @@ function sbmFindArticleDbRowByIdentity_(articleId,url){
   var ids=idCol?sh.getRange(2,idCol,n,1).getDisplayValues():[];
   var urls=urlCol?sh.getRange(2,urlCol,n,1).getDisplayValues():[];
   var aid=String(articleId||'').trim(),norm=sbmNormalizeUrl_(url||'');
+  if(!aid||!norm)throw new Error('記事IDと記事URLの両方が必要です。対象記事を再選択してください。');
+  var found=null;
   for(var i=0;i<n;i++){
-    if((aid&&String(ids[i]&&ids[i][0]||'').trim()===aid)||(norm&&sbmNormalizeUrl_(urls[i]&&urls[i][0]||'')===norm))return {sheet:sh,row:i+2};
+    var rowId=String(ids[i]&&ids[i][0]||'').trim(),rowUrl=sbmNormalizeUrl_(urls[i]&&urls[i][0]||'');
+    if(rowId===aid||rowUrl===norm){
+      if(rowId!==aid||rowUrl!==norm)throw new Error('記事IDとURLの不一致を検出しました。誤診断防止のため停止しました。記事管理の選択行を確認してください。');
+      if(found)throw new Error('同一記事ID・URLの重複を検出しました。誤診断防止のため停止しました。');
+      found={sheet:sh,row:i+2};
+    }
   }
-  return null;
+  return found;
 }
 
 function sbmDoctorCreateRequestFromArticleIdentity(articleId,url){

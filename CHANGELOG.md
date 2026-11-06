@@ -1,3 +1,7 @@
+## v9.2.24 — Article identity safety
+- Hidden selection column now uses the currently active row, not a stale cached selection.
+- aDoctor request lookup requires ArticleID and normalized URL to match the same unique row; mismatches fail closed.
+
 ## v9.2.23 — 2026-11-06
 - Backups: align destination spreadsheet timezone before copying sheets; preserve strict Date/formula comparison.
 - Log first mismatching row/column and value type; clarify STEP1 error messages.

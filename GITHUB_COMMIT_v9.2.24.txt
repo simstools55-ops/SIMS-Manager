@@ -1,0 +1,1 @@
+fix(manager): prevent stale-row aDoctor requests and enforce article ID/URL identity
