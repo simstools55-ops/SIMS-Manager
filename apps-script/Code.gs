@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.22
+ * Current version: 9.2.23
  * Release summary: Improvement history sorted by improvement date descending on open and after registration.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.22.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.23.md.
  */
 
-const SBM_VERSION = '9.2.22';
+const SBM_VERSION = '9.2.23';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -342,7 +342,7 @@ function sbmOpenDailyUpdateDialog() {
     + 'function formatTime(sec){sec=Math.max(0,Number(sec||0));var m=Math.floor(sec/60),s=Math.round(sec%60);return (m?m+"分":"")+s+"秒";}'
     + 'function showRunning(title,text){if(terminal)return;el("spinner").style.display="block";el("message").className="box";el("message").innerHTML="<div class=stage>"+title+"</div>"+text;el("note").textContent="処理中です。完了までこの画面を閉じずにお待ちください。";}'
     + 'function showFailure(prefix,e,retry,retryStage){if(terminal)return;el("spinner").style.display="none";el("message").className="box error";el("message").textContent=prefix+String.fromCharCode(10,10)+((e&&e.message)?e.message:String(e));el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";if(retry){el("runBtn").textContent=retryStage===3?"STEP 3を再実行":"再実行する";el("runBtn").onclick=retryStage===3?retryFinalize:startDaily;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";}}'
-    + 'function startDaily(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 1 / 3　Search Consoleデータ取得中","最新のページデータを取得しています。");google.script.run.withFailureHandler(function(e){showFailure("Search Consoleデータの取得に失敗しました。",e,true);}).withSuccessHandler(function(fetch){if(terminal)return;showRunning("STEP 2 / 3　データ分析・記事DB更新中","取得済みデータとの差分だけを記事DBへ反映しています。");runAnalysis();}).sbmRunDailyFetchStageFromDialog();}'
+    + 'function startDaily(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 1 / 3　Search Consoleデータ取得中","最新のページデータを取得しています。");google.script.run.withFailureHandler(function(e){showFailure("日次処理 STEP 1 の準備またはSearch Console取得に失敗しました。",e,true);}).withSuccessHandler(function(fetch){if(terminal)return;showRunning("STEP 2 / 3　データ分析・記事DB更新中","取得済みデータとの差分だけを記事DBへ反映しています。");runAnalysis();}).sbmRunDailyFetchStageFromDialog();}'
     + 'function openCheck(url){if(url)window.open(url,"_blank");}function confirmAndRetry(){el("runBtn").disabled=true;google.script.run.withFailureHandler(function(e){showFailure("設定確認状態の保存に失敗しました。",e,false);}).withSuccessHandler(function(){el("verifyLinks").style.display="none";startDaily();}).sbmMarkGscZeroDataVerification();}function runAnalysis(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("データ分析・記事DB更新に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(r.verificationRequired){el("spinner").style.display="none";el("message").className="box";el("message").textContent="Search Consoleの設定を確認してください。"+String.fromCharCode(10,10)+(r.message||"");el("note").textContent="各ボタンで設定を確認したあと、「確認後に再実行」を押してください。";var links=r.links||{};el("verifyLinks").style.display="flex";el("gscBtn").onclick=function(){openCheck(links.searchConsole);};el("apiBtn").onclick=function(){openCheck(links.api);};el("scriptBtn").onclick=function(){openCheck(links.appsScript);};el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";el("runBtn").textContent="確認後に再実行";el("runBtn").onclick=confirmAndRetry;el("runBtn").disabled=false;el("runBtn").style.display="inline-block";return;}if(r.dataWaiting){terminal=true;el("spinner").style.display="none";el("message").className="box done";el("message").textContent="Search Consoleのデータがまだ十分にありません。"+String.fromCharCode(10,10)+(r.message||"目安として1週間ほど待ってから、もう一度「日次処理」を実行してください。");el("note").textContent="設定エラーとは限りません。データが蓄積されると日次処理を続けられます。";el("runBtn").style.display="none";el("cancelBtn").textContent="閉じる";el("cancelBtn").style.display="inline-block";return;}if(r.initializationRequired){showRunning("初回の記事DB構築","記事DBがまだありません。"+Number(r.total||0)+"記事を複数回に分けて安全に構築します。");runInitialBuild();return;}if(r.continuationRequired){showRunning("STEP 2 / 3　処理を継続しています",r.message||"実行時間上限を避けるため、保存済み位置から次の処理へ継続します。");setTimeout(runAnalysis,150);return;}showRunning("STEP 3 / 3　改善の推移・完了処理中","改善後の推移を更新し、日次処理の完了状態を確定しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に失敗しました。",e,true,3);}).withSuccessHandler(function(x){showComplete(x||{});}).sbmRunDailyFinalizeStageFromDialog();}).sbmRunDailyAnalysisStageFromDialog();}'
     + 'function runInitialBuild(){if(terminal)return;google.script.run.withFailureHandler(function(e){showFailure("記事DBの初回構築に失敗しました。",e,true);}).withSuccessHandler(function(r){if(terminal)return;r=r||{};if(!r.done){showRunning("初回の記事DB構築","記事DBを分割作成しています。 "+Number(r.processed||0)+" / "+Number(r.total||0)+"記事");setTimeout(runInitialBuild,150);return;}showRunning("STEP 2 / 3　データ分析・記事DB更新中","初回構築が完了しました。ランクと今日の改善を確定しています。");setTimeout(runAnalysis,150);}).sbmRunArticleDbInitialBatchFromDialog();}'
     + 'function openArticleInfo(){google.script.run.withFailureHandler(function(e){el("note").textContent="記事情報の更新画面を開けませんでした："+((e&&e.message)?e.message:String(e));}).sbmOpenArticleInfoUpdate();}function retryFinalize(){terminal=false;el("runBtn").disabled=true;el("runBtn").style.display="none";el("cancelBtn").style.display="none";showRunning("STEP 3 / 3　改善の推移・完了処理を再実行中","STEP 1・2の取得結果は保持したまま、STEP 3だけを再実行しています。");google.script.run.withFailureHandler(function(e){showFailure("改善の推移・完了処理に再度失敗しました。",e,true,3);}).withSuccessHandler(function(r){showComplete(r||{});}).sbmRunDailyFinalizeStageFromDialog();}function showComplete(r){if(terminal)return;terminal=true;var updated=Math.max(0,Number(r.updated||0)),added=Math.max(0,Number(r.added||0)),total=Math.max(0,Number(r.total||0)),outside=Math.max(0,total-updated-added);el("spinner").style.display="none";el("message").className="box done";el("message").innerHTML="✓ 日次処理が完了しました。<div class=result><div class=group><div class=groupTitle>Search Console</div><div class=resultGrid><span>取得行</span><b>"+Number(r.rawRows||0).toLocaleString()+"件</b><span>有効な記事URL</span><b>"+Number(r.validRows||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>記事DB</div><div class=resultGrid><span>更新記事</span><b>"+updated.toLocaleString()+"件</b><span>更新対象外</span><b>"+outside.toLocaleString()+"件</b><span>新規記事</span><b>"+added.toLocaleString()+"件</b><span>総記事数</span><b>"+total.toLocaleString()+"件</b></div><div class=groupNote>※更新対象外：今回のSearch Consoleデータ取得で対象とならなかった記事です。</div></div><div class=group><div class=groupTitle>改善効果</div><div class=resultGrid><span>モニタ中</span><b>"+Number(r.monitoringCount||0).toLocaleString()+"件</b></div></div><div class=group><div class=groupTitle>処理時間</div><div class=resultGrid><span>Search Console取得</span><b>"+formatTime(r.fetchElapsedSeconds)+"</b><span>分析・処理</span><b>"+formatTime(r.analysisElapsedSeconds)+"</b><span>全体所要時間</span><b>"+formatTime(r.totalElapsedSeconds)+"</b></div></div></div>";var miss=Number(r.articleInfoMissing||0);if(miss>0){el("note").textContent="記事情報が不足している記事が "+miss.toLocaleString()+"件あります。必要に応じて記事管理データベースの更新してください。";el("articleInfoBtn").style.display="inline-block";}else{el("note").textContent="記事情報の不足はありません。結果を確認して「閉じる」を押してください。";el("articleInfoBtn").style.display="none";}el("cancelBtn").textContent="閉じる";el("cancelBtn").classList.add("primaryClose");el("cancelBtn").style.display="inline-block";el("todayBtn").style.display="inline-block";}'
@@ -471,7 +471,7 @@ function sbmRunDailyFetchStageFromDialog() {
   } catch(e) {
     SBM_STEP3_PROFILE_ACTIVE=false;
     var elapsedErr = sbmSecondsSince_(started);
-    sbmPersistDailyRuntime_({DailyUpdateRunning:'NO',DailyUpdatePhase:'ERROR',DailyUpdateLastError:String(e),DailyUpdateMessage:'Search Consoleデータの取得に失敗しました。'});
+    sbmPersistDailyRuntime_({DailyUpdateRunning:'NO',DailyUpdatePhase:'ERROR',DailyUpdateLastError:String(e),DailyUpdateMessage:'日次処理STEP1で失敗しました。バックアップとSearch Console取得を確認してください。'});
     sbmProcessLog_('日次処理 STEP1 Search Console取得', 'エラー', '', '', elapsedErr, String(e), startedText, sbmNowText_());
     try { profiler.finish('エラー', String(e)); } catch(ignoreProfileError) {}
     throw e;
@@ -26111,8 +26111,18 @@ function sbmBackupCompareContents_(source, copy) {
     var a=source.getRange(start,1,count,cols),b=copy.getRange(start,1,count,cols);
     var av=a.getValues(),bv=b.getValues(),af=a.getFormulas(),bf=b.getFormulas();
     for(var i=0;i<count;i++) for(var j=0;j<cols;j++) {
-      if(af[i][j]!==bf[i][j]) return false;
-      if(sbmBackupRestoreCanonical_(av[i][j])!==sbmBackupRestoreCanonical_(bv[i][j])) return false;
+      if(af[i][j]!==bf[i][j]) {
+        console.error('SBM_BACKUP_MISMATCH FORMULA row='+String(start+i)+' col='+String(j+1));
+        return false;
+      }
+      if(sbmBackupRestoreCanonical_(av[i][j])!==sbmBackupRestoreCanonical_(bv[i][j])) {
+        var isDateA=av[i][j] instanceof Date, isDateB=bv[i][j] instanceof Date;
+        console.error('SBM_BACKUP_MISMATCH VALUE row='+String(start+i)+' col='+String(j+1)+
+          ' sourceType='+(isDateA?'Date':typeof av[i][j])+' copyType='+(isDateB?'Date':typeof bv[i][j])+
+          ' source='+(isDateA?av[i][j].toISOString():String(av[i][j]).slice(0,100))+
+          ' copy='+(isDateB?bv[i][j].toISOString():String(bv[i][j]).slice(0,100)));
+        return false;
+      }
     }
   }
   return true;
@@ -26189,6 +26199,19 @@ function sbmBackupSnapshot_(kind) {
   var now=new Date(), stamp=Utilities.formatDate(now,Session.getScriptTimeZone()||'Asia/Tokyo','yyyyMMdd_HHmmss');
   var destinationFolder=sbmBackupDestinationFolder_();
   var dest=SpreadsheetApp.create('SIMS_Manager_Backup_'+kind+'_'+stamp+'_'+Utilities.getUuid().slice(0,8));
+  // Backup must interpret Date cells in the same timezone as the source.
+  // Set this BEFORE copyTo; a newly created spreadsheet may default to a different timezone.
+  try {
+    var sourceTimezone=original.getSpreadsheetTimeZone();
+    if(!sourceTimezone) throw new Error('コピー元のタイムゾーンが取得できません');
+    dest.setSpreadsheetTimeZone(sourceTimezone);
+    SpreadsheetApp.flush();
+    if(dest.getSpreadsheetTimeZone()!==sourceTimezone)
+      throw new Error('バックアップ先のタイムゾーン設定が一致しません');
+  } catch(timezoneError) {
+    try {DriveApp.getFileById(dest.getId()).setTrashed(true);} catch(ignoreTimezoneCleanup) {}
+    throw new Error('バックアップ先タイムゾーンの設定に失敗: '+String(timezoneError));
+  }
   var temp=dest.getSheets()[0];
   var meta=[];
   try {
@@ -26197,7 +26220,7 @@ function sbmBackupSnapshot_(kind) {
       var source=original.getSheetByName(name);
       var copy=source.copyTo(dest).setName(name);
       meta.push({name:name,rows:source.getLastRow(),cols:source.getLastColumn(),copiedRows:copy.getLastRow(),copiedCols:copy.getLastColumn()});
-      if(!sbmBackupCompareContents_(source,copy)) throw new Error('バックアップのセル内容・数式照合に失敗: '+name);
+      if(!sbmBackupCompareContents_(source,copy)) throw new Error('バックアップのセル内容・数式照合に失敗: '+name+'（タイムゾーン: 元='+original.getSpreadsheetTimeZone()+' / コピー='+dest.getSpreadsheetTimeZone()+'）');
     });
     dest.deleteSheet(temp);
     dest.insertSheet('_SIMS_BACKUP_META').getRange(1,1,1,4).setValues([['sourceSpreadsheetId','timestamp','kind','schema']]);

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.2.22",
+  "current_version": "9.2.23",
   "release_status": "UAT_CANDIDATE",
-  "notes": "One-shot automatic Writer follow-up diagnosis with resumable Doctor/Writer flow.",
-  "version": "9.2.22",
+  "notes": "Backup timezone alignment before sheet copy; fail-closed validation and precise STEP1 errors.",
+  "version": "9.2.23",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.2.22-ST"
+  "starter_display_version": "v9.2.23-ST"
 }

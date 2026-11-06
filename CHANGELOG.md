@@ -1,3 +1,8 @@
+## v9.2.23 — 2026-11-06
+- Backups: align destination spreadsheet timezone before copying sheets; preserve strict Date/formula comparison.
+- Log first mismatching row/column and value type; clarify STEP1 error messages.
+- UAT pending in Apps Script.
+
 ## v9.2.22 - Improvement history date-desc sorting
 - 改善履歴の閲覧時・登録後に「改善日」の降順で行全体をソート。
 - 改善の推移と同じネイティブ範囲ソートを使用し、行データ・書式の整合を維持。
