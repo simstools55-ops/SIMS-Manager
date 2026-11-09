@@ -1,0 +1,1 @@
+feat(strategy): prioritize one-pass decisions and guard evidence-only approvals

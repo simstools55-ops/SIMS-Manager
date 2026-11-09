@@ -1,0 +1,1 @@
+fix(sbm): expose saved strategy cases independently of daily candidate refresh

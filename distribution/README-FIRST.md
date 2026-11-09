@@ -1,3 +1,5 @@
+> Current UAT version: v9.2.69. See RELEASE_NOTES_v9.2.69.md.
+
 # SIMS Manager v9.2.24 — UAT
 
 日次処理バックアップのタイムゾーン整合・厳密照合・エラー表示を修正。実環境未検証。

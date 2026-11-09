@@ -1,0 +1,1 @@
+fix(strategy): make review approval idempotent and preserve MERGE_REVIEW pending state

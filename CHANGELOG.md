@@ -1,3 +1,21 @@
+## v9.2.67 UAT
+- 同一CaseIDの非META行を先に検出してもMETAを除外しないよう修正。
+
+## v9.2.66 (UAT)
+- 戦略案件一覧の検索範囲縮小と読み込みフェーズ診断を追加。
+
+## v9.2.65 (UAT)
+- 戦略ナビの操作状態表示、二重操作防止、エラー表示改善。
+
+## v9.2.64 (UAT)
+- 戦略案件一覧の読み取り負荷軽減、戦略ナビの表示バージョン整合、サイト健康診断メニュー名変更。
+
+## v9.2.63 (UAT)
+- 保存済み戦略案件の直接再開と、確認付き「今日の改善」反映メニューを追加。
+
+## v9.2.62 (UAT)
+- 戦略ナビの生成HTML内JavaScript構文エラーを修正。生成HTML構文回帰試験を追加。
+
 ## v9.2.61 (UAT)
 - aMerge吸収元のHTTP応答検査を戦略ナビに接続。外部アクセス前に確認。
 
@@ -2132,3 +2150,6 @@ v6.6.73
 - 紹介サービス差し替えの広告URLと広告HTMLコードを別項目に分離。
 - 旧受付のreplacementScopeに混入したHTMLを新しい広告HTML欄へ移行。
 - aDoctor依頼文の詳細項目を読みやすい日本語ラベルで出力。
+
+## v9.2.68 (UAT)
+Strategy approval single-cell META update, lock/readback verification, duplicate guard, MERGE_REVIEW pending-state safety and truthful timeout messaging.

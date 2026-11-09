@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.2.61",
+  "current_version": "9.2.69",
   "release_status": "UAT_CANDIDATE",
-  "notes": "Native merge case provenance reconciliation; UAT only",
-  "version": "9.2.61",
+  "notes": "One-pass strategy referral and FURTHER_EVIDENCE approval safety",
+  "version": "9.2.69",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.2.61-ST"
+  "starter_display_version": "v9.2.69-ST"
 }

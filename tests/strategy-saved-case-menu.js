@@ -1,0 +1,14 @@
+const fs=require('fs'),assert=require('assert');
+const s=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+assert(s.includes("todayMenu.addItem('保存済み戦略案件を再開','sbmStrategyOpenSavedCases')"));
+assert(s.includes("todayMenu.addItem('戦略案件を今日の改善へ反映','sbmStrategyRefreshTodayFromMenu')"));
+const a=s.slice(s.indexOf('function sbmStrategyOpenSavedCases(){'),s.indexOf('function sbmStrategyRefreshToday(){'));
+assert(a.includes('sbmStrategyListCases()'));
+assert(a.includes("sbmStrategyOpenNavigator('')"));
+assert(a.includes('if(!count)'));
+assert(a.includes('ui.ButtonSet.YES_NO'));
+assert(a.includes('if(choice!==ui.Button.YES)'));
+assert(a.includes('sbmStrategyRefreshToday()'));
+assert(!a.includes('sbmDoctorWorkflowWriteMeta_'));
+assert(!a.includes('sbmDoctorWorkflowWritePayload_'));
+console.log('9 saved-case menu static assertions passed');

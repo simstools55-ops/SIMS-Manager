@@ -1,0 +1,1 @@
+fix(sbm): narrow strategy case reads and align health diagnosis menu label

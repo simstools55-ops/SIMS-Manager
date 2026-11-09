@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const start=src.indexOf('function sbmStrategyOpenNavigator(');
+const end=src.indexOf('\nfunction sbmNormalImprovementWorkflowStart_',start);
+assert(start>=0&&end>start);
+let captured='';
+const context={HtmlService:{createHtmlOutput:(html)=>({setWidth(){return this},setHeight(){return this},html})},sbmShowThemedModalDialog_:(out)=>{captured=out.html}};
+vm.createContext(context);vm.runInContext(src.slice(start,end),context);
+vm.runInContext('sbmStrategyOpenNavigator("CASE-TEST")',context);
+assert(captured.includes('読込中…'));
+const script=captured.match(/<script>([\s\S]*?)<\/script>/);
+assert(script,'Script missing');
+new Function(script[1]);
+assert(script[1].includes('吸収元処置の監査チェックリスト'));
+console.log('Generated dialog JavaScript: syntax OK');

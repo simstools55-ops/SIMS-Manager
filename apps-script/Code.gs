@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.56
- * Release summary: Improvement history sorted by improvement date descending on open and after registration.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.57.md.
+ * Current version: 9.2.69
+ * Release summary: One-pass strategy referral and FURTHER_EVIDENCE approval safety.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.69.md.
  */
 
-const SBM_VERSION = '9.2.61';
+const SBM_VERSION = '9.2.69';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -10388,16 +10388,53 @@ function sbmStrategyPersistIndependent_(workflowKey,normalMeta){
     return {ok:true,caseIds:saved};
   }catch(e){return {ok:false,message:String(e&&e.message||e)};}
 }
-function sbmStrategyListCases(){
-  var idx=sbmDoctorWorkflowResumeIndex_(),out=[];
-  Object.keys(idx.meta||{}).forEach(function(k){
-    var m=idx.meta[k]||{};
-    if(m.workflow_type!=='STRATEGY_CASE'||m.status==='CANCELLED'||m.status==='COMPLETED')return;
-    out.push({caseId:k,status:m.status,articleId:m.primary_article_id,articleUrl:m.primary_article_url,
-      relatedId:m.related_article_id,relatedUrl:m.related_article_url,reason:m.reason,recommendation:m.recommendation,doctorDecision:m.doctor_decision,doctorReason:m.doctor_reason,workRoute:m.work_route||'',workReceipt:m.work_receipt||'',monitoringStatus:m.strategy_monitoring_status||''});
-  });
-  return {ok:true,cases:out};
+/** Strategy list: scan only the two identifier columns, never full workflow payloads. */
+/**
+ * Strategy navigator lightweight index. Avoid scanning all Workflow rows/payloads.
+ * A failed Google Sheets storage request is reported with the failing phase.
+ */
+function sbmStrategyListCases(selectedCaseId){
+  var phase='open-sheet',started=Date.now(),matched=0,loaded=0;
+  try{
+    selectedCaseId=String(selectedCaseId||'').trim();
+    var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
+    if(!sh||sh.getLastRow()<2)return {ok:true,cases:[],elapsedMs:Date.now()-started};
+    phase='read-headers';
+    var hm=sbmHeaderMap_(sh),idCol=hm['CaseID'],kindCol=hm['種別'],payloadCol=hm['Payload'];
+    if(!idCol||!kindCol||!payloadCol)throw new Error('Workflow Stateの必須列が見つかりません。');
+    phase='find-strategy-ids';
+    var finder=sh.getRange(2,idCol,sh.getLastRow()-1,1).createTextFinder(
+      selectedCaseId||'^STRATEGY-');
+    if(selectedCaseId)finder.matchEntireCell(true);
+    else finder.useRegularExpression(true);
+    var matches=finder.findAll(),out=[],seen={};
+    matched=matches.length;
+    // Cap initial navigation so one large site cannot hang the dialog indefinitely.
+    var max=selectedCaseId?5:100;
+    for(var i=0;i<matches.length&&Object.keys(seen).length<max;i++){
+      var row=matches[i].getRow(),caseId=String(matches[i].getValue()||'').trim();
+      if(!caseId||caseId.indexOf('STRATEGY-')!==0||seen[caseId])continue;
+      phase='read-kind-row-'+row;
+      if(String(sh.getRange(row,kindCol).getValue()||'').trim()!=='META')continue;
+      seen[caseId]=true;
+      phase='read-meta-row-'+row;
+      var raw=String(sh.getRange(row,payloadCol).getValue()||''),m;
+      try{m=JSON.parse(raw);}catch(ignoreInvalidStrategyMeta){continue;}
+      loaded++;
+      if(!m||m.workflow_type!=='STRATEGY_CASE'||m.status==='CANCELLED'||m.status==='COMPLETED')continue;
+      out.push({caseId:caseId,status:m.status,articleId:m.primary_article_id,articleUrl:m.primary_article_url,
+        relatedId:m.related_article_id,relatedUrl:m.related_article_url,reason:m.reason,recommendation:m.recommendation,
+        doctorDecision:m.doctor_decision,doctorReason:m.doctor_reason,workRoute:m.work_route||'',
+        workReceipt:m.work_receipt||'',monitoringStatus:m.strategy_monitoring_status||''});
+    }
+    return {ok:true,cases:out,matched:matched,loaded:loaded,truncated:matches.length>max,elapsedMs:Date.now()-started};
+  }catch(e){
+    var error=String(e&&e.message||e);
+    try{console.error('[StrategyNavigator] phase='+phase+' matched='+matched+' loaded='+loaded+' elapsedMs='+(Date.now()-started)+' error='+error);}catch(ignoreLog){}
+    return {ok:false,phase:phase,elapsedMs:Date.now()-started,message:'戦略案件の取得に失敗しました（'+phase+'）：'+error};
+  }
 }
+
 function sbmStrategyDecide(caseId,action){
   try{
     var m=sbmDoctorWorkflowReadMeta_(caseId)||{};
@@ -10419,7 +10456,7 @@ function sbmStrategyDoctorRequest(caseId){
   if(m.workflow_type!=='STRATEGY_CASE'||m.status==='CANCELLED'||m.status==='COMPLETED')return {ok:false,message:'有効な戦略案件が見つかりません。'};
   var prompt='【SIMS 戦略ナビ → aDoctor 診断依頼】\n戦略案件ID：'+caseId+'\n対象記事：'+m.primary_article_id+' '+m.primary_article_url+
     '\n関連候補：'+(m.related_article_id||'記事ID未確認')+' '+m.related_article_url+
-    '\n論点：'+m.reason+'\n両記事の検索意図・GSC実績・重複の有無を確認し、統合・役割分離・現状維持の選択肢と根拠を示してください。未取得の実績は推測で補わないでください。公開や記事修正は実行しないでください。'+
+    '\n論点：'+m.reason+'\n【戦略ナビ：1回診断・28日検証】今ある本文・GSC実績・検索意図から、勝算が高く実行可能な一手を必ず1つ選んでください。重複して一方が明確に優勢ならMERGE_REVIEW（統合実行ではなく検討）、双方に固有価値がある・優劣が小さい・統合損失が不明ならROLE_SEPARATION（URL維持）、既に役割が明確ならKEEP_BOTH。FURTHER_EVIDENCEは最低限の診断が不可能な場合だけ。匿名化クエリや更新後28日未経過だけを理由に判断を保留しないでください。記事別の変更内容、28日後の評価指標、失敗時の次の一手を示してください。既存の7/14/21/28日測定とaWriter/aMerge引き継ぎを利用します。未取得の実績は推測で補わず、公開・削除・転送は実行しないでください。'+
     '\n【必須：回答末尾の機械判定JSON】\n'+JSON.stringify({format:'SIMS_STRATEGY_DOCTOR_V1',case_id:caseId,primary_article_id:m.primary_article_id,related_article_url:m.related_article_url,decision:'ROLE_SEPARATION',reason:'根拠と不確実性を記載',writer_instructions:'必要な場合のみ具体的な修正指示。不要なら空文字',requires_change:false})+
     '\n※decisionは ROLE_SEPARATION / MERGE_REVIEW / KEEP_BOTH / FURTHER_EVIDENCE のいずれか。requires_change=true の場合、writer_instructionsに具体的な指示を記載。これは診断であり、変更の実施は利用者の承認後。';
   return {ok:true,text:prompt,response:sbmDoctorWorkflowReadPayload_(caseId,'STRATEGY_DOCTOR_RESPONSE')||''};
@@ -10450,21 +10487,65 @@ function sbmStrategyDoctorSubmit(caseId,response){
     return {ok:true,status:'REVIEW_READY',message:'診断結果を保存しました。実際の記事修正は未実施です。利用者の判断を待ちます。'};
   }catch(e){return {ok:false,message:String(e&&e.message||e)};}
 }
-/** User approval never changes article content automatically; produce an explicit next-step handoff. */
+/** v9.2.68: narrow, read-only lookup for a strategy META row (no full-sheet payload scan). */
+function sbmStrategyReadMetaNarrow_(caseId){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.DOCTOR_WORKFLOW_STATE);
+  if(!sh||sh.getLastRow()<2)throw new Error('戦略案件の保存シートがありません。');
+  var hm=sbmHeaderMap_(sh),idCol=hm['CaseID'],kindCol=hm['種別'],payloadCol=hm['Payload'];
+  if(!idCol||!kindCol||!payloadCol)throw new Error('戦略案件の必須列がありません。');
+  var matches=sh.getRange(2,idCol,sh.getLastRow()-1,1).createTextFinder(caseId).matchEntireCell(true).findAll();
+  for(var i=0;i<matches.length;i++){
+    var row=matches[i].getRow();
+    if(String(sh.getRange(row,kindCol).getValue()||'').trim()!=='META')continue;
+    var raw=String(sh.getRange(row,payloadCol).getValue()||'');
+    var meta=JSON.parse(raw);
+    if(!meta||meta.workflow_type!=='STRATEGY_CASE')throw new Error('戦略案件のMETAが不正です。');
+    return {sheet:sh,row:row,payloadCol:payloadCol,meta:meta};
+  }
+  throw new Error('戦略案件のMETAが見つかりません。');
+}
+/** User approval: atomic single-cell META update; no row deletion/reappend. */
 function sbmStrategyReviewDecision(caseId,action){
+  var phase='validate',lock=null,locked=false;
   try{
-    var m=sbmDoctorWorkflowReadMeta_(caseId)||{};
-    if(m.workflow_type!=='STRATEGY_CASE'||m.status!=='REVIEW_READY')throw new Error('診断結果の利用者判断待ちではありません。');
-    if(['ACCEPT','HOLD','CANCEL'].indexOf(String(action||''))<0)throw new Error('選択内容が不正です。');
-    if(action==='CANCEL')return sbmStrategyDecide(caseId,'CANCEL');
-    if(action==='HOLD')return sbmStrategyDecide(caseId,'HOLD');
-    var needsChange=m.doctor_requires_change===true;
-    var next=needsChange?'aWriterまたはaMergeでの修正案作成を検討してください。修正・公開・通常モニターの変更は自動実行しません。':'記事の変更は不要です。戦略案件を完了として記録します。';
-    sbmDoctorWorkflowWriteMeta_(caseId,{status:needsChange?'APPROVED_ACTION_PENDING':'COMPLETED',
-      decision:'ACCEPT',decided_at:sbmNowText_()});
-    return {ok:true,status:needsChange?'APPROVED_ACTION_PENDING':'COMPLETED',message:next,
-      handoff:needsChange?'【戦略ナビ承認済み修正検討】\n対象：'+m.primary_article_id+' '+m.primary_article_url+'\n関連：'+m.related_article_id+' '+m.related_article_url+'\n診断：'+m.doctor_decision+'\n理由：'+m.doctor_reason+'\n修正指示：'+m.doctor_writer_instructions+'\n記事の修正と公開は利用者の確認後に行ってください。':''};
-  }catch(e){return {ok:false,message:String(e&&e.message||e)};}
+    caseId=String(caseId||'').trim();action=String(action||'').trim();
+    if(!/^STRATEGY-[a-f0-9]{24}$/.test(caseId))throw new Error('戦略案件IDが不正です。');
+    if(['ACCEPT','HOLD','CANCEL'].indexOf(action)<0)throw new Error('選択内容が不正です。');
+    phase='acquire-lock';lock=LockService.getDocumentLock()||LockService.getScriptLock();
+    locked=lock.tryLock(15000);
+    if(!locked)throw new Error('別の処理が進行中です。再度操作する前に保存状態を確認してください。');
+    phase='read-meta';var found=sbmStrategyReadMetaNarrow_(caseId),m=found.meta;
+    // A prior request may have succeeded even when the dialog received no response.
+    if(m.status!=='REVIEW_READY'){
+      return {ok:true,status:m.status,alreadyProcessed:true,
+        message:'保存状態を確認しました。案件は既に '+m.status+' です。重複更新は行っていません。'};
+    }
+    var patch={decision:action,decided_at:sbmNowText_()};
+    if(action==='CANCEL')patch.status='CANCELLED';
+    else if(action==='HOLD')patch.status='ON_HOLD';
+    else {
+      // MERGE_REVIEW means additional human evaluation, even when no immediate edit is required.
+      var doctorDecision=String(m.doctor_decision||'');
+      var reviewRequired=doctorDecision==='MERGE_REVIEW';
+      // Evidence-only diagnoses cannot become completed or authorized work through ACCEPT.
+      patch.status=doctorDecision==='FURTHER_EVIDENCE'?'ON_HOLD':((m.doctor_requires_change===true||reviewRequired)?'APPROVED_ACTION_PENDING':'COMPLETED');
+    }
+    phase='write-meta';
+    Object.keys(patch).forEach(function(k){m[k]=patch[k];});
+    m.case_id=caseId;m.updated_at=sbmNowText_();
+    var serialized=JSON.stringify(m);
+    if(serialized.length>42000)throw new Error('METAが単一セルの安全上限を超えています。書き込みを中止しました。');
+    found.sheet.getRange(found.row,found.payloadCol).setValue(serialized);
+    SpreadsheetApp.flush();
+    phase='verify-meta';
+    var verify=JSON.parse(String(found.sheet.getRange(found.row,found.payloadCol).getValue()||''));
+    if(verify.status!==patch.status||verify.decision!==action)throw new Error('保存後の照合が一致しません。再実行せず状態を確認してください。');
+    var message=action==='CANCEL'?'戦略案件を取りやめました。':action==='HOLD'?'戦略案件を保留しました。':patch.status==='ON_HOLD'?'追加証拠待ちの診断のため保留しました。作業依頼は作成しません。':patch.status==='COMPLETED'?'診断結果を承認し、変更不要として完了しました。':'診断結果を承認しました。記事の変更は行っていません。';
+    return {ok:true,status:patch.status,message:message};
+  }catch(e){
+    try{console.error('[StrategyReviewDecision] phase='+phase+' caseId='+caseId+' error='+String(e&&e.message||e));}catch(ignoreLog){}
+    return {ok:false,phase:phase,message:'承認処理を確認できません（'+phase+'）：'+String(e&&e.message||e)+'。再操作前に保存済み案件を確認してください。'};
+  }finally{if(locked)try{lock.releaseLock();}catch(ignoreRelease){}}
 }
 /** v9.2.29: explicit, resumable handoff. Never edits/publishes articles automatically. */
 function sbmStrategyPrepareWork(caseId,route){
@@ -11296,19 +11377,41 @@ function sbmStrategyHandoffStatus(caseId){
         '経過観察の引き継ぎは未完了です。'};
   }catch(e){return {ok:false,message:String(e&&e.message||e)};}
 }
+// Dedicated entry points avoid relying on the daily-fixed Today sheet to rediscover
+// strategy cases saved after the daily candidate list was generated.
+function sbmStrategyOpenSavedCases(){
+  var list=sbmStrategyListCases();
+  if(!list.ok)throw new Error(list.message||'戦略案件の取得に失敗しました。');
+  if(!(list.cases||[]).length){SpreadsheetApp.getUi().alert('再開可能な戦略案件はありません。');return {ok:true,count:0};}
+  return sbmStrategyOpenNavigator('');
+}
+function sbmStrategyRefreshTodayFromMenu(){
+  var list=sbmStrategyListCases();
+  if(!list.ok)throw new Error(list.message||'戦略案件の取得に失敗しました。');
+  var count=(list.cases||[]).length;
+  if(!count){SpreadsheetApp.getUi().alert('再開可能な戦略案件はありません。今日の改善は変更していません。');return {ok:true,count:0};}
+  var ui=SpreadsheetApp.getUi();
+  var choice=ui.alert('戦略案件を今日の改善へ反映',
+    '保存済みの戦略案件 '+count+' 件を含めて「今日の改善」を再構築します。\n未完了のチェック状態が変わる可能性があります。実行しますか？',ui.ButtonSet.YES_NO);
+  if(choice!==ui.Button.YES)return {ok:true,cancelled:true};
+  var result=sbmStrategyRefreshToday();
+  if(!result.ok)throw new Error(result.message);
+  ui.alert(result.message+' 戦略案件：'+count+'件');
+  return result;
+}
 function sbmStrategyRefreshToday(){
   try{sbmFinalizeTodayImprovementSelection_();return {ok:true,message:'今日の改善を更新しました。'};}
   catch(e){return {ok:false,message:'今日の改善の更新に失敗しました：'+String(e&&e.message||e)};}
 }
 function sbmStrategyOpenNavigator(selectedCaseId){
   selectedCaseId=String(selectedCaseId||'');
-  var html='<!doctype html><html><head><base target="_top"><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:18px;line-height:1.6}section{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}button{margin:5px;padding:8px}textarea{box-sizing:border-box;width:100%;min-height:130px}small{color:#555}p{white-space:pre-wrap}</style></head><body><h3>戦略ナビ（v9.2.61 UAT）</h3><p>記事の修正・公開・経過観察の登録は自動実行しません。</p><button id="refresh">今日の改善へ反映</button><div id="cases">読込中…</div><p id="msg" role="status"></p><script>'+
-    'var selectedCaseId='+JSON.stringify(selectedCaseId)+';function msg(x){document.getElementById("msg").textContent=x||""}function api(n,a,cb){var runner=google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){msg(r&&r.message||"処理失敗");return}if(cb)cb(r)}).withFailureHandler(function(e){msg(String(e))});runner[n].apply(runner,a)}function field(s,title,val){var label=document.createElement("p");label.textContent=title;s.appendChild(label);var t=document.createElement("textarea");t.value=val||"";s.appendChild(t);return t}function btn(s,label,fn){var b=document.createElement("button");b.textContent=label;b.onclick=fn;s.appendChild(b)}'+
-    'function load(){api("sbmStrategyListCases",[],function(r){var root=document.getElementById("cases");root.innerHTML="";var items=(r.cases||[]).filter(function(c){return !selectedCaseId||c.caseId===selectedCaseId});if(!items.length){root.textContent="表示できる戦略案件はありません。";return}items.forEach(function(c){var s=document.createElement("section"),h=document.createElement("h4");h.textContent=c.articleId+" / "+(c.relatedId||"関連ID未確認")+" ["+c.status+"]";s.appendChild(h);var p=document.createElement("p");p.textContent=c.reason||"";s.appendChild(p);var small=document.createElement("small");small.textContent=(c.articleUrl||"")+" / "+(c.relatedUrl||"");s.appendChild(small);'+
+  var html='<!doctype html><html><head><base target="_top"><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:18px;line-height:1.6}section{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}button{margin:5px;padding:8px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}#msg{position:sticky;bottom:0;background:#f4f7fb;padding:8px;border-radius:5px;white-space:pre-wrap}textarea{box-sizing:border-box;width:100%;min-height:130px}small{color:#555}p{white-space:pre-wrap}</style></head><body><h3>戦略ナビ（v9.2.68 UAT）</h3><p>記事の修正・公開・経過観察の登録は自動実行しません。</p><button id="refresh">今日の改善へ反映</button><div id="cases">読込中…</div><p id="msg" role="status"></p><script>'+
+    'var selectedCaseId='+JSON.stringify(selectedCaseId)+';function msg(x){document.getElementById("msg").textContent=x||""}var busyCount=0;function busy(on,n){busyCount=Math.max(0,busyCount+(on?1:-1));var active=busyCount>0;Array.prototype.forEach.call(document.querySelectorAll("button"),function(b){b.disabled=active});if(on)msg("処理中："+n+"。完了までお待ちください。")};function api(n,a,cb){if(busyCount){msg("前の処理が完了するまでお待ちください。");return}busy(true,n);var runner=google.script.run.withSuccessHandler(function(r){busy(false,n);if(!r||!r.ok){msg(r&&r.message||"処理失敗。もう一度お試しください。");return}msg(r.message||"処理が完了しました。");if(cb)try{cb(r)}catch(ex){msg("画面更新に失敗しました："+String(ex))}}).withFailureHandler(function(e){busy(false,n);msg("通信・処理結果の確認に失敗しました："+String(e&&e.message||e)+"。書き込み結果が不明な場合があります。再操作せず、メニューから開き直して保存状態を確認してください。");if(n==="sbmStrategyListCases")document.getElementById("cases").textContent="読み込みに失敗しました。ダイアログを閉じ、再度開いてください。"});try{runner[n].apply(runner,a)}catch(ex){busy(false,n);msg("処理を開始できません："+String(ex))}}function field(s,title,val){var label=document.createElement("p");label.textContent=title;s.appendChild(label);var t=document.createElement("textarea");t.value=val||"";s.appendChild(t);return t}function btn(s,label,fn){var b=document.createElement("button");b.textContent=label;b.onclick=fn;s.appendChild(b)}'+
+    'function load(){document.getElementById("cases").textContent="戦略案件を読み込んでいます…";api("sbmStrategyListCases",[selectedCaseId],function(r){var root=document.getElementById("cases");root.innerHTML="";var items=(r.cases||[]).filter(function(c){return !selectedCaseId||c.caseId===selectedCaseId});if(!items.length){root.textContent="表示できる戦略案件はありません。";return}items.forEach(function(c){var s=document.createElement("section"),h=document.createElement("h4");h.textContent=c.articleId+" / "+(c.relatedId||"関連ID未確認")+" ["+c.status+"]";s.appendChild(h);var p=document.createElement("p");p.textContent=c.reason||"";s.appendChild(p);var small=document.createElement("small");small.textContent=(c.articleUrl||"")+" / "+(c.relatedUrl||"");s.appendChild(small);'+
     'if(c.status==="REVIEW_READY"){var d=document.createElement("p");d.textContent="aDoctor診断："+(c.doctorDecision||"")+"\\n理由："+(c.doctorReason||"");s.appendChild(d);btn(s,"診断結果を承認",function(){if(!confirm("診断結果を承認しますか？記事は自動修正されません。"))return;api("sbmStrategyReviewDecision",[c.caseId,"ACCEPT"],function(r){msg(r.message);load()})})}'+
-    'else if(c.status==="APPROVED_ACTION_PENDING"){var note=document.createElement("p");note.textContent="承認済み。作業先を選び依頼文を作成します。";s.appendChild(note);["WRITER","MERGE"].forEach(function(route){btn(s,route==="WRITER"?"aWriterへ引き継ぐ":"aMergeへ引き継ぐ",function(){api("sbmStrategyPrepareWork",[c.caseId,route],function(r){msg(r.message);load();msg("依頼文を保存しました。『作業依頼文を再表示』からコピーできます。")})})})}'+
+    'else if(c.status==="APPROVED_ACTION_PENDING"){var note=document.createElement("p");note.textContent="承認済み。統合・差別化の判断と根拠を確認してから、必要な作業先を選択してください。";s.appendChild(note);["WRITER","MERGE"].forEach(function(route){btn(s,route==="WRITER"?"aWriterへ引き継ぐ":"aMergeへ引き継ぐ",function(){api("sbmStrategyPrepareWork",[c.caseId,route],function(r){msg(r.message);load();msg("依頼文を保存しました。『作業依頼文を再表示』からコピーできます。")})})})}'+
     'else if(c.status==="WORK_REQUEST_READY"||c.status==="WORK_CONFIRMATION_PENDING"){var note=document.createElement("p");note.textContent="作業先："+(c.workRoute||"")+"。公開・作業完了は利用者が確認して登録してください。";s.appendChild(note);btn(s,"作業依頼文を再表示",function(){api("sbmStrategyPrepareWork",[c.caseId,c.workRoute],function(r){field(s,"作業依頼文",r.text)})});var resultInput=field(s,"aWriter/aMerge作業結果JSON（公開前に検証）","");if(c.workRoute==="MERGE")btn(s,"aMerge原契約を読取専用で検証",function(){api("sbmStrategyInspectNativeMergeResult",[c.caseId,resultInput.value],function(r){msg(r.message+" / 統合先 "+r.primaryArticleId+" / 吸収元 "+r.absorbedArticleIds.join(",")+" / 公開原稿 "+(r.publicationReady?"あり":"未確認"))})});if(c.workRoute==="MERGE")btn(s,"aMerge原契約を検証して戦略作業結果に変換",function(){if(!confirm("統合先の完成原稿のみを作業結果として保存します。吸収元の削除・転送は実行しません。続けますか？"))return;api("sbmStrategyConvertNativeMergeResult",[c.caseId,resultInput.value],function(r){msg(r.message);load()})});btn(s,"作業結果を検証・保存",function(){api("sbmStrategySubmitWorkResult",[c.caseId,resultInput.value],function(r){msg(r.message);load()})});var detail=field(s,"公開した変更内容と対象記事（変更なしの場合は任意）","");btn(s,"公開済みとして記録",function(){if(!confirm("実際に記事を公開済みですか？"))return;if(c.status==="WORK_CONFIRMATION_PENDING"){var ids=prompt("公開した記事IDをカンマ区切りで入力してください（作業結果JSONと照合します）","");if(ids===null)return;api("sbmStrategyConfirmWorkResult",[c.caseId,{published_article_ids:ids.split(",").map(function(x){return x.trim()}).filter(Boolean),detail:detail.value}],function(r){msg(r.message);load()})}else{msg("先に作業結果JSONを検証してください。")}});btn(s,"変更なしで完了",function(){if(!confirm("記事を変更せず終了しますか？"))return;if(c.status!=="WORK_CONFIRMATION_PENDING"){msg("先に作業結果JSONを検証してください。");return}api("sbmStrategyConfirmWorkResult",[c.caseId,{detail:detail.value}],function(r){msg(r.message);load()})})}'+
-    'else if(c.status==="MONITORING_SETUP_PENDING"){var note=document.createElement("p");note.textContent="公開確認済み。まず既存の経過観察を確認します（読取専用）。";s.appendChild(note);if(c.workRoute==="MERGE"){btn(s,"吸収元記事の処置記録を確認",function(){api("sbmStrategyMergeSourceActionStatus",[c.caseId],function(r){msg(r.message+" / "+r.articles.map(function(x){return x.articleId+":"+(x.action?x.action.action:"未記録")}).join(", "))})});btn(s,"吸収元URLのHTTP応答を確認（読取専用）",function(){var id=prompt("HTTP応答を確認する吸収元ArticleIDを入力してください。\\n申告済みHTTPS URLへ外部アクセスします。");if(!id)return;id=String(id).trim();if(!id){msg("ArticleIDを入力してください。");return;}if(!confirm("記事 "+id+" の申告済みHTTPS URLへアクセスしてHTTP応答を確認しますか？\\n記事・改善履歴は変更しません。"))return;api("sbmStrategyProbeMergeSourceHttp",[c.caseId,id],function(r){var t=field(s,"HTTP応答の観測結果（読取専用）",JSON.stringify(r,null,2));t.readOnly=true;msg(r.message)})});btn(s,"吸収元処置の監査チェックリスト",function(){api("sbmStrategyMergeSourceAudit",[c.caseId],function(r){if(!r.ok){msg(r.message);return;}var t=field(s,"吸収元処置の監査結果（読取専用）",r.message+"\n"+r.articles.map(function(x){return x.articleId+" / "+(x.action||"未申告")+" / "+(x.evidenceUrl||"")+"\n要確認: "+(x.requiredChecks||[]).join("、")}).join("\n")+"\n"+r.issues.join("\n"));t.readOnly=true})});btn(s,"吸収元記事の処置申告を記録",function(){var id=prompt("吸収元ArticleID","");if(!id)return;var kind=prompt("処置区分: REDIRECT_CONFIRMED / NOINDEX_CONFIRMED / REMOVED_CONFIRMED / RETAINED_WITH_REASON","REDIRECT_CONFIRMED");if(!kind)return;var url=prompt("実施確認用HTTPS URL","");if(!url)return;var detail=prompt("実施内容・確認日時・内部リンク対応の状況","");if(!detail)return;if(!confirm("これは処置の申告記録です。外部サイトの実動作検証や案件完了は行いません。保存しますか？"))return;api("sbmStrategyRecordMergeSourceAction",[c.caseId,id,kind,url,detail],function(r){msg(r.message)})})});}btn(s,"記事ごとの登録進捗を確認",function(){api("sbmStrategyRegistrationProgress",[c.caseId],function(r){var t=field(s,"記事別の登録・観察状態（読取専用）",r.message+"\n"+(r.articles||[]).map(function(a){return a.articleId+" / "+a.stage+" / "+(a.historyId||"未登録")+" / "+a.message}).join("\n"));t.readOnly=true})});var feedback=field(s,"公開済み記事のaWriter改善結果JSON（1記事ずつ）","");btn(s,"改善登録の事前検証",function(){api("sbmStrategyPreviewFeedbackRegistration",[c.caseId,feedback.value],function(r){msg(r.message+" / "+r.articleId+" / 旧モニター "+r.currentActiveIds.join(","))})});btn(s,"確認して改善履歴を登録",function(){var id=prompt("登録対象のArticleIDを入力してください（変更を伴う実登録です）","");if(!id)return;if(!confirm("記事管理・改善履歴・経過観察を更新します。記事ID："+id+"。実行しますか？"))return;api("sbmStrategyRegisterPublishedFeedback",[c.caseId,feedback.value,id],function(r){msg(r.message+" 履歴ID："+r.historyId);load()})});var ids=field(s,"公開した各記事の改善履歴ID（記事ID=履歴ID を1行ずつ）","");btn(s,"新しい改善履歴を自動照合・紐付け",function(){if(!confirm("既に通常の改善登録で作成済みの新しい履歴を照合します。履歴の新規作成や旧モニター終了は行いません。続けますか？"))return;api("sbmStrategyAutoLinkRegisteredHistories",[c.caseId],function(r){msg(r.message);load()})});btn(s,"改善履歴を照合・紐付け",function(){var pairs=ids.value.split(String.fromCharCode(10)).map(function(line){var v=line.split("=");return {article_id:(v[0]||"").trim(),history_id:(v[1]||"").trim()}}).filter(function(x){return x.article_id});api("sbmStrategyLinkRegisteredHistories",[c.caseId,pairs],function(r){msg(r.message);load()})});btn(s,"登録済み履歴の照合から完了まで再開",function(){api("sbmStrategyReconcileRegisteredMonitoring",[c.caseId],function(r){msg(r.message);load()})});btn(s,"経過観察を照合して戦略案件を完了",function(){api("sbmStrategyVerifyMonitoringAndComplete",[c.caseId],function(r){msg(r.message);load()})});btn(s,"履歴・経過観察の登録準備を確認",function(){api("sbmStrategyCutoverReadiness",[c.caseId],function(r){var t=field(s,"登録準備の診断（読取専用）",r.message+"\n"+(r.issues||[]).join("\n")+"\n"+(r.articles||[]).map(function(a){return a.articleId+"：新履歴 "+a.newHistoryIds.join(",")+" / 観察中 "+a.activeHistoryIds.join(",")}).join("\n"));t.readOnly=true})});btn(s,"経過観察の事前確認",function(){api("sbmStrategyMonitoringPreflight",[c.caseId],function(r){var summary=r.articles.map(function(a){return a.articleId+" / "+a.articleState+" / 現在の観察履歴 "+a.activeCount+"件 ("+a.activeHistoryIds.join(", ")+")"}).join("\n");var t=field(s,"対象記事と現在の観察状態（未変更）",summary);t.readOnly=true;btn(s,"確認内容を保存",function(){if(!confirm("事前確認の結果を保存しますか？改善履歴やモニターは変更されません。"))return;api("sbmStrategyAcknowledgeMonitoringPlan",[c.caseId,r.articles.map(function(a){return a.articleId})],function(x){msg(x.message);load()})})})})}'+
+    'else if(c.status==="MONITORING_SETUP_PENDING"){var note=document.createElement("p");note.textContent="公開確認済み。まず既存の経過観察を確認します（読取専用）。";s.appendChild(note);if(c.workRoute==="MERGE"){btn(s,"吸収元記事の処置記録を確認",function(){api("sbmStrategyMergeSourceActionStatus",[c.caseId],function(r){msg(r.message+" / "+r.articles.map(function(x){return x.articleId+":"+(x.action?x.action.action:"未記録")}).join(", "))})});btn(s,"吸収元URLのHTTP応答を確認（読取専用）",function(){var id=prompt("HTTP応答を確認する吸収元ArticleIDを入力してください。\\n申告済みHTTPS URLへ外部アクセスします。");if(!id)return;id=String(id).trim();if(!id){msg("ArticleIDを入力してください。");return;}if(!confirm("記事 "+id+" の申告済みHTTPS URLへアクセスしてHTTP応答を確認しますか？\\n記事・改善履歴は変更しません。"))return;api("sbmStrategyProbeMergeSourceHttp",[c.caseId,id],function(r){var t=field(s,"HTTP応答の観測結果（読取専用）",JSON.stringify(r,null,2));t.readOnly=true;msg(r.message)})});btn(s,"吸収元処置の監査チェックリスト",function(){api("sbmStrategyMergeSourceAudit",[c.caseId],function(r){if(!r.ok){msg(r.message);return;}var t=field(s,"吸収元処置の監査結果（読取専用）",r.message+"\\n"+r.articles.map(function(x){return x.articleId+" / "+(x.action||"未申告")+" / "+(x.evidenceUrl||"")+"\\n要確認: "+(x.requiredChecks||[]).join("、")}).join("\\n")+"\\n"+r.issues.join("\\n"));t.readOnly=true})});btn(s,"吸収元記事の処置申告を記録",function(){var id=prompt("吸収元ArticleID","");if(!id)return;var kind=prompt("処置区分: REDIRECT_CONFIRMED / NOINDEX_CONFIRMED / REMOVED_CONFIRMED / RETAINED_WITH_REASON","REDIRECT_CONFIRMED");if(!kind)return;var url=prompt("実施確認用HTTPS URL","");if(!url)return;var detail=prompt("実施内容・確認日時・内部リンク対応の状況","");if(!detail)return;if(!confirm("これは処置の申告記録です。外部サイトの実動作検証や案件完了は行いません。保存しますか？"))return;api("sbmStrategyRecordMergeSourceAction",[c.caseId,id,kind,url,detail],function(r){msg(r.message)})});}btn(s,"記事ごとの登録進捗を確認",function(){api("sbmStrategyRegistrationProgress",[c.caseId],function(r){var t=field(s,"記事別の登録・観察状態（読取専用）",r.message+"\\n"+(r.articles||[]).map(function(a){return a.articleId+" / "+a.stage+" / "+(a.historyId||"未登録")+" / "+a.message}).join("\\n"));t.readOnly=true})});var feedback=field(s,"公開済み記事のaWriter改善結果JSON（1記事ずつ）","");btn(s,"改善登録の事前検証",function(){api("sbmStrategyPreviewFeedbackRegistration",[c.caseId,feedback.value],function(r){msg(r.message+" / "+r.articleId+" / 旧モニター "+r.currentActiveIds.join(","))})});btn(s,"確認して改善履歴を登録",function(){var id=prompt("登録対象のArticleIDを入力してください（変更を伴う実登録です）","");if(!id)return;if(!confirm("記事管理・改善履歴・経過観察を更新します。記事ID："+id+"。実行しますか？"))return;api("sbmStrategyRegisterPublishedFeedback",[c.caseId,feedback.value,id],function(r){msg(r.message+" 履歴ID："+r.historyId);load()})});var ids=field(s,"公開した各記事の改善履歴ID（記事ID=履歴ID を1行ずつ）","");btn(s,"新しい改善履歴を自動照合・紐付け",function(){if(!confirm("既に通常の改善登録で作成済みの新しい履歴を照合します。履歴の新規作成や旧モニター終了は行いません。続けますか？"))return;api("sbmStrategyAutoLinkRegisteredHistories",[c.caseId],function(r){msg(r.message);load()})});btn(s,"改善履歴を照合・紐付け",function(){var pairs=ids.value.split(String.fromCharCode(10)).map(function(line){var v=line.split("=");return {article_id:(v[0]||"").trim(),history_id:(v[1]||"").trim()}}).filter(function(x){return x.article_id});api("sbmStrategyLinkRegisteredHistories",[c.caseId,pairs],function(r){msg(r.message);load()})});btn(s,"登録済み履歴の照合から完了まで再開",function(){api("sbmStrategyReconcileRegisteredMonitoring",[c.caseId],function(r){msg(r.message);load()})});btn(s,"経過観察を照合して戦略案件を完了",function(){api("sbmStrategyVerifyMonitoringAndComplete",[c.caseId],function(r){msg(r.message);load()})});btn(s,"履歴・経過観察の登録準備を確認",function(){api("sbmStrategyCutoverReadiness",[c.caseId],function(r){var t=field(s,"登録準備の診断（読取専用）",r.message+"\\n"+(r.issues||[]).join("\\n")+"\\n"+(r.articles||[]).map(function(a){return a.articleId+"：新履歴 "+a.newHistoryIds.join(",")+" / 観察中 "+a.activeHistoryIds.join(",")}).join("\\n"));t.readOnly=true})});btn(s,"経過観察の事前確認",function(){api("sbmStrategyMonitoringPreflight",[c.caseId],function(r){var summary=r.articles.map(function(a){return a.articleId+" / "+a.articleState+" / 現在の観察履歴 "+a.activeCount+"件 ("+a.activeHistoryIds.join(", ")+")"}).join("\\n");var t=field(s,"対象記事と現在の観察状態（未変更）",summary);t.readOnly=true;btn(s,"確認内容を保存",function(){if(!confirm("事前確認の結果を保存しますか？改善履歴やモニターは変更されません。"))return;api("sbmStrategyAcknowledgeMonitoringPlan",[c.caseId,r.articles.map(function(a){return a.articleId})],function(x){msg(x.message);load()})})})})}'+
     'else{btn(s,"aDoctor診断へ",function(){api("sbmStrategyDecide",[c.caseId,"DOCTOR"],function(){api("sbmStrategyDoctorRequest",[c.caseId],function(x){field(s,"① aDoctor依頼文",x.text);var response=field(s,"② aDoctor回答を貼り付け",x.response);btn(s,"診断結果を保存",function(){api("sbmStrategyDoctorSubmit",[c.caseId,response.value],function(y){msg(y.message);load()})})})})})}'+
     'btn(s,"保留",function(){api("sbmStrategyDecide",[c.caseId,"HOLD"],function(r){msg(r.message);load()})});btn(s,"取りやめ",function(){if(!confirm("戦略案件を取りやめ、今日の改善から除外しますか？"))return;api("sbmStrategyDecide",[c.caseId,"CANCEL"],function(r){msg(r.message);api("sbmStrategyRefreshToday",[],function(x){msg(r.message+" "+x.message);load()})})});root.appendChild(s)})})}document.getElementById("refresh").onclick=function(){api("sbmStrategyRefreshToday",[],function(r){msg(r.message);load()})};load();</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(720),'戦略ナビ');
@@ -16539,6 +16642,8 @@ function onOpen() {
     .addSeparator();
   if (isFullEdition) {
     todayMenu.addItem('未完了の作業を再開','sbmResumeUnfinishedWorkflow');
+    todayMenu.addItem('保存済み戦略案件を再開','sbmStrategyOpenSavedCases');
+    todayMenu.addItem('戦略案件を今日の改善へ反映','sbmStrategyRefreshTodayFromMenu');
   }
   todayMenu.addToUi();
 
@@ -16574,7 +16679,7 @@ function onOpen() {
   if(isFullEdition){
     healthMenu.addSeparator()
       .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
-      .addItem('選択候補をaDoctorで診断','sbmDoctorCreateRequestFromDetailedCandidate');
+      .addItem('選択候補の精密診断を実施','sbmDoctorCreateRequestFromDetailedCandidate');
   }
   healthMenu.addToUi();
 
@@ -19839,7 +19944,7 @@ function sbmDoctorRebuildCandidateViewFromSnapshot_(candidateContext){
   var headers=['状態','重症度','記事タイトル','記事管理番号','記事URL','記事ランク','傾向','クリック','表示','順位','CTR','記事ID','内部URL','候補キー'];
   cand.setHiddenGridlines(true);
   cand.getRange('A1:K1').merge().setValue('aDoctor　精密診断候補').setBackground('#0b5d3b').setFontColor('#ffffff').setFontSize(16).setFontWeight('bold').setVerticalAlignment('middle');
-  cand.getRange('A2:K2').merge().setValue('対象記事のセルまたは行を1件選び、「診断 → 選択候補をaDoctorで診断」を実行してください。処理中・完了した記事は一覧に残り、重複診断はできません。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
+  cand.getRange('A2:K2').merge().setValue('対象記事のセルまたは行を1件選び、「診断 → 選択候補の精密診断を実施」を実行してください。処理中・完了した記事は一覧に残り、重複診断はできません。').setBackground('#eef5ee').setWrap(true).setVerticalAlignment('middle');
   cand.getRange(6,1,1,headers.length).setValues([headers]).setFontWeight('bold').setBackground('#0b5d3b').setFontColor('#ffffff');
   var out=selectedRows.map(function(r){var code=String(r[hm['一次検査コード']-1]||''),id=String(r[hm['記事ID']-1]||''),url=String(r[hm['記事URL']-1]||''),normUrl=sbmNormalizeUrl_(url),m=sbmDoctorCandidateMetrics_(code,r,hm),title=String(r[hm['記事タイトル']-1]||''),sev=sbmDoctorSeverityForRow_(code,String(r[hm['優先度']-1]||''),r,hm),rank=String(rankById[id]||rankByUrl[normUrl]||''),key=String(id)+'|'+normUrl;return ['',sev,title,id,url,rank,m.trend,m.clicks,m.impressions,m.position,m.ctr,id,url,key];});
   if(out.length)cand.getRange(7,1,out.length,headers.length).setValues(out);else cand.getRange('A7').setValue('今回、精密診断を優先する未処理記事はありません。');

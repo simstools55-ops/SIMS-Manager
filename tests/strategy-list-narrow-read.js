@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const a=src.indexOf('function sbmStrategyListCases(){'),b=src.indexOf('\nfunction sbmStrategyDecide(',a);
+assert(a>0&&b>a);const fn=src.slice(a,b);
+const meta={workflow_type:'STRATEGY_CASE',status:'OPEN',primary_article_id:'A000167',related_article_id:'A000022'};
+const calls=[];
+const sheet={getLastRow:()=>4,getRange:(row,col,numRows,numCols)=>{calls.push([row,col,numRows,numCols]);return {getValues:()=>[['STRATEGY-abc','META'],['OTHER','PAYLOAD'],['NORMAL-x','META']],getValue:()=>JSON.stringify(meta)}}};
+const ctx={SpreadsheetApp:{getActiveSpreadsheet:()=>({getSheetByName:()=>sheet})},SBM_SHEETS:{DOCTOR_WORKFLOW_STATE:'Doctor_Workflow_State'},sbmHeaderMap_:()=>({CaseID:1,'種別':2,Payload:5})};vm.createContext(ctx);vm.runInContext(fn,ctx);
+const result=vm.runInContext('sbmStrategyListCases()',ctx);
+assert(result.ok);assert.equal(result.cases.length,1);assert.equal(result.cases[0].articleId,'A000167');assert(calls.every(x=>x[1]!==1||x[3]<=2));assert(calls.some(x=>x[1]===5&&x[3]===undefined));
+assert(!fn.includes('sbmDoctorWorkflowResumeIndex_'));
+console.log('Narrow strategy index: 6 checks passed');
