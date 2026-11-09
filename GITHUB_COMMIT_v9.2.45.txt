@@ -1,0 +1,1 @@
+feat(sbm): inspect native merge contract against strategy article identities

@@ -1,0 +1,1 @@
+feat(sbm): expose read-only merge source HTTP probe in strategy navigator

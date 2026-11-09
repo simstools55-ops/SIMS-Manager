@@ -1,0 +1,1 @@
+fix(sbm): verify persisted native merge provenance before accepting work result

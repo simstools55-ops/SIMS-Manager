@@ -1,0 +1,1 @@
+fix(sbm): reject malformed strategy results and protect merge source payload

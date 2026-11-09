@@ -1,0 +1,1 @@
+fix(sbm): freeze accepted strategy work results and check merge provenance

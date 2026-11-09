@@ -1,0 +1,1 @@
+feat(sbm): verify strategic history links before completing monitoring handoff

@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.2.24",
+  "current_version": "9.2.61",
   "release_status": "UAT_CANDIDATE",
-  "notes": "Backup timezone alignment before sheet copy; fail-closed validation and precise STEP1 errors.",
-  "version": "9.2.24",
+  "notes": "Native merge case provenance reconciliation; UAT only",
+  "version": "9.2.61",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.2.24-ST"
+  "starter_display_version": "v9.2.61-ST"
 }

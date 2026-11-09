@@ -1,0 +1,1 @@
+fix(sbm): verify existing strategic registration checkpoint before preflight

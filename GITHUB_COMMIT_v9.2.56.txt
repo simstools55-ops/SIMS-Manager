@@ -1,0 +1,1 @@
+fix(sbm): prevent premature merge strategy completion without source retirement

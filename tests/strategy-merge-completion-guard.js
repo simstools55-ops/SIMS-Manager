@@ -1,0 +1,11 @@
+const assert=require('assert');
+const fs=require('fs');
+const code=fs.readFileSync(require('path').join(__dirname,'../apps-script/Code.gs'),'utf8');
+const start=code.indexOf('function sbmStrategyVerifyMonitoringAndComplete(caseId){');
+const end=code.indexOf('function sbmStrategyCutoverReadiness(caseId)',start);
+assert(start>=0&&end>start);
+const fn=code.slice(start,end);
+assert(fn.includes("String(m.work_route||'').toUpperCase()==='MERGE'"));
+assert(fn.indexOf("String(m.work_route||'').toUpperCase()==='MERGE'") < fn.indexOf("sbmDoctorWorkflowWriteMeta_(caseId,{status:'COMPLETED'"));
+assert(fn.includes('吸収元記事の廃止・転送'));
+console.log('3 merge completion static guard checks passed');

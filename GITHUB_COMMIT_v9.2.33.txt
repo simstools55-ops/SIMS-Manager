@@ -1,0 +1,1 @@
+fix(sbm): enforce strategy result gate and detect monitoring preflight drift

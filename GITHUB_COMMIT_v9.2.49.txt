@@ -1,0 +1,1 @@
+test(sbm): add strategy work intake regression suite and merge case guard

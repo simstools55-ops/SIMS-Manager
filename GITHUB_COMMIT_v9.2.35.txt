@@ -1,0 +1,1 @@
+fix(sbm): preserve strategy handoff state and validate publication receipt IDs

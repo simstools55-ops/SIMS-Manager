@@ -1,0 +1,1 @@
+feat(sbm): persist independent strategy cases and add strategy navigator UAT foundation

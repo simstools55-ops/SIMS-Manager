@@ -1,0 +1,12 @@
+const fs=require('fs'),assert=require('assert');
+const code=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const a=code.indexOf('function sbmStrategyOpenNavigator('),b=code.indexOf('function sbmNormalImprovementWorkflowStart_',a);
+const nav=code.slice(a,b);
+const label='吸収元URLのHTTP応答を確認（読取専用）';
+assert(nav.includes(label));
+assert(nav.includes('api("sbmStrategyProbeMergeSourceHttp",[c.caseId,id]'));
+assert(nav.includes('if(!confirm('));
+assert(nav.includes('if(!id)return;'));
+assert(nav.includes('t.readOnly=true'));
+assert(nav.indexOf(label)<nav.indexOf('吸収元処置の監査チェックリスト'));
+console.log('6 HTTP navigator integration assertions passed');

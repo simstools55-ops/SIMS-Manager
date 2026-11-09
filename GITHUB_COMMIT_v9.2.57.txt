@@ -1,0 +1,1 @@
+feat(sbm): record merge source retirement attestations without auto-completion

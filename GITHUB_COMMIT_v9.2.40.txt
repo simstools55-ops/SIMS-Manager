@@ -1,0 +1,1 @@
+feat(sbm): bridge verified strategic publications to idempotent feedback registration

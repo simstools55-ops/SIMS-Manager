@@ -1,3 +1,117 @@
+## v9.2.61 (UAT)
+- aMerge吸収元のHTTP応答検査を戦略ナビに接続。外部アクセス前に確認。
+
+## v9.2.60 (UAT)
+- 吸収元の申告済みHTTPS URLのHTTP応答を読み取り専用で観測する関数を追加。
+
+## v9.2.59 (UAT)
+- aMerge吸収元記事の処置区分ごとの手動監査項目を追加。
+
+## v9.2.58 (UAT)
+- aMerge吸収元処置の監査チェックリスト（読取専用）を追加。
+
+## v9.2.56 (UAT)
+- aMerge吸収元の処置未確認時、戦略案件の完了を禁止。
+
+## v9.2.55 (UAT)
+- aMergeネイティブ案件IDと戦略案件IDの独立性を認め、原契約出典照合を強化。
+
+## v9.2.54 (UAT)
+- 複数記事進捗表示に公開対象の全件照合を追加。回帰試験を44件へ拡充。
+
+## v9.2.53 (UAT)
+- 戦略案件完了前に公開済み全記事の履歴対応を照合。11ケースの回帰試験を追加。
+
+## v9.2.52 (UAT)
+- 複数記事の戦略登録進捗を7ケースで回帰検証。コード動作変更はバージョン表示のみ。
+
+## v9.2.51 (UAT)
+- 戦略改善登録後のチェックポイント保存失敗を、既存履歴の再検証により復旧。4ケースの回帰試験を追加。
+
+## v9.2.50 (UAT)
+- 戦略改善の登録済みチェックポイントを先に検証し、再実行時の誤停止を修正。回帰テスト6ケース追加。
+
+## v9.2.49 (UAT)
+- 戦略作業結果・公開確認の11ケース回帰試験を追加。aMerge案件ID照合を強化。
+
+## v9.2.48 (UAT)
+- aMerge原契約の上書き防止、作業結果の配列型チェック順序を修正。
+
+## v9.2.47 (UAT)
+- aMerge原契約保存と派生作業結果の整合を強制。
+
+## v9.2.46 (UAT)
+- aMerge原契約から戦略作業結果への安全な変換を追加。
+
+## v9.2.45 (UAT)
+- aMerge原契約の読取専用照合を追加。
+
+## v9.2.44 (UAT)
+- 戦略改善の登録を排他制御し、同時登録による二重処理を抑止。
+
+## v9.2.43 (UAT)
+- 戦略作業結果の再送を冪等化し、異なるJSONへの差し替えを拒否。aMerge出典契約を必須化。
+
+## v9.2.42 (UAT)
+- 戦略案件の複数記事登録進捗と再実行時の既存履歴保護を追加。
+
+## v9.2.41 (UAT)
+- 戦略改善登録後の履歴・観察行・旧モニターの検証を追加。
+
+## v9.2.40 (UAT)
+- 戦略案件から通常改善登録への明示的・記事単位の引き継ぎを追加。
+
+## v9.2.39 (UAT)
+- 新履歴書込み前の旧モニター終了を禁止。戦略案件完了時の旧モニター再検査を追加。
+
+## v9.2.38 (UAT)
+- 登録済み戦略履歴の再開可能な照合・完了処理を追加。
+
+## v9.2.37 (UAT)
+- 既存の新規履歴を自動照合し、戦略案件へ安全に紐付ける処理を追加。
+- 作業開始後の保留による状態破損を防止。
+
+## v9.2.36 (UAT)
+- 戦略的改善の履歴・モニター切替準備を読取専用で検証。
+
+## v9.2.35 (UAT)
+- 戦略案件の作業依頼再表示と公開確認の状態保護を強化。
+
+## v9.2.34 (UAT)
+- 戦略モニターの事前確認基準を全履歴IDへ拡張。新規履歴追加時の誤拒否と旧モニター二重進行を防止。
+
+## v9.2.33 (UAT)
+- 戦略公開確認の直接API迂回を防止し、経過観察の事前確認スナップショットを照合。
+
+## v9.2.32 UAT
+- 戦略案件の履歴紐付けと観察開始検証を追加。自動履歴作成は保留。
+
+## v9.2.31 (UAT)
+- 戦略改善の経過観察移行前の読取専用確認と承認記録を追加。
+
+## v9.2.30 (UAT)
+- 戦略作業結果JSON検証と対象記事照合付き公開確認を追加。通常の改善履歴・モニターは未変更。
+
+## v9.2.29 (UAT)
+- Strategy navigator: explicit aWriter/aMerge handoff, publication receipt, monitoring-setup-pending checkpoint.
+- No automatic publication or monitoring lifecycle changes.
+
+# v9.2.28 — Strategy Doctor response checkpoint and navigator review
+- Validate strategy aDoctor response identity, decision, reason and writer instructions; persist review state.
+- Add user approval, hold, cancel, handoff text and explicit Today refresh.
+- Do not automatically modify published articles or monitoring.
+- UAT only; Apps Script runtime not yet verified.
+
+## v9.2.27 (UAT candidate)
+- 今日の改善に戦略的改善区分を追加し、選択行から戦略ナビへ遷移。
+
+## v9.2.27 (UAT foundation)
+- 戦略案件の永続化、戦略ナビ基盤、保留・取りやめ。
+- 今日の改善への統合は次段階。
+
+## v9.2.25 (UAT)
+- aWriter利用者判断を登録前に分類・説明し、承認/Doctor/保留の分岐を追加。A000167旧状態の復帰導線を追加。
+
 ## v9.2.24 — Article identity safety
 - Hidden selection column now uses the currently active row, not a stale cached selection.
 - aDoctor request lookup requires ArticleID and normalized URL to match the same unique row; mismatches fail closed.

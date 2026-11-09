@@ -1,0 +1,1 @@
+fix(sbm): protect per-article strategy registration checkpoints on retry

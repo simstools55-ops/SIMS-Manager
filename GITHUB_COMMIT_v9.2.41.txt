@@ -1,0 +1,1 @@
+fix(sbm): verify strategic monitoring cutoff before registration checkpoint

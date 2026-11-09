@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const code=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const a=code.indexOf('function sbmStrategyMergeSourceAudit('),b=code.indexOf('/** Complete only when real linked histories',a);
+assert(a>=0&&b>a);
+let rows=[{articleId:'A2',action:null},{articleId:'A3',action:{article_id:'A3',action:'RETAINED_WITH_REASON',evidence_url:'https://example.com/a3',note:'Keep'}}];
+let writes=0;const ctx={sbmStrategyMergeSourceActionStatus:()=>({ok:true,articles:rows}),sbmDoctorWorkflowWritePayload_:()=>writes++};
+vm.createContext(ctx);vm.runInContext(code.slice(a,b),ctx);
+let x=ctx.sbmStrategyMergeSourceAudit('C');assert.equal(x.ok,true);assert.equal(x.allReported,false);assert.equal(x.completionAuthorized,false);assert.equal(x.externalVerified,false);assert(x.issues.some(v=>v.includes('A2')));
+rows[0].action={article_id:'A2',action:'REDIRECT_CONFIRMED',evidence_url:'https://example.com/a2',note:'Redirect'};
+x=ctx.sbmStrategyMergeSourceAudit('C');assert.equal(x.allReported,true);assert.equal(x.completionAuthorized,false);assert(x.issues.some(v=>v.includes('A3')));
+rows[0].action.evidence_url='http://example.com/a2';x=ctx.sbmStrategyMergeSourceAudit('C');assert.equal(x.allReported,false);
+assert.equal(writes,0);
+console.log('8 merge source audit assertions passed');

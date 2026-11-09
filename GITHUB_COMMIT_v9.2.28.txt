@@ -1,0 +1,1 @@
+feat(sbm): checkpoint strategy doctor responses and user decisions in navigator
