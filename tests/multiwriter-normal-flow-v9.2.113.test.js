@@ -1,0 +1,24 @@
+const fs=require('fs'),assert=require('assert'),vm=require('vm');
+const code=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const a=code.indexOf('function sbmDoctorMultiWriterHandoffUiStatus(caseId){');
+const b=code.indexOf('function sbmDoctorOpenMultiWriterHandoffDialog(){',a);
+assert(a>=0&&b>a);
+const ids=['A000167','A000022'], id='STRATEGY-'+'a'.repeat(24);
+const meta={workflow_type:'STRATEGY_CASE',work_route:'WRITER_MULTI',status:'MONITORING_SETUP_PENDING',strategy_monitoring_status:'PREFLIGHT_ACKNOWLEDGED',primary_article_id:ids[0],related_article_id:ids[1]};
+const data={STRATEGY_WORK_RESULT:JSON.stringify({outcome:'READY_FOR_PUBLICATION',route:'WRITER_MULTI',affected_articles:ids.map(article_id=>({article_id}))}),STRATEGY_WORK_RECEIPT:JSON.stringify({outcome:'PUBLISHED',published_article_ids:ids}),STRATEGY_MONITORING_PREFLIGHT:'{}'};
+const ctx={sbmDoctorWorkflowReadMeta_:()=>meta,sbmDoctorWorkflowReadPayload_:(_,k)=>data[k]||null};vm.createContext(ctx);vm.runInContext(code.slice(a,b),ctx);
+const status=()=>ctx.sbmDoctorMultiWriterHandoffUiStatus(id);let n=0;
+function test(name,fn){fn();n++;console.log('PASS '+name)}
+test('baseline exists and no receipts -> linking disabled',()=>{assert.strictEqual(status().has_baseline,true);assert.strictEqual(status().can_link_histories,false)});
+test('two checkpoint receipts -> linking enabled',()=>{data.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=JSON.stringify({articles:ids.map((article_id,i)=>({article_id,history_id:'H'+i,publication_user_confirmed:true}))});assert.strictEqual(status().can_link_histories,true)});
+test('no publication -> linking disabled',()=>{delete data.STRATEGY_WORK_RECEIPT;assert.strictEqual(status().can_link_histories,false);data.STRATEGY_WORK_RECEIPT=JSON.stringify({outcome:'PUBLISHED',published_article_ids:ids})});
+test('no baseline -> linking disabled',()=>{delete data.STRATEGY_MONITORING_PREFLIGHT;assert.strictEqual(status().can_link_histories,false)});
+const ui=code.slice(code.indexOf('function sbmDoctorOpenStrategyDialog'),code.indexOf('function sbmDoctorOpenStrategyDialog')+35000);
+const normal=code.match(/checkpointBtn\.onclick=function\(\)\{[\s\S]*?\};baselineBtn\.onclick=function\(\)/);
+test('normal dialog contains explicit checkpoint action',()=>assert(code.includes('③ 登録証跡を確認・保存')));
+test('checkpoint calls existing read-only preflight',()=>assert(normal&&normal[0].includes('sbmDoctorMultiWriterRegistrationPreflight')));
+test('checkpoint delegates to existing verified writer',()=>assert(normal[0].includes('sbmDoctorCheckpointMultiWriterRegistrations')));
+test('checkpoint requires user-provided history IDs',()=>assert(normal[0].includes('history_id:h,published:true')));
+test('checkpoint requires explicit publication confirmation',()=>assert(normal[0].includes('if(!confirm(')));
+test('checkpoint disabled without baseline',()=>assert(code.includes('checkpointBtn.disabled=!(r.has_baseline&&r.publication_gate_ready')));
+console.log(`${n}/${n} PASS`);

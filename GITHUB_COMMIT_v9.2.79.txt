@@ -1,0 +1,1 @@
+feat(doctor): checkpoint verified per-article multi-writer registration receipts

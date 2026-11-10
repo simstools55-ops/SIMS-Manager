@@ -1,0 +1,1 @@
+feat(doctor): validate multi-article actions before reapproval checkpoint

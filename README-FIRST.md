@@ -1,8 +1,21 @@
-# SIMS Manager v9.2.74 UAT
+# SIMS Manager v9.2.116 — 最終ローカル回帰・配布前監査
 
-精密診断統合の安全な中間版。保存済みaDoctor診断JSONの `actions` から、対象記事ごとのaWriter依頼文を読取専用で生成。
+- 11個の関連テストスクリプト、計114項目を再実行。全てPASS。
+- ライセンス認証済みの既存SBMにおける実機UATは未実施。正式リリースではない。
+- 今回の変更は版管理・監査文書のみ。業務ロジックは変更していない。
+- `SHARED_VERSION` は別の共有コンポーネントのバージョンとして現状維持。
+- 本番反映前にバックアップ、復元手段、実施案件と検証手順の確認が必要。
 
-- `sbmDoctorPreviewSavedMultiWriterRequests(caseId)` を追加。
-- `actions` のない旧診断は拒否。自由記述の自動分割をしない。
-- 戦略ナビUI・精密診断UI、承認、改善履歴、モニタリングは変更しない。
-- 現行運用へ適用せず、後続の統合UI実装・UATまで保留。
+# SIMS Manager v9.2.115 — ローカル引き継ぎ完了判定試験（UAT候補）
+
+# SIMS Manager v9.2.115 — 経過観察引き継ぎ完了判定のローカル試験
+
+- 既存 `sbmStrategyVerifyMonitoringAndComplete` を抽出して10項目の実関数ローカル試験を追加。
+- 2記事の有効な履歴、片方の観察終了、改善の推移欠落、公開確認欠落・重複、旧モニター競合、URL不一致、MERGE経路拒否、二重完了防止を確認。
+- 合格時の `COMPLETED` は精密診断案件の引き継ぎ完了であり、7/14/21/28日測定の終了ではない。測定結果は生成しない。
+- 既存の複数記事関連8テストファイルを再実行してPASS。
+- Google Apps Script/License Center/実スプレッドシートへのアクセスなし。実機試験は未実施。
+- 本版は開発候補。正規ライセンス環境にはまだ反映しない。
+
+実行: `node tests/multiwriter-handoff-completion-v9.2.115.test.js`
+

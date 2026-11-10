@@ -1,0 +1,1 @@
+feat(doctor): add indexed read-only resume snapshot for multi-writer cases

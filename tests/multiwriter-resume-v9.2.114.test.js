@@ -1,0 +1,28 @@
+'use strict';
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/../apps-script/Code.gs','utf8');
+const start=src.indexOf('function sbmDoctorMultiWriterResumeSnapshot(caseId){');
+const end=src.indexOf('function sbmDoctorListMultiWriterResumeCandidates(){',start);
+assert(start>=0&&end>start);
+const caseId='STRATEGY-'+'b'.repeat(24);
+const ids=['A000167','A000022'];
+const urls=['https://example.org/a','https://example.org/b'];
+const meta={workflow_type:'STRATEGY_CASE',work_route:'WRITER_MULTI',status:'MONITORING_SETUP_PENDING',primary_article_id:ids[0],related_article_id:ids[1],primary_article_url:urls[0],related_article_url:urls[1]};
+const payload={PRECISION_WRITER_REQUEST_A_V1:JSON.stringify({article_id:ids[0],article_url:urls[0],tool:'WRITER',text:'Writer A'}),PRECISION_WRITER_REQUEST_B_V1:JSON.stringify({article_id:ids[1],article_url:urls[1],tool:'WRITER',text:'Writer B'})};
+const index={meta:{[caseId]:meta}};
+const ctx={sbmDoctorWorkflowResumeIndex_:()=>index,sbmDoctorWorkflowIndexedPayload_:(_,__,key)=>payload[key]||null,sbmNormalizeUrl_:x=>String(x||'').replace(/\/$/,'')};
+vm.createContext(ctx);vm.runInContext(src.slice(start,end),ctx);
+let n=0;function test(label,fn){fn();n++;console.log('PASS '+label)}
+const run=()=>ctx.sbmDoctorMultiWriterResumeSnapshot(caseId);
+const checkpoint=articles=>JSON.stringify({case_id:caseId,format:'PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1',articles});
+const receipt=i=>({article_id:ids[i],article_url:urls[i],history_id:'H'+i});
+test('no receipts: both article requests resumable',()=>{const r=run();assert(r.ok&&r.resumable&&r.pending_count===2&&r.articles.every(x=>x.request_text))});
+test('one receipt: only remaining request resumable',()=>{payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=checkpoint([receipt(0)]);const r=run();assert(r.ok&&r.resumable&&r.pending_count===1&&r.registered_receipt_count===1&&r.articles[1].request_text==='Writer B')});
+test('two receipts: no pending request; not auto completed',()=>{payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=checkpoint([receipt(0),receipt(1)]);const r=run();assert(r.ok&&!r.resumable&&r.pending_count===0&&r.case_completed===false&&r.monitoring_verified_now===false)});
+test('duplicate receipt rejects',()=>{payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=checkpoint([receipt(0),receipt(0)]);assert(!run().ok)});
+test('receipt URL mismatch rejects',()=>{payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=checkpoint([{...receipt(0),article_url:'https://example.org/other'}]);assert(!run().ok)});
+test('foreign receipt rejects',()=>{payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1=checkpoint([{article_id:'A999999',article_url:'https://example.org/c',history_id:'Hx'}]);assert(!run().ok)});
+test('missing writer request rejects',()=>{delete payload.PRECISION_MULTI_WRITER_REGISTRATION_RECEIPTS_V1;delete payload.PRECISION_WRITER_REQUEST_B_V1;assert(!run().ok);payload.PRECISION_WRITER_REQUEST_B_V1=JSON.stringify({article_id:ids[1],article_url:urls[1],tool:'WRITER',text:'Writer B'})});
+test('completed case cannot resume',()=>{meta.status='COMPLETED';const r=run();assert(r.ok&&!r.resumable&&r.reason==='CASE_CLOSED');meta.status='MONITORING_SETUP_PENDING'});
+test('invalid case ID rejects',()=>assert(!ctx.sbmDoctorMultiWriterResumeSnapshot('bad').ok));
+console.log(`${n}/${n} PASS`);

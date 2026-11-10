@@ -1,0 +1,1 @@
+feat(doctor): add read-only per-article registration preflight for multi-writer cases

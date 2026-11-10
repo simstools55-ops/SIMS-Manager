@@ -1,0 +1,1 @@
+feat(doctor): reconcile partial multi-writer registration evidence without writes

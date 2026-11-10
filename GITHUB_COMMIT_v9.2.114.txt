@@ -1,0 +1,1 @@
+test(precision): cover interrupted multi-writer resume snapshots offline

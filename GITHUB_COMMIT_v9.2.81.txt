@@ -1,0 +1,1 @@
+feat(doctor): expose read-only multi-writer resume inspector in precision diagnosis

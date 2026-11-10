@@ -1,0 +1,1 @@
+test(precision): verify two-article monitoring handoff completion offline

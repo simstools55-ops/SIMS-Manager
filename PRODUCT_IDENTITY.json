@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.2.74",
+  "current_version": "9.2.116",
   "release_status": "UAT_CANDIDATE",
-  "notes": "Read-only multi-article precision intake preview; no workflow or monitoring writes",
-  "version": "9.2.74",
+  "notes": "Final offline regression and repository audit; live licensed-environment UAT pending",
+  "version": "9.2.116",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "v9.2.74-ST"
+  "starter_display_version": "9.2.116"
 }

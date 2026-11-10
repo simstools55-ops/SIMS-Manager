@@ -1,0 +1,1 @@
+refactor(ui): consolidate strategy case navigation under precision diagnosis
