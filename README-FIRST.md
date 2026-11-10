@@ -1,5 +1,8 @@
-# SIMS Manager v9.2.69 — 戦略ナビ一回診断・安全ゲート
+# SIMS Manager v9.2.74 UAT
 
-既存GSC・戦略案件・Writer/Merge・モニタリングを再利用します。FURTHER_EVIDENCE承認はON_HOLDとし、誤って完了扱いしません。旧版のリリース履歴は保存します。
+精密診断統合の安全な中間版。保存済みaDoctor診断JSONの `actions` から、対象記事ごとのaWriter依頼文を読取専用で生成。
 
-**UAT限定。** 適用前にApps Scriptとスプレッドシートをバックアップしてください。
+- `sbmDoctorPreviewSavedMultiWriterRequests(caseId)` を追加。
+- `actions` のない旧診断は拒否。自由記述の自動分割をしない。
+- 戦略ナビUI・精密診断UI、承認、改善履歴、モニタリングは変更しない。
+- 現行運用へ適用せず、後続の統合UI実装・UATまで保留。

@@ -1,0 +1,1 @@
+feat(manager): preview saved doctor actions as article-specific writer requests

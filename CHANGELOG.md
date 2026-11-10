@@ -1,3 +1,18 @@
+## v9.2.74 (UAT)
+- Added read-only multi-article diagnosis response intake under precision diagnosis menu.
+- Validates existing strategy case and article IDs/URLs, previews two aWriter requests without saving.
+- No change to existing approval, monitoring or article registration.
+
+## v9.2.73 (UAT)
+- Validate saved doctor actions and preview two article-specific writer requests without mutation.
+
+## v9.2.72 (UAT)
+- Add read-only, validated two-article aWriter request preview for ROLE_SEPARATION; no workflow mutations.
+
+## v9.2.70 UAT
+- 戦略ナビの表示バージョンをSBM_VERSIONから生成し、固定値の更新漏れを防止。
+- 戦略判断・案件状態・Writer/Merge連携の処理は変更しない。
+
 ## v9.2.67 UAT
 - 同一CaseIDの非META行を先に検出してもMETAを除外しないよう修正。
 
@@ -2153,3 +2168,7 @@ v6.6.73
 
 ## v9.2.68 (UAT)
 Strategy approval single-cell META update, lock/readback verification, duplicate guard, MERGE_REVIEW pending-state safety and truthful timeout messaging.
+
+## v9.2.71 (UAT)
+- 承認済み・作業依頼前の戦略案件への再診断登録を追加。旧診断・承認を専用Payloadに保全し、REVIEW_READYに戻して再承認を要求。
+- 既存のaWriter/aMerge・モニタリング処理を再利用し、作業開始後の再診断は拒否。

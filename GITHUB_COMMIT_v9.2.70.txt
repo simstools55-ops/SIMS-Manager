@@ -1,0 +1,1 @@
+fix(strategy): derive navigator display version from SBM_VERSION
