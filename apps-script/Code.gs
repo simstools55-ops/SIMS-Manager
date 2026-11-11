@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.2.116
- * Release summary: Offline regression of two-article monitoring handoff completion; no runtime logic changes.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.2.116.md.
+ * Current version: 9.3.0
+ * Release summary: Stabilize precision diagnosis workflows and normalize production-facing labels.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.0.md.
  */
 
-const SBM_VERSION = '9.2.116';
+const SBM_VERSION = '9.3.0';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -10422,8 +10422,9 @@ function sbmStrategyListCases(selectedCaseId){
       try{m=JSON.parse(raw);}catch(ignoreInvalidStrategyMeta){continue;}
       loaded++;
       if(!m||m.workflow_type!=='STRATEGY_CASE'||m.status==='CANCELLED'||m.status==='COMPLETED')continue;
+      if(sbmDoctorPrecisionWriterRegistrationState_(caseId,m).complete)continue;
       out.push({caseId:caseId,status:m.status,articleId:m.primary_article_id,articleUrl:m.primary_article_url,
-        relatedId:m.related_article_id,relatedUrl:m.related_article_url,reason:m.reason,recommendation:m.recommendation,
+        relatedId:m.related_article_id,relatedUrl:m.related_article_url,articleTitle:String(m.primary_article_title||m.article_title||m.primary_title||''),relatedTitle:String(m.related_article_title||m.related_title||''),reason:m.reason,recommendation:m.recommendation,
         doctorDecision:m.doctor_decision,doctorReason:m.doctor_reason,workRoute:m.work_route||'',
         workReceipt:m.work_receipt||'',monitoringStatus:m.strategy_monitoring_status||''});
     }
@@ -10433,6 +10434,230 @@ function sbmStrategyListCases(selectedCaseId){
     try{console.error('[StrategyNavigator] phase='+phase+' matched='+matched+' loaded='+loaded+' elapsedMs='+(Date.now()-started)+' error='+error);}catch(ignoreLog){}
     return {ok:false,phase:phase,elapsedMs:Date.now()-started,message:'戦略案件の取得に失敗しました（'+phase+'）：'+error};
   }
+}
+
+
+/**
+ * v9.2.123: read-only multi-article action-plan foundation.
+ * One case may reference N distinct articles. No task is assigned until Doctor
+ * output and user approval explicitly identify the article and action.
+ * This helper performs no writes and does not alter legacy case identifiers.
+ */
+function sbmDoctorBuildPrecisionActionPlanPreview_(caseInfo){
+  var c=caseInfo||{},ids=[],seen={};
+  var add=function(x){x=String(x||'').trim();if(x&&!seen[x]){seen[x]=true;ids.push(x);}};
+  add(c.articleId);add(c.relatedId);
+  (Array.isArray(c.targetArticles)?c.targetArticles:[]).forEach(function(a){
+    if(typeof a==='string')add(a);
+    else if(a)add(a.article_id||a.articleId);
+  });
+  var route=String(c.workRoute||'').toUpperCase();
+  var decision=String(c.doctorDecision||'').toUpperCase();
+  return {
+    caseId:String(c.caseId||''),articleIds:ids,articleCount:ids.length,
+    decision:decision,route:route||'UNASSIGNED',
+    actionConfirmed:route==='WRITER'||route==='WRITER_MULTI'||route==='MERGE',
+    articleActions:ids.map(function(id){return {articleId:id,action:'UNASSIGNED',status:'NOT_STARTED'};}),
+    requiresDoctorReview:decision==='MERGE_REVIEW'||!route,
+    readOnly:true
+  };
+}
+
+/**
+ * v9.2.124: precision action-plan draft. Uses existing workflow payload storage.
+ * This is a planning record only: no approval, publication or work handoff.
+ */
+function sbmDoctorPrecisionPlanGet(caseId){
+  try{
+    caseId=String(caseId||'').trim();
+    var list=sbmStrategyListCases(caseId);
+    if(!list.ok)throw new Error(list.message||'案件を取得できません。');
+    var c=(list.cases||[]).filter(function(x){return x.caseId===caseId;})[0];
+    if(!c)throw new Error('対象の未完了追加課題がありません。');
+    var preview=sbmDoctorBuildPrecisionActionPlanPreview_(c);
+    var raw=sbmDoctorWorkflowReadPayload_(caseId,'PRECISION_ACTION_PLAN_V1');
+    var saved=raw?JSON.parse(raw):null;
+    if(saved){
+      if(saved.case_id!==caseId||!Array.isArray(saved.actions))throw new Error('保存済み処置計画の形式が不正です。');
+      var expected=preview.articleIds.slice().sort().join('|');
+      if(saved.actions.map(function(a){return a.article_id;}).sort().join('|')!==expected)
+        throw new Error('対象記事が保存時から変化しています。計画を変更せず再診断してください。');
+    }
+    return {ok:true,caseId:caseId,articleIds:preview.articleIds,decision:preview.decision,
+      actions:saved?saved.actions:preview.articleActions.map(function(a){return {article_id:a.articleId,action:'UNASSIGNED'};}),
+      saved:!!saved,savedAt:saved&&saved.saved_at||'',revision:saved&&saved.revision||0,
+      message:saved?'保存済みの処置計画案を読み込みました。':'未保存の処置計画案です。'};
+  }catch(e){return {ok:false,message:String(e&&e.message||e)};}
+}
+function sbmDoctorPrecisionPlanSaveDraft(caseId,actions,expectedRevision){
+  try{
+    var lock=LockService.getDocumentLock();
+    if(!lock||!lock.tryLock(20000))throw new Error('他の処理が実行中です。再試行してください。');
+    try{
+      var current=sbmDoctorPrecisionPlanGet(caseId);
+      if(!current.ok)throw new Error(current.message);
+      if(current.revision!==Number(expectedRevision||0))throw new Error('他の画面で計画が更新されています。再読み込みしてください。');
+      if(!Array.isArray(actions)||actions.length!==current.articleIds.length)throw new Error('対象記事数が一致しません。');
+      var allowed={UNASSIGNED:true,WRITER:true,MERGE_CANDIDATE:true,NO_CHANGE:true};
+      var expected={},seen={};current.articleIds.forEach(function(id){expected[id]=true;});
+      var clean=actions.map(function(a){
+        var id=String(a&&a.article_id||'').trim(),act=String(a&&a.action||'').trim();
+        if(!expected[id]||seen[id]||!allowed[act])throw new Error('記事IDまたは処置候補が不正です。');
+        seen[id]=true;return {article_id:id,action:act,status:'DRAFT'};
+      });
+      // A merge needs at least two articles; it is still only a candidate.
+      var mergeCount=clean.filter(function(a){return a.action==='MERGE_CANDIDATE';}).length;
+      if(mergeCount===1)throw new Error('統合候補は2記事以上を指定してください。');
+      var saved={format:'SIMS_PRECISION_ACTION_PLAN_V1',case_id:current.caseId,
+        source:'LEGACY_ADDITIONAL_ISSUE',status:'DRAFT',revision:current.revision+1,
+        saved_at:sbmNowText_(),actions:clean};
+      sbmDoctorWorkflowWritePayload_(current.caseId,'PRECISION_ACTION_PLAN_V1',JSON.stringify(saved));
+      return {ok:true,revision:saved.revision,message:'処置計画案を保存しました。aDoctorの承認・作業依頼・記事変更は行っていません。'};
+    }finally{lock.releaseLock();}
+  }catch(e){return {ok:false,message:String(e&&e.message||e)};}
+}
+
+/**
+ * v9.2.126: choose the next useful step without asking the operator to select
+ * aWriter/aMerge per article. No article or workflow state is modified.
+ */
+/** v9.2.128: use existing validated multi-article intake, without writing any workflow state. */
+function sbmDoctorPrecisionPreviewPastedActions(caseId,response){
+  return sbmDoctorPreviewMultiArticleIntake(caseId,response);
+}
+
+function sbmDoctorPrecisionNextStep(caseId){
+  try{
+    var list=sbmStrategyListCases(String(caseId||''));
+    if(!list.ok)throw new Error(list.message||'診断情報を取得できません。');
+    var c=(list.cases||[]).filter(function(x){return x.caseId===caseId;})[0];
+    if(!c)throw new Error('未完了の精密診断案件がありません。');
+    var m=sbmDoctorWorkflowReadMeta_(caseId)||{};
+    var decision=String(c.doctorDecision||'').toUpperCase();
+    var ids=sbmDoctorBuildPrecisionActionPlanPreview_(c).articleIds;
+    var recommendation='',nextAction='',request='';
+    if(decision==='MERGE_REVIEW'||decision==='FURTHER_EVIDENCE'||!decision){
+      recommendation='既存判断は処置確定ではありません。現在の情報で実行可能な一手をaDoctorに決めてもらい、記事別の修正指示を作ります。';
+      nextAction='DOCTOR_REQUEST';
+      var r=sbmStrategyDoctorRequest(caseId);
+      if(!r.ok)throw new Error(r.message);
+      request=r.text.replace('【SIMS 戦略ナビ → aDoctor 診断依頼】','【SIMS 精密診断 → aDoctor 処置決定依頼】')+'\n【今回の運用方針】完璧な最適解を待たず、現有データで妥当な改善案を選択。複数記事は各記事の修正箇所と役割を明示し、修正可能ならaWriter、統合が明確に優位ならaMerge。公開後はSBMで7/14/21/28日測定。利用者に処置の選択を求めない。';
+    }else if(decision==='ROLE_SEPARATION'){
+      recommendation='役割分離を優先。既存の具体的な修正指示を確認し、必要な記事ごとにaWriterへ依頼します。';
+      nextAction='WRITER_PREPARATION';
+    }else if(decision==='KEEP_BOTH'){
+      recommendation='両記事を維持。必要な修正があればaWriter、なければ理由を記録して終了します。';
+      nextAction='KEEP_BOTH_REVIEW';
+    }else{
+      recommendation='保存済み判断の形式が不明なため、診断を確認します。';nextAction='DOCTOR_REQUEST';
+    }
+    return {ok:true,caseId:caseId,articleIds:ids,decision:decision,status:c.status,
+      nextAction:nextAction,recommendation:recommendation,request:request,
+      savedWriterReady:decision==='ROLE_SEPARATION'&&c.status==='REVIEW_READY',
+      manualDraftIgnored:!!sbmDoctorWorkflowReadPayload_(caseId,'PRECISION_ACTION_PLAN_V1'),
+      readOnly:true,message:'推奨する次の処置を確認しました。既存データは変更していません。'};
+  }catch(e){return {ok:false,message:String(e&&e.message||e)};}
+}
+
+/**
+ * v9.2.119: non-destructive compatibility bridge for additional precision issues.
+ * Legacy STRATEGY_CASE remains intact; no migration, Today rebuild or writes.
+ */
+/** v9.2.135: one bounded, read-only article-management lookup per precision dialog. */
+function sbmDoctorPrecisionFillArticleTitles_(cases){
+  var wanted={};(cases||[]).forEach(function(c){[c.articleId,c.relatedId].forEach(function(id){id=String(id||'').trim();if(id)wanted[id]=true;});});
+  if(!Object.keys(wanted).length)return cases;
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return cases;
+  var hm=sbmHeaderMap_(sh),idCol=hm['ArticleID']||hm['記事ID'],titleCol=hm['記事タイトル']||hm['H1タイトル'];
+  if(!idCol||!titleCol)return cases;
+  var n=sh.getLastRow()-1,ids=sh.getRange(2,idCol,n,1).getDisplayValues(),titles=sh.getRange(2,titleCol,n,1).getDisplayValues(),found={};
+  for(var i=0;i<n;i++){var id=String(ids[i][0]||'').trim(),title=String(titles[i][0]||'').trim();if(wanted[id]&&title&&!found[id])found[id]=title;}
+  (cases||[]).forEach(function(c){if(!String(c.articleTitle||'').trim())c.articleTitle=found[String(c.articleId||'').trim()]||'';if(!String(c.relatedTitle||'').trim())c.relatedTitle=found[String(c.relatedId||'').trim()]||'';});
+  return cases;
+}
+
+function sbmDoctorInspectLegacyAdditionalCasesFromMenu(selectedCaseId){
+  if(!sbmLicenseRequireForProcessing_())return;
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('精密診断の追加課題','Starter Editionでは利用できません。');
+  try{
+    var result=sbmStrategyListCases();
+    if(!result.ok)throw new Error(result.message||'追加課題の読取に失敗しました。');
+    var cases=result.cases||[];
+    selectedCaseId=String(selectedCaseId||'').trim();
+    if(selectedCaseId)cases=cases.filter(function(c){return c.caseId===selectedCaseId;});
+    cases=sbmDoctorPrecisionFillArticleTitles_(cases);
+    if(!cases.length)return sbmAlert_('精密診断の追加課題','未完了の追加課題はありません。既存データは変更していません。');
+    var esc=function(x){return String(x===null||x===undefined?'':x).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+    var displayDecision=function(v){var m={ROLE_SEPARATION:'記事の役割を分けて修正',KEEP_BOTH:'記事を両方残して確認',MERGE_REVIEW:'統合の可否を詳しく診断',FURTHER_EVIDENCE:'追加診断が必要',DOCTOR_REVIEW:'aDoctorで詳しく診断'};return m[String(v||'').toUpperCase()]||'診断内容を確認中';};
+    var rows=cases.map(function(c){
+      return '<tr><td>'+esc(c.articleId)+'</td><td>'+esc(c.relatedId||'未確認')+'</td><td>'+esc(c.status)+'</td><td>'+esc(c.workRoute||'未指定')+'</td><td>'+esc(c.caseId)+'</td></tr>';
+    }).join('');
+    // Read-only planning: derived only from the saved diagnosis; no invented per-article tasks.
+    // A review decision is NOT an authorization to merge or edit articles.
+    var planHtml=function(c){
+      var preview=sbmDoctorBuildPrecisionActionPlanPreview_(c);
+      var unique=preview.articleIds;
+      var decision=String(c.doctorDecision||'').toUpperCase();
+      var hasReview=decision==='MERGE_REVIEW';
+      var options=hasReview
+        ? '候補：①統合が適切ならaMerge、②各記事を残すなら必要な記事ごとにaWriter、③修正不要なら根拠を記録して終了。現時点で処置は確定していません。'
+        : 'aDoctorの保存済み判断に従い、必要な記事別依頼文を表示します。利用者が処置先を選択する必要はありません。';
+      return '<div style="margin-top:10px;padding:10px;background:#f3f5f7;border-radius:6px">'
+        +'<strong>精密診断：記事別の改善依頼</strong>'
+        +'<p>対象記事：'+esc(unique.join(' / ')||'未確認')+'（'+unique.length+'件）</p>'
+        +'<p>保存済み判断：'+esc(displayDecision(c.doctorDecision))+' ／ 処置先：'+esc(c.workRoute||'未指定')+'</p>'
+        +'<p>記事別の処置：'+esc(preview.actionConfirmed?'保存済みの処置先に従って依頼を準備します。':'aDoctorの診断結果を確認してからSBMが決定します。')+'</p>'
+        +'<p>'+esc(options)+'</p>'
+        +'<p>管理方針：1つの診断案件に記事別の処置を関連付け、公開・改善履歴・経過観察は記事別に確認します。統合元の処置は別途確認します。</p>'
+        +'<p><strong>注意：</strong>これは保存済み情報から作る選択肢の表示であり、aDoctorの新たな診断や処置の承認ではありません。</p>'
+        +'</div>';
+    };
+    var details=cases.map(function(c){
+      return '<section style="margin:12px 0;padding:12px;border:1px solid #ddd;border-radius:6px">'
+        +'<h4>追加課題：'+esc(c.articleTitle||c.title||('記事 '+c.articleId))+'</h4><p>記事ID：'+esc(c.articleId)+' ／ 関連記事：'+esc(c.relatedTitle||c.relatedId||'未確認')+'</p>'
+        +'<p><strong>確認された問題：</strong>'+esc(c.reason||'診断理由が保存されていません。aDoctorへの確認が必要です。')+'</p>'
+        +'<p><strong>SBMの推奨：</strong>'+esc(c.recommendation||'保存済み診断に基づいて次の処置を確認します。')+'</p>'
+        +'<p><strong>aDoctorの判断：</strong>'+esc(displayDecision(c.doctorDecision))+'</p>'
+        +'<p><strong>判断理由：</strong>'+esc(c.doctorReason||'保存情報なし')+'</p>'
+        +'<p><strong>現在の処置先：</strong>'+esc(c.workRoute==='WRITER'||c.workRoute==='WRITER_MULTI'?'aWriterで記事を修正':c.workRoute==='MERGE'?'aMergeで記事を統合':c.workRoute||'診断結果を確認中')+' ／ <strong>状態：</strong>'+esc(c.status||'不明')+'</p>'
+        +'<p><strong>元CaseID：</strong>'+esc(c.caseId)+'</p>'+planHtml(c)+'<div id="draft-'+esc(c.caseId)+'" data-case-id="'+esc(c.caseId)+'" style="padding:10px;border-top:1px solid #ddd"><div class="draft-body" role="status">記事別の依頼文を準備しています…</div></div></section>';
+    }).join('');
+    var html='<!doctype html><html><head><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:16px;line-height:1.5}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:7px;text-align:left;overflow-wrap:anywhere}th{background:#eee}p{margin:8px 0}</style></head><body><h3>精密診断の追加課題</h3><p>保存済み未完了：'+cases.length+'件。既存の識別子・状態を表示しています。変更・登録・今日の改善の再構築は行いません。</p><table><thead><tr><th>主記事ID</th><th>関連記事ID</th><th>状態</th><th>処置先</th><th>保存済みCaseID</th></tr></thead><tbody>'+rows+'</tbody></table><h3>保存済み診断の詳細</h3>'+details+'<p>※SBMが保存済み診断から次の処置を案内します。</p>'+
+      '<script>function loadDraft(btn,id){var holder=document.getElementById("draft-"+id);var root=holder&&holder.querySelector(".draft-body");if(!root)return;root.textContent="推奨処置を確認しています…";google.script.run.withSuccessHandler(function(r){root.textContent="";if(!r||!r.ok){root.textContent=r&&r.message||"取得失敗";return;}var p=document.createElement("p");p.textContent="推奨："+r.recommendation;root.appendChild(p);if(r.decision==="ROLE_SEPARATION"){\
+  var flow=document.createElement("div");flow.style.cssText="padding:12px;background:#f1f5f9;border-radius:8px;margin:12px 0;line-height:1.7";\
+  flow.textContent="進め方：①依頼文をコピー → ②aWriterで記事を修正 → ③記事を公開 → ④回答を貼り付けて登録。記事ごとに繰り返します。";root.appendChild(flow);\
+  var loading=document.createElement("p");loading.textContent="記事の依頼文を準備しています…";root.appendChild(loading);\
+  google.script.run.withSuccessHandler(function(x){loading.textContent=x&&x.message||"読込結果がありません";if(!x||!x.ok){loading.style.color="#b91c1c";return;}loading.style.color="";\
+    if(!(x.requests||[]).length){loading.textContent="記事別依頼文が保存されていません。診断結果と処置状態を確認してください。";loading.style.color="#b91c1c";return;}(x.requests||[]).forEach(function(req){\
+      var panel=document.createElement("section");panel.style.cssText="border:1px solid #cbd5e1;border-radius:9px;padding:14px;margin:16px 0;background:#fff";\
+      var heading=document.createElement("h3");heading.textContent="記事 "+req.article_id;panel.appendChild(heading);\
+      var url=document.createElement("p");url.style.cssText="font-size:12px;overflow-wrap:anywhere;color:#475569";url.textContent=req.article_url;panel.appendChild(url);\
+      var instruction=document.createElement("p");instruction.textContent="① この依頼文をaWriterへ渡してください";panel.appendChild(instruction);\
+      var t=document.createElement("textarea");t.readOnly=true;t.style.cssText="width:100%;min-height:185px;box-sizing:border-box";t.value=req.text;panel.appendChild(t);\
+      var copy=document.createElement("button");copy.textContent="依頼文をコピー";panel.appendChild(copy);\
+      var copyMsg=document.createElement("span");copyMsg.style.cssText="margin-left:10px;font-size:13px";copyMsg.setAttribute("role","status");panel.appendChild(copyMsg);\
+      copy.onclick=function(){\
+        function fallback(){t.focus();t.select();var ok=false;try{ok=document.execCommand("copy")}catch(ignore){}if(ok){copyMsg.textContent="コピーしました";}else{copyMsg.textContent="自動コピーできませんでした。選択中の文章を Ctrl+C でコピーしてください。";}}\
+        if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t.value).then(function(){copyMsg.textContent="コピーしました";},fallback);}else fallback();\
+      };\
+      var label=document.createElement("p");label.textContent="② 修正記事を公開したら、aWriter回答のJSONを貼り付けます";label.style.marginTop="14px";panel.appendChild(label);\
+      var answer=document.createElement("textarea");answer.style.cssText="width:100%;min-height:145px;box-sizing:border-box";answer.placeholder="aWriterの回答末尾にある登録用JSONを貼り付けてください";panel.appendChild(answer);\
+      var confirmRow=document.createElement("label");confirmRow.style.cssText="display:block;margin:10px 0";var check=document.createElement("input");check.type="checkbox";confirmRow.appendChild(check);confirmRow.appendChild(document.createTextNode(" この記事を公開しました"));panel.appendChild(confirmRow);\
+      var submit=document.createElement("button");submit.textContent="この記事の改善結果を登録";panel.appendChild(submit);\
+      var receipt=document.createElement("p");receipt.setAttribute("role","status");panel.appendChild(receipt);\
+      submit.onclick=function(){if(!check.checked){receipt.textContent="公開後にチェックを入れてください。";return}if(!answer.value.trim()){receipt.textContent="aWriterの回答JSONを貼り付けてください。";return}if(!confirm(req.article_id+"の公開済み記事を登録します。よろしいですか？"))return;\
+        submit.disabled=true;receipt.textContent="登録しています…";\
+        google.script.run.withSuccessHandler(function(z){receipt.textContent=z&&z.message||"結果を確認できません";if(!z||!z.ok){submit.disabled=false;return}if(z.followupRequired||z.decisionRequired){receipt.textContent+=" 追加の確認が必要です。未完了の作業から再開してください。";return}submit.textContent="登録済み（結果を確認してください）";answer.disabled=true;check.disabled=true;receipt.textContent+=" もう一方の記事は引き続き登録できます。";var done=document.createElement("div");done.setAttribute("role","dialog");done.style.cssText="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border:2px solid #64748b;border-radius:12px;padding:24px;z-index:99999;box-shadow:0 8px 40px #0004;max-width:90%;white-space:pre-wrap";done.textContent="改善結果の登録が完了しました。\\n"+(z.message||"");var close=document.createElement("button");close.textContent="閉じる";close.style.cssText="display:block;margin-top:16px;padding:8px 24px";close.onclick=function(){done.remove()};done.appendChild(close);document.body.appendChild(done);}).withFailureHandler(function(e){submit.disabled=false;receipt.textContent="結果を確認できません："+String(e&&e.message||e)+"。再試行前に改善履歴を確認してください。";}).sbmDoctorRegisterPrecisionWriterFeedback(id,req.article_id,req.article_url,answer.value);\
+      };\
+      root.appendChild(panel);\
+    });\
+  }).withFailureHandler(function(e){loading.textContent=String(e&&e.message||e)}).sbmDoctorPreviewSavedMultiWriterRequests(id);return;\
+}if(r.manualDraftIgnored){var w=document.createElement("p");w.textContent="保存済みの診断結果を優先します。";root.appendChild(w)}if(r.request){var t=document.createElement("textarea");t.style.width="100%";t.style.minHeight="180px";t.value=r.request;root.appendChild(t);var b=document.createElement("button");b.textContent="aDoctor依頼文を選択";b.onclick=function(){t.focus();t.select()};root.appendChild(b)}var title=document.createElement("p");title.textContent="aDoctor回答JSONから記事別依頼文を確認";root.appendChild(title);var answer=document.createElement("textarea");answer.style.width="100%";answer.style.minHeight="150px";answer.placeholder="aDoctor回答末尾のSIMS_STRATEGY_DOCTOR_V1 JSON、または回答全文";root.appendChild(answer);var preview=document.createElement("button");preview.textContent="記事別aWriter依頼文を確認";root.appendChild(preview);var result=document.createElement("div");root.appendChild(result);preview.onclick=function(){preview.disabled=true;result.textContent="診断結果を照合しています…";google.script.run.withSuccessHandler(function(x){preview.disabled=false;result.textContent="";var status=document.createElement("p");status.textContent=x&&x.message||"結果を確認できません";result.appendChild(status);if(!x||!x.ok)return;(x.requests||[]).forEach(function(req){var h=document.createElement("h4");h.textContent=req.article_id+" → aWriter";result.appendChild(h);var out=document.createElement("textarea");out.readOnly=true;out.style.width="100%";out.style.minHeight="200px";out.value=req.text;result.appendChild(out);var select=document.createElement("button");select.textContent="依頼文をコピー";select.onclick=function(){out.focus();out.select();var ok=false;try{ok=document.execCommand("copy")}catch(e){}alert(ok?"コピーしました":"選択した文章を Ctrl+C でコピーしてください")};result.appendChild(select)});var register=document.createElement("button");register.textContent="診断結果を保存して再承認へ進む";register.style.marginTop="12px";result.appendChild(register);var receipt=document.createElement("p");result.appendChild(receipt);register.onclick=function(){if(!confirm("aDoctorの診断結果を保存し、以前の承認を無効にして再承認待ちにします。記事の修正・公開・改善登録は行いません。続けますか？"))return;register.disabled=true;receipt.textContent="保存しています…";google.script.run.withSuccessHandler(function(y){receipt.textContent=y&&y.message||"保存結果を確認できません";if(!y||!y.ok){register.disabled=false;return;}register.textContent="診断結果を保存済み（再承認待ち）";var next=document.createElement("p");next.textContent="次は既存の承認ゲートで推奨処置を一括承認します。ここでは記事別の処置を選択しません。";result.appendChild(next)}).withFailureHandler(function(e){register.disabled=false;receipt.textContent=String(e&&e.message||e)}).sbmDoctorSubmitMultiArticleForReapproval(id,answer.value)}}).withFailureHandler(function(e){preview.disabled=false;result.textContent=String(e&&e.message||e)}).sbmDoctorPrecisionPreviewPastedActions(id,answer.value)}}).withFailureHandler(function(e){root.textContent=String(e&&e.message||e)}).sbmDoctorPrecisionNextStep(id)}function legacyDraft(btn,id){var root=btn.parentNode.querySelector(".draft-body");root.textContent="読み込み中…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){root.textContent=r&&r.message||"取得失敗";return;}root.textContent="";var title=document.createElement("p");title.textContent=(r.saved?"保存済み":"未保存")+" / 改訂 "+r.revision+" / "+(r.savedAt||"");root.appendChild(title);var entries=[];r.actions.forEach(function(a){var row=document.createElement("div");row.style.margin="8px 0";var lab=document.createElement("label");lab.textContent=a.article_id+"：";row.appendChild(lab);var sel=document.createElement("select");[["UNASSIGNED","未確定"],["WRITER","aWriter候補"],["MERGE_CANDIDATE","aMerge統合候補"],["NO_CHANGE","修正不要候補"]].forEach(function(o){var opt=document.createElement("option");opt.value=o[0];opt.textContent=o[1];sel.appendChild(opt)});sel.value=a.action;row.appendChild(sel);root.appendChild(row);entries.push({article_id:a.article_id,select:sel})});var note=document.createElement("p");note.textContent="これは処置案の保存のみです。Doctorの判断・承認や作業依頼には進みません。統合候補は2記事以上指定してください。";root.appendChild(note);var save=document.createElement("button");save.textContent="処置計画案を保存";root.appendChild(save);save.onclick=function(){if(!confirm("処置計画案のみを保存します。記事・診断状態・改善履歴は変更しません。続けますか？"))return;save.disabled=true;var acts=entries.map(function(x){return {article_id:x.article_id,action:x.select.value}});google.script.run.withSuccessHandler(function(x){save.disabled=false;alert(x&&x.message||"保存結果を確認できません");if(x&&x.ok)loadDraft(btn,id)}).withFailureHandler(function(e){save.disabled=false;alert(String(e&&e.message||e))}).sbmDoctorPrecisionPlanSaveDraft(id,acts,r.revision)}}).withFailureHandler(function(e){root.textContent=String(e&&e.message||e)}).sbmDoctorPrecisionPlanGet(id)}</script></body></html>';
+    html=html.replace('</body>','<script>window.addEventListener("load",function(){Array.prototype.forEach.call(document.querySelectorAll(".draft-body"),function(body){var id=body.parentNode.getAttribute("data-case-id");if(id)loadDraft(null,id);});});</script></body>');
+    sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(820).setHeight(480),'精密診断の追加課題');
+    return {ok:true,count:cases.length,readOnly:true};
+  }catch(e){sbmAlert_('精密診断の追加課題を確認できません',String(e&&e.message||e));return {ok:false,message:String(e&&e.message||e)};}
 }
 
 function sbmStrategyDecide(caseId,action){
@@ -11453,7 +11678,7 @@ function sbmStrategyRefreshToday(){
 }
 function sbmStrategyOpenNavigator(selectedCaseId){
   selectedCaseId=String(selectedCaseId||'');
-  var html='<!doctype html><html><head><base target="_top"><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:18px;line-height:1.6}section{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}button{margin:5px;padding:8px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}#msg{position:sticky;bottom:0;background:#f4f7fb;padding:8px;border-radius:5px;white-space:pre-wrap}textarea{box-sizing:border-box;width:100%;min-height:130px}small{color:#555}p{white-space:pre-wrap}</style></head><body><h3>精密診断・複数記事の処置（v'+SBM_VERSION+' UAT）</h3><p>記事の修正・公開・経過観察の登録は自動実行しません。</p><button id="refresh">今日の改善へ反映</button><div id="cases">読込中…</div><p id="msg" role="status"></p><script>'+
+  var html='<!doctype html><html><head><base target="_top"><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:18px;line-height:1.6}section{border:1px solid #ddd;border-radius:8px;padding:12px;margin:12px 0}button{margin:5px;padding:8px;cursor:pointer}button:disabled{opacity:.55;cursor:wait}#msg{position:sticky;bottom:0;background:#f4f7fb;padding:8px;border-radius:5px;white-space:pre-wrap}textarea{box-sizing:border-box;width:100%;min-height:130px}small{color:#555}p{white-space:pre-wrap}</style></head><body><h3>精密診断・複数記事の処置</h3><p>記事の修正・公開・経過観察の登録は自動実行しません。</p><button id="refresh">今日の改善へ反映</button><div id="cases">読込中…</div><p id="msg" role="status"></p><script>'+
     'var selectedCaseId='+JSON.stringify(selectedCaseId)+';function msg(x){document.getElementById("msg").textContent=x||""}var busyCount=0;function busy(on,n){busyCount=Math.max(0,busyCount+(on?1:-1));var active=busyCount>0;Array.prototype.forEach.call(document.querySelectorAll("button"),function(b){b.disabled=active});if(on)msg("処理中："+n+"。完了までお待ちください。")};function api(n,a,cb){if(busyCount){msg("前の処理が完了するまでお待ちください。");return}busy(true,n);var runner=google.script.run.withSuccessHandler(function(r){busy(false,n);if(!r||!r.ok){msg(r&&r.message||"処理失敗。もう一度お試しください。");return}msg(r.message||"処理が完了しました。");if(cb)try{cb(r)}catch(ex){msg("画面更新に失敗しました："+String(ex))}}).withFailureHandler(function(e){busy(false,n);msg("通信・処理結果の確認に失敗しました："+String(e&&e.message||e)+"。書き込み結果が不明な場合があります。再操作せず、メニューから開き直して保存状態を確認してください。");if(n==="sbmStrategyListCases")document.getElementById("cases").textContent="読み込みに失敗しました。ダイアログを閉じ、再度開いてください。"});try{runner[n].apply(runner,a)}catch(ex){busy(false,n);msg("処理を開始できません："+String(ex))}}function field(s,title,val){var label=document.createElement("p");label.textContent=title;s.appendChild(label);var t=document.createElement("textarea");t.value=val||"";s.appendChild(t);return t}function btn(s,label,fn){var b=document.createElement("button");b.textContent=label;b.onclick=fn;s.appendChild(b)}'+
     'function load(){document.getElementById("cases").textContent="戦略案件を読み込んでいます…";api("sbmStrategyListCases",[selectedCaseId],function(r){var root=document.getElementById("cases");root.innerHTML="";var items=(r.cases||[]).filter(function(c){return !selectedCaseId||c.caseId===selectedCaseId});if(!items.length){root.textContent="表示できる戦略案件はありません。";return}items.forEach(function(c){var s=document.createElement("section"),h=document.createElement("h4");h.textContent=c.articleId+" / "+(c.relatedId||"関連ID未確認")+" ["+c.status+"]";s.appendChild(h);var p=document.createElement("p");p.textContent=c.reason||"";s.appendChild(p);var small=document.createElement("small");small.textContent=(c.articleUrl||"")+" / "+(c.relatedUrl||"");s.appendChild(small);'+
     'if(c.status==="REVIEW_READY"){var d=document.createElement("p");d.textContent="aDoctor診断："+(c.doctorDecision||"")+"\\n理由："+(c.doctorReason||"");s.appendChild(d);btn(s,"診断結果を承認",function(){if(!confirm("診断結果を承認しますか？記事は自動修正されません。"))return;api("sbmStrategyReviewDecision",[c.caseId,"ACCEPT"],function(r){msg(r.message);load()})})}'+
@@ -16728,8 +16953,8 @@ function onOpen() {
       .addItem('精密診断候補を見る','sbmDoctorOpenDetailedCandidates')
       .addItem('選択候補の精密診断を実施','sbmDoctorCreateRequestFromDetailedCandidate')
       .addSeparator()
-      .addItem('精密診断の未完了案件を再開','sbmStrategyOpenSavedCases')
-      .addItem('精密診断案件を今日の改善へ反映','sbmStrategyRefreshTodayFromMenu');
+      .addItem('精密診断の未完了案件を再開','sbmDoctorResumePrecisionDiagnosisFromMenu')
+      .addItem('精密診断の追加課題を確認（読取専用）','sbmDoctorInspectLegacyAdditionalCasesFromMenu');
     // 開発者専用UAT導線は通常利用者に表示しない。既存関数は削除しない。
     // 開発試験時のみ Script Properties の SBM_SHOW_MULTIWRITER_UAT_MENU=true を設定。
     // ライセンス判定とは独立し、Full版以外では表示しない。
@@ -21017,6 +21242,16 @@ function sbmDoctorDiagnosisCodes_(doctor,n){
   return out;
 }
 
+/** v9.2.138: reuse SBM article-source retrieval for writer handoffs. */
+function sbmDoctorWriterSourceRequired_(url, existing){
+  var d=existing&&existing.data?existing.data:existing;
+  if(d&&d.truncated!==true&&((Array.isArray(d.sections)&&d.sections.length)||String(d.text||d.body||'').trim().length>=200))return existing;
+  var result=sbmFetchArticleSource_(url,{forceFresh:true});
+  if(!result||!result.ok||!result.data||result.data.truncated||!Array.isArray(result.data.sections)||!result.data.sections.length){
+    throw new Error('aWriter紹介状を発行できません。SBMが記事本文を完全に取得できませんでした。記事URL・公開状態を確認してください。'+(result&&result.message?'\n'+result.message:''));
+  }
+  return result.data;
+}
 function sbmDoctorResolveWriterArticle_(sourceRequest){
   sourceRequest=sourceRequest||{};
   var a=sourceRequest.article||{},e=sourceRequest.evidence_package||{};
@@ -21034,6 +21269,7 @@ function sbmDoctorResolveWriterArticle_(sourceRequest){
     || e.article_source&&e.article_source.data
     || a.source_content
     || null;
+  sourceContent=sbmDoctorWriterSourceRequired_(url,sourceContent);
   var h1=String(live.h1||'').trim();
   var seoTitle=String(live.titleTag||'').trim();
   var meta=String(live.metaDescription||'').trim();
@@ -21055,10 +21291,28 @@ function sbmDoctorResolveWriterArticle_(sourceRequest){
   };
 }
 
+/** v9.2.132: resolve the authoritative local SiteID and reject conflicting identities. */
+function sbmDoctorWriterSiteId_(candidate){
+  var local=String(sbmGetSetting_('SiteID','')||'').trim();
+  var supplied=String(candidate||'').trim();
+  if(!local)throw new Error('aWriter依頼を発行できません。SBMのサイト設定にSiteIDがありません。サイト設定を確認してください。');
+  if(supplied&&supplied!==local)throw new Error('aWriter依頼を発行できません。CaseのSiteIDがSBMのサイト設定と一致しません。');
+  return local;
+}
+function sbmDoctorValidateWriterRequest_(req){
+  var missing=[];
+  ['format','source_system','target_system','case_id','article_id','site_id','request_mode'].forEach(function(k){if(!String(req[k]||'').trim())missing.push(k);});
+  if(!req.article||!String(req.article.url||req.article.canonical_url||'').trim())missing.push('article.url');
+  if(!req.article||!req.article.source_content)missing.push('article.source_content');
+  if(!req.doctor_referral||!Array.isArray(req.doctor_referral.allowed_scope)||!req.doctor_referral.allowed_scope.length)missing.push('doctor_referral.allowed_scope');
+  if(missing.length)throw new Error('aWriter依頼を発行できません。必須項目が不足：'+missing.join(', '));
+  if(req.format!=='SIMS_WRITER_TREATMENT_REQUEST_V1'||req.target_system!=='SIMS_WRITER')throw new Error('aWriter依頼形式が正しくありません。');
+  return req;
+}
 function sbmDoctorBuildWriterTreatmentRequest_(sourceRequest,doctor,n){
   var sourceArticle=sourceRequest.article||{},evidence=sourceRequest.evidence_package||{},detail=sbmDoctorReferralDetails_(doctor,n,evidence),article=sbmDoctorResolveWriterArticle_(sourceRequest);
   if(!detail.allowed_scope||!detail.allowed_scope.length)throw new Error('aWriter紹介状を安全に生成できません。aDoctor結果にallowed_scopeがありません。aDoctor診断結果の治療範囲を確認してください。');
-  return {format:'SIMS_WRITER_TREATMENT_REQUEST_V1',contract_version:'1.0',source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_WRITER',generated_at:sbmDoctorIso_(new Date()),case_id:n.caseId,request_id:sourceRequest.request&&sourceRequest.request.request_id||'',article_id:sourceArticle.article_id||evidence.article_id||'',site_id:sourceRequest.site&&sourceRequest.site.site_id||evidence.site_id||'',personal_knowledge_site_id:sourceRequest.site&&sourceRequest.site.personal_knowledge_site_id||String(sbmPersonalKnowledgeGetContext_().site_id||''),request_mode:'DOCTOR_REFERRAL_TREATMENT',article:article,reading_device_style:sbmWriterReadingContext_().reading_device_style,reading_device_instruction:sbmWriterReadingContext_().reading_device_instruction,doctor_referral:{diagnosis_id:n.diagnosisId||'',diagnosis_status:n.diagnosisStatus||'',diagnosis_codes:sbmDoctorDiagnosisCodes_(doctor,n),priority:n.priority||'',treatment_action:n.action||'',treatment_level:n.treatmentLevel||'',allowed_scope:detail.allowed_scope,blocked_scope:detail.blocked_scope,instructions:detail.instructions,candidate_urls:detail.candidate_urls,treatment_tasks:detail.treatment_tasks,internal_link_recommendations:detail.internal_link_recommendations,presentation:detail.presentation,technical_flags_for_sbm:doctor&&doctor.treatment_plan&&doctor.treatment_plan.technical_flags_for_sbm||[],doctor_result:doctor},evidence_package:evidence,workflow:{locked:!!n.locked,treatment_allowed:!n.locked},return_contract:{format:'SIMS_WRITER_TREATMENT_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}};
+  return sbmDoctorValidateWriterRequest_({format:'SIMS_WRITER_TREATMENT_REQUEST_V1',contract_version:'1.0',source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_WRITER',generated_at:sbmDoctorIso_(new Date()),case_id:n.caseId,request_id:sourceRequest.request&&sourceRequest.request.request_id||'',article_id:sourceArticle.article_id||evidence.article_id||'',site_id:sbmDoctorWriterSiteId_(sourceRequest.site&&sourceRequest.site.site_id||evidence.site_id),personal_knowledge_site_id:sourceRequest.site&&sourceRequest.site.personal_knowledge_site_id||String(sbmPersonalKnowledgeGetContext_().site_id||''),request_mode:'DOCTOR_REFERRAL_TREATMENT',article:article,reading_device_style:sbmWriterReadingContext_().reading_device_style,reading_device_instruction:sbmWriterReadingContext_().reading_device_instruction,doctor_referral:{diagnosis_id:n.diagnosisId||'',diagnosis_status:n.diagnosisStatus||'',diagnosis_codes:sbmDoctorDiagnosisCodes_(doctor,n),priority:n.priority||'',treatment_action:n.action||'',treatment_level:n.treatmentLevel||'',allowed_scope:detail.allowed_scope,blocked_scope:detail.blocked_scope,instructions:detail.instructions,candidate_urls:detail.candidate_urls,treatment_tasks:detail.treatment_tasks,internal_link_recommendations:detail.internal_link_recommendations,presentation:detail.presentation,technical_flags_for_sbm:doctor&&doctor.treatment_plan&&doctor.treatment_plan.technical_flags_for_sbm||[],doctor_result:doctor},evidence_package:evidence,workflow:{locked:!!n.locked,treatment_allowed:!n.locked},return_contract:{format:'SIMS_WRITER_TREATMENT_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}});
 }
 function sbmDoctorMergeCollectRefs_(doctor,sourceRequest){
   var ids={},urls={};
@@ -22267,30 +22521,24 @@ function sbmDoctorSingleCaseResumePayload_(row,hm){
     return follow;
   }
 
-  var article=sbmDoctorFindArticleByIdOrUrl_(articleId,articleUrl);
-  if(!article)throw new Error('記事管理に対象記事が見つかりません。');
-  var ctx={
-    sourceType:'RESUME_SINGLE_CASE',
-    article:article,
-    effect:sbmDoctorFindEffectByUrl_(articleUrl)||{},
-    history:sbmDoctorFindLatestHistory_(articleId,articleUrl)||{},
-    sourceSheet:SBM_SHEETS.DOCTOR_CASES,
-    sourceRow:0
-  };
-  var p=sbmDoctorBuildSingleCaseRequest_(ctx);
-  p.case_id=caseId;
-  if(p.request){
-    p.request.case_id=caseId;
-    p.request.request_id='REQ-RESUME-'+caseId;
-    // Keep the Evidence Package identity synchronized with the resumed request.
-    if(p.evidence_package && typeof p.evidence_package==='object'){
-      p.evidence_package.request_id=p.request.request_id;
-    }
-    p.request.trigger='SBM_RESUME_SINGLE_CASE';
-    p.request.chief_complaint='途中で中断したaDoctor個別精密診断を、保存済みCaseIDのまま再開してください。';
+  // The initial request is persisted in Doctor_Workflow_State as REQUEST.
+  // Reuse the exact original payload and RequestID. Never issue a synthetic resume ID.
+  var originalText=sbmDoctorWorkflowReadPayload_(caseId,'REQUEST');
+  if(!originalText)throw new Error('初回aDoctor依頼JSONが保存されていません。CaseID: '+caseId+'。RequestIDを推測して再生成せず、安全のため再開を停止しました。');
+  var original;
+  try{original=JSON.parse(originalText);}catch(parseError){throw new Error('保存済みaDoctor依頼JSONを解析できません。CaseID: '+caseId);}
+  var originalCaseId=String(original&&original.case_id||'').trim();
+  var originalRequest=original&&original.request||{};
+  var originalArticle=original&&original.article||{};
+  var originalRequestId=String(originalRequest.request_id||'').trim();
+  if(originalCaseId!==caseId||String(originalRequest.case_id||'').trim()!==caseId||
+     String(originalArticle.article_id||'').trim()!==articleId||!originalRequestId){
+    throw new Error('保存済みaDoctor依頼のCaseID・ArticleID・RequestIDが一致しません。CaseID: '+caseId+'。安全のため再開を停止しました。');
   }
-  if(p.workflow)p.workflow.active_case_id=caseId;
-  return p;
+  if(articleUrl&&originalArticle.url&&sbmNormalizeUrl_(articleUrl)!==sbmNormalizeUrl_(originalArticle.url)){
+    throw new Error('保存済みaDoctor依頼の記事URLが現在のCaseと一致しません。CaseID: '+caseId);
+  }
+  return original;
 }
 
 function sbmDoctorSingleCaseResumeInfo_(row,hm){
@@ -22549,6 +22797,60 @@ function sbmDoctorSupersedeStaleDiagnosisCasesAfterCompletedMerge_(sh,hm,vals){
     changed++;ids.push(caseId);
   });
   return {count:changed,caseIds:ids};
+}
+
+// Precision-diagnosis-only resume entry point. Never open the unrelated strategy navigator.
+// Read-only discovery: no cleanup, status updates, or duplicate Case creation on menu open.
+/** v9.2.121: legacy additional issues in the precision resume chooser (read-only). */
+function sbmDoctorLegacyPrecisionResumeItems_(){
+  var result=sbmStrategyListCases();
+  if(!result.ok)throw new Error(result.message||'追加課題を読み取れません。');
+  return (result.cases||[]).map(function(c){return {
+    caseId:c.caseId,workflowId:c.caseId,workflowType:'LEGACY_PRECISION_READONLY',
+    articleId:String(c.articleId||''),articleTitle:'追加課題：'+String(c.articleId||'')+' / '+String(c.relatedId||'関連記事未確認'),
+    workSummary:'精密診断の追加課題（移行前・確認専用）',
+    currentLabel:String(c.status||'不明'),updatedAt:'',
+    nextAction:'保存済みの診断内容を確認します。公開・登録・状態変更は行いません。',
+    state:String(c.status||'')
+  };});
+}
+
+/** v9.2.143: precision-resume empty state is a centered modal, not a corner toast. */
+function sbmDoctorShowPrecisionResumeNotice_(message){
+  var safe=String(message||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  var html='<!doctype html><html><head><base target="_top"><meta charset="utf-8"><style>'+ 
+    'body{font-family:Arial,sans-serif;color:#242424;margin:0;padding:22px 24px;font-size:14px;line-height:1.7}'+
+    '.message{white-space:pre-wrap;margin:0 0 22px}'+
+    '.actions{text-align:center}button{border:1px solid #777;background:#fff;border-radius:5px;padding:9px 28px;cursor:pointer;font-size:14px}'+
+    'button:hover{background:#eee}</style></head><body><p class="message">'+safe+'</p>'+
+    '<div class="actions"><button onclick="google.script.host.close()">閉じる</button></div></body></html>';
+  sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(430).setHeight(175),'aDoctor精密診断');
+  return null;
+}
+
+function sbmDoctorResumePrecisionDiagnosisFromMenu(){
+  if(!sbmLicenseRequireForProcessing_())return;
+  if(!sbmIsADoctorEnabled_())return sbmAlert_('aDoctor精密診断','Starter Editionでは利用できません。');
+  try{
+    var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
+    if(last<2){var legacyOnly=sbmDoctorLegacyPrecisionResumeItems_();if(legacyOnly.length)return sbmDoctorShowResumeCaseChooser_(legacyOnly);return sbmDoctorShowPrecisionResumeNotice_('再開できる個別精密診断はありません。');}
+    var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    var active={
+      'DOCTOR_DIAGNOSIS_PENDING':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,
+      'FOLLOW_UP_REQUEST_READY':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,
+      'TREATMENT_FAILED':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,
+      'MERGE_RESULT_RECEIVED':1
+    };
+    var index=sbmDoctorWorkflowResumeIndex_();
+    var items=sbmDoctorResumeChooserItems_(vals,hm,active,index,true).filter(function(item){
+      var row=sbmDoctorFindCaseRow_(item.caseId);
+      return !!row&&!sbmDoctorCaseIsSiteDiagnosisRow_(row.values,row.hm);
+    });
+    items=items.concat(sbmDoctorLegacyPrecisionResumeItems_());
+    if(!items.length)return sbmDoctorShowPrecisionResumeNotice_('再開できる個別精密診断はありません。');
+    // Reuse the established chooser and selected-case resume; never silently pick the first case.
+    sbmDoctorShowResumeCaseChooser_(items);
+  }catch(e){sbmAlert_('aDoctor精密診断を再開できません',String(e&&e.message||e));}
 }
 
 function sbmDoctorResumePrecisionDiagnosis(){
@@ -22948,8 +23250,8 @@ function sbmDoctorShowResumeCaseChooser_(items){
     'body{font-family:Arial,"Noto Sans JP",sans-serif;margin:0;padding:18px;color:#202124;background:#f8f9fa}h2{margin:0 0 6px;font-size:20px}.sub{font-size:13px;color:#5f6368;line-height:1.6;margin-bottom:12px}.item{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:13px;margin:10px 0}.item.recommend{border-left:5px solid #f9ab00}.title{font-weight:700;font-size:14px}.work{font-size:15px;color:#174ea6;font-weight:700;margin:5px 0}.meta{font-size:12px;color:#5f6368;line-height:1.6}.next{background:#f1f5ff;border-radius:6px;padding:8px;margin-top:8px;font-size:13px}.cleanup{background:#fef7e0;border-radius:6px;padding:8px;margin-top:8px;font-size:12px;color:#7a4b00}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}button{border:1px solid #dadce0;border-radius:6px;padding:8px 14px;background:#fff;font-weight:700;cursor:pointer}.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}.warn{background:#fff7e6;color:#7a4b00}.status{font-size:12px;white-space:pre-wrap;margin-top:8px}.err{color:#b3261e}.ok{color:#137333}.small{font-size:11px;color:#80868b}</style></head><body>'+
     '<h2>未完了の作業を選ぶ</h2><div class="sub">続けたい作業を1件選んでください。Case番号ではなく、何をしていた案件かを中心に表示しています。整理候補は履歴を消さず、未完了一覧から外せます。</div><div id="root">'+fallbackHtml+'</div><div id="status" class="status"></div><script>'+
     'var enc='+JSON.stringify(enc)+';function dec(v){v=v.replace(/-/g,"+").replace(/_/g,"/");while(v.length%4)v+="=";var b=atob(v),s="";for(var i=0;i<b.length;i++)s+="%"+("00"+b.charCodeAt(i).toString(16)).slice(-2);return decodeURIComponent(s)}var items=JSON.parse(dec(enc));'+
-    'function e(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";return "&quot;"})}function render(){var h="";items.forEach(function(x,i){h+="<div class=\\"item "+(x.cleanupCandidate?"recommend":"")+"\\"><div class=title>"+e(x.articleTitle||x.articleId||"記事")+" <span class=small>"+e(x.articleId||"")+"</span></div><div class=work>"+e(x.workSummary)+"</div><div class=meta><b>現在地：</b>"+e(x.currentLabel)+"<br><b>最終更新：</b>"+e(x.updatedAt||"ー")+"</div><div class=next><b>次にすること：</b>"+e(x.nextAction)+"</div>"+(x.cleanupCandidate?"<div class=cleanup><b>整理候補</b><br>"+e(x.cleanupReason)+"</div>":"")+"<div class=actions><button class=primary onclick=\\"resume("+i+",this)\\">この作業を再開</button>"+(x.workflowType==="PRECISION_MULTI_WRITER"?"":"<button class=warn onclick=\\"cancelWork("+i+",this)\\">取りやめる</button>")+""+(x.cleanupCandidate?"<button class=warn onclick=\\"cleanup("+i+",this)\\">この旧案件を整理</button>":"")+"</div><details class=small><summary>管理情報</summary>CaseID："+e(x.caseId)+"<br>状態："+e(x.state)+"</details></div>"});document.getElementById("root").innerHTML=h}'+
-    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflow(x.workflowType||"DOCTOR",x.workflowId||x.caseId,!!x.virtualFollowUp)}'+
+    'function e(v){return String(v==null?"":v).replace(/[&<>"]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";return "&quot;"})}function render(){var h="";items.forEach(function(x,i){h+="<div class=\\"item "+(x.cleanupCandidate?"recommend":"")+"\\"><div class=title>"+e(x.articleTitle||x.articleId||"記事")+" <span class=small>"+e(x.articleId||"")+"</span></div><div class=work>"+e(x.workSummary)+"</div><div class=meta><b>現在地：</b>"+e(x.currentLabel)+"<br><b>最終更新：</b>"+e(x.updatedAt||"ー")+"</div><div class=next><b>次にすること：</b>"+e(x.nextAction)+"</div>"+(x.cleanupCandidate?"<div class=cleanup><b>整理候補</b><br>"+e(x.cleanupReason)+"</div>":"")+"<div class=actions><button class=primary onclick=\\"resume("+i+",this)\\">この作業を再開</button>"+(x.workflowType==="PRECISION_MULTI_WRITER"||x.workflowType==="LEGACY_PRECISION_READONLY"?"":"<button class=warn onclick=\\"cancelWork("+i+",this)\\">取りやめる</button>")+""+(x.cleanupCandidate?"<button class=warn onclick=\\"cleanup("+i+",this)\\">この旧案件を整理</button>":"")+"</div><details class=small><summary>管理情報</summary>CaseID："+e(x.caseId)+"<br>状態："+e(x.state)+"</details></div>"});document.getElementById("root").innerHTML=h}'+
+    'function resume(i,b){var x=items[i],s=document.getElementById("status"),old=b?b.textContent:"";if(x.workflowType==="LEGACY_PRECISION_READONLY"){if(b){b.disabled=true;b.textContent="確認画面を開いています…"}s.className="status";s.textContent="保存済みの追加課題を読み込んでいます。確認画面が開くまでお待ちください。";google.script.run.withSuccessHandler(function(r){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}if(r&&r.ok){s.className="status ok";s.textContent="確認画面を開きました。別のダイアログをご確認ください。"}else{s.className="status err";s.textContent=r&&r.message?r.message:"確認画面を開けませんでした。"}}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent="確認画面を開けませんでした："+String(er&&er.message||er)}).sbmDoctorInspectLegacyAdditionalCasesFromMenu(x.caseId);return;}if(b){b.disabled=true;b.textContent="再開しています…"}s.className="status";s.textContent="選択した作業を準備しています。しばらくお待ちください…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=r&&r.message?r.message:"再開できませんでした。";return}google.script.host.close()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この作業を再開"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmResumeSelectedWorkflow(x.workflowType||"DOCTOR",x.workflowId||x.caseId,!!x.virtualFollowUp)}'+
     'function cancelWork(i,b){var x=items[i];if(!confirm("この作業を取りやめますか？\\n\\n"+x.workSummary+"\\n\\n未完了の作業一覧から除外します。記事・改善履歴・Doctor診断結果など、すでに登録済みのデータは削除しません。"))return;var s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="取りやめています…"}s.className="status";s.textContent="作業を取りやめています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"取りやめる"}s.className="status err";s.textContent=r&&r.message?r.message:"取りやめできませんでした。";return}s.className="status ok";s.textContent=r.message;items.splice(i,1);render()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"取りやめる"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmCancelSelectedWorkflow(x.workflowType||"DOCTOR",x.workflowId||x.caseId)}'+
     'function cleanup(i,b){var x=items[i];if(!confirm("この旧案件を未完了一覧から整理しますか？\\n\\n"+x.workSummary+"\\n\\n履歴データは削除しません。"))return;var s=document.getElementById("status"),old=b?b.textContent:"";if(b){b.disabled=true;b.textContent="整理しています…"}s.className="status";s.textContent="旧案件を整理しています…";google.script.run.withSuccessHandler(function(r){if(!r||!r.ok){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=r&&r.message?r.message:"整理できませんでした。";return}s.className="status ok";s.textContent=r.message;items.splice(i,1);render()}).withFailureHandler(function(er){if(b){b.disabled=false;b.textContent=old||"この旧案件を整理"}s.className="status err";s.textContent=er&&er.message?er.message:String(er)}).sbmDoctorArchiveResumeCase(x.caseId)}render();</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(760).setHeight(720),'未完了の作業を再開');
@@ -24208,7 +24510,8 @@ function sbmDoctorCreateWriterTreatmentRequestForCase_(c){
   var source={article:{article_id:c['記事ID'],url:c['記事URL'],canonical_url:c['記事URL'],title:c['記事タイトル'],h1:articleRow['H1タイトル']||c['記事タイトル'],seo_title:articleRow['SEOタイトル']||'',meta_description:articleRow['メタディスクリプション']||'',main_query:sbmRealMainQuery_(articleRow['メインクエリ'])},site:{site_id:c['サイトID']}};
   var liveArticle=sbmDoctorResolveWriterArticle_(source);
   if(!detail.allowed_scope||!detail.allowed_scope.length)throw new Error('aWriter紹介状を安全に生成できません。aDoctor結果にallowed_scopeがありません。aDoctor診断結果の治療範囲を確認してください。');
-  var req={format:'SIMS_WRITER_TREATMENT_REQUEST_V1',contract_version:'1.0',source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_WRITER',generated_at:sbmDoctorIso_(new Date()),case_id:c['CaseID'],article_id:c['記事ID'],site_id:c['サイトID'],request_mode:'DOCTOR_REFERRAL_TREATMENT',article:liveArticle,reading_device_style:sbmWriterReadingContext_().reading_device_style,reading_device_instruction:sbmWriterReadingContext_().reading_device_instruction,doctor_referral:{diagnosis_id:n.diagnosisId||'',diagnosis_status:n.diagnosisStatus||'',diagnosis_codes:sbmDoctorDiagnosisCodes_(doctor,n),priority:n.priority||'',treatment_action:n.action||'',treatment_level:n.treatmentLevel||'',allowed_scope:detail.allowed_scope,blocked_scope:detail.blocked_scope,instructions:detail.instructions,candidate_urls:detail.candidate_urls,treatment_tasks:detail.treatment_tasks,internal_link_recommendations:detail.internal_link_recommendations,presentation:detail.presentation,technical_flags_for_sbm:doctor&&doctor.treatment_plan&&doctor.treatment_plan.technical_flags_for_sbm||[],doctor_result:doctor},workflow:{locked:false,treatment_allowed:true},return_contract:{format:'SIMS_WRITER_TREATMENT_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}};
+  var req={format:'SIMS_WRITER_TREATMENT_REQUEST_V1',contract_version:'1.0',source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_WRITER',generated_at:sbmDoctorIso_(new Date()),case_id:c['CaseID'],article_id:c['記事ID'],site_id:sbmDoctorWriterSiteId_(c['サイトID']),request_mode:'DOCTOR_REFERRAL_TREATMENT',article:liveArticle,reading_device_style:sbmWriterReadingContext_().reading_device_style,reading_device_instruction:sbmWriterReadingContext_().reading_device_instruction,doctor_referral:{diagnosis_id:n.diagnosisId||'',diagnosis_status:n.diagnosisStatus||'',diagnosis_codes:sbmDoctorDiagnosisCodes_(doctor,n),priority:n.priority||'',treatment_action:n.action||'',treatment_level:n.treatmentLevel||'',allowed_scope:detail.allowed_scope,blocked_scope:detail.blocked_scope,instructions:detail.instructions,candidate_urls:detail.candidate_urls,treatment_tasks:detail.treatment_tasks,internal_link_recommendations:detail.internal_link_recommendations,presentation:detail.presentation,technical_flags_for_sbm:doctor&&doctor.treatment_plan&&doctor.treatment_plan.technical_flags_for_sbm||[],doctor_result:doctor},workflow:{locked:false,treatment_allowed:true},return_contract:{format:'SIMS_WRITER_TREATMENT_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}};
+  sbmDoctorValidateWriterRequest_(req);
   var rec=sbmDoctorFindCaseRow_(c['CaseID']);rec.values[rec.hm['Writer依頼JSON']-1]=JSON.stringify(req);rec.values[rec.hm['状態コード']-1]='WRITER_IN_PROGRESS';rec.values[rec.hm['状態']-1]='Writer治療中';rec.values[rec.hm['更新日時']-1]=sbmNowText_();rec.sheet.getRange(rec.row,1,1,rec.values.length).setValues([rec.values]);sbmDoctorShowCopyDialog_(req,JSON.stringify(req,null,2));return req;
 }
 function sbmDoctorFindArticleByIdOrUrl_(articleId,url){var rows=sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB)||[],nu=sbmNormalizeUrl_(url);for(var i=0;i<rows.length;i++)if((articleId&&String(rows[i]['ArticleID']||'')===String(articleId))||sbmNormalizeUrl_(rows[i]['記事URL']||'')===nu)return rows[i];return null;}
@@ -27853,13 +28156,37 @@ function sbmDoctorPreviewMultiWriterRequests(caseId,doctorPlan){
         throw new Error('記事URLが案件と一致しません: '+id);
       if(instructions.length<20||instructions.length>20000)throw new Error('記事別修正指示が不足または長すぎます: '+id);
       var counterpart=id===primaryId?relatedId:primaryId;
-      var text='【SIMS 精密診断 → aWriter 記事別改善依頼（UATプレビュー）】\n'+
-        '戦略案件ID：'+caseId+'\n診断区分：ROLE_SEPARATION\n'+
-        '対象記事ID：'+id+'\n対象記事URL：'+url+'\n'+
-        '関連する記事ID：'+counterpart+'\n'+
-        'この依頼で修正するのは対象記事のみです。関連する記事は別依頼で処置します。\n'+
-        'aDoctorによる対象記事専用の修正指示：\n'+instructions+'\n'+
-        '記事のURL変更・削除・統合・リダイレクトは指示しません。公開は利用者が確認して実施してください。';
+      // Use the same structured referral contract as the normal aDoctor -> aWriter route.
+      var source=sbmDoctorFindArticleByIdOrUrl_(id,url)||{};
+      var reading=sbmWriterReadingContext_();
+      var req={
+        format:'SIMS_WRITER_TREATMENT_REQUEST_V1',contract_version:'1.0',
+        source_system:'SIMS_BLOG_MANAGER',target_system:'SIMS_WRITER',
+        generated_at:sbmDoctorIso_(new Date()),case_id:caseId,
+        request_id:caseId+':'+id,article_id:id,
+        site_id:sbmDoctorWriterSiteId_(source['サイトID']),request_mode:'DOCTOR_REFERRAL_TREATMENT',
+        article:{url:url,canonical_url:url,title:String(source['記事タイトル']||source['タイトル']||''),
+          h1:String(source['H1']||''),seo_title:String(source['SEOタイトル']||''),
+          meta_description:String(source['メタディスクリプション']||''),
+          main_query:String(source['メインクエリ']||''),
+          source_content:sbmDoctorWriterSourceRequired_(url,null)},
+        reading_device_style:reading.reading_device_style,
+        reading_device_instruction:reading.reading_device_instruction,
+        doctor_referral:{diagnosis_id:caseId,diagnosis_status:'CONFIRMED',
+          diagnosis_codes:['ROLE_SEPARATION'],priority:'NORMAL',
+          treatment_action:'ROLE_SEPARATION',treatment_level:'PARTIAL',
+          allowed_scope:[instructions],
+          blocked_scope:['記事URL・タイトル・H1の変更','記事の削除・統合・301リダイレクト','関連する記事の編集'],
+          instructions:instructions,candidate_urls:[allowed[counterpart]],
+          treatment_tasks:[{article_id:id,instructions:instructions}],
+          internal_link_recommendations:[{url:allowed[counterpart],purpose:'関連する記事への案内'}],
+          doctor_result:{format:'SIMS_STRATEGY_DOCTOR_V1',case_id:caseId,decision:'ROLE_SEPARATION',
+            primary_article_id:primaryId,related_article_id:relatedId}},
+        workflow:{locked:false,treatment_allowed:true},
+        return_contract:{format:'SIMS_WRITER_TREATMENT_RESULT_V1',contract_version:'1.0',return_to:'SIMS_BLOG_MANAGER'}
+      };
+      sbmDoctorValidateWriterRequest_(req);
+      var text=JSON.stringify(req,null,2);
       return {article_id:id,article_url:url,tool:'WRITER',text:text};
     });
     if(!seen[primaryId]||!seen[relatedId])throw new Error('対象2記事が揃っていません。');
@@ -27895,6 +28222,76 @@ function sbmDoctorPreviewSavedMultiWriterRequests(caseId){
   }catch(e){return {ok:false,read_only:true,message:String(e&&e.message||e)};}
 }
 
+
+/** v9.2.132: route one published article's aWriter feedback through the established normal registration gate.
+ * The saved aDoctor action must match case, article ID and URL. No separate approval or save step.
+ * Registration may require existing follow-up diagnosis; do not treat it as complete in that case.
+ */
+/** v9.2.142: article registrations close only the parent work handoff, not 28-day monitoring. */
+function sbmDoctorPrecisionWriterRegistrationState_(caseId,meta){
+  var m=meta||{},ids=[String(m.primary_article_id||''),String(m.related_article_id||'')];
+  if(m.workflow_type!=='STRATEGY_CASE'||ids.some(function(x){return !x;})||ids[0]===ids[1])return {complete:false,registered:[]};
+  var props=PropertiesService.getDocumentProperties()||PropertiesService.getScriptProperties();
+  var registered=[];
+  ids.forEach(function(id){
+    var raw=props.getProperty('PRECISION_WRITER_'+caseId+':'+id);
+    if(!raw)return;
+    try{var r=JSON.parse(raw);if(String(r.historyId||'').trim())registered.push({articleId:id,historyId:String(r.historyId)});}catch(ignoreBadReceipt){}
+  });
+  return {complete:registered.length===2,registered:registered};
+}
+function sbmDoctorPrecisionWriterCloseHandoff_(caseId){
+  var meta=sbmDoctorWorkflowReadMeta_(caseId)||{};
+  var state=sbmDoctorPrecisionWriterRegistrationState_(caseId,meta);
+  if(!state.complete)return false;
+  if(meta.status==='COMPLETED')return true;
+  sbmDoctorWorkflowWriteMeta_(caseId,{status:'COMPLETED',current_stage:'MONITORING_HANDOFF_COMPLETE',
+    registration_status:'DONE',completed_reason:'ALL_PRECISION_WRITER_ARTICLES_REGISTERED',
+    monitoring_completed:false,monitoring_handoff_at:sbmNowText_(),
+    registered_article_history_ids:state.registered});
+  return true;
+}
+
+function sbmDoctorRegisterPrecisionWriterFeedback(caseId,articleId,articleUrl,raw){
+  var lock=LockService.getScriptLock();
+  try{
+    if(!lock.tryLock(30000))throw new Error('別の登録処理が実行中です。完了を確認してから再試行してください。');
+    var preview=sbmDoctorPreviewSavedMultiWriterRequests(caseId);
+    if(!preview||!preview.ok)throw new Error('保存済みaDoctor診断を確認できません：'+String(preview&&preview.message||''));
+    var match=(preview.requests||[]).filter(function(x){return String(x.article_id)===String(articleId)&&sbmNormalizeUrl_(x.article_url)===sbmNormalizeUrl_(articleUrl);});
+    if(match.length!==1)throw new Error('診断対象と記事ID・URLが一致しません。');
+    var input=String(raw||'').trim();if(!input)throw new Error('aWriter回答が空です。');
+    var jsonText=sbmDoctorExtractContractJsonText_(input,'SIMS_WRITER_TREATMENT_RESULT_V1');
+    var o=JSON.parse(jsonText);
+    if(String(o.format||'')!=='SIMS_WRITER_TREATMENT_RESULT_V1')throw new Error('aWriter処置結果の形式が異なります。');
+    if(String(o.case_id||'')!==String(caseId)||String(o.article_id||'')!==String(articleId))throw new Error('aWriter結果のCaseID・記事IDが一致しません。');
+    if(String(o.request_id||'')!==String(caseId)+':'+String(articleId))throw new Error('aWriter結果のrequest_idが紹介状と一致しません。');
+    var req=JSON.parse(match[0].text||'{}');
+    if(String(o.site_id||'')!==String(req.site_id||''))throw new Error('aWriter結果のサイトIDが紹介状と一致しません。');
+    if(o.article_url&&sbmNormalizeUrl_(o.article_url)!==sbmNormalizeUrl_(articleUrl))throw new Error('aWriter結果の記事URLが一致しません。');
+    var decision=sbmDoctorWriterDecisionNotice_(o);if(decision)throw new Error(decision.message);
+    if(o.referral_compliance&&o.referral_compliance.compliant===false)throw new Error('紹介状への不適合が報告されています。登録を保留します。');
+    if(o.referral_compliance&&Array.isArray(o.referral_compliance.scope_violations)&&o.referral_compliance.scope_violations.length)throw new Error('修正範囲の逸脱が報告されています。登録を保留します。');
+    if(!sbmDoctorNormalizeWriterTreatmentStatus_(o.treatment_status).completed||String(o.publication_result&&o.publication_result.status||'').toUpperCase()!=='PUBLIC_OK')throw new Error('公開可能な完了結果ではありません。aWriterの最終回答を確認してください。');
+    var key='PRECISION_WRITER_'+String(caseId)+':'+String(articleId);
+    var props=PropertiesService.getDocumentProperties()||PropertiesService.getScriptProperties();
+    var old=String(props.getProperty(key)||'');
+    if(old){var prev=JSON.parse(old);try{sbmDoctorPrecisionWriterCloseHandoff_(caseId);}catch(ignoreClose){}return {ok:true,alreadyRegistered:true,status:'モニター中',historyId:prev.historyId||'',message:'登録済みです。二重登録は行いません。\n記事：'+articleId+'\n状態：モニター中'+(prev.historyId?'\n改善履歴ID：'+prev.historyId:'')};}
+    var feedback=sbmDoctorTreatmentResultAsFeedback_(Object.assign({},o,{article_url:articleUrl}));
+    feedback.precision_case_id=caseId;
+    feedback.precision_request_id=o.request_id;
+    feedback.writer_result_json=o;
+    var registered=sbmRegisterImprovementFeedbackJson(JSON.stringify(feedback),String(articleId),String(articleUrl));
+    if(!registered||!registered.ok)throw new Error(registered&&registered.message||'改善結果を登録できませんでした。');
+    if(registered.followupRequired||registered.decisionRequired)return registered;
+    var historyId=String(registered.historyId||'')||sbmDoctorLatestHistoryIdForArticle_(articleId,articleUrl);
+    props.setProperty(key,JSON.stringify({historyId:historyId,registeredAt:sbmNowText_()}));
+    // The article is already registered; a parent-handoff write failure must not invite a duplicate retry.
+    try{sbmDoctorPrecisionWriterCloseHandoff_(caseId);}catch(e){console.error('[PrecisionWriter] parent handoff pending: '+String(e&&e.message||e));}
+    return {ok:true,status:'モニター中',articleId:String(articleId),historyId:historyId,message:'改善結果を登録しました。\n対象記事：'+articleId+'\n作業状態：モニター中'+(historyId?'\n改善履歴ID：'+historyId:'')+'\n次は7・14・21・28日目の効果測定です。'};
+  }catch(e){return {ok:false,message:String(e&&e.message||e)};}
+  finally{try{lock.releaseLock();}catch(ignore){}}
+}
 
 /** v9.2.74: precision diagnosis multi-article read-only intake. No checkpoint writes. */
 function sbmDoctorPreviewMultiArticleIntake(caseId,response){
@@ -27956,7 +28353,7 @@ function sbmDoctorOpenMultiArticleIntakePreview(){
   if(!sbmIsADoctorEnabled_())return {ok:false,message:'Full Edition専用です。'};
   var html='<!doctype html><html><head><base target="_top"><style>'+ 
     'body{font:14px Arial,sans-serif;padding:18px;color:#202124}textarea,input{box-sizing:border-box;width:100%;padding:9px;margin:5px 0 13px;border:1px solid #aaa;border-radius:5px}textarea{height:200px}button{padding:10px 15px;margin:6px 8px 6px 0;cursor:pointer}pre{white-space:pre-wrap;word-break:break-word;border:1px solid #ddd;padding:12px;background:#f8f9fa}small{color:#555}</style></head><body>'+ 
-    '<h3>精密診断：複数記事の回答確認（読取専用UAT）</h3><small>戦略案件IDとaDoctor回答JSONを照合します。診断の登録・承認・記事変更は行いません。</small>'+ 
+    '<h3>精密診断：複数記事の回答確認</h3><small>戦略案件IDとaDoctor回答JSONを照合します。診断の登録・承認・記事変更は行いません。</small>'+ 
     '<p>戦略案件ID</p><input id="case" placeholder="STRATEGY-...">'+
     '<p>aDoctor回答全文またはJSON</p><textarea id="response" placeholder="回答末尾のJSONを含む全文"></textarea>'+ 
     '<button id="run" onclick="run()">2件のaWriter依頼を確認</button><button onclick="google.script.host.close()">閉じる</button><p id="status" role="status"></p><div id="result"></div>'+ 
@@ -27987,6 +28384,11 @@ function sbmDoctorPrepareApprovedMultiWriterRequests(caseId){
       if(!savedA||!savedB)throw new Error('記事別依頼の保存が一部のみです。再実行せず監査してください。');
       if(m.status!=='WORK_REQUEST_READY'||m.work_route!=='WRITER_MULTI')
         throw new Error('保存済み依頼と案件状態が一致しません。再実行せず監査してください。');
+      [savedA,savedB].forEach(function(saved){
+        var item=JSON.parse(saved),request=JSON.parse(String(item.text||''));
+        request.site_id=sbmDoctorWriterSiteId_(request.site_id);
+        sbmDoctorValidateWriterRequest_(request);
+      });
       return {ok:true,alreadyPrepared:true,status:m.status,requests:[JSON.parse(savedA),JSON.parse(savedB)],
         message:'保存済みの2件のaWriter依頼を再表示しました。状態は変更していません。'};
     }
@@ -29300,7 +29702,7 @@ function sbmDoctorOpenMultiWriterHandoffDialog(){
   if(!sbmIsADoctorEnabled_())return {ok:false,message:'Full Edition専用です。'};
   var html='<!doctype html><html><head><base target="_top"><meta charset="UTF-8"><style>'+
     'body{font:14px Arial,sans-serif;padding:18px;color:#202124}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #aaa;border-radius:5px}button{padding:10px;margin:8px 6px 0 0;cursor:pointer}button:disabled{opacity:.45;cursor:default}pre{white-space:pre-wrap;word-break:break-word;background:#f6f7f8;padding:12px;border-radius:5px}.warning{color:#9c3700}small{color:#555}</style></head><body>'+
-    '<h3>精密診断：2記事の経過観察引き継ぎ（UAT）</h3><p><small>既存の事前確認と履歴紐付けだけを実行します。公開・改善履歴の作成や28日測定の開始は行いません。</small></p>'+
+    '<h3>精密診断：2記事の経過観察引き継ぎ</h3><p><small>既存の事前確認と履歴紐付けだけを実行します。公開・改善履歴の作成や28日測定の開始は行いません。</small></p>'+
     '<label for="case">戦略案件ID</label><input id="case" placeholder="STRATEGY-xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" oninput="invalidate()">'+
     '<button id="check" onclick="inspect()">現在の状態を確認</button><pre id="status" role="status">案件IDを入力して確認してください。</pre>'+
     '<p class="warning">操作の順序：2記事の公開確認 → 事前確認 → 2記事の通常改善登録 → 履歴紐付け。登録後に事前確認を遡って作成することはできません。</p>'+

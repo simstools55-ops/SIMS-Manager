@@ -1,0 +1,1 @@
+fix(sbm): align precision writer referrals and simplify per-article workflow (v9.2.131)

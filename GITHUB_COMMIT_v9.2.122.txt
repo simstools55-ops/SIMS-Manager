@@ -1,0 +1,1 @@
+feat(sbm): preview multi-article precision actions read-only (v9.2.122)

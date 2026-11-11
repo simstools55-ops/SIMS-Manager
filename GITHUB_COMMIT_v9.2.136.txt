@@ -1,0 +1,1 @@
+fix(manager): validate multi-article precision writer referrals (v9.2.136)

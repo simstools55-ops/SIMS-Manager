@@ -1,0 +1,1 @@
+fix(manager): restore precision writer preview on legacy case states (v9.2.140)

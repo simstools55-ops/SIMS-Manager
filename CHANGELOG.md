@@ -1,3 +1,101 @@
+## v9.3.0
+- 精密診断画面のユーザー向けUAT／読取専用表示を整理。
+- 既存の登録・親案件終了・経過観察ロジックを維持。
+- 実行時バージョン、製品識別、READMEを9.3.0に統一。
+- 旧コードと過去のRelease Notesは互換性・追跡性のため保持。
+
+## v9.2.143
+- 精密診断の再開0件通知を中央ダイアログに変更。
+
+## v9.2.142
+- 精密診断2記事の改善登録完了で親の未完了作業を終了。旧版登録済みも読取時に除外。
+
+## v9.2.141 UAT
+- Fix embedded modal JavaScript syntax: escape newline in completion receipt.
+- Auto-load saved precision writer requests without a manual reload button; show empty-request error.
+- Preserve precision writer feedback registration.
+
+## v9.2.140
+- Fix legacy precision writer preview skipped due to REVIEW_READY-only UI gate.
+
+## v9.2.139 UAT
+精密診断追加課題のaWriter結果JSON登録・完了表示の修正。
+
+## v9.2.138 UAT: aWriter記事本文の自動添付
+公開記事の本文をSBMから取得し、依頼文に添付。取得不能時は発行停止。
+
+## v9.2.137
+- Legacy precision read-only resume: show progress and callback result.
+
+# SIMS Manager v9.2.136 UAT
+
+- 複数記事aWriter依頼のSiteID照合と必須項目検証を追加。
+
+精密診断の追加課題の記事タイトルを記事管理シートから読取専用で補完。
+
+## v9.2.131 (UAT)
+正規aWriter依頼形式・コピー操作・記事別一体表示を追加。
+
+# SIMS Manager v9.2.129 — 通常の精密診断導線への復帰（第一段階）
+
+- 保存済み診断を利用してaWriter依頼文を2件表示し、再貼付・再保存・再承認を不要にした。
+- 古い「利用者が処置先を選ぶ」案内を変更。
+- 既存の診断状態・改善履歴・記事管理には書き込まない。
+- aWriter回答の登録・進捗連携は未実装（次段階）。
+
+# SIMS Manager v9.2.128 — 精密診断の再承認受付 UAT
+
+- v9.2.127で確認済みのaDoctor回答プレビューから、既存の `sbmDoctorSubmitMultiArticleForReapproval` を呼び出す明示的な保存ボタンを追加。
+- 保存前に利用者へ確認し、旧承認を無効化して `REVIEW_READY` に戻す。旧診断・承認は既存バックアップ機構で保全。
+- 記事変更、公開、改善履歴登録、aWriterへの作業依頼は実行しない。
+- 次段階で既存承認ゲートと複数aWriter依頼保存を接続する。
+- Google Apps Script実機試験は未実施。
+
+## v9.2.127 — 精密診断・複数記事aWriter依頼の読取専用プレビュー
+- aDoctor回答JSONを既存の照合関数で検証し、記事別aWriter依頼文を2件生成するUIを追加。
+- 既存の案件・改善履歴・経過観察・承認状態は変更しない。
+- 実機UAT待ち。
+
+## v9.2.126 (UAT)
+- 精密診断の推奨する次工程を表示し、MERGE_REVIEW等は既存aDoctor依頼文を利用して迅速に判断。
+- 手動計画編集を通常画面から非表示。保存済み試験計画は保全し実行に使用しない。
+- 既存の改善履歴・経過観察・CaseIDは変更しない。
+
+## v9.2.125 (UAT)
+- 精密診断の追加課題ダイアログで、CaseIDをonclick属性に埋め込む際の二重引用符をHTMLエスケープ。
+- v9.2.124の「形式が正しくないHTMLコンテンツ」エラーへの対策。既存保存データは変更しない。
+
+## v9.2.124 (UAT)
+- 精密診断の追加課題に複数記事処置計画案の保存・再開を追加。既存Doctor_Workflow_Stateを再利用。
+- CaseID・記事ID照合、重複排除、改訂番号、統合候補の複数記事チェック。
+- 診断承認・Writer/Merge依頼・記事公開・改善登録は行わない。
+
+## v9.2.123 — 精密診断・複数記事の読取専用処置計画共通化（UAT）
+- 既存の追加課題表示をN記事対応の共通プレビュー関数へ整理。保存データの変更なし。
+- Manager VERSIONを修正。Sharedコンポーネント版は独立管理。
+
+## v9.2.122 (UAT)
+- 精密診断の追加課題に、既存の診断情報から導く複数記事の処置候補を読取専用で表示。
+- MERGE_REVIEWを統合確定として扱わず、aWriter複数／aMerge／変更なしを候補として表示。
+- 既存CaseID・診断結果・公開・改善履歴・経過観察に変更なし。
+
+## v9.2.121 (UAT)
+- 精密診断の未完了再開から旧追加課題をCaseIDで選択し、保存済みの診断判断を読取専用で表示。既存処理を再利用しデータ更新なし。
+
+## v9.2.120 (2026-11-10)
+- 精密診断の未完了一覧に旧追加課題を読取専用で統合。旧状態とCaseIDを保全。
+
+# SIMS Manager v9.2.119 — 精密診断の追加課題を読取専用で確認
+
+- 旧STRATEGY_CASEを既存sbmStrategyListCasesで読み取り、精密診断メニューから記事ID・状態・処置先・CaseIDを確認できる。
+- 誤解を招く「精密診断案件を今日の改善へ反映」のメニュー導線を読取専用確認に置換。旧関数は互換維持。
+- 保存・移行・再構築・改善履歴更新は行わない。実機UAT未実施。
+
+## v9.2.118
+- fix(doctor): restore persisted initial Doctor request on precision-diagnosis resume, preserving RequestID.
+- Fail safely when the saved request is absent or identity does not match.
+- Apps Script live UAT pending.
+
 ## v9.2.116
 - Final offline regression: 11 related Node test scripts, 114 assertions/cases passed.
 - Repository version metadata synchronized; no runtime business-logic changes.
@@ -121,3 +219,13 @@
 - 事前確認の遡及作成、履歴作成、経過観察開始、状態変更は行わない。
 - Apps Script実機結合試験と画面接続は未実施。運用環境に適用しない。
 
+
+## v9.2.130 (UAT)
+- Connect precision multi-writer per-article feedback to normal registration flow; keep existing follow-up gate.
+
+## v9.2.132
+- Guard precision aWriter referrals against missing/mismatched SiteID and incomplete payloads.
+- Auto-load precision next-step recommendations in additional-issues dialog.
+
+## v9.2.134
+- Improve saved precision case title and treatment-status display (read-only).

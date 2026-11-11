@@ -1,3 +1,14 @@
+SIMS Manager v9.2.123 UAT: 精密診断の複数記事処置計画を共通の読取専用モデルで表示。記事別の処置は未確定であり、自動変更しません。
+
+SIMS Manager v9.2.122 UAT: 精密診断の追加課題に読取専用の複数記事処置候補を表示。診断結果・処置先・履歴は変更しません。
+
+# SIMS Manager v9.2.121 — 精密診断追加課題の保存済み判断を個別表示（読取専用）
+
+- 再開画面から選択した旧追加課題だけを表示。別案件を誤って開かない。
+- 保存済みの診断理由、推奨方針、aDoctor判断、判断理由、状態、CaseIDを表示。
+- 既存のsbmStrategyListCasesを再利用し、書込・再構築・移行は行わない。
+- Google Apps Script実機UAT未実施。
+
 > Current UAT version: v9.2.69. See RELEASE_NOTES_v9.2.69.md.
 
 # SIMS Manager v9.2.24 — UAT

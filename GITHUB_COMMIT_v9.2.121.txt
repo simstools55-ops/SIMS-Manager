@@ -1,0 +1,1 @@
+feat(sbm): inspect selected legacy precision diagnosis details read-only (v9.2.121)

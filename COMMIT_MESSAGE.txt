@@ -1,1 +1,1 @@
-fix(precision): gate history-link UI on both verified article receipts
+fix(manager): validate multi-article precision writer referrals (v9.2.136)
