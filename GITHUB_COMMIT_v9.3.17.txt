@@ -1,0 +1,1 @@
+fix(manager): require saved precision writer requests before feedback registration (v9.3.17)

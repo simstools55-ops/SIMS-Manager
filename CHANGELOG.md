@@ -1,3 +1,62 @@
+## v9.3.18
+
+- 旧Case保守用の3メニューを既定非表示に変更（保守時のみScript Propertyで表示）。関数本体は維持。
+- バージョン表記と配布メタデータを同期。
+
+## v9.3.17 (2026-11-12)
+- 精密診断のaWriter結果登録は、APPROVEに加えて正式な記事別依頼2件の保存完了（WORK_REQUEST_READY / WRITER_MULTI）を必須化。
+- 承認直後や依頼の一部保存状態での登録を拒否。既存の完了Caseとモニタリングは変更しない。
+
+## v9.3.16 (2026-11-12)
+- Harden precision diagnosis approval: reject non-REVIEW_READY state instead of reporting false success.
+- Require a saved aDoctor response before approval; idempotent retry only for the same decision.
+- No changes to existing cases, article history, or monitoring data.
+- Local mock regression: 7 approval state tests passed.
+
+## v9.3.15 (2026-11-12)
+- 精密診断の利用者承認をaWriter依頼発行・改善結果登録の必須条件に変更。
+- REVIEW_READYで診断方針の承認ボタンを表示。未承認の診断プレビューでは正式紹介状を返さない。
+- 既存の完了Case、改善履歴、モニター状態は移行・変更しない。
+
+## v9.3.14 — 2026-11-12
+- Close only a provably mispaired OPEN legacy precision Case when the recovered successor is COMPLETED and both article registration receipts exist.
+- Preserve legacy diagnosis evidence, successor Case, improvement histories and monitoring. Add explicit confirmation and revalidation under lock.
+- Add Full Edition maintenance menu; no automatic mass closure.
+
+## v9.3.13
+- 初回精密診断の保存ボタンを再承認専用APIから分離。
+- 保存済み・作業開始済みのCaseへの誤上書きを抑止。
+- aDoctor回答のプレビューと正式保存・利用者承認を区別。
+
+## v9.3.12 — aDoctor response template contract alignment
+- ROLE_SEPARATION prompt now includes two article-specific actions matching the preview validator.
+- No changes to saved cases, articles, monitoring, or approval state.
+
+## v9.3.11 — Saved precision diagnosis pair audit and safe recovery
+- Reject aDoctor request/response on a case whose saved article identities disagree with the two URLs in its warning.
+- Add a dedicated, confirmation-gated saved-warning recovery for the known A000096/A000140 legacy case; generate A000140/A000157 independently, idempotently.
+- Do not edit legacy cases, article content, improvement histories, or monitoring.
+- Existing single-URL legacy cases are conservatively blocked from new referrals.
+
+## v9.3.10
+- Require exactly two explicitly named URLs in aWriter warning before creating a precision diagnosis pair.
+- Resolve both URLs against article DB and persist canonical article URLs; never infer a pair from the improvement source.
+- Preserve existing cases and monitoring; no manual pair-selection menu.
+
+## v9.3.9
+- Guard precision-diagnosis case creation against mismatched article pairs.
+- Resolve both explicitly named URLs to article IDs; hold ambiguous/unmatched pairs.
+- Preserve existing cases and registrations without overwriting metadata.
+
+## v9.3.8
+- Fix generated precision-additional-case dialog JavaScript syntax; restore automatic aWriter referral loading.
+
+## v9.3.7 — 精密診断の追加課題：依頼文表示停止対策
+
+- 依頼文準備の45秒待機上限、エラー案内、再試行操作を追加。
+- 初期表示の起動をDOMContentLoaded/readyState両対応にし、画面側の例外を可視化。
+- 登録処理・既存案件・改善履歴の保存形式は変更しない。
+
 ## v9.3.6 — 精密診断の再開画面整理
 - 利用者確認待ちでは不要なaWriter結果入力欄を表示しない。
 - 利用者確認の登録後は完了した確認欄を閉じ、再診依頼→回答入力の順に表示する。

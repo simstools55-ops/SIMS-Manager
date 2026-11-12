@@ -1,0 +1,1 @@
+fix(manager): safely close superseded mispaired precision cases (v9.3.14)

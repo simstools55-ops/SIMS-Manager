@@ -1,0 +1,1 @@
+fix(manager): align precision diagnosis Doctor template with per-article actions (v9.3.12)

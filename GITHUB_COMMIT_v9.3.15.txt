@@ -1,0 +1,1 @@
+fix(manager): enforce approval gate before precision writer handoff (v9.3.15)

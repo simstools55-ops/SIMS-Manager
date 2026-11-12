@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.4",
+  "current_version": "9.3.18",
   "release_status": "RELEASE_CANDIDATE",
-  "notes": "Normal improvement Doctor follow-up Writer referral compatibility and legacy request regeneration.",
-  "version": "9.3.4",
+  "notes": "Hide legacy precision maintenance menu items by default; preserve handlers and approval gate.",
+  "version": "9.3.18",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.4"
+  "starter_display_version": "9.3.18"
 }

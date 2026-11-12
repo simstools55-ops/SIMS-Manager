@@ -1,0 +1,1 @@
+fix(manager): prevent false-positive precision approval states (v9.3.16)
