@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.19
+ * Current version: 9.3.20
  * Release summary: Clarify article management reason and confirmation; preserve handlers.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.19.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.20.md.
  */
 
-const SBM_VERSION = '9.3.19';
+const SBM_VERSION = '9.3.20';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -17145,6 +17145,8 @@ function onOpen() {
   // Full / Starterを同一コード構造で管理し、Editionに応じて利用者向け導線だけを切り替える。
   // 番号は通常運用で順番を意識する項目だけに付与する。
   var ui = SpreadsheetApp.getUi();
+  // v9.3.20: Sidebar is optional; keep all legacy menus for safe pilot.
+  ui.createMenu('SIMS Manager').addItem('操作パネルを開く','sbmOpenManagerSidebar').addToUi();
   var isFullEdition = sbmEffectiveEdition_()==='FULL';
   // 起動時は最優先で利用者メニューを生成する。移行修復はメニュー生成完了後に実行する。
 
@@ -30037,3 +30039,64 @@ function sbmDoctorOpenMultiWriterHandoffDialog(){
  * asynchronous response from re-enabling controls for a different case.
  * Mutating handoff operations lock the case selector until completion.
  */
+
+
+/* v9.3.20: Sidebar pilot. Original top menus remain available during migration. */
+function sbmSidebarMenuGroups_() {
+  var isFull = sbmEffectiveEdition_() === 'FULL';
+  var groups = [{"title": "今日の作業", "items": [{"label": "HOME画面を更新", "id": "sbmRefreshHomeManual", "full": false}, {"label": "日次処理を実行", "id": "sbmRunDailyUpdateManual", "full": false}, {"label": "今日の改善を開く", "id": "sbmOpenTodayImprovement", "full": false}, {"label": "選択記事の改善内容を見る", "id": "sbmOpenSelectedImprovementNavi", "full": false}, {"label": "未完了の作業を再開", "id": "sbmResumeUnfinishedWorkflow", "full": true}]}, {"title": "改善の推移・履歴", "items": [{"label": "改善の推移を開く", "id": "sbmOpenImprovementStatus", "full": false}, {"label": "選択記事の改善効果を見る", "id": "sbmShowSelectedEffectDetail", "full": false}, {"label": "改善履歴を開く", "id": "sbmOpenImprovementHistory", "full": false}, {"label": "選択した改善履歴の詳細を見る", "id": "sbmOpenSelectedHistoryDetail", "full": false}, {"label": "選択記事の全改善履歴を見る", "id": "sbmOpenSelectedHistoryArticleAll", "full": false}]}, {"title": "記事管理", "items": [{"label": "記事一覧を開く", "id": "sbmOpenAllBlogArticles", "full": false}, {"label": "インデックス状況を確認すべき記事", "id": "sbmOpenNeedsReviewArticles", "full": true}, {"label": "インデックス未登録記事を改善", "id": "sbmOpenIndexReviewArticles", "full": true}, {"label": "選択記事の詳細を見る", "id": "sbmOpenSelectedArticleDbDetail", "full": false}, {"label": "選択記事の改善履歴を見る", "id": "sbmOpenSelectedArticleHistory", "full": false}, {"label": "選択記事の管理状態を変更", "id": "sbmOpenSelectedArticleManagementDialog", "full": false}, {"label": "記載サービス・広告の変更・更新", "id": "sbmOpenSelectedInfoUpdate", "full": true}]}, {"title": "サイト健康診断", "items": [{"label": "サイト健康診断を実施", "id": "sbmDoctorRunHealthCheck", "full": false}, {"label": "サイト健康診断結果を開く", "id": "sbmDoctorOpenHealthReport", "full": false}, {"label": "精密診断候補を見る", "id": "sbmDoctorOpenDetailedCandidates", "full": true}, {"label": "選択候補の精密診断を実施", "id": "sbmDoctorCreateRequestFromDetailedCandidate", "full": true}, {"label": "精密診断の未完了案件を再開", "id": "sbmDoctorResumePrecisionDiagnosisFromMenu", "full": true}]}, {"title": "新記事関連", "items": [{"label": "新記事キーワードの参入余地を確認", "id": "sbmOpenSerpEntryCheckDialog", "full": false}, {"label": "新記事を作成", "id": "sbmOpenNewArticleCreation", "full": true}, {"label": "aCreatorで作成した新記事を登録", "id": "sbmOpenCreatorPublicationRegisterDialog", "full": true}]}, {"title": "設定・メンテナンス", "items": [{"label": "記事管理データベースの更新", "id": "sbmOpenArticleInfoUpdate", "full": false}, {"label": "ライセンス状態を確認", "id": "sbmLicenseRc4StatusDialog", "full": false}, {"label": "ライセンス認証", "id": "sbmLicenseActivate", "full": false}, {"label": "ライセンスの有効性を確認", "id": "sbmLicenseRevalidate", "full": false}, {"label": "バックアップ一覧・復元", "id": "sbmBackupRestoreInteractive", "full": false}, {"label": "初回セットアップ", "id": "sbmStartInitialSetup", "full": false}, {"label": "サイト設定", "id": "sbmOpenBlogInfoChange", "full": false}, {"label": "データ整合性を点検・修復", "id": "sbmAuditAndRepairWorkflowIntegrity", "full": true}, {"label": "シートの作成・修復", "id": "sbmInitializeSheets", "full": false}, {"label": "Personal Knowledgeを点検", "id": "sbmPersonalKnowledgeCheckAndInitializeMenu", "full": true}, {"label": "SIMS Managerについて", "id": "sbmShowVersionInfo", "full": false}]}];
+  return groups.map(function(group) {
+    return {title:group.title,items:group.items.filter(function(item){return isFull || !item.full;}).map(function(item){return {label:item.label,id:item.id};})};
+  });
+}
+function sbmOpenManagerSidebar() {
+  var html = "<!doctype html><html lang=\"ja\"><head><base target=\"_top\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>body{font:13px/1.5 Arial,sans-serif;margin:0;color:#202124;background:#fff}header{position:sticky;top:0;background:#fff;border-bottom:1px solid #dadce0;padding:14px 12px;z-index:2}h1{font-size:17px;margin:0}small{color:#5f6368}main{padding:8px 10px 24px}details{border:1px solid #dadce0;border-radius:9px;margin:8px 0;overflow:hidden}summary{cursor:pointer;padding:12px;font-weight:600;background:#f8f9fa}section{padding:6px}button{display:block;width:100%;text-align:left;padding:10px 9px;margin:2px 0;background:white;border:0;border-radius:6px;color:#202124;cursor:pointer}button:hover,button:focus{background:#e8f0fe;outline:1px solid #8ab4f8}button:disabled{color:#80868b;cursor:wait;background:#f1f3f4}#status{padding:8px 12px;min-height:20px;color:#1967d2;white-space:pre-wrap}#status.error{color:#b3261e}footer{padding:12px;color:#5f6368;font-size:11px}</style></head><body><header><h1>SIMS Manager</h1><small>操作メニュー · v9.3.20</small></header><div id=\"status\" role=\"status\" aria-live=\"polite\">操作を選んでください</div><main id=\"menu\"></main><footer>従来の上部メニューも利用できます。処理の実行中は完了をお待ちください。</footer><script>const groups=__DATA__;let busy=false;const root=document.getElementById('menu'),status=document.getElementById('status');function setStatus(t,error){status.textContent=t;status.className=error?'error':'';}function setBusy(v){busy=v;document.querySelectorAll('button').forEach(b=>b.disabled=v);}groups.forEach((g,i)=>{const d=document.createElement('details');d.open=i===0;const s=document.createElement('summary');s.textContent=g.title;d.appendChild(s);const section=document.createElement('section');g.items.forEach(item=>{const b=document.createElement('button');b.type='button';b.textContent=item.label;b.onclick=()=>{if(busy)return;setBusy(true);setStatus('処理を開始しています：'+item.label);google.script.run.withSuccessHandler(()=>{setBusy(false);setStatus('操作を受け付けました：'+item.label);}).withFailureHandler(e=>{setBusy(false);setStatus('実行できませんでした：'+(e&&e.message?e.message:String(e)),true);}).sbmSidebarRunAction(item.id);};section.appendChild(b);});d.appendChild(section);root.appendChild(d);});</script></body></html>";
+  html = html.replace('__DATA__', JSON.stringify(sbmSidebarMenuGroups_()).replace(/</g, '\\u003c'));
+  SpreadsheetApp.getUi().showSidebar(HtmlService.createHtmlOutput(html).setTitle('SIMS Manager'));
+}
+function sbmSidebarRunAction(actionId) {
+  var permitted = {};
+  sbmSidebarMenuGroups_().forEach(function(group){group.items.forEach(function(item){permitted[item.id]=true;});});
+  if (!Object.prototype.hasOwnProperty.call(permitted,String(actionId))) throw new Error('この操作は利用できません。');
+  var handlers = {
+    "sbmRefreshHomeManual": sbmRefreshHomeManual,
+    "sbmRunDailyUpdateManual": sbmRunDailyUpdateManual,
+    "sbmOpenTodayImprovement": sbmOpenTodayImprovement,
+    "sbmOpenSelectedImprovementNavi": sbmOpenSelectedImprovementNavi,
+    "sbmResumeUnfinishedWorkflow": sbmResumeUnfinishedWorkflow,
+    "sbmOpenImprovementStatus": sbmOpenImprovementStatus,
+    "sbmShowSelectedEffectDetail": sbmShowSelectedEffectDetail,
+    "sbmOpenImprovementHistory": sbmOpenImprovementHistory,
+    "sbmOpenSelectedHistoryDetail": sbmOpenSelectedHistoryDetail,
+    "sbmOpenSelectedHistoryArticleAll": sbmOpenSelectedHistoryArticleAll,
+    "sbmOpenAllBlogArticles": sbmOpenAllBlogArticles,
+    "sbmOpenNeedsReviewArticles": sbmOpenNeedsReviewArticles,
+    "sbmOpenIndexReviewArticles": sbmOpenIndexReviewArticles,
+    "sbmOpenSelectedArticleDbDetail": sbmOpenSelectedArticleDbDetail,
+    "sbmOpenSelectedArticleHistory": sbmOpenSelectedArticleHistory,
+    "sbmOpenSelectedArticleManagementDialog": sbmOpenSelectedArticleManagementDialog,
+    "sbmOpenSelectedInfoUpdate": sbmOpenSelectedInfoUpdate,
+    "sbmDoctorRunHealthCheck": sbmDoctorRunHealthCheck,
+    "sbmDoctorOpenHealthReport": sbmDoctorOpenHealthReport,
+    "sbmDoctorOpenDetailedCandidates": sbmDoctorOpenDetailedCandidates,
+    "sbmDoctorCreateRequestFromDetailedCandidate": sbmDoctorCreateRequestFromDetailedCandidate,
+    "sbmDoctorResumePrecisionDiagnosisFromMenu": sbmDoctorResumePrecisionDiagnosisFromMenu,
+    "sbmOpenSerpEntryCheckDialog": sbmOpenSerpEntryCheckDialog,
+    "sbmOpenNewArticleCreation": sbmOpenNewArticleCreation,
+    "sbmOpenCreatorPublicationRegisterDialog": sbmOpenCreatorPublicationRegisterDialog,
+    "sbmOpenArticleInfoUpdate": sbmOpenArticleInfoUpdate,
+    "sbmLicenseRc4StatusDialog": sbmLicenseRc4StatusDialog,
+    "sbmLicenseActivate": sbmLicenseActivate,
+    "sbmLicenseRevalidate": sbmLicenseRevalidate,
+    "sbmBackupRestoreInteractive": sbmBackupRestoreInteractive,
+    "sbmStartInitialSetup": sbmStartInitialSetup,
+    "sbmOpenBlogInfoChange": sbmOpenBlogInfoChange,
+    "sbmAuditAndRepairWorkflowIntegrity": sbmAuditAndRepairWorkflowIntegrity,
+    "sbmInitializeSheets": sbmInitializeSheets,
+    "sbmPersonalKnowledgeCheckAndInitializeMenu": sbmPersonalKnowledgeCheckAndInitializeMenu,
+    "sbmShowVersionInfo": sbmShowVersionInfo
+  };
+  var handler = handlers[String(actionId)];
+  if (typeof handler !== 'function') throw new Error('処理が見つかりません。');
+  return handler();
+}

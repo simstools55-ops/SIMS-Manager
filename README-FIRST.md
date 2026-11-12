@@ -1,3 +1,5 @@
+# v9.3.20: Optional SIMS Manager sidebar pilot; existing top menus retained.
+
 SIMS Manager v9.3.19：記事の管理状態ダイアログの理由選択と最終確認を分離。詳細は RELEASE_NOTES_v9.3.19.md を参照。
 
 # SIMS Manager v9.3.18

@@ -1,3 +1,5 @@
+# v9.3.20: Optional SIMS Manager sidebar pilot; existing top menus retained.
+
 ## v9.3.19 — 記事の管理状態ダイアログ改善
 理由3択を単一選択にし、最終確認を独立表示。登録ボタンは確認完了まで無効。
 

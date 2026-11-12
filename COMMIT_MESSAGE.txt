@@ -1,1 +1,1 @@
-fix(manager): validate multi-article precision writer referrals (v9.2.136)
+feat(manager): add optional sidebar menu with edition-safe action dispatch (v9.3.20)
