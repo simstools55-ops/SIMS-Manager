@@ -1,0 +1,1 @@
+fix(manager): confirm referral copies and link target articles (v9.3.5)

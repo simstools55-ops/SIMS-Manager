@@ -1,3 +1,23 @@
+## v9.3.6 — 精密診断の再開画面整理
+- 利用者確認待ちでは不要なaWriter結果入力欄を表示しない。
+- 利用者確認の登録後は完了した確認欄を閉じ、再診依頼→回答入力の順に表示する。
+- aDoctor回答登録後は完了した回答入力欄を閉じ、Doctorの次の処置がWRITER/MERGEの場合に限り対応する登録欄を表示する。
+- 既存のCase保存形式、改善履歴、記事状態は変更しない。
+
+## v9.3.5
+- Copy confirmation and target-article navigation for aWriter referral dialogs; normal follow-up stage labels localized.
+
+## v9.3.4
+- aDoctor追加診断後のaWriter再依頼を正規のJSON契約に統一。旧保存済み依頼は再開時に再生成。
+- 最終aWriter処置結果をCaseID・記事ID・公開状態で検証し、共通改善履歴へ変換して登録。
+- 本文取得に失敗した場合は旧形式を表示せず、登録を停止。
+
+## v9.3.3
+- 通常改善の登録後に独立課題を保存。利用者向け旧「戦略案件」表示を整理。
+
+## v9.3.1
+- Fix aDoctor singular `workflow_handoff.user_confirmation_item` display and confirmation choices.
+
 ## v9.3.0
 - 精密診断画面のユーザー向けUAT／読取専用表示を整理。
 - 既存の登録・親案件終了・経過観察ロジックを維持。

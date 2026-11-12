@@ -1,10 +1,20 @@
-# SIMS Manager v9.3.0 — Release Candidate
+# SIMS Manager v9.3.6 — aDoctor追加診断からaWriterへの再依頼互換性修正
+
+旧形式の保存済み再依頼文を、現行のSIMS_WRITER_TREATMENT_REQUEST_V1に再生成します。新規の再依頼も正規形式を使用し、最終回答SIMS_WRITER_TREATMENT_RESULT_V1を検証・共通改善履歴へ登録します。
+
+既存の未完了案件・記事管理・改善履歴は更新時に移行しません。再開時に対象案件の依頼文だけ再生成します。公開記事の取得に失敗した場合はエラーを表示し、旧形式へフォールバックしません。
+
+詳細は `RELEASE_NOTES_v9.3.6.md` を参照してください。
+
+---
+
+# SIMS Manager v9.3.3 — 独立課題の非ブロッキング化
 
 精密診断の複数記事処置、aWriter登録、親案件の終了判定、中央ダイアログの実運用確認を反映。画面内の旧試験表記を整理しました。
 
 **互換性優先:** 保存データ、過去の精密診断Case、改善履歴、経過観察を維持。旧コード・診断関数の削除は参照関係の確認後に実施します。
 
-詳細は `RELEASE_NOTES_v9.3.0.md` と `CLEANUP_AUDIT_v9.3.0.md` を参照してください。
+詳細は `RELEASE_NOTES_v9.3.3.md` と `CLEANUP_AUDIT_v9.3.0.md` を参照してください。
 
 ---
 

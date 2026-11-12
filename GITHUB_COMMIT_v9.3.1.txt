@@ -1,0 +1,1 @@
+fix(manager): recognize singular Doctor user confirmation item (v9.3.1)
