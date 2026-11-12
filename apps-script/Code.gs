@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.18
- * Release summary: Hide legacy precision maintenance menus by default; preserve handlers.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.18.md.
+ * Current version: 9.3.19
+ * Release summary: Clarify article management reason and confirmation; preserve handlers.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.19.md.
  */
 
-const SBM_VERSION = '9.3.18';
+const SBM_VERSION = '9.3.19';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -12692,15 +12692,17 @@ function sbmOpenSelectedArticleManagementDialog(){
     options='<label class="choice"><input type="checkbox" class="one" id="restore"> 通常の改善管理対象へ戻す</label>'+
       '<label class="confirm"><input type="checkbox" id="restoreConfirmed"> ブログ側でnoindex・非公開等の設定を解除し、検索対象として運用する状態に戻しました</label>';
   }else{
-    options='<div class="lead">管理対象から外す理由を1つ選んでください。</div>'+
-      '<label class="choice"><input type="checkbox" class="one" id="noindex"> 自己都合でnoindexにした</label>'+
-      '<label class="choice"><input type="checkbox" class="one" id="unpublished"> 非公開・公開停止にした</label>'+
-      '<label class="choice"><input type="checkbox" class="one" id="other"> その他の理由で検索改善の管理対象から外す</label>'+
-      '<label class="confirm"><input type="checkbox" id="excludeConfirmed"> ブログ側の処置を完了し、この記事を検索改善の対象外にすることを確認しました</label>';
+    options='<div class="lead"><strong>① 管理対象から外す理由</strong><p>当てはまる理由を1つ選んでください。</p></div>'+
+      '<label class="choice"><input type="radio" name="excludeReason" class="one" id="noindex"> ブログでnoindexを設定した</label>'+
+      '<label class="choice"><input type="radio" name="excludeReason" class="one" id="unpublished"> 記事を非公開・公開停止にした</label>'+
+      '<label class="choice"><input type="radio" name="excludeReason" class="one" id="other"> その他の理由で管理対象から外す</label>'+
+      '<div class="lead"><strong>② 最終確認</strong><p>ブログ側の状態を確認してからチェックしてください。</p></div>'+
+      '<label class="confirm"><input type="checkbox" id="excludeConfirmed"> 上記の理由を確認し、この記事をSIMSの検索改善管理から外すことに同意します</label>'+
+      '<div class="hint">※記事そのものを削除する操作ではありません。ブログ側の設定は変更されません。</div>';
   }
-  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{font-size:18px;margin:0 0 8px;color:#174ea6}.meta{background:#f8f9fa;border-radius:8px;padding:10px 12px;line-height:1.55;margin:8px 0 14px}.lead{margin:8px 0}.choice,.confirm{display:block;border:1px solid #dadce0;border-radius:8px;padding:11px 12px;margin:8px 0}.confirm{background:#fff8e1}.notice{background:#fce8e6;color:#8a1c13;border-radius:8px;padding:12px;line-height:1.6}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}button{border:0;border-radius:6px;padding:9px 16px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.secondary{background:#f1f3f4}.status{margin-top:10px;white-space:pre-wrap;font-size:13px}.err{color:#b31412}.ok{color:#188038}</style></head><body><div class="meta">'+
+  var html='<!doctype html><html><head><base target="_top"><style>body{font-family:Arial,"Noto Sans JP",sans-serif;padding:18px;color:#202124}h2{font-size:18px;margin:0 0 8px;color:#174ea6}.meta{background:#f8f9fa;border-radius:8px;padding:10px 12px;line-height:1.55;margin:8px 0 14px}.lead{margin:8px 0}.lead p{margin:4px 0 8px;color:#5f6368;font-size:13px}.hint{font-size:12px;color:#5f6368;line-height:1.5;margin-top:8px}.choice,.confirm{display:block;border:1px solid #dadce0;border-radius:8px;padding:11px 12px;margin:8px 0}.confirm{background:#fff8e1}.notice{background:#fce8e6;color:#8a1c13;border-radius:8px;padding:12px;line-height:1.6}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}button{border:0;border-radius:6px;padding:9px 16px;cursor:pointer}.primary{background:#1a73e8;color:#fff}.primary:disabled{background:#b7c6db;cursor:not-allowed}.secondary{background:#f1f3f4}.status{margin-top:10px;white-space:pre-wrap;font-size:13px}.err{color:#b31412}.ok{color:#188038}</style></head><body><div class="meta">'+
     sbmDoctorEscapeHtml_((id?id+'　':'')+title)+'<br>'+sbmDoctorEscapeHtml_(url)+'<br>現在：'+sbmDoctorEscapeHtml_(String(rec['作業状態']||'')+' / '+String(rec['記事ステータス']||'')+' / '+String(rec['管理フラグ']||''))+'</div>'+options+
-    '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button>'+(locked?'':'<button id="submit" class="primary" onclick="submitState()">登録</button>')+'</div><div id="status" class="status"></div><script>document.querySelectorAll(".one").forEach(function(x){x.addEventListener("change",function(){if(!this.checked)return;document.querySelectorAll(".one").forEach(function(y){if(y!==x)y.checked=false})})});function submitState(){var action="";["restore","noindex","unpublished","other"].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked)action=id});var st=document.getElementById("status");if(!action){st.className="status err";st.textContent="処置を1つ選択してください。";return}var confirmId=action==="restore"?"restoreConfirmed":"excludeConfirmed",c=document.getElementById(confirmId);if(!c||!c.checked){st.className="status err";st.textContent="ブログ側の状態確認にもチェックしてください。";return}var b=document.getElementById("submit");b.disabled=true;b.textContent="登録中…";google.script.run.withSuccessHandler(function(r){b.disabled=false;b.textContent="登録";if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";setTimeout(function(){google.script.host.close()},900)}).withFailureHandler(function(e){b.disabled=false;b.textContent="登録";st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyArticleManagementState({articleId:'+JSON.stringify(id)+',articleUrl:'+JSON.stringify(url)+',action:action,confirmed:true})}</script></body></html>';
+    '<div class="actions"><button class="secondary" onclick="google.script.host.close()">閉じる</button>'+(locked?'':'<button id="submit" class="primary" disabled onclick="submitState()">'+(excluded?'管理対象に戻す':'管理対象から外す')+'</button>')+'</div><div id="status" class="status"></div><script>function updateSubmit(){var action="";["restore","noindex","unpublished","other"].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked)action=id});var c=document.getElementById(action==="restore"?"restoreConfirmed":"excludeConfirmed");var b=document.getElementById("submit");if(b)b.disabled=!(action&&c&&c.checked)}document.querySelectorAll("input").forEach(function(x){x.addEventListener("change",function(){if(this.id==="restore"&&this.checked){/* restore has only one option */}updateSubmit()})});function submitState(){var action="";["restore","noindex","unpublished","other"].forEach(function(id){var e=document.getElementById(id);if(e&&e.checked)action=id});var st=document.getElementById("status");if(!action){st.className="status err";st.textContent="処置を1つ選択してください。";return}var confirmId=action==="restore"?"restoreConfirmed":"excludeConfirmed",c=document.getElementById(confirmId);if(!c||!c.checked){st.className="status err";st.textContent="ブログ側の状態確認にもチェックしてください。";return}var b=document.getElementById("submit");b.disabled=true;b.textContent="処理中…";google.script.run.withSuccessHandler(function(r){b.textContent=action==="restore"?"管理対象に戻す":"管理対象から外す";updateSubmit();if(!r||!r.ok){st.className="status err";st.textContent=r&&r.message?r.message:"登録できませんでした。";return}st.className="status ok";st.textContent=r.message||"登録しました。";setTimeout(function(){google.script.host.close()},900)}).withFailureHandler(function(e){b.textContent=action==="restore"?"管理対象に戻す":"管理対象から外す";updateSubmit();st.className="status err";st.textContent=e&&e.message?e.message:String(e)}).sbmApplyArticleManagementState({articleId:'+JSON.stringify(id)+',articleUrl:'+JSON.stringify(url)+',action:action,confirmed:true})}</script></body></html>';
   sbmShowThemedModalDialog_(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(520),'記事の管理状態');
 }
 function sbmRemoveArticleFromOperationalViews_(articleId,url){

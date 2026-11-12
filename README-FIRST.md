@@ -1,3 +1,5 @@
+SIMS Manager v9.3.19：記事の管理状態ダイアログの理由選択と最終確認を分離。詳細は RELEASE_NOTES_v9.3.19.md を参照。
+
 # SIMS Manager v9.3.18
 
 旧Case保守用の3メニューを通常表示から除外しました。処理関数は保持しています。必要な保守時のみ Script Properties の `SBM_SHOW_LEGACY_PRECISION_MAINTENANCE_MENU=true` で表示できます。
