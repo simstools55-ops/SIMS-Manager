@@ -1,3 +1,7 @@
+# SIMS Manager v9.3.21
+
+Merge結果受領済みCaseの再開を、完成原稿の保存内容が検証できる場合に限り公開・301確認工程へ進める修正。既存のv9.3.20機能は維持。
+
 # v9.3.20: Optional SIMS Manager sidebar pilot; existing top menus retained.
 
 SIMS Manager v9.3.19：記事の管理状態ダイアログの理由選択と最終確認を分離。詳細は RELEASE_NOTES_v9.3.19.md を参照。

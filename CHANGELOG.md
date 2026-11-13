@@ -1,3 +1,6 @@
+## v9.3.21
+- Merge結果受領済みCaseの再開導線を修正。登録済み結果の再登録を防止し、完成原稿が検証できる場合のみ利用者処置待ちへ復元。
+
 # v9.3.20: Optional SIMS Manager sidebar pilot; existing top menus retained.
 
 ## v9.3.19 — 記事の管理状態ダイアログ改善

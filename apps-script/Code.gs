@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.20
+ * Current version: 9.3.21
  * Release summary: Clarify article management reason and confirmation; preserve handlers.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.20.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.21.md.
  */
 
-const SBM_VERSION = '9.3.20';
+const SBM_VERSION = '9.3.21';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -23736,7 +23736,7 @@ function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
     var sh=sbmDoctorEnsureCaseSheet_(),hm=sbmHeaderMap_(sh),last=sh.getLastRow();
     if(last<2)return {ok:true,actions:[],message:'再開できるSite Doctor処置はありません。'};
     preferredCaseId=String(preferredCaseId||'').trim();
-    var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),actions=[],pendingUser=0,pendingMergeCaseId='',pendingMergeContext=null,scanned=0,mergeRows=0,skippedNoSiteDiagnosis=0,recoveredWithoutSiteDiagnosis=0;
+    var vals=sh.getRange(2,1,last-1,sh.getLastColumn()).getValues(),actions=[],pendingUser=0,pendingMergeCaseId='',pendingMergeContext=null,recoveryBlocked=[],scanned=0,mergeRows=0,skippedNoSiteDiagnosis=0,recoveredWithoutSiteDiagnosis=0;
     // 共通処置UIも未完了一覧と同じ候補集合だけを処理する。
     // 個別画面ごとの独自state走査をやめ、完了境界・重複集約・モニター除外を一か所へ集約する。
     var resumeActive={'DOCTOR_DIAGNOSIS_PENDING':1,'FOLLOW_UP_REQUEST_READY':1,'USER_ACTION_REQUIRED':1,'USER_DECISION_REQUIRED':1,'WRITER_REQUEST_READY':1,'WRITER_IN_PROGRESS':1,'MERGE_REQUEST_READY':1,'MERGE_IN_PROGRESS':1,'MERGE_RESULT_RECEIVED':1,'MERGE_WRITER_IN_PROGRESS':1,'MERGE_USER_ACTION_REQUIRED':1,'CREATOR_REQUEST_READY':1,'CREATOR_IN_PROGRESS':1};
@@ -23773,8 +23773,33 @@ function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
           label='aCreator紹介状を再生成できません：'+String(eCreatorResume&&eCreatorResume.message?eCreatorResume.message:eCreatorResume);
           return;
         }
-      }else if(state==='MERGE_IN_PROGRESS'||state==='MERGE_RESULT_RECEIVED'){
-        route='MERGE';req=mergeReqStored;label=state==='MERGE_RESULT_RECEIVED'?'aMerge結果を再登録できます':'aMerge結果待ち';
+      }else if(state==='MERGE_RESULT_RECEIVED'){
+        // v9.3.21: aMerge結果の受領済みCaseを再登録画面へ戻さない。
+        // 保存済み完成原稿から利用者の公開・301確認工程を復元する。
+        var recoveredMerge=null;
+        if(mergeResultStored){
+          try{
+            var savedMerge=JSON.parse(mergeResultStored);
+            if(sbmDoctorContractMatches_(savedMerge,'SIMS_MERGE_TREATMENT_RESULT_V1')){
+              recoveredMerge=sbmDoctorNormalizeMergeResult_(savedMerge);
+            }
+          }catch(ignoreMergeRecoveryParse){}
+        }
+        if(recoveredMerge&&String(recoveredMerge.caseId||'')===caseId&&sbmDoctorMergeHasCompletedArticle_(recoveredMerge)){
+          // 完成原稿の保存済み事実を検証できた場合だけ次の状態へ進める。
+          var resumedMerge=sbmDoctorFinalizeMergeArticleResult_(recoveredMerge);
+          pendingUser++;
+          if(!pendingMergeCaseId||caseId===preferredCaseId){
+            pendingMergeCaseId=caseId;
+            pendingMergeContext=resumedMerge.completionContext;
+          }
+          return;
+        }
+        // 不完全/短縮保存の場合は再登録を促さず、再開を安全に停止する。
+        recoveryBlocked.push(caseId);
+        return;
+      }else if(state==='MERGE_IN_PROGRESS'){
+        route='MERGE';req=mergeReqStored;label='aMerge結果待ち';
       }else if(state==='MERGE_WRITER_IN_PROGRESS'||state==='WRITER_IN_PROGRESS'){
         route='WRITER';req=hm['Writer依頼JSON']?String(row[hm['Writer依頼JSON']-1]||''):'';label=state==='MERGE_WRITER_IN_PROGRESS'?'Merge後のaWriter結果待ち':'aWriter結果待ち';
         if(state==='MERGE_WRITER_IN_PROGRESS'){
@@ -23807,8 +23832,8 @@ function sbmDoctorResumeSiteDiagnosisTreatments(preferredCaseId){
       return Number(b.updatedTs||0)-Number(a.updatedTs||0);
     });
     var diag='\n走査：'+scanned+'件 / Merge候補行：'+mergeRows+'件'+(recoveredWithoutSiteDiagnosis?' / SiteDiagnosisCaseIDなしで復元：'+recoveredWithoutSiteDiagnosis+'件':'');
-    if(!actions.length)return {ok:true,actions:[],pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:(pendingUser?'aMerge案件は統合原稿反映・301等の利用者処置待ちです。④で実施済み項目を確認し、記事統合の完了を登録してください。':'再開できる未完了の作業は見つかりませんでした。aDoctorからやり直す必要はありません。')+diag};
-    return {ok:true,actions:actions,pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:'前回の続きから再開しました。現在の未完了作業：紹介状／結果登録 '+actions.length+'件'+(pendingUser?'、Merge利用者処置 '+pendingUser+'件':'')+'。完了済み案件は再表示しません。'+diag};
+    if(!actions.length)return {ok:true,actions:[],pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:(pendingUser?'aMerge案件は統合原稿反映・301等の利用者処置待ちです。④で実施済み項目を確認し、記事統合の完了を登録してください。':recoveryBlocked.length?'aMerge結果は登録済みですが、完成原稿の保存内容を確認できないため安全に再開できません。結果を再登録せず保守確認してください。Case: '+recoveryBlocked.join(', '):'再開できる未完了の作業は見つかりませんでした。aDoctorからやり直す必要はありません。')+diag};
+    return {ok:true,actions:actions,pendingMergeCaseId:pendingMergeCaseId,pendingMergeContext:pendingMergeContext,message:(recoveryBlocked.length?'要保守確認（aMerge結果は登録済み）：'+recoveryBlocked.join(', ')+'。再登録しないでください。\n':'')+'前回の続きから再開しました。現在の未完了作業：紹介状／結果登録 '+actions.length+'件'+(pendingUser?'、Merge利用者処置 '+pendingUser+'件':'')+'。完了済み案件は再表示しません。'+diag};
   }catch(e){return {ok:false,actions:[],message:'未完了Workflowの再開状態を読み取れませんでした：'+String(e&&e.message?e.message:e)};}
 }
 
