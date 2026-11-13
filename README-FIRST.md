@@ -1,3 +1,25 @@
+# SIMS Manager v9.3.26 — improvement-history date normalization
+
+- For a saved completion context with zero absorbed articles, require only article publication confirmation.
+- Actual absorbed articles still require redirect or search exclusion confirmation.
+- Saved Merge result and Drive artifacts remain unchanged.
+- Integration test on the live spreadsheet is still required.
+
+# SIMS Manager v9.3.24
+
+# SIMS Manager v9.3.24 — aMerge partial-result resume
+
+- Restore CaseID/result-ID-verified saved aMerge drafts even when `publication_ready` is false.
+- Separate draft existence from publication approval. Do not change stored aMerge response or Google Drive artifacts.
+- Resume into explicit user-action review status for non-publication-ready drafts; no automatic publication or redirect.
+- Preserve missing-content and identity-mismatch safety stops.
+- Regression tests: partial draft, ready draft, wrong CaseID, wrong result ID, empty content.
+- Validation is mocked; Google Apps Script live integration must be verified in the user's environment.
+
+## v9.3.22 — Merge result resume artifact recovery
+
+Registered long aMerge results are recovered from the case-linked Drive result JSON, with CaseID/result identity checks. No re-registration, publication, redirect or history changes occur automatically.
+
 # SIMS Manager v9.3.21
 
 Merge結果受領済みCaseの再開を、完成原稿の保存内容が検証できる場合に限り公開・301確認工程へ進める修正。既存のv9.3.20機能は維持。

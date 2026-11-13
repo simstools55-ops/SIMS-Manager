@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.20",
+  "current_version": "9.3.24",
   "release_status": "RELEASE_CANDIDATE",
-  "notes": "Add optional accordion sidebar menu, preserving original top menus and edition gating.",
-  "version": "9.3.21",
+  "notes": "Allow publication-only completion for verified absorption-free aMerge cases; retain redirect safeguards for actual merges.",
+  "version": "9.3.24",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.20"
+  "starter_display_version": "9.3.24"
 }

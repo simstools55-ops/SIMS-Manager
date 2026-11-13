@@ -1,3 +1,31 @@
+## v9.3.26
+- Normalize improvement dates to Date objects at selected new-history insertion paths; reject invalid dates instead of substituting today.
+- Preserve existing history rows and read-only sidebar navigation.
+- Existing two anomalous history cells were repaired separately in the user environment; no migration is run.
+- Live Apps Script regression remains pending.
+
+## v9.3.25
+- Sidebar improvement-history navigation now directly activates the existing sheet without sorting, formatting, or modifying stored history.
+- Existing top-menu behavior and aMerge completion remain unchanged.
+
+## v9.3.24
+- Fix completion registration for absorption-free aMerge results; enforce saved-context verification and preserve redirect requirements for actual absorption.
+
+# v9.3.24
+
+# SIMS Manager v9.3.24 — aMerge partial-result resume
+
+- Restore CaseID/result-ID-verified saved aMerge drafts even when `publication_ready` is false.
+- Separate draft existence from publication approval. Do not change stored aMerge response or Google Drive artifacts.
+- Resume into explicit user-action review status for non-publication-ready drafts; no automatic publication or redirect.
+- Preserve missing-content and identity-mismatch safety stops.
+- Regression tests: partial draft, ready draft, wrong CaseID, wrong result ID, empty content.
+- Validation is mocked; Google Apps Script live integration must be verified in the user's environment.
+
+## v9.3.22 — Merge result resume artifact recovery
+
+Registered long aMerge results are recovered from the case-linked Drive result JSON, with CaseID/result identity checks. No re-registration, publication, redirect or history changes occur automatically.
+
 ## v9.3.21
 - Merge結果受領済みCaseの再開導線を修正。登録済み結果の再登録を防止し、完成原稿が検証できる場合のみ利用者処置待ちへ復元。
 

@@ -1,1 +1,1 @@
-feat(manager): add optional sidebar menu with edition-safe action dispatch (v9.3.20)
+fix(manager): normalize new improvement-history dates without rewriting existing rows (v9.3.26)
