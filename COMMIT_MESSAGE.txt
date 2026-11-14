@@ -1,1 +1,1 @@
-fix(manager): normalize new improvement-history dates without rewriting existing rows (v9.3.26)
+perf(manager): direct-route sidebar Doctor candidate action and add stage timing (v9.3.29)

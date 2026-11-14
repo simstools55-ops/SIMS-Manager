@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.24",
-  "release_status": "RELEASE_CANDIDATE",
-  "notes": "Allow publication-only completion for verified absorption-free aMerge cases; retain redirect safeguards for actual merges.",
-  "version": "9.3.24",
+  "current_version": "9.3.34",
+  "release_status": "UAT",
+  "notes": "Unify sidebar and top-menu precision diagnosis through the same progress-dialog launcher.",
+  "version": "9.3.34",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.24"
+  "starter_display_version": "9.3.34"
 }

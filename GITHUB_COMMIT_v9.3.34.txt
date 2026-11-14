@@ -1,0 +1,1 @@
+fix(manager): unify sidebar and menu Doctor progress launch (v9.3.34)

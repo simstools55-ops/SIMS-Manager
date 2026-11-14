@@ -1,3 +1,31 @@
+## v9.3.34 (2026-11-14)
+- サイドバーと上部メニューの精密診断起動を共通の先行表示処理に統一。
+- 診断生成・保存ロジックは変更なし。
+
+## v9.3.33 (2026-11-14)
+- 精密診断の中央ダイアログを先行表示し、完了後に従来の依頼文UIへ切り替える。
+- 診断ロジック・保存順序は変更なし。
+
+## v9.3.32 (2026-11-14)
+- Query-filtered GSC query/page request for Doctor cannibalization evidence, with full-batch and per-query fallback.
+- Add `SBM_DOCTOR_CANNIBAL_TIMING` logs; preserve evidence scoring and workflow.
+- JavaScript syntax and mock normal/fallback regression checks passed; live Apps Script pending.
+
+## v9.3.31 (2026-11-14)
+- Instrument Evidence Package acquisition stages with `SBM_DOCTOR_EVIDENCE_TIMING`; no business-logic changes.
+
+## v9.3.30
+- 精密診断依頼の生成・保存工程を7区間に細分化してログ記録。動作変更なし。
+
+## v9.3.29
+- 精密診断候補のサイドメニュー起動を正規ハンドラへの直接呼び出しに変更。処理時間を画面と実行ログに記録。診断条件・保存処理は維持。
+
+## v9.3.28
+- 通常改善のaWriter回答において、対処済みの注意事項による不要なaDoctor分岐を抑止。
+- 未解決の正確性問題・明示的な利用者判断は従来の安全ゲートを維持。
+- 通常改善の登録後に不適切な精密診断ボタンを表示しない。
+- 既存のA000053データは変更しない。
+
 ## v9.3.26
 - Normalize improvement dates to Date objects at selected new-history insertion paths; reject invalid dates instead of substituting today.
 - Preserve existing history rows and read-only sidebar navigation.
@@ -344,3 +372,6 @@ Registered long aMerge results are recovered from the case-linked Drive result J
 
 ## v9.2.134
 - Improve saved precision case title and treatment-status display (read-only).
+
+## v9.3.28
+- Fixed normal follow-up dialog generated JavaScript URL validation syntax.
