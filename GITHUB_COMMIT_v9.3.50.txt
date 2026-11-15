@@ -1,0 +1,1 @@
+fix(manager): restore Home chart series visibility and align version metadata (v9.3.50)

@@ -1,0 +1,1 @@
+fix(manager): compact effect metric labels and show history URLs (v9.3.40)

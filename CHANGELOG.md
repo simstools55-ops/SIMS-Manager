@@ -1,3 +1,112 @@
+# v9.3.57 — サンプルデータ撤去・Homeグラフ安定化
+
+- 記事ランクの28日分の仮データ生成を廃止。実際の日次履歴だけを表示。
+- Homeグラフデータシートに残っているサンプル値を消去（実際の日次履歴は保持）。
+- 実履歴がないときは「日次処理によるデータ収集中」を表示。
+- データに変化がない場合、既存のグラフ画像を差し替えず保持して表示消失リスクを低減。
+- Homeのレイアウト、円グラフ、記事管理、日次履歴収集処理は維持。
+
+# v9.3.56 — Homeグラフ更新の安全化
+
+- 円・棒両方のPNG生成成功後に画像を差し替え、失敗時は従来画像を保持。
+- 画像の高さを160pxに調整し、改善モニター見出しとの重なりを防止。
+- Home更新時の画像生成・配置結果をログに記録。
+- 日次履歴・記事管理・集計ロジックは変更なし。
+
+# v9.3.54 — Home画像位置修正
+- 円・棒グラフ画像を高さ172pxに収め、行13の見出しへの重なりを回避。
+- 棒グラフ画像をF6へ明示的に固定し、生成ログを追加。
+
+## v9.3.53 (2026-11-15)
+- Compact Home layout: daily status beside last update; monitoring below charts; message at bottom.
+
+## v9.3.53 (2026-11-15)
+- Home: remove weekly advice title and contents; hide unused rows.
+- Home: render pie slice labels in dark text.
+- Home: normalize rank series before stacked column rendering and log failures separately.
+- Version metadata aligned.
+
+## v9.3.51 (2026-11-15)
+- Homeの埋め込みグラフ空白問題を回避するため、Chartsサービスで描画したPNG画像を配置。既存データと日次履歴は維持。
+- バージョン整合性監査を実施。
+
+## v9.3.50 (2026-11-15)
+- Home chart: keep source sheet visible, force hidden-dimension strategy, declare headers, flush source before embedding.
+- Synchronize Code.gs header, version constants, product identity and distribution instructions.
+- Actual Google Sheets display requires user verification.
+
+## v9.3.49 (2026-11-15)
+- Homeの旧上部数値カードを廃止し、上段に円・100%積み上げ棒グラフを配置。
+- 実績履歴なしの場合のみ28日サンプルを表示。日次履歴は改変しない。
+- コンパクトな24行レイアウトと円グラフの指定色を適用。
+
+## v9.3.48 (2026-11-15)
+- Homeに改善状況の円グラフと記事ランク構成の100%積み上げ縦棒グラフを追加。
+- 日次処理完了時からランク構成を日付別に保存。既存Homeの業務表示は維持。
+
+## v9.3.47 (2026-11-15)
+- onOpenでライセンス判定を先行させず、軽量なサイドバー枠を表示。メニュー内容は表示後に非同期で読み込む。
+- 手動表示とStarter/Fullの権限フィルタは維持。
+- 起動時失敗ログをconsole.errorへ変更。
+
+## v9.3.46 (2026-11-15)
+- onOpenのサイドバー自動表示を初期メニュー登録直後へ移動。Home更新・Edition別メニュー構築・シート表示制御より先に表示を要求する。
+- 自動表示が失敗した場合も上部「SIMS Manager > 操作パネルを開く」で復旧できる。
+- 表示処理・日付・データ構造・Starter/Fullの機能権限は変更しない。
+
+## v9.3.45 (2026-11-15)
+- 改善履歴の1週〜4週・最終判定を中央揃え（連続5列に対する単一操作）。
+- v9.3.44の軽量な閲覧処理を維持。日付補正・並び替え・全行高さ変更は実行しない。
+
+## v9.3.44 (2026-11-15)
+- 改善履歴の閲覧はシート表示のみとし、日付補正・全行ソート・全行書式再設定・スキーマ移行を閲覧から分離。
+- 従来の日付補正・整形処理は明示的メンテナンス関数 sbmMaintainImprovementHistoryV9344_ に保持（自動実行なし）。
+- サイドバーとトップメニューは同じ軽量ハンドラーを使用。データ・登録処理は変更しない。
+
+## v9.3.44 (2026-11-15)
+- サイドバーの全表示アクションをトップメニューの公開ハンドラーと静的照合。
+- 改善履歴のショートカットを廃止し、日付補正・表示修復を含む正規処理へ統一。
+- サイドバー専用の例外処理を削除。
+
+## v9.3.42 (2026-11-15)
+- 改善履歴の日付がISO文字列で登録されていた行だけを日付型へ補正。既存の日付型セルは保持。
+- 改善日列を yyyy/M/d 表示へ統一。
+
+## v9.3.41
+- 精密診断候補シートのタイトル列300→240px、URL列260→182px。
+- 上部メニューとサイドバーの操作名称を簡潔化。
+- スプレッドシート再読み込み時に操作パネルを自動表示。
+
+## v9.3.39 (2026-11-15)
+- 改善履歴：記事タイトル282px、改善概要378px。改善概要を折り返し、先頭60行は高さを自動調整。改善経路は非表示を維持。
+- シートのデータ、列構成、診断・登録ロジックは変更なし。
+- サイドバー・実行時バージョンをv9.3.39に統一。
+
+## v9.3.38 (2026-11-15)
+- 精密診断候補の列幅をv9.3.35の構成に戻し、「傾向」のみ非表示。
+- 改善履歴の改善概要を表示し、一覧は原文非破壊のクリップ表示。改善経路は非表示。
+- サイドバーの各操作グループを初期状態で展開。
+- 実行時・表示・配布情報のバージョンを同期。
+
+## v9.3.37 (2026-11-15)
+- 今日の改善の主要11項目を再表示。非表示対象は記事URL・候補IDのみ。
+- 記事管理のメインクエリ再表示、H1タイトル列を315pxへ拡張。
+- 改善履歴の改善経路非表示、aDoctor候補の傾向非表示は維持。
+- サイドバーの固定バージョン表記をv9.3.37へ同期。
+- 列データ・列順・診断/登録処理は変更しない。
+
+## v9.3.36 (2026-11-15)
+- Sidebar-first compact sheet layouts for five operational sheets.
+- Auto-route blocking Writer issues to aDoctor instead of user three-way decision.
+- Keep underlying sheet data/headers unchanged; effect delta conversion deferred pending non-destructive view design.
+
+## v9.3.35 (2026-11-15)
+- aWriter回答の次回改善向け注意事項を現在の登録保留判定から除外。元の注意事項は履歴に保持。
+- 既存のUSER_DECISION_PENDINGを再評価し、現在の回答が登録可能なら正常登録へ進む。進行中のDoctor/Writer処理は維持。
+- サイドバー改善登録画面でdecisionRequiredを登録完了と誤表示しない。履歴IDなしの成功表示を抑止。
+- 改善履歴IDの保存後照合、重複登録時の改善中状態復旧、今日の改善更新エラーログを追加。
+- 実機の保存動作は未確認。
+
 ## v9.3.34 (2026-11-14)
 - サイドバーと上部メニューの精密診断起動を共通の先行表示処理に統一。
 - 診断生成・保存ロジックは変更なし。
@@ -375,3 +484,7 @@ Registered long aMerge results are recovered from the case-linked Drive result J
 
 ## v9.3.28
 - Fixed normal follow-up dialog generated JavaScript URL validation syntax.
+
+## v9.3.40
+- Effect view compact metric headers and 65px columns; preserve canonical metric mappings.
+- History view shows article URL rather than long improvement summary; underlying data unchanged.

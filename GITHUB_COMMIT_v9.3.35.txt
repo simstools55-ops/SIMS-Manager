@@ -1,0 +1,1 @@
+fix(manager): correct Writer feedback registration gates and completion checks (v9.3.35)

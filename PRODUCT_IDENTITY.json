@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.34",
+  "current_version": "9.3.57",
   "release_status": "UAT",
-  "notes": "Unify sidebar and top-menu precision diagnosis through the same progress-dialog launcher.",
-  "version": "9.3.34",
+  "notes": "Home charts use actual daily rank history only; no synthetic 28-day data. Preserve unchanged chart images.",
+  "version": "9.3.57",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.34"
+  "starter_display_version": "9.3.57"
 }

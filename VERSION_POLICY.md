@@ -2,9 +2,9 @@
 
 SIMS Manager and Shared Editorial Knowledge use independent version lines.
 
-- SIMS Manager current product version: `9.3.34`
-- Full display: `v9.3.34`
-- Starter display: `v9.3.34-ST`
+- SIMS Manager current product version: `9.3.48`
+- Full display: `v9.3.48`
+- Starter display: `v9.3.48-ST`
 - Shared Editorial Knowledge: `v3.5.0`
 
 Before every Repository ZIP is created:
