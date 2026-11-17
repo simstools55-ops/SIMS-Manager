@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.77
+ * Current version: 9.3.78
  * Release summary: Release metadata consistency and distribution guidance cleanup; runtime behavior unchanged from v9.3.76.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.77.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.78.md.
  */
 
-const SBM_VERSION = '9.3.77';
+const SBM_VERSION = '9.3.78';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -8875,21 +8875,50 @@ const SBM_EFFECT_HEADERS_V2 = [
 ];
 
 
+/**
+ * v9.3.78: 利用者向けタブのみ表示。実データは変更しない。
+ * onOpenではバージョンごとに一度だけ実行し、通常更新時は走査しない。
+ */
 function sbmApplyProductVisibleTabs_(options) {
   options=options||{};
   var ss=SpreadsheetApp.getActiveSpreadsheet(),visible={};
   [SBM_SHEETS.HOME,SBM_SHEETS.TODAY,SBM_SHEETS.EFFECT,SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.FEEDBACK_HISTORY]
     .forEach(function(n){visible[n]=true;});
+  var home=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(!home)throw new Error('Homeシートがないためタブ整理を中止しました。');
+  if(home.isSheetHidden())home.showSheet();
+  // 現在のシートを隠す前にHomeへ移動する。
+  if(options.activateHome!==false && ss.getActiveSheet().getSheetId()!==home.getSheetId())ss.setActiveSheet(home);
+  // 表示対象を先に復帰し、最後の可視シートを隠す例外を防ぐ。
+  ss.getSheets().forEach(function(sh){if(visible[sh.getName()]&&sh.isSheetHidden())sh.showSheet();});
+  var changed=0,errors=[];
   ss.getSheets().forEach(function(sh){
-    var shouldShow=!!visible[sh.getName()],hidden=sh.isSheetHidden();
-    try{
-      if(shouldShow&&hidden)sh.showSheet();
-      else if(!shouldShow&&!hidden)sh.hideSheet();
-    }catch(e){}
+    if(visible[sh.getName()]||sh.isSheetHidden())return;
+    try{sh.hideSheet();changed++;}catch(e){errors.push(sh.getName()+': '+String(e));}
   });
-  if(options.applyTheme===true){
-    try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}
-  }
+  if(options.applyTheme===true){try{sbmApplyVisibleSheetDisplayThemes_();}catch(ignoreVisibleTheme){}}
+  return {hidden:changed,errors:errors};
+}
+
+function sbmSyncProductTabsOncePerVersion_() {
+  var props=PropertiesService.getDocumentProperties();
+  var key='SBM_VISIBLE_TABS_APPLIED_VERSION';
+  if(props && props.getProperty(key)===SBM_VERSION)return;
+  var result=sbmApplyProductVisibleTabs_({activateHome:true});
+  if(result.errors.length)throw new Error(result.errors.join('; '));
+  if(props)props.setProperty(key,SBM_VERSION);
+}
+
+/** 新規内部シートは生成直後に非表示にする（通常の既存シート取得では変更しない）。 */
+function sbmHideNewInternalSheet_(sh) {
+  if(!sh)return;
+  var visible=[SBM_SHEETS.HOME,SBM_SHEETS.TODAY,SBM_SHEETS.EFFECT,SBM_SHEETS.ARTICLE_DB,SBM_SHEETS.FEEDBACK_HISTORY];
+  if(visible.indexOf(sh.getName())>=0)return;
+  var ss=sh.getParent(),home=ss.getSheetByName(SBM_SHEETS.HOME);
+  if(!home||home.getSheetId()===sh.getSheetId())return;
+  if(home.isSheetHidden())home.showSheet();
+  if(ss.getActiveSheet().getSheetId()===sh.getSheetId())ss.setActiveSheet(home);
+  if(!sh.isSheetHidden())sh.hideSheet();
 }
 
 /**
@@ -16530,6 +16559,15 @@ function sbmRelease1WizardBaseCss_() {
     + '</style>';
 }
 
+function sbmFinishSetupAndOpenHomeV9378() {
+  // セットアップ画面終了時も整理。設定途中ならHomeへ戻るだけにする。
+  var status=sbmRelease1SetupStatus_();
+  if(status.step1&&status.step2&&status.step3&&status.step4&&status.step5&&status.total>0&&status.remaining===0){
+    try{sbmSyncProductTabsOncePerVersion_();}catch(e){console.error('SetupVisibleTabs: '+String(e));}
+  }
+  return sbmOpenHome();
+}
+
 function sbmStartInitialSetup() {
   sbmShowRelease1SetupStep_(1);
 }
@@ -16644,7 +16682,7 @@ function sbmShowRelease1SetupStep_(step) {
     + 'function verifyExternalAuth(){var b=el("externalAuthBtn");if(b)b.disabled=true;setBusy("外部通信権限を確認しています…");google.script.run.withFailureHandler(function(e){clearBusy("この画面から承認できませんでした。Apps Scriptエディタで sbmAuthorizeExternalAccess を直接実行してGoogleの権限を承認してください。詳細: "+((e&&e.message)?e.message:String(e)));if(b)b.disabled=false;}).withSuccessHandler(function(code){clearBusy("外部通信権限を確認しました（HTTP "+code+"）。STEP3の「実行」を押してください。");if(b)b.disabled=false;var h=el("externalAuthHelp");if(h)h.style.display="none";}).sbmAuthorizeExternalAccess();}'
     + 'function skipStep(){setActionsDisabled(true);setBusy("次のSTEPへ移動しています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmSkipRelease1SetupStep(step);}'
     + 'function openDailyFromSetup(){setActionsDisabled(true);setBusy("日次処理画面を開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenDailyUpdateDialog();}'
-    + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmOpenHome();}'
+    + 'function finishWizard(){setActionsDisabled(true);setBusy("Homeを開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmFinishSetupAndOpenHomeV9378();}'
     + 'function openLicenseFromSetup(){setActionsDisabled(true);setBusy("ライセンス認証を開いています…");google.script.run.withFailureHandler(function(e){clearBusy((e&&e.message)?e.message:String(e));setActionsDisabled(false);}).withSuccessHandler(function(){google.script.host.close();}).sbmLicenseActivationTest();}'
     + 'function openExternal(url){var m=el("msg");if(m)m.textContent="";var w=null;try{w=window.open(url,"_blank");if(w){try{w.opener=null;}catch(ignoreOpener){}return;}}catch(ignoreOpen){}if(!w&&m){var a=document.createElement("a");m.textContent="新しいタブを開けませんでした。 ";a.id="fallbackLink";a.target="_blank";a.rel="noopener noreferrer";a.href=url;a.textContent="こちらをクリックしてください";m.appendChild(a);}}'
     + 'if(el("dailyBtn"))el("dailyBtn").addEventListener("click",openDailyFromSetup);'
@@ -17389,14 +17427,10 @@ function onOpen() {
     try { sbmLog_('OnOpenHomeDisplay','Warning',String(eHome)); } catch(ignoreHome) {}
   }
 
-  // Starterでは通常利用者に不要な内部・管理シートを非表示に同期する。
-  // 全シート走査は行わず、既知のシート名だけを直接取得してF5/onOpenの起動負荷を抑える。
-  if (!isFullEdition) {
-    try { sbmHideStarterInternalSheetsOnOpen_(SpreadsheetApp.getActiveSpreadsheet()); }
-    catch (eStarterSheetVisibility) {
-      try { sbmLog_('OnOpenStarterSheetVisibility','Warning',String(eStarterSheetVisibility)); } catch(ignoreStarterSheetVisibility) {}
-    }
-  }
+  // v9.3.78: 初回起動・バージョン更新時だけ可視タブを同期する（全Edition共通）。
+  // 通常のF5/onOpenではプロパティ確認のみ。失敗しても業務処理を止めない。
+  try { sbmSyncProductTabsOncePerVersion_(); }
+  catch (eTabs) { try { console.error('VisibleTabsOnOpen: '+String(eTabs)); } catch(ignoreTabs) {} }
 
 
   // F5/onOpenでは、ここから先の保守処理・全シート走査を行わない。
