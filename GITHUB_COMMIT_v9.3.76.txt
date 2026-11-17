@@ -1,0 +1,1 @@
+fix(manager): refresh Home monitoring summary after trend repair (v9.3.76)

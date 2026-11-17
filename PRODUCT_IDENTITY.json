@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.57",
+  "current_version": "9.3.76",
   "release_status": "UAT",
-  "notes": "Home charts use actual daily rank history only; no synthetic 28-day data. Preserve unchanged chart images.",
-  "version": "9.3.57",
+  "notes": "Improvement trend shows active monitoring only; format-only action fixes long titles without changing measurement data.",
+  "version": "9.3.76",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.57"
+  "starter_display_version": "9.3.75"
 }

@@ -1,1 +1,1 @@
-fix(manager): remove demo rank data and stabilize Home chart refresh (v9.3.57)
+fix(manager): prevent ended monitoring rows from reappearing and preserve trend layout (v9.3.71)

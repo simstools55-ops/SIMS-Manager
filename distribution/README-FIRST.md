@@ -1,7 +1,7 @@
-# SIMS Manager v9.3.57 — 配布用案内
+# SIMS Manager v9.3.58 — 配布用案内
 
-現行版は v9.3.57 です。Google Apps Scriptへ貼り付けるコードは `apps-script/Code.gs` を使用してください。
-過去版の説明は履歴として残しています。最新版の操作・更新情報はルートの `README-FIRST.md` と `RELEASE_NOTES_v9.3.57.md` を参照してください。
+現行版は v9.3.58 です。Google Apps Scriptへ貼り付けるコードは `apps-script/Code.gs` を使用してください。
+過去版の説明は履歴として残しています。最新版の操作・更新情報はルートの `README-FIRST.md` と `RELEASE_NOTES_v9.3.58.md` を参照してください。
 
 ---
 

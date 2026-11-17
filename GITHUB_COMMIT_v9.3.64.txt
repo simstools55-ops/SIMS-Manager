@@ -1,0 +1,1 @@
+fix(manager): resume structured aDoctor follow-up confirmation without re-diagnosis loop (v9.3.64)
