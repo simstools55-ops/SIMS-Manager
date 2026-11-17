@@ -1,3 +1,7 @@
+## v9.3.77 (2026-11-17)
+- 現行バージョン識別と配布案内を整理。実行ロジック変更なし。
+- Homeのモニター件数修正はv9.3.76の実機試験待ち。
+
 ## v9.3.76
 - Refresh Home current monitoring totals from live Improvement Trends on lightweight Home open.
 - Invalidate Home snapshot after explicit Improvement Trends repair.

@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.73
- * Release summary: Narrow on-demand sheet diagnosis reads and add a 120-second UI warning.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.75.md.
+ * Current version: 9.3.77
+ * Release summary: Release metadata consistency and distribution guidance cleanup; runtime behavior unchanged from v9.3.76.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.77.md.
  */
 
-const SBM_VERSION = '9.3.76';
+const SBM_VERSION = '9.3.77';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
