@@ -1,3 +1,15 @@
+## v9.3.81 (2026-11-18)
+- Major-sheet read-only diagnosis now displays repair necessity and safe next actions. No automatic history or article changes.
+
+## v9.3.80 (2026-11-18)
+- Fix generated sheet diagnostic dialog JavaScript; add execution feedback, elapsed timer, timeout warning, duplicate-click prevention, and safe error recovery.
+- No changes to monitoring data or repair engine.
+
+## v9.3.79 (2026-11-18)
+- 主要シートの読み取り専用一括診断を追加。
+- 改善履歴・記事管理の推測による削除・統合・復元は行わない。
+- 改善の推移の既存診断・修復を維持。
+
 ## v9.3.78 (2026-11-17)
 - 初回セットアップ完了時と更新後初回起動時のタブ表示同期を追加。データ非破壊。
 

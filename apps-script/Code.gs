@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.78
+ * Current version: 9.3.81
  * Release summary: Release metadata consistency and distribution guidance cleanup; runtime behavior unchanged from v9.3.76.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.78.md.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.81.md.
  */
 
-const SBM_VERSION = '9.3.78';
+const SBM_VERSION = '9.3.81';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -30556,18 +30556,64 @@ function sbmSheetRepairRunV9372_(){
   sbmInvalidateHomeSnapshot_();
   return {ok:errors.length===0,backup:name,kept:rows.length,restored:restored,removed:r.extra.length,errors:errors};
 }
+
+/** v9.3.81: シート横断診断。読み取り専用。履歴の欠落・重複を推測で修復しない。 */
+function sbmSheetHealthDiagnosticsV9379(){
+  var ss=SpreadsheetApp.getActiveSpreadsheet();
+  var defs=[
+    {name:SBM_SHEETS.ARTICLE_DB,required:['ArticleID','作業状態','記事URL'],id:'ArticleID'},
+    {name:SBM_SHEETS.FEEDBACK_HISTORY,required:['改善履歴ID','ArticleID','記事URL'],id:'改善履歴ID'},
+    {name:SBM_SHEETS.EFFECT,required:['ArticleID','記事タイトル'],id:'ArticleID'},
+    {name:'Settings',required:[],id:null}
+  ];
+  return {ok:true,readOnly:true,items:defs.map(function(d){
+    var sh=ss.getSheetByName(d.name);
+    if(!sh)return {name:d.name,exists:false,rows:0,missingColumns:d.required,duplicateIds:[],invalidIds:[],status:'MISSING'};
+    var h=sbmHeaderMap_(sh),missing=d.required.filter(function(k){return !h[k];});
+    var count=Math.max(0,sh.getLastRow()-1),dups=[],bad=[],seen={};
+    if(d.id&&h[d.id]&&count){
+      var ids=sh.getRange(2,h[d.id],count,1).getDisplayValues();
+      ids.forEach(function(row,i){
+        var id=String(row[0]||'').trim();if(!id)return;
+        if(d.id==='ArticleID'&&!/^A\d{6,}$/.test(id)){if(bad.length<30)bad.push(i+2);return;}
+        if(seen[id]){if(dups.length<30)dups.push({id:id,row:i+2,first:seen[id]});}else seen[id]=i+2;
+      });
+    }
+    return {name:d.name,exists:true,rows:count,missingColumns:missing,duplicateIds:dups,invalidIds:bad,
+      status:missing.length||dups.length||bad.length?'REVIEW':'OK'};
+  })};
+}
+
 function sbmRunFullSheetRepairV9372_(){ return sbmInitializeSheets(true); }
 // HTML Service google.script.run cannot invoke trailing-underscore private functions.
 function sbmSheetRepairPreviewV9374(){ return sbmSheetRepairPreviewV9372_(); }
 function sbmSheetRepairRunV9374(){ return sbmSheetRepairRunV9372_(); }
 function sbmRunFullSheetRepairV9374(){ return sbmRunFullSheetRepairV9372_(); }
 function sbmOpenSheetRepairDialogV9372_(){
-  var html='<!DOCTYPE html><html><head><base target="_top"><style>body{font:14px Arial,sans-serif;padding:18px;color:#222}button{padding:9px 14px;margin:6px 5px 0 0;cursor:pointer}#result{white-space:pre-wrap;background:#f5f5f5;padding:12px;margin-top:12px;min-height:42px}small{color:#555}</style></head><body>'+
-  '<p>対象：<b>改善の推移</b></p><p>記事管理の「モニター中」を基準に再構築します。正常な測定値は保持し、対象外の行を除外します。修復前のシートはバックアップします。</p>'+
-  '<p><small>記事管理・改善履歴の原本は変更しません。復元できない案件は推測で補いません。</small></p>'+
-  '<button onclick="inspect()">診断する</button><button id="repair" disabled onclick="repair()">修復を実行</button><button onclick="google.script.host.close()">閉じる</button><hr><p><small>その他のシート：従来の全シート修復（処理時間が長くなる場合があります）</small></p><button onclick="fullRepair()">全シート修復（従来方式）</button><div id="result">まず診断してください。</div>'+
-  '<script>var diagnosticTimer=null;function startDiagnosticWatch(){clearTimeout(diagnosticTimer);diagnosticTimer=setTimeout(function(){show("診断の応答が120秒を超えました。サーバー側処理は継続している可能性があります。修復は実行せず、Apps Scriptの実行ログを確認してください。");document.getElementById("repair").disabled=true;},120000);}function stopDiagnosticWatch(){clearTimeout(diagnosticTimer);}function fullRepair(){if(!confirm("全シートの作成・修復を実行します。関連するシートや表示も更新されます。続行しますか？"))return;show("全シート修復中…");google.script.run.withSuccessHandler(function(){show("全シート修復処理が終了しました。シートを確認してください。");}).withFailureHandler(fail).sbmRunFullSheetRepairV9374();}function show(x){document.getElementById("result").textContent=x;}function fail(e){stopDiagnosticWatch();show("エラー: "+(e.message||e));document.getElementById("repair").disabled=true;}function inspect(){document.getElementById("repair").disabled=true;show("診断中…（最大120秒で警告します）");startDiagnosticWatch();google.script.run.withSuccessHandler(function(r){stopDiagnosticWatch();show("モニター中: "+r.active+"件 / 現在: "+r.current+"件\\n除外候補: "+r.remove+"件 / 欠落: "+r.missing+"件 / 不正ID: "+r.badIds+"件\\n"+("対象ID: "+(r.activeIds||[]).join(", ")+"\\n"+r.message));document.getElementById("repair").disabled=!r.canRepair;}).withFailureHandler(fail).sbmSheetRepairPreviewV9374();}function repair(){if(!confirm("修復前バックアップを作成して改善の推移を再構築します。実行しますか？"))return;document.getElementById("repair").disabled=true;show("修復中…");google.script.run.withSuccessHandler(function(r){show("修復結果: "+(r.ok?"完了":"一部要確認")+"\\n保持: "+r.kept+"件 / 復元: "+r.restored+"件 / 除外: "+r.removed+"件\\nバックアップ: "+r.backup+"\\n"+(r.errors||[]).join("\\n"));}).withFailureHandler(fail).sbmSheetRepairRunV9374();}</script></body></html>';
-  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(580).setHeight(430),'シートの作成・修復');
+  // Keep the dialog JS as a separate template string; avoid nested JS string escaping.
+  var html = `<!DOCTYPE html><html><head><base target="_top"><meta charset="utf-8">
+  <style>body{font:14px Arial,sans-serif;padding:18px;color:#222;line-height:1.55}button{padding:9px 14px;margin:6px 5px 0 0;cursor:pointer}button:disabled{opacity:.55;cursor:default}#result{white-space:pre-wrap;background:#f5f5f5;padding:12px;margin-top:12px;min-height:48px}small{color:#666}.group{border-top:1px solid #bbb;margin-top:12px;padding-top:12px}#elapsed{color:#555;margin-top:7px}</style></head><body>
+  <p><b>改善の推移：個別診断・修復</b></p>
+  <p>記事管理の「モニター中」を基準に再構築します。正常な測定値を保持し、対象外の行を除外します。修復前にバックアップを作成します。</p>
+  <p><small>記事管理・改善履歴の原本は変更しません。復元できない案件は推測で補いません。</small></p>
+  <button id="inspect" onclick="inspect()">推移を診断</button><button id="repair" disabled onclick="repair()">修復を実行</button>
+  <div class="group"><b>主要シート：一括診断（読み取り専用）</b><p><small>記事管理・改善履歴・改善の推移・Settingsを点検します。データは変更しません。</small></p><button id="inspectAll" onclick="inspectAll()">主要シートを一括診断</button></div>
+  <div class="group"><button id="fullRepair" onclick="fullRepair()">全シート修復（従来方式）</button><button id="close" onclick="google.script.host.close()">閉じる</button></div>
+  <div id="elapsed" role="status"></div><div id="result" role="status">診断する項目を選択してください。</div>
+  <script>
+  var busy=false,started=0,tickId=null,watchId=null,expired=false;
+  function show(s){document.getElementById('result').textContent=String(s);}
+  function buttons(lock){busy=lock;['inspect','inspectAll','fullRepair'].forEach(function(id){document.getElementById(id).disabled=lock;});if(lock)document.getElementById('repair').disabled=true;}
+  function stopWatch(){if(tickId!==null)clearInterval(tickId);if(watchId!==null)clearTimeout(watchId);tickId=null;watchId=null;document.getElementById('elapsed').textContent='';}
+  function begin(label){if(busy)return false;expired=false;buttons(true);started=Date.now();show(label+'を開始しました。結果を待っています…');function update(){document.getElementById('elapsed').textContent='経過時間: '+Math.floor((Date.now()-started)/1000)+'秒';}update();tickId=setInterval(update,1000);watchId=setTimeout(function(){expired=true;show(label+'の応答が120秒を超えました。サーバー処理が継続している可能性があります。再実行や修復を行わず、Apps Scriptの実行ログを確認してください。');buttons(false);document.getElementById('repair').disabled=true;stopWatch();},120000);return true;}
+  function finish(message,canRepair){if(expired)return;stopWatch();buttons(false);show(message);document.getElementById('repair').disabled=!canRepair;}
+  function fail(e){finish('エラー: '+(e&&e.message?e.message:String(e)),false);}
+  function inspectAll(){if(!begin('主要シート一括診断'))return;google.script.run.withSuccessHandler(function(r){if(!r||!Array.isArray(r.items)){finish('診断結果の形式が不正です。',false);return;}var lines=r.items.map(function(x){var missing=x.missingColumns||[],dups=x.duplicateIds||[],invalid=x.invalidIds||[];var s=x.name+': '+x.status+' / '+x.rows+'行 / 必須列不足: '+(missing.length?missing.join(','):'なし')+' / 重複ID: '+dups.length+' / 不正ID: '+invalid.length; if(x.status==='MISSING')return s+'\n  → シートがありません。バックアップを確認し、従来方式の修復前に構成を確認してください。';if(missing.length)return s+'\n  → 必須列が不足しています。列名・既存データを確認してください（自動修復しません）。';if(dups.length||invalid.length)return s+'\n  → ID異常があります。該当行を確認してください（自動削除・統合しません）。';return s+'\n  → 処置不要';});var problems=r.items.filter(function(x){return x.status!=='OK';});var summary=problems.length?'要確認: '+problems.length+'シート。診断結果を確認し、必要な箇所だけ個別に対処してください。':'診断範囲内では異常なし。修復は不要です。';finish(summary+'\n\n'+lines.join('\n')+'\n\n※読み取り専用。記事管理・改善履歴は自動修復しません。',false);}).withFailureHandler(fail).sbmSheetHealthDiagnosticsV9379();}
+  function inspect(){if(!begin('改善の推移の診断'))return;google.script.run.withSuccessHandler(function(r){if(!r){finish('診断結果が空です。',false);return;}finish('モニター中: '+r.active+'件 / 現在: '+r.current+'件\\n除外候補: '+r.remove+'件 / 欠落: '+r.missing+'件 / 不正ID: '+r.badIds+'件\\n対象ID: '+(r.activeIds||[]).join(', ')+'\\n'+(r.message||''),!!r.canRepair);}).withFailureHandler(fail).sbmSheetRepairPreviewV9374();}
+  function repair(){if(busy||document.getElementById('repair').disabled)return;if(!confirm('修復前バックアップを作成して改善の推移を再構築します。実行しますか？'))return;if(!begin('改善の推移の修復'))return;google.script.run.withSuccessHandler(function(r){finish('修復結果: '+(r.ok?'完了':'一部要確認')+'\\n保持: '+r.kept+'件 / 復元: '+r.restored+'件 / 除外: '+r.removed+'件\\nバックアップ: '+r.backup+'\\n'+(r.errors||[]).join('\\n'),false);}).withFailureHandler(fail).sbmSheetRepairRunV9374();}
+  function fullRepair(){if(busy)return;if(!confirm('全シートの作成・修復を実行します。続行しますか？'))return;if(!begin('全シート修復'))return;google.script.run.withSuccessHandler(function(){finish('全シート修復が終了しました。シートを確認してください。',false);}).withFailureHandler(fail).sbmRunFullSheetRepairV9374();}
+  </script></body></html>`;
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput(html).setWidth(620).setHeight(580),'シートの作成・修復');
 }
 
 /** Sidebar commands dispatch to the same public handlers as the top menu.
