@@ -5,9 +5,9 @@
   "repository_type": "SHARED",
   "platform": "SIMS Editorial Platform",
   "platform_compatibility": "1.x",
-  "current_version": "9.3.80",
+  "current_version": "9.3.82",
   "release_status": "UAT_PHASE_1",
   "notes": "v9.3.80: repair sheet diagnostics dialog client-side JavaScript and add visible progress, timeout, and safe controls.",
-  "version": "9.3.80",
-  "starter_display_version": "9.3.80"
+  "version": "9.3.82",
+  "starter_display_version": "9.3.82"
 }

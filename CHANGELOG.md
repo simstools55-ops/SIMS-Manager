@@ -1,3 +1,17 @@
+## v9.3.84 (2026-11-18)
+- Fix nested newline escaping in generated diagnostic JavaScript.
+- Show immediate receipt and elapsed time; lock operations after timeout until response or dialog close.
+- Add generated HTML regression tests with mocked server responses. No Apps Script live test.
+
+## v9.3.83 (2026-11-18)
+- Hide chart data and rank history after updates; hide new internal sheets via common helper.
+- Hide improvement route column in trend views.
+- Accept short metric headers and preserve aliases during migration. Existing missing values are not restored.
+- Apps Script runtime not tested. Explicit maintenance views can still display internal sheets.
+
+## v9.3.82 (2026-11-18)
+- Home C6:C12に残る旧ランク件数表示を除去し、日次更新による再発を防止。
+
 ## v9.3.81 (2026-11-18)
 - Major-sheet read-only diagnosis now displays repair necessity and safe next actions. No automatic history or article changes.
 

@@ -1,1 +1,1 @@
-fix(manager): prevent ended monitoring rows from reappearing and preserve trend layout (v9.3.71)
+fix(manager): prevent generated diagnostic dialog regression (v9.3.84)

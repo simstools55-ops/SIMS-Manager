@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync('apps-script/Code.gs','utf8');
+const a=src.indexOf('function sbmOpenSheetRepairDialogV9372_(){'), b=src.indexOf('\n/** Sidebar commands',a);
+let html; const output={setWidth(){return this},setHeight(){return this}};
+vm.runInNewContext(src.slice(a,b)+'\nsbmOpenSheetRepairDialogV9372_();',{HtmlService:{createHtmlOutput(s){html=s;return output}},SpreadsheetApp:{getUi(){return {showModalDialog(){}}}}});
+const js=html.match(/<script>([\s\S]*?)<\/script>/)[1]; new vm.Script(js);
+function fixture(){const els={};for(const id of ['result','elapsed','inspect','inspectAll','repair','fullRepair','close'])els[id]={textContent:'',disabled:id==='repair'};let success,failure,timeout,calls=0;const run={withSuccessHandler(f){success=f;return this},withFailureHandler(f){failure=f;return this},sbmSheetHealthDiagnosticsV9379(){calls++},sbmSheetRepairPreviewV9374(){calls++}};const ctx={document:{getElementById:id=>els[id]},google:{script:{run}},setInterval:()=>1,clearInterval(){},setTimeout:f=>(timeout=f,2),clearTimeout(){},Date};vm.createContext(ctx);vm.runInContext(js,ctx);return {els,ctx,success:r=>success(r),failure:e=>failure(e),timeout:()=>timeout(),calls:()=>calls};}
+let f=fixture();f.ctx.inspectAll();assert.match(f.els.result.textContent,/受け付け/);assert(f.els.inspectAll.disabled);f.ctx.inspectAll();assert.equal(f.calls(),1);f.success({items:[{name:'記事管理',status:'OK',rows:43}]});assert.match(f.els.result.textContent,/修復は不要/);assert(!f.els.inspectAll.disabled);assert(f.els.repair.disabled);
+f=fixture();f.ctx.inspectAll();f.success({items:[{name:'記事管理',status:'REVIEW',rows:43,missingColumns:['ID']}]});assert.match(f.els.result.textContent,/必須列が不足/);
+f=fixture();f.ctx.inspectAll();f.failure({message:'mock failure'});assert.match(f.els.result.textContent,/mock failure/);assert(!f.els.inspectAll.disabled);
+f=fixture();f.ctx.inspectAll();f.timeout();assert.match(f.els.result.textContent,/120秒/);assert(f.els.inspectAll.disabled);f.ctx.inspectAll();assert.equal(f.calls(),1);f.success({items:[{name:'Settings',status:'OK',rows:1}]});assert(!f.els.inspectAll.disabled);
+f=fixture();f.ctx.inspect();f.success({active:6,current:6,remove:0,missing:0,badIds:0,canRepair:false});assert.match(f.els.result.textContent,/モニター中: 6件/);assert(f.els.repair.disabled);console.log('PASS: generated HTML JS, receipt, duplicate click, normal/review/failure/timeout/late response, individual preview');

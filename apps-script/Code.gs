@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.3.81
- * Release summary: Release metadata consistency and distribution guidance cleanup; runtime behavior unchanged from v9.3.76.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.81.md.
+ * Current version: 9.3.84
+ * Release summary: Fix generated diagnostic JavaScript and keep timeout controls locked until response.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.3.84.md.
  */
 
-const SBM_VERSION = '9.3.81';
+const SBM_VERSION = '9.3.84';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -5811,7 +5811,7 @@ function sbmNormalizeRowsToWidth_(rows, width) {
     return r;
   });
 }
-function sbmGetOrCreateSheet_(name) { var ss=SpreadsheetApp.getActiveSpreadsheet(); return ss.getSheetByName(name) || ss.insertSheet(name); }
+function sbmGetOrCreateSheet_(name) { var ss=SpreadsheetApp.getActiveSpreadsheet(); var sh=ss.getSheetByName(name); if(sh)return sh; sh=ss.insertSheet(name); sbmHideNewInternalSheet_(sh); return sh; }
 function sbmOpenSheet_(name) { var sh=sbmGetOrCreateSheet_(name); sh.showSheet(); SpreadsheetApp.getActiveSpreadsheet().setActiveSheet(sh); return sh; }
 function sbmEnsureHeaders_(sh, headers) {
   if (!sh || !headers || !headers.length) return;
@@ -9030,7 +9030,7 @@ function sbmEnsureHistoryAndEffectSchemasFast_() {
     var exact = sh.getLastColumn() >= headers.length;
     if (exact) {
       for (var i=0;i<headers.length;i++) {
-        if (String(current[i]||'') !== String(headers[i]||'')) { exact=false; break; }
+        if (String(current[i]||'') !== String(headers[i]||'') && !(sheetName===SBM_SHEETS.EFFECT && SBM_EFFECT_SHORT_LABELS_[headers[i]] && current[i]===SBM_EFFECT_SHORT_LABELS_[headers[i]])) { exact=false; break; }
       }
     }
     if (!exact) {
@@ -9055,7 +9055,9 @@ function sbmEnsureHistoryAndEffectSchemasFast_() {
   });
   ensureOne(SBM_SHEETS.EFFECT, SBM_EFFECT_HEADERS_V2, {
     '改善・治療開始日':['改善・治療開始日','改善実施日','改善日','登録日時'], '経過日数':['経過日数'], '改善経路':['改善経路','改善方法'],
-    '次回測定予定日':['次回測定予定日','測定予定日'], '最新測定日時':['最新測定日時','測定日時']
+    '次回測定予定日':['次回測定予定日','測定予定日'], '最新測定日時':['最新測定日時','測定日時'],
+    '改善前クリック':['改善前クリック','前CLK数'],'現在クリック':['現在クリック','後CLK数'],
+    '改善前表示回数':['改善前表示回数','前PV数'],'現在表示回数':['現在表示回数','後PV数']
   });
 }
 
@@ -14209,6 +14211,7 @@ function sbmApplyEffectUserVisibility_(sh){
   var start=hm['改善・治療開始日']||2,end=hm['判定']||13;
   try{sh.showColumns(start,Math.max(1,end-start+1));}catch(ignoreShowVisible){}
   if(end<sh.getMaxColumns())try{sh.hideColumns(end+1,sh.getMaxColumns()-end);}catch(ignoreHideInternal){}
+  if(hm['改善経路'])try{sh.hideColumns(hm['改善経路']);}catch(ignoreRoute){}
 }
 
 function sbmStyleArticleDbSheet_(sh) {
@@ -14948,6 +14951,9 @@ function sbmRefreshHome_(options) {
   sh.getRange('J2').setValue(statusText);
 
   sh.getRange('A20').setValue(sbmHomeOverallMessage_(blogName,snapshot));
+  // v9.3.83: 旧ランク件数表示の残骸。現行のグラフ領域 C6:C12 はテキスト不要。
+  // Home更新時に除去し、チャート・モニター集計は変更しない。
+  sh.getRange('C6:C12').clearContent();
   sh.getRange('A13').setValue('改善モニター中｜'+Number(currentTreatment.total||0)+'件｜判定内訳');
 
   var mc=currentTreatment.counts||{};
@@ -15013,16 +15019,8 @@ function sbmRefreshHomeRankSummaryOnly_(snapshot) {
     return current > prev ? '↗' : (current < prev ? '↘' : '→');
   }
   sh.getRange('B3').setValue(Number(snap.total || 0) + '件');
-  // C6:C12を1セルずつ更新せず1回のsetValuesで反映する。
-  sh.getRange('C6:C12').setValues([
-    [Number(counts['🏆 エース'] || 0) + '件 ' + arrow(Number(counts['🏆 エース'] || 0),'PrevAceCount')],
-    [Number(counts['📈 成長'] || 0) + '件 ' + arrow(Number(counts['📈 成長'] || 0),'PrevGrowthCount')],
-    [Number(counts['✅ 安定'] || 0) + '件 ' + arrow(Number(counts['✅ 安定'] || 0),'PrevStableCount')],
-    [Number(counts['🌱 育成'] || 0) + '件 ' + arrow(Number(counts['🌱 育成'] || 0),'PrevLowCount')],
-    [Number(counts['🌿 発芽'] || 0) + '件 ' + arrow(Number(counts['🌿 発芽'] || 0),'PrevNurtureCount')],
-    [Number(counts['未発芽'] || 0) + '件 ' + arrow(Number(counts['未発芽'] || 0),'PrevUngerminatedCount')],
-    [Number(counts['未取得'] || 0) + '件 ' + arrow(Number(counts['未取得'] || 0),'PrevUnacquiredRankCount')]
-  ]);
+  // v9.3.83: ランク構成はチャート表示に移行済み。旧C6:C12文字列を除去する。
+  sh.getRange('C6:C12').clearContent();
   return true;
 }
 
@@ -30469,6 +30467,7 @@ function sbmSidebarOpenImprovementStatusViewOnlyV9365_() {
   if(!sh)return sbmOpenImprovementStatus();
   // v9.3.72: 閲覧時はデータ修復しない。個別修復は保守ダイアログから明示実行。
   var hm=sbmHeaderMap_(sh),count=Math.max(0,sh.getLastRow()-1);
+  if(hm['改善経路'])sh.hideColumns(hm['改善経路']);
   if(hm['記事タイトル']&&sh.getColumnWidth(hm['記事タイトル'])!==400)sh.setColumnWidth(hm['記事タイトル'],400);
   if(count){
     if(sh.getRowHeight(2)!==60)sh.setRowHeightsForced(2,count,60);
@@ -30605,10 +30604,10 @@ function sbmOpenSheetRepairDialogV9372_(){
   function show(s){document.getElementById('result').textContent=String(s);}
   function buttons(lock){busy=lock;['inspect','inspectAll','fullRepair'].forEach(function(id){document.getElementById(id).disabled=lock;});if(lock)document.getElementById('repair').disabled=true;}
   function stopWatch(){if(tickId!==null)clearInterval(tickId);if(watchId!==null)clearTimeout(watchId);tickId=null;watchId=null;document.getElementById('elapsed').textContent='';}
-  function begin(label){if(busy)return false;expired=false;buttons(true);started=Date.now();show(label+'を開始しました。結果を待っています…');function update(){document.getElementById('elapsed').textContent='経過時間: '+Math.floor((Date.now()-started)/1000)+'秒';}update();tickId=setInterval(update,1000);watchId=setTimeout(function(){expired=true;show(label+'の応答が120秒を超えました。サーバー処理が継続している可能性があります。再実行や修復を行わず、Apps Scriptの実行ログを確認してください。');buttons(false);document.getElementById('repair').disabled=true;stopWatch();},120000);return true;}
-  function finish(message,canRepair){if(expired)return;stopWatch();buttons(false);show(message);document.getElementById('repair').disabled=!canRepair;}
+  function begin(label){if(busy)return false;expired=false;buttons(true);started=Date.now();show(label+'の操作を受け付けました。診断・処理中です…');function update(){document.getElementById('elapsed').textContent='経過時間: '+Math.floor((Date.now()-started)/1000)+'秒';}update();tickId=setInterval(update,1000);watchId=setTimeout(function(){expired=true;show(label+'の応答が120秒を超えました。サーバー処理が継続している可能性があります。再実行や修復を行わず、Apps Scriptの実行ログを確認してください。');document.getElementById('repair').disabled=true;stopWatch();},120000);return true;}
+  function finish(message,canRepair){stopWatch();buttons(false);show(message);document.getElementById('repair').disabled=!canRepair;}
   function fail(e){finish('エラー: '+(e&&e.message?e.message:String(e)),false);}
-  function inspectAll(){if(!begin('主要シート一括診断'))return;google.script.run.withSuccessHandler(function(r){if(!r||!Array.isArray(r.items)){finish('診断結果の形式が不正です。',false);return;}var lines=r.items.map(function(x){var missing=x.missingColumns||[],dups=x.duplicateIds||[],invalid=x.invalidIds||[];var s=x.name+': '+x.status+' / '+x.rows+'行 / 必須列不足: '+(missing.length?missing.join(','):'なし')+' / 重複ID: '+dups.length+' / 不正ID: '+invalid.length; if(x.status==='MISSING')return s+'\n  → シートがありません。バックアップを確認し、従来方式の修復前に構成を確認してください。';if(missing.length)return s+'\n  → 必須列が不足しています。列名・既存データを確認してください（自動修復しません）。';if(dups.length||invalid.length)return s+'\n  → ID異常があります。該当行を確認してください（自動削除・統合しません）。';return s+'\n  → 処置不要';});var problems=r.items.filter(function(x){return x.status!=='OK';});var summary=problems.length?'要確認: '+problems.length+'シート。診断結果を確認し、必要な箇所だけ個別に対処してください。':'診断範囲内では異常なし。修復は不要です。';finish(summary+'\n\n'+lines.join('\n')+'\n\n※読み取り専用。記事管理・改善履歴は自動修復しません。',false);}).withFailureHandler(fail).sbmSheetHealthDiagnosticsV9379();}
+  function inspectAll(){if(!begin('主要シート一括診断'))return;google.script.run.withSuccessHandler(function(r){if(!r||!Array.isArray(r.items)){finish('診断結果の形式が不正です。',false);return;}var lines=r.items.map(function(x){var missing=x.missingColumns||[],dups=x.duplicateIds||[],invalid=x.invalidIds||[];var s=x.name+': '+x.status+' / '+x.rows+'行 / 必須列不足: '+(missing.length?missing.join(','):'なし')+' / 重複ID: '+dups.length+' / 不正ID: '+invalid.length; if(x.status==='MISSING')return s+'\\n  → シートがありません。バックアップを確認し、従来方式の修復前に構成を確認してください。';if(missing.length)return s+'\\n  → 必須列が不足しています。列名・既存データを確認してください（自動修復しません）。';if(dups.length||invalid.length)return s+'\\n  → ID異常があります。該当行を確認してください（自動削除・統合しません）。';return s+'\\n  → 処置不要';});var problems=r.items.filter(function(x){return x.status!=='OK';});var summary=problems.length?'要確認: '+problems.length+'シート。診断結果を確認し、必要な箇所だけ個別に対処してください。':'診断範囲内では異常なし。修復は不要です。';finish(summary+'\\n\\n'+lines.join('\\n')+'\\n\\n※読み取り専用。記事管理・改善履歴は自動修復しません。',false);}).withFailureHandler(fail).sbmSheetHealthDiagnosticsV9379();}
   function inspect(){if(!begin('改善の推移の診断'))return;google.script.run.withSuccessHandler(function(r){if(!r){finish('診断結果が空です。',false);return;}finish('モニター中: '+r.active+'件 / 現在: '+r.current+'件\\n除外候補: '+r.remove+'件 / 欠落: '+r.missing+'件 / 不正ID: '+r.badIds+'件\\n対象ID: '+(r.activeIds||[]).join(', ')+'\\n'+(r.message||''),!!r.canRepair);}).withFailureHandler(fail).sbmSheetRepairPreviewV9374();}
   function repair(){if(busy||document.getElementById('repair').disabled)return;if(!confirm('修復前バックアップを作成して改善の推移を再構築します。実行しますか？'))return;if(!begin('改善の推移の修復'))return;google.script.run.withSuccessHandler(function(r){finish('修復結果: '+(r.ok?'完了':'一部要確認')+'\\n保持: '+r.kept+'件 / 復元: '+r.restored+'件 / 除外: '+r.removed+'件\\nバックアップ: '+r.backup+'\\n'+(r.errors||[]).join('\\n'),false);}).withFailureHandler(fail).sbmSheetRepairRunV9374();}
   function fullRepair(){if(busy)return;if(!confirm('全シートの作成・修復を実行します。続行しますか？'))return;if(!begin('全シート修復'))return;google.script.run.withSuccessHandler(function(){finish('全シート修復が終了しました。シートを確認してください。',false);}).withFailureHandler(fail).sbmRunFullSheetRepairV9374();}
@@ -30691,7 +30690,7 @@ function sbmHomeRankHistoryCaptureV9348_(snapshot) {
   }
   sh.getRange(target,1,1,8).setValues([[today].concat(vals)]);
   sh.getRange(1,1,1,8).setFontWeight('bold');
-  // シートはチャートのデータソースなので非表示にしない（Sheetsの非表示データ制約を回避）。
+  sbmHideNewInternalSheet_(sh);
 }
 
 /** v9.3.48: Homeの既存セル・モニター判定・アドバイスを保持し、下段へグラフを追加。 */
@@ -30703,9 +30702,8 @@ function sbmHomeChartsV9348_(snapshot) {
   var nums=[work.unstarted,work.today,work.progress,work.monitor,work.done,work.excluded].map(function(v){return Number(v||0);});
   var data=ss.getSheetByName('SBM_Homeグラフデータ')||ss.insertSheet('SBM_Homeグラフデータ');
   data.getRange(1,1,7,2).setValues([['作業状態','件数']].concat(labels.map(function(v,i){return [v,nums[i]];})));
-  // A chart backed by a hidden data sheet may render its title but no series.
-  // Keep this dedicated source visible and include hidden dimensions explicitly.
-  if(data.isSheetHidden())data.showSheet();
+  // PNG charts use in-memory tables, not visible sheet ranges.
+  sbmHideNewInternalSheet_(data);
   data.getRange(1,2,7,1).setNumberFormat('0');
   var hist=ss.getSheetByName('SBM_記事ランク日次履歴');
   var last=hist?hist.getLastRow():0;
