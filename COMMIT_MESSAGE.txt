@@ -1,1 +1,1 @@
-fix(manager): prevent generated diagnostic dialog regression (v9.3.84)
+feat(manager): allow FULL cannibal SERP continuation v9.3.92

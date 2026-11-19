@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.84",
+  "current_version": "9.3.92",
   "release_status": "UAT",
-  "notes": "v9.3.84: generated diagnostic JavaScript escape fix and receipt/timeout feedback.",
-  "version": "9.3.84",
+  "notes": "History text fitting and compact judgment fonts; live UAT pending.",
+  "version": "9.3.92",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.84"
+  "starter_display_version": "9.3.92"
 }

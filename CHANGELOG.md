@@ -1,3 +1,35 @@
+## v9.3.92 (2026-11-19)
+
+FULL限定でカニバリ停止後に「利用者判断でSERPを精査する」を表示。サーバー側でライセンスを確認し、既存候補と続行記録を依頼文・再開データへ引き継ぐ。判定基準とマニフェストは変更なし。実機試験待ち。
+
+## v9.3.91 (2026-11-19)
+
+改善履歴のタイトル225px、改善概要365px、週別判定53px。概要・判定9pt。通常の文字列に限り句点の後に改行を追加し、原文の文字は削除しない。数式・複合リッチテキスト・リンク付きセルは対象外。行高は既存方式で調整。実機試験待ち。
+
+## v9.3.90 (2026-11-19)
+
+改善履歴の改善概要を10pt・上詰め・折り返し、判定欄を10ptに設定。表示内容・列幅が変化した場合のみ行高を自動調整。列幅・データ・マニフェストは維持。実機試験待ち。
+
+## v9.3.89 (2026-11-19)
+
+Three primary tables use compact widths and 9pt wrapped headers. Effect daily and repair widths are aligned. Strict timezone-bearing ISO history strings are converted to Date without changing their instant; formulas and unrecognized values are untouched. Existing new-row date normalization retained. Live UAT pending.
+
+## v9.3.88 (2026-11-19)
+- Article and history widths consolidated; improvement route hidden, summary visible, history URL hidden. One-time visual migration on version sync. No schema or measurement changes. Live Apps Script UAT pending. Existing view formatting paths retained.
+
+## v9.3.87 (2026-11-19)
+- History detail and all history use the selected history row; no data mutation. Effect detail uses selected effect row.
+- Upper and sidebar effect navigation share the view-only path.
+- Sidebar opens only 今日の作業 and displays runtime version.
+- Correct stale version metadata and replace obsolete multi-edition version audit with single-source audit.
+- Live Apps Script UAT pending.
+
+## v9.3.86 (2026-11-19)
+- Combine Doctor response and final registration in one dialog; require explicit publication confirmation, serialize submissions, preserve checkpoints.
+
+## v9.3.85 (2026-11-19)
+- v9.3.85: conservative resolved-warning triage; follow-up dialog styling, receipt and copy feedback; explicit final registration retained.
+
 ## v9.3.84 (2026-11-18)
 - Fix nested newline escaping in generated diagnostic JavaScript.
 - Show immediate receipt and elapsed time; lock operations after timeout until response or dialog close.
