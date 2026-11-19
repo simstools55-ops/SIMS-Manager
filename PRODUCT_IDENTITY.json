@@ -1,11 +1,11 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.3.92",
+  "current_version": "9.3.93",
   "release_status": "UAT",
   "notes": "History text fitting and compact judgment fonts; live UAT pending.",
-  "version": "9.3.92",
+  "version": "9.3.93",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.3.92"
+  "starter_display_version": "9.3.93"
 }
