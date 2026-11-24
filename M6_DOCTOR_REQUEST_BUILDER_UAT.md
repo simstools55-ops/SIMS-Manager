@@ -1,0 +1,1 @@
+M6 canonical Doctor request builder (UAT only). Requires independently verified SBM context and explicit conflict decision. No automatic registration, dispatch or publishing. GAS integration testing pending.

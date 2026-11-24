@@ -1,0 +1,1 @@
+fix(sbm-m6): reject mismatched proposal and article IDs when binding existing Doctor case (v9.3.114)

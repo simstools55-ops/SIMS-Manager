@@ -1,0 +1,6 @@
+fix(sbm): confirm published PARTIAL writer results before monitoring (v9.3.121)
+
+- Accept PARTIAL/PUBLIC_OK_READY only with explicit publication confirmation
+- Recover existing A000289 saved Writer result without re-diagnosis
+- Preserve unresolved decision and scope violation gates
+- Sync version metadata and release notes

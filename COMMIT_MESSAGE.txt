@@ -1,1 +1,1 @@
-feat(manager): allow FULL cannibal SERP continuation v9.3.92
+fix(sbm): restore chart builder compatibility and report rendering failures (v9.4.3)

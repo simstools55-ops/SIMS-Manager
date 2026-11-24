@@ -1,0 +1,5 @@
+docs(m6): align v9.3.107 distribution version and audit Doctor call paths
+
+- Correct distribution README current-version heading
+- Document five direct Doctor upsert call paths and outstanding UAT risks
+- Keep M6 disabled and production deployment on HOLD

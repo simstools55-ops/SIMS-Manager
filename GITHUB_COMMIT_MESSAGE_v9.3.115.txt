@@ -1,0 +1,1 @@
+fix(sbm-m6): fail closed on unverified caller-supplied approvals (v9.3.115)

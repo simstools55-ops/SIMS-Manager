@@ -1,0 +1,5 @@
+feat(sbm-m6): add fail-closed read-only S3 approval gate preview (v9.3.109)
+
+- Distinguish existing Doctor cases, grouped review candidates and monitoring conflicts
+- Preserve HOLD and prohibit writes until SBM approval and site identity binding are implemented
+- Add isolated regression test and UAT release notes

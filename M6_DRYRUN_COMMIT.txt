@@ -1,0 +1,1 @@
+feat(sbm): add read-only S3 registration dry-run with duplicate and evidence guards

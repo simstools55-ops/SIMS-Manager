@@ -1,0 +1,1 @@
+fix(sbm-m6): serialize S3 Doctor response registration and fail closed on checkpoint errors

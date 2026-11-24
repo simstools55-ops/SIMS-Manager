@@ -1,0 +1,1 @@
+feat(sbm-m6): add fail-closed HOLD transition eligibility guard (v9.3.118)

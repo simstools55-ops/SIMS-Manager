@@ -1,0 +1,1 @@
+fix(sbm-m6): fail closed on missing preflight and unverified query GSC (v9.3.113)
