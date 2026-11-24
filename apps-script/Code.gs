@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.4.3
- * Release summary: Home PNG builder compatibility and error reporting UAT candidate.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.4.3.md.
+ * Current version: 9.4.9
+ * Release summary: Deferred daily rank chart placement UAT candidate.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.4.9.md.
  */
 
-const SBM_VERSION = '9.4.3';
+const SBM_VERSION = '9.4.9';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -800,24 +800,19 @@ function sbmRunDailyFinalizeStageFromDialog() {
     });
     var step3CompleteSec = sbmSecondsSince_(tComplete3);
 
-    // Home全体を再集計すると改善の推移更新が再実行され得るため、
-    // 日次処理完了時は状態表示と記事ランク件数だけを軽量更新する。
+    // Home uses the same fresh snapshot and renderer as manual refresh.
     var step3HomeSnapshotSec=0, step3HomeVersionSec=0, step3HomeRankSec=0, step3HomeStatusSec=0;
+    var deferredRankChart=null;
     try {
       var tHomeSnapshot3=new Date();
-      var homeSnapshot = sbmBuildHomeSnapshot_();
-      try{sbmHomeRankHistoryCaptureV9348_(homeSnapshot);}catch(eRankHistory){sbmLog_('HomeRankHistory','Warning',String(eRankHistory));}
+      SpreadsheetApp.flush();
+      var homeSnapshot=sbmBuildHomeSnapshot_();
+      sbmHomeRankHistoryCaptureV9348_(homeSnapshot);
       step3HomeSnapshotSec=sbmSecondsSince_(tHomeSnapshot3);
-      var tHomeVersion3=new Date();
-      sbmSyncHomeVersionOnly_();
-      step3HomeVersionSec=sbmSecondsSince_(tHomeVersion3);
       var tHomeRank3=new Date();
-      sbmRefreshHomeRankSummaryOnly_(homeSnapshot);
-      try{sbmHomeChartsV9348_(homeSnapshot);}catch(eDailyChart){sbmLog_('DailyHomeCharts','Warning',String(eDailyChart));}
+      sbmRefreshHome_({snapshot:homeSnapshot,reportChartError:true,deferRank:function(fn){deferredRankChart=fn;}});
       step3HomeRankSec=sbmSecondsSince_(tHomeRank3);
-      var tHomeStatus3=new Date();
-      sbmRefreshHomeDailyStatusOnly_();
-      step3HomeStatusSec=sbmSecondsSince_(tHomeStatus3);
+      sbmHomeImageTraceV947_('daily.afterRefresh');
     } catch(eHome) {
       sbmLog_('DailyHomeStatusRefresh','Warning',String(eHome));
     }
@@ -902,6 +897,9 @@ function sbmRunDailyFinalizeStageFromDialog() {
     SBM_STEP3_LOG_BUFFER_ACTIVE=false;
     sbmFlushStep3LogBuffers_();
     SBM_STEP3_PROFILE_RUN_ID='';
+    // Rank placement is the last sheet mutation, after daily cleanup and log writes.
+    if(deferredRankChart){try{SpreadsheetApp.flush();deferredRankChart();}catch(eRankFinal){console.error('SBM_HOME_RANK_FINAL '+String(eRankFinal));summary.homeRankWarning=String(eRankFinal);}}
+    sbmHomeImageTraceV947_('daily.end');
     return summary;
   } catch(e) {
     var elapsedErr = sbmSecondsSince_(started);
@@ -6342,13 +6340,15 @@ function sbmOpenHome() {
 function sbmRefreshHomeManual() {
   // 利用者が明示的にHome集計を更新するための軽量経路。
   // GSC取得や日次処理は行わず、記事管理・改善の推移・改善履歴からSnapshotを再構築する。
+  sbmHomeImageTraceV947_('manual.begin');
   sbmInvalidateHomeSnapshot_();
   try{sbmRefreshHome_({applyTheme:false,reportChartError:true});}
   catch(e){sbmAlert_('Home画面の更新エラー','Homeの更新処理でエラーが発生しました。\n詳細：'+String(e));return;}
-  SpreadsheetApp.flush();
+  sbmHomeImageTraceV947_('manual.afterRefresh');
   var ss=SpreadsheetApp.getActiveSpreadsheet();
   var sh=ss.getSheetByName(SBM_SHEETS.HOME);
   if(sh&&ss.getActiveSheet().getSheetId()!==sh.getSheetId())ss.setActiveSheet(sh);
+  sbmHomeImageTraceV947_('manual.end');
 }
 
 function sbmOpenToday() {
@@ -14920,7 +14920,9 @@ function sbmRefreshHome_(options) {
   // Homeを開くだけなら保存済みスナップショットを利用。
   // データ変更後の通常refreshはスナップショットを再構築する。
   var snap;
-  if(light){
+  if(options.snapshot){
+    snap=options.snapshot;
+  }else if(light){
     var hadSnapshot=!!sbmGetHomeSnapshot_();
     snap=sbmEnsureHomeSnapshot_();
     // Homeを開くだけなら保存Snapshotをそのまま使う。
@@ -15034,7 +15036,7 @@ function sbmRefreshHome_(options) {
   if(options.applyTheme===true){
     try{sbmApplyHomeDisplayTheme_(sh);}catch(ignoreHomeThemeRefresh){}
   }
-  try{sbmHomeChartsV9348_(snap);}catch(eHomeChart){try{sbmLog_('HomeCharts','Warning',String(eHomeChart));}catch(ignoreChartLog){} if(options.reportChartError===true)throw eHomeChart;}
+  try{sbmHomeChartsV9348_(snap,{trace:options.reportChartError===true,deferRank:options.deferRank});}catch(eHomeChart){try{sbmLog_('HomeCharts','Warning',String(eHomeChart));}catch(ignoreChartLog){} if(options.reportChartError===true)throw eHomeChart;}
 }
 
 /** 旧版: 改善率の下に効果判定済・効果あり・累計改善実績を表示する。累計だけ色を変える。 */
@@ -30812,7 +30814,15 @@ function sbmHomeRankHistoryCaptureV9348_(snapshot) {
 
 /** v9.3.48: Homeの既存セル・モニター判定・アドバイスを保持し、下段へグラフを追加。 */
 function sbmHomeLegendLabels_(labels,nums){var total=nums.reduce(function(a,b){return a+b;},0);return labels.map(function(label,i){return label+' '+nums[i]+'件 ('+(total?nums[i]/total*100:0).toFixed(1)+'%)';});}
-function sbmHomeChartsV9348_(snapshot) {
+function sbmHomeImageTraceV947_(stage){
+  try{
+    var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.HOME);
+    var images=sh?sh.getImages().map(function(img){var a=img.getAnchorCell();return {title:String(img.getAltTextTitle()||''),row:a.getRow(),col:a.getColumn(),width:img.getWidth(),height:img.getHeight()};}):[];
+    console.log('SBM_HOME_TRACE_V947 '+JSON.stringify({stage:stage,images:images}));
+  }catch(e){console.log('SBM_HOME_TRACE_V947 '+stage+' '+String(e));}
+}
+function sbmHomeChartsV9348_(snapshot,options) {
+  options=options||{};
   var ss=SpreadsheetApp.getActiveSpreadsheet(),home=ss.getSheetByName(SBM_SHEETS.HOME);
   if(!home)return;
   var work=(snapshot||{}).work||{};
@@ -30905,61 +30915,52 @@ function sbmHomeChartsV9348_(snapshot) {
   for(var li=0;li<5;li++){var lr=home.getRange(7+li,4,1,2);if(!lr.isPartOfMerge())lr.merge();lr.setValue('● '+legendLabels[li]).setFontColor('#202124').setBackground(legendColors[li]).setFontSize(9).setWrap(true).setHorizontalAlignment('left');}
   SpreadsheetApp.flush();
 
-  function refreshIfChanged_(title,blob,anchor,signature,propKey){
-    var images=home.getImages().filter(function(img){return String(img.getAltTextTitle()||'')===title;});
-    var width=title==='SBM_HOME_CHART_PIE'?230:425;
-    var img=images[0];
-    if(!img||props.getProperty(propKey)!==signature||img.getWidth()!==width||img.getHeight()!==190){
-      // Insert and configure before removing any existing object. Never replace in place.
-      var fresh=home.insertImage(blob,anchor.getColumn(),anchor.getRow());
-      try{fresh.setAltTextTitle(title);fresh.setAnchorCell(anchor);fresh.setAnchorCellXOffset(0);fresh.setAnchorCellYOffset(0);fresh.setWidth(width);fresh.setHeight(190);SpreadsheetApp.flush();}
-      catch(e){try{fresh.remove();}catch(ignore){}throw e;}
-      img=fresh;
-    }
-    images.forEach(function(old){if(old!==img)old.remove();});
-    home.getCharts().forEach(function(c){var info=c.getContainerInfo(),col=info.getAnchorColumn(),row=info.getAnchorRow();if(row>=5&&row<=12&&(anchor.getColumn()===1?col>=1&&col<=5:col>=6&&col<=10))home.removeChart(c);});
-    props.setProperty(propKey,signature);
-  }
   var props=PropertiesService.getDocumentProperties();
   var failures=[];
-  try{
-    refreshIfChanged_('SBM_HOME_CHART_PIE',pieBlob,home.getRange('A6'),JSON.stringify(nums),'SBM_HOME_PIE_SIGNATURE_V942');
-  }catch(ePie){failures.push('円グラフ配置: '+String(ePie));}
-  try{
-    if(hasRankHistory){
-      refreshIfChanged_('SBM_HOME_CHART_RANK',barBlob,home.getRange('F6'),JSON.stringify(chartRows),'SBM_HOME_RANK_SIGNATURE_V942');
-    }else{
-      // No real history: remove ALL legacy chart objects occupying the rank panel,
-      // including older images with missing alt text and embedded charts.
-      // This panel (F6:J12) is reserved exclusively for the rank chart.
-      var removedImages=0,removedCharts=0;
-      home.getImages().forEach(function(img){
-        try{
-          var anchor=img.getAnchorCell();
-          var col=anchor?anchor.getColumn():0,row=anchor?anchor.getRow():0;
-          var title=String(img.getAltTextTitle()||'');
-          if(title==='SBM_HOME_CHART_RANK'||(col>=6&&col<=10&&row>=5&&row<=12)){
-            img.remove();removedImages++;
-          }
-        }catch(eRemove){sbmLog_('HomeCharts','Warning','Rank image cleanup: '+String(eRemove));}
-      });
-      home.getCharts().forEach(function(chart){
-        try{
-          var info=chart.getContainerInfo();
-          var col=info.getAnchorColumn(),row=info.getAnchorRow();
-          if(col>=6&&col<=10&&row>=5&&row<=12){
-            home.removeChart(chart);removedCharts++;
-          }
-        }catch(eRemoveChart){sbmLog_('HomeCharts','Warning','Rank embedded chart cleanup: '+String(eRemoveChart));}
-      });
-      props.deleteProperty('SBM_HOME_RANK_SIGNATURE_V942');
-      sbmLog_('HomeCharts','Info','No real rank history; removed '+removedImages+' old images and '+removedCharts+' embedded charts');
-    }
-  }catch(eRank){failures.push('ランクグラフ配置: '+String(eRank));}
+  if(options.trace)sbmHomeImageTraceV947_('charts.beforeCleanup');
+  // Cleanup must finish before either image is rendered. Never compare GAS object wrappers by identity.
+  var seen={};
+  home.getImages().forEach(function(img){
+    var title=String(img.getAltTextTitle()||'');
+    if(title!=='SBM_HOME_CHART_PIE'&&title!=='SBM_HOME_CHART_RANK')return;
+    if((title==='SBM_HOME_CHART_RANK'&&!hasRankHistory)||seen[title])img.remove();
+    else seen[title]=true;
+  });
+  home.getCharts().forEach(function(c){var info=c.getContainerInfo(),col=info.getAnchorColumn(),row=info.getAnchorRow();if(row>=5&&row<=12&&col>=1&&col<=10)home.removeChart(c);});
+  if(!hasRankHistory)props.deleteProperty('SBM_HOME_RANK_SIGNATURE_V942');
   SpreadsheetApp.flush();
+  function refreshIfChanged_(title,blob,anchor,signature,propKey){
+    var img=home.getImages().filter(function(x){return String(x.getAltTextTitle()||'')===title;})[0];
+    var width=title==='SBM_HOME_CHART_PIE'?230:425;
+    if(img){
+      var a=img.getAnchorCell();
+      if(props.getProperty(propKey)===signature&&a.getRow()===anchor.getRow()&&a.getColumn()===anchor.getColumn()&&img.getWidth()===width&&img.getHeight()===190)return;
+      if(props.getProperty(propKey)!==signature){img.remove();SpreadsheetApp.flush();img=home.insertImage(blob,anchor.getColumn(),anchor.getRow());}
+    }else img=home.insertImage(blob,anchor.getColumn(),anchor.getRow());
+    img.setAltTextTitle(title);img.setAnchorCell(anchor);img.setAnchorCellXOffset(0);img.setAnchorCellYOffset(0);img.setWidth(width);img.setHeight(190);
+    props.setProperty(propKey,signature);
+  }
+  try{refreshIfChanged_('SBM_HOME_CHART_PIE',pieBlob,home.getRange('A6'),JSON.stringify(nums),'SBM_HOME_PIE_SIGNATURE_V944');}
+  catch(ePie){failures.push('円グラフ配置: '+String(ePie));}
+  function placeRank_(){
+    refreshIfChanged_('SBM_HOME_CHART_RANK',barBlob,home.getRange('F6'),JSON.stringify(chartRows),'SBM_HOME_RANK_SIGNATURE_V942');
+    if(typeof options.deferRank!=='function')return;
+    SpreadsheetApp.flush();
+    var ranks=home.getImages().filter(function(img){return String(img.getAltTextTitle()||'')==='SBM_HOME_CHART_RANK';});
+    if(ranks.length!==1||ranks[0].getAnchorCell().getRow()!==6||ranks[0].getAnchorCell().getColumn()!==6)throw new Error('ランクグラフ最終配置確認に失敗');
+    if(options.trace)sbmHomeImageTraceV947_('rank.finalPlacement');
+  }
+  var rankDeferred=hasRankHistory&&typeof options.deferRank==='function';
+  if(rankDeferred)options.deferRank(placeRank_);
+  else if(hasRankHistory){try{placeRank_();}catch(eRank){failures.push('ランクグラフ配置: '+String(eRank));}}
+  if(options.trace)sbmHomeImageTraceV947_('charts.beforeFinalFlush');
+  SpreadsheetApp.flush();
+  if(options.trace)sbmHomeImageTraceV947_('charts.afterFinalFlush');
   var actual=home.getImages().map(function(img){return String(img.getAltTextTitle()||'');});
+  var pieImages=home.getImages().filter(function(img){return String(img.getAltTextTitle()||'')==='SBM_HOME_CHART_PIE';});
+  if(pieImages.length===1){var a=pieImages[0].getAnchorCell();if(a.getRow()!==6||a.getColumn()!==1)failures.push('円グラフ配置位置が不正');}
   if(actual.filter(function(t){return t==='SBM_HOME_CHART_PIE';}).length!==1)failures.push('円グラフ画像の存在確認に失敗');
-  if(hasRankHistory&&actual.filter(function(t){return t==='SBM_HOME_CHART_RANK';}).length!==1)failures.push('ランクグラフ画像の存在確認に失敗');
+  if(hasRankHistory&&!rankDeferred&&actual.filter(function(t){return t==='SBM_HOME_CHART_RANK';}).length!==1)failures.push('ランクグラフ画像の存在確認に失敗');
   if(failures.length)throw new Error(failures.join(' / '));
 }
 

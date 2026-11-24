@@ -1,3 +1,22 @@
+# v9.4.9 — Daily rank chart final placement UAT
+- Defer rank image placement until after daily cleanup and log writes; retain manual placement and pie logic. Verify rank anchor after final flush. GAS rendering unverified.
+
+# v9.4.8 — Daily Home refresh UAT
+- Daily finalization uses full Home rendering with a fresh shared snapshot; changed images are removed and flushed before insertion. GAS verification pending.
+
+# v9.4.7 — Home refresh diagnostics UAT
+- Manual refresh preserves unchanged correctly placed images; removes redundant outer flush; logs image metadata at refresh boundaries. GAS rendering unverified.
+
+# v9.4.6 — Home image replacement UAT
+- Complete cleanup before rendering; replace existing over-grid images in place. GAS rendering pending.
+
+# v9.4.5 — Home manual redraw UAT
+- Force fresh PNG on manual refresh and pie refresh without rank history; restrict rank image cleanup to tagged rank images.
+- GAS rendering pending.
+
+# v9.4.4 — Home pie anchor and no-history isolation UAT
+- Validate image anchor and offsets; invalidate old pie signature once; protect pie from rank cleanup. GAS rendering pending.
+
 # v9.4.3 — Home PNG diagnostics UAT
 - Restore v9.3.127 data-table builder invocation; report chart failures in manual refresh and verify image objects.
 - GAS rendering pending.

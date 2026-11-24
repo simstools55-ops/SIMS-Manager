@@ -1,1 +1,1 @@
-fix(sbm): restore chart builder compatibility and report rendering failures (v9.4.3)
+fix(sbm): defer daily rank chart placement until finalization (v9.4.9)

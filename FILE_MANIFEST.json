@@ -49,7 +49,7 @@
   },
   {
     "path": "CHANGELOG.md",
-    "sha256": "03e7c68f41e87d694bb43ad3613c267576522bd94e1204548271519fdc7a77c8"
+    "sha256": "ba30aa3f529a41e8e7023c01010ad24ff7b2a23901a264eb42fb549f1daba63c"
   },
   {
     "path": "CLEANUP_AUDIT_v9.3.0.md",
@@ -57,7 +57,7 @@
   },
   {
     "path": "COMMIT_MESSAGE.txt",
-    "sha256": "9eccbe4a33895daef30e6870787b376993ed36e5635e90904582056c89561ef6"
+    "sha256": "8fd5a9ff2d600fdc951a858dd9983f84ee5a714e1191a6b678c67cf50d76c90e"
   },
   {
     "path": "DEVELOPMENT-NOT-FOR-DEPLOYMENT-v9.2.20.md",
@@ -1637,7 +1637,7 @@
   },
   {
     "path": "PRODUCT_IDENTITY.json",
-    "sha256": "622f804100741ca37856b2ca34188bbb14a7163d033f5f37de340ec11af4581d"
+    "sha256": "cbdffa057cdd638a31fa28db3f873043b9211116f2258960e5a21f22e5c78d4a"
   },
   {
     "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -1829,7 +1829,7 @@
   },
   {
     "path": "README-FIRST.md",
-    "sha256": "5ee889f0aef6ff2abeccbf81f0757a039388f5fa42b42ff0adb757f24bd0455a"
+    "sha256": "f0f90f253197ac4f550bca2fe486111787d74ae32aaea60bf60838dd49912db3"
   },
   {
     "path": "README-RC8.17.txt",
@@ -5460,6 +5460,30 @@
     "sha256": "d7d39b4c7dafbcab5d30c0087c4f2335e9488b84dd9e59281a2bb0337e3f3282"
   },
   {
+    "path": "RELEASE_NOTES_v9.4.4.md",
+    "sha256": "deaab76f1829db623426643c13aab31fcf1246bb42658d0d0de146e9d80363f7"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.5.md",
+    "sha256": "39a15498122cd4ccd1823092a38995a098aa67e958471f795087e3b5281d0f6c"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.6.md",
+    "sha256": "0f761e126b08f0450153b90e5d5432b5b3ac801a5737e4fe736cb5fbc157920b"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.7.md",
+    "sha256": "517055f7b21256ce231cb7829be02a5e9d4335549c2b55122195b382769bf7e6"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.8.md",
+    "sha256": "d2241261557f7f807d945b9ac6a25eb803056ec9da20deed6bb6f48861bfb8b6"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.9.md",
+    "sha256": "69002aefef263572b145c54448b106e8b3118840f2026ba1656df20bb11cc9c2"
+  },
+  {
     "path": "REVENUE_FIRST_IMPROVEMENT_POLICY.md",
     "sha256": "368542822052db885fe7344b6b4b6808c8c3b514ce5a8e6b795fdb7ae6980618"
   },
@@ -5681,7 +5705,7 @@
   },
   {
     "path": "VERSION",
-    "sha256": "ef3907b41c4613ff90ce9f60b65cdb979e0825cf0bcb9a92a40ea3cd207ddccd"
+    "sha256": "6af925ca39e1a39858f079c616056eab140879fffdbec6794886ea3b20f8e2c9"
   },
   {
     "path": "VERSION-AUDIT-v5.10.1.md",
@@ -6045,7 +6069,7 @@
   },
   {
     "path": "apps-script/Code.gs",
-    "sha256": "d8b7a114ba150eaefbe21cbef54116633ccc6af49b83690e72abc6e61f77dd26"
+    "sha256": "cc345f32f95543908665ed7d70efed5a2c80851b84f3e5f51cc4dc8d685b7a45"
   },
   {
     "path": "apps-script/SBM_S3_REGISTRATION_DRYRUN_TEST.js",
@@ -6508,12 +6532,12 @@
     "sha256": "a997ed7d3d932148e53d326455aa9ba590886dc1270b120731cd24469b253aae"
   },
   {
-    "path": "docs/daily-workflow/index.md",
-    "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969"
-  },
-  {
     "path": "docs/daily-workflow.md",
     "sha256": "e49fb76ec206de1c22dc117a2a75096490ea793b28d0bd8c26feaafdc5efbdec"
+  },
+  {
+    "path": "docs/daily-workflow/index.md",
+    "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969"
   },
   {
     "path": "docs/download.md",
@@ -6524,20 +6548,20 @@
     "sha256": "bfc42f8b49f3e1fa8a9e0c6cc52ac555b396e42b4b79c8ce74712ae6fabb9e20"
   },
   {
-    "path": "docs/faq/index.md",
-    "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967"
-  },
-  {
     "path": "docs/faq.md",
     "sha256": "fb8895bbeb5106b1e6ea587b54862e32f3887e693486a86fc8aaf7c8b53a8cd7"
   },
   {
-    "path": "docs/getting-started/index.md",
-    "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083"
+    "path": "docs/faq/index.md",
+    "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967"
   },
   {
     "path": "docs/getting-started.md",
     "sha256": "8908455958fb09919997b642de3396b3150a85b0200258e1e7c2ff2433fec22d"
+  },
+  {
+    "path": "docs/getting-started/index.md",
+    "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083"
   },
   {
     "path": "docs/google-cloud-api-guide.md",
@@ -6580,6 +6604,14 @@
     "sha256": "e26658f27c056eabb51cb1c1904201e2980ee9e971fd017c54860285581e9573"
   },
   {
+    "path": "docs/setup-guide.md",
+    "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
+  },
+  {
+    "path": "docs/setup.html",
+    "sha256": "1f1b25218ef0513ca9c319b77be8e462090b3ce4e10f3a9370afbe5912935e7d"
+  },
+  {
     "path": "docs/setup/article-db-foundation.md",
     "sha256": "c3f85876300981507686c5fb4c0aac18c3fb09c0524fa355766f3295e57462e3"
   },
@@ -6608,14 +6640,6 @@
     "sha256": "3debc2f280b85cb46865558a51dbbec09df0a38368bc55b089f78bd40923ec0e"
   },
   {
-    "path": "docs/setup-guide.md",
-    "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
-  },
-  {
-    "path": "docs/setup.html",
-    "sha256": "1f1b25218ef0513ca9c319b77be8e462090b3ce4e10f3a9370afbe5912935e7d"
-  },
-  {
     "path": "docs/spreadsheet-guide.md",
     "sha256": "6c089cbe99ff4104887698da7daea77a2c874590f1572c99cb23b2dfffaa023f"
   },
@@ -6626,6 +6650,14 @@
   {
     "path": "docs/todays-improvement.html",
     "sha256": "febaa74b6beb8d716a2cdf0c349f88414a32e69802d4f5244c7a032dc9e43599"
+  },
+  {
+    "path": "docs/troubleshooting.html",
+    "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
+  },
+  {
+    "path": "docs/troubleshooting.md",
+    "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
   },
   {
     "path": "docs/troubleshooting/common-errors.md",
@@ -6646,14 +6678,6 @@
   {
     "path": "docs/troubleshooting/urlfetch-auth.md",
     "sha256": "06482d76ef7657d8cf4a052cb3993def516933b7b22e1aa850e61758184802c7"
-  },
-  {
-    "path": "docs/troubleshooting.html",
-    "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
-  },
-  {
-    "path": "docs/troubleshooting.md",
-    "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
   },
   {
     "path": "docs/user-guide/data-list.md",
@@ -6684,12 +6708,12 @@
     "sha256": "8f3f80a57111dd820de9575dc412343ee7ee79153bf85be716b9ee83552f2c6d"
   },
   {
-    "path": "docs/user-guide/todays-improvement/index.md",
-    "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140"
-  },
-  {
     "path": "docs/user-guide/todays-improvement.md",
     "sha256": "33608c8347948f51e3f1004f164412bda5ea59b5ba76ade16af7cfc28d4521e9"
+  },
+  {
+    "path": "docs/user-guide/todays-improvement/index.md",
+    "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140"
   },
   {
     "path": "integration/SBM_BATCH_INTEGRATION.md",
@@ -9050,6 +9074,14 @@
   {
     "path": "tests/history-sidebar-v9387.js",
     "sha256": "cdb6527bdeb6f857b024f00c0086af35b7f0420e63f3c4047bdcb24cc1f419a2"
+  },
+  {
+    "path": "tests/home_redraw_v945.js",
+    "sha256": "6397be492a2ff7ed690c445c8708a239b1baf08ecf1395f912749fcac20e4a7a"
+  },
+  {
+    "path": "tests/home_replace_v946.js",
+    "sha256": "dffb6fc2740daddadd22eba90061526af4a4be10eec3feca24b0c73f9ab87bde"
   },
   {
     "path": "tests/integration/test_acquisition_to_observation.py",
