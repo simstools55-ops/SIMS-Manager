@@ -1,11 +1,12 @@
 {
   "product_name": "SIMS-Blog-Manager",
-  "current_version": "9.4.9",
-  "release_status": "UAT_CANDIDATE",
-  "notes": "Home image trace UAT; GAS verification pending.",
-  "version": "9.4.9",
+  "current_version": "5.0.0",
+  "release_status": "DISTRIBUTION_CANDIDATE",
+  "notes": "Frozen from v9.4.12; live verification pending.",
+  "version": "5.0.0",
   "display_name": "SIMS Manager",
   "edition": "UNIFIED",
   "edition_model": "UNIFIED_RUNTIME_LICENSE",
-  "starter_display_version": "9.4.9"
+  "starter_display_version": "5.0.0",
+  "development_baseline": "9.4.12"
 }

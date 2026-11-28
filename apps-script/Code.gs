@@ -3,12 +3,12 @@
  * SIMS-Core Slim Edition for blog SEO improvement management.
  * End-user distribution file: paste this entire file into Code.gs/Code.js.
  *
- * Current version: 9.4.9
- * Release summary: Deferred daily rank chart placement UAT candidate.
- * Full release history: see CHANGELOG.md and RELEASE_NOTES_v9.4.9.md.
+ * Current version: 5.0.0
+ * Release summary: Distribution baseline candidate; functionality frozen from v9.4.12.
+ * Full release history: see CHANGELOG.md and RELEASE_NOTES_v5.0.0.md.
  */
 
-const SBM_VERSION = '9.4.9';
+const SBM_VERSION = '5.0.0';
 // 過去の改修履歴はCHANGELOG.mdを正本とする。
 // 通常運用では詳細プロファイルを停止。再調査時だけ true にする。
 const SBM_DETAILED_PERFORMANCE_PROFILE = false;
@@ -1140,9 +1140,12 @@ function sbmArticleInfoStoredRows_() {
   var urls = sh.getRange(2,hm['記事URL'],n,1).getDisplayValues();
   var titles = sh.getRange(2,hm['記事タイトル'],n,1).getDisplayValues();
   var queries = sh.getRange(2,hm['メインクエリ'],n,1).getDisplayValues();
+  var flags=hm['管理フラグ']?sh.getRange(2,hm['管理フラグ'],n,1).getDisplayValues():[];
+  var states=hm['作業状態']?sh.getRange(2,hm['作業状態'],n,1).getDisplayValues():[];
   var rows=[];
   var blogName=String(sbmGetSetting_('BlogName','')||'').trim();
   for (var i=0;i<n;i++) {
+    if(sbmArticleInfoExcluded_({'管理フラグ':(flags[i]||[])[0],'作業状態':(states[i]||[])[0]}))continue;
     var articleId=String(ids[i][0]||'').trim();
     var url=sbmNormalizeUrl_(urls[i][0]||'');
     if (!articleId || !url) continue;
@@ -1334,6 +1337,7 @@ function sbmArticleInfoUpdateOne_(articleId, url) {
     return {ok:false,articleId:articleId,url:url,title:'',query:'',titleUpdated:0,queryUpdated:0,safetySkipped:1,writeVerified:false,elapsedSeconds:sbmSecondsSince_(started),message:'ArticleID＋URLの一意一致を確認できないため更新しませんでした。'};
   }
   var r = matches[0];
+  if(sbmArticleInfoExcluded_(r))return {ok:false,articleId:articleId,url:url,safetySkipped:1,writeVerified:false,message:'管理対象外の記事は更新しません。'};
   var rankBefore=String(r['記事ランク']||'').trim(),rankPlanned=rankBefore;
   var blogName = String(sbmGetSetting_('BlogName','') || '').trim();
   var rawTitle=String(r['記事タイトル']||'').trim();
@@ -1445,7 +1449,7 @@ function sbmSupplementNewArticlesWorker_() {
   for (var i=0; i<rows.length; i++) {
     if (processed >= batch || sbmSecondsSince_(started) >= 280) break;
     var r = rows[i];
-    if (String(r['管理フラグ'] || '') !== '新規記事') continue;
+    if (sbmArticleInfoExcluded_(r)||String(r['管理フラグ'] || '') !== '新規記事') continue;
     var url = sbmNormalizeUrl_(r['記事URL'] || '');
     if (!url) continue;
     processed++;
@@ -2568,15 +2572,17 @@ function sbmSupplementArticleDbSetupChunk_(batch, silent) {
     // 先に対象URLを確定し、外部通信を2本のfetchAllへまとめる。
     for(var i=0;i<data.length&&targets.length<batch;i++){
       var row=data[i];
-      if(String(row[hm['記事情報補完済み']]||'')==='○')continue;
+      if(sbmArticleInfoExcluded_(sbmArticleInfoRowObject_(row,hm))||String(row[hm['記事情報補完済み']]||'').trim()==='○')continue;
       var url=sbmNormalizeUrl_(row[hm['記事URL']]||'');
-      if(!url)continue;
+      if(!/^https?:\/\//i.test(url)){row[hm['記事情報補完済み']]='エラー';row[hm['補完エラー']]='URL未入力または形式不正';continue;}
       targets.push({rowIndex:i,url:url});
     }
 
     var urls=targets.map(function(t){return t.url;});
     var externalStarted=new Date();
-    var metas=sbmFetchArticleMetaInfoBatch_(urls);
+    var metas=sbmFetchArticleMetaInfoBatch_(urls,{bypassCache:true});
+    var retryIndexes=[]; metas.forEach(function(m,i){var d=(m&&m._diag)||{};if(!m||(!(m.h1||m.titleTag||m.metaDescription)&&(d.status===0||d.status===429||d.status>=500)))retryIndexes.push(i);});
+    if(retryIndexes.length){var retried=sbmFetchArticleMetaInfoBatch_(retryIndexes.map(function(i){return urls[i];}),{bypassCache:true});retryIndexes.forEach(function(i,j){if(retried[j])metas[i]=retried[j];});}
     sbmSetupRecordArticleFetchDiagnostics_(urls,metas);
     var metaSeconds=sbmSecondsSince_(externalStarted);
     var queryStarted=new Date();
@@ -2599,16 +2605,14 @@ function sbmSupplementArticleDbSetupChunk_(batch, silent) {
       if(hm['メインクエリ']!==undefined)row[hm['メインクエリ']]=query;
       if(hm['記事情報補完済み']!==undefined)row[hm['記事情報補完済み']]=ok?'○':'エラー';
       if(hm['補完日時']!==undefined)row[hm['補完日時']]=now;
-      if(hm['補完エラー']!==undefined)row[hm['補完エラー']]=ok?'':'記事情報を取得できませんでした';
+      if(hm['補完エラー']!==undefined)row[hm['補完エラー']]=ok?'':sbmSetupMetaFailureReason_(meta);
       if(hm['管理フラグ']!==undefined)row[hm['管理フラグ']]=ok?'正常':(row[hm['管理フラグ']]||'記事情報未取得');
       if(ok)success++;else errors++;
     });
 
     if(data.length)sh.getRange(2,1,data.length,heads.length).setValues(data);
 
-    var completed=0;
-    data.forEach(function(r){if(String(r[hm['記事情報補完済み']]||'')==='○')completed++;});
-    var counts={total:data.length,completed:completed,remaining:Math.max(0,data.length-completed)};
+    var counts=sbmArticleInfoCounts_(data.map(function(r){return sbmArticleInfoRowObject_(r,hm);}));
     var finished=counts.remaining===0;
 
     sbmSetupSetSettingsBulk_([
@@ -2743,12 +2747,20 @@ function sbmUpdateHomeArticleDbCounts_(rows, skipRefresh) {
   if (!skipRefresh) sbmRefreshHome_();
 }
 
+function sbmArticleInfoExcluded_(r) {
+  r=r||{};
+  return String(r['管理フラグ']||'').indexOf('管理対象外')>=0 || /管理対象外|統合済み|noindex/i.test(String(r['作業状態']||''));
+}
+function sbmArticleInfoCounts_(rows) {
+  var c={registered:rows.length,excluded:0,total:0,completed:0,remaining:0};
+  rows.forEach(function(r){if(sbmArticleInfoExcluded_(r)){c.excluded++;return;}c.total++;if(String(r['記事情報補完済み']||'').trim()==='○')c.completed++;else c.remaining++;});
+  return c;
+}
+function sbmArticleInfoRowObject_(row,hm){var r={};['管理フラグ','作業状態','記事情報補完済み'].forEach(function(k){r[k]=row[hm[k]];});return r;}
 function sbmArticleDbInfoCompletionCounts_() {
   var rows = [];
   try { rows = sbmRowsAsObjects_(SBM_SHEETS.ARTICLE_DB); } catch(e) {}
-  var completed = 0;
-  rows.forEach(function(r){ if (String(r['記事情報補完済み'] || '') === '○') completed++; });
-  return {total:rows.length, completed:completed, remaining:Math.max(0,rows.length-completed)};
+  return sbmArticleInfoCounts_(rows);
 }
 
 function sbmShowArticleDbSetupStatus() {
@@ -14838,7 +14850,7 @@ function sbmHomeArticleStatsFromRows_(rows) {
     else if (w.indexOf('完了') >= 0) work.done++;
     else work.unstarted++;
     if (flag.indexOf('新規記事') >= 0) work.newArticles++;
-    if (String(r['記事情報補完済み'] || '') !== '○') work.unfilled++;
+    if (!sbmArticleInfoExcluded_(r)&&String(r['記事情報補完済み'] || '').trim() !== '○') work.unfilled++;
     if (flag === '要確認') work.needsReview++;
     if (sbmHomeIsUnacquiredArticle_(r)) missingCount++;
     clicks += sbmNumber_(r['クリック数']) || 0;
@@ -16511,15 +16523,33 @@ var SBM_RELEASE_NAME = 'Product 5.4.1';
 /* ---------- 共通：ウィザード ---------- */
 
 
+function sbmSetupMetaFailureReason_(meta){
+  var d=(meta&&meta._diag)||{}, n=Number(d.status||0);
+  if(n===404||n===410)return 'HTTP '+n+'：記事が存在しない可能性（削除・URL変更を確認）';
+  if(n===401||n===403)return 'HTTP '+n+'：アクセス制限の可能性';
+  if(n===429||n>=500)return 'HTTP '+n+'：一時的な取得失敗の可能性';
+  if(n>=400)return 'HTTP '+n+'：記事取得失敗';
+  if(n>=200&&n<400)return 'HTTP '+n+'：タイトル等と検索語を抽出できませんでした';
+  return '通信または解析失敗（HTTP応答未確認）';
+}
+function sbmSetupPendingArticleDetails_(){
+  var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
+  if(!sh||sh.getLastRow()<2)return [];
+  var data=sh.getDataRange().getDisplayValues(), h=data.shift();
+  function val(row,key){var i=h.indexOf(key);return i<0?'':String(row[i]||'');}
+  return data.filter(function(row){return !sbmArticleInfoExcluded_({'管理フラグ':val(row,'管理フラグ'),'作業状態':val(row,'作業状態')})&&val(row,'記事情報補完済み').trim()!=='○';}).map(function(row){return {id:val(row,'ArticleID'),url:val(row,'記事URL'),error:val(row,'補完エラー')||'未取得・原因未確認',status:val(row,'記事情報補完済み')};});
+}
+function sbmSetupPendingDetailsHtml_(){
+  var rows=sbmSetupPendingArticleDetails_(), e=sbmEscapeHtml_;
+  if(!rows.length)return '';
+  return '<div class="box"><b>未補完記事（'+rows.length+'件）</b><div style="max-height:200px;overflow:auto">'+rows.map(function(r){return '<p style="overflow-wrap:anywhere">'+e(r.id||'ID未設定')+'<br>'+e(r.url||'URL未設定')+'<br>'+e(r.error)+'</p>';}).join('')+'</div><p>取得できない記事は記録したまま次へ進めます。後からSTEP5を再実行できます。</p></div>';
+}
 function sbmSetupInfoCompletionCountsFast_(){
   var sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SBM_SHEETS.ARTICLE_DB);
-  if(!sh||sh.getLastRow()<2)return {total:0,completed:0,remaining:0};
-  var hm=sbmHeaderMap_(sh),total=sh.getLastRow()-1,completed=0;
-  if(hm['記事情報補完済み']){
-    var vals=sh.getRange(2,hm['記事情報補完済み'],total,1).getDisplayValues();
-    vals.forEach(function(r){if(String(r[0]||'').trim()==='○')completed++;});
-  }
-  return {total:total,completed:completed,remaining:Math.max(0,total-completed)};
+  if(!sh||sh.getLastRow()<2)return sbmArticleInfoCounts_([]);
+  var data=sh.getDataRange().getDisplayValues(),h=data.shift(),hm={};
+  h.forEach(function(k,i){hm[k]=i;});
+  return sbmArticleInfoCounts_(data.map(function(r){return sbmArticleInfoRowObject_(r,hm);}));
 }
 
 function sbmSetupSetSettingsBulk_(items){
@@ -16575,8 +16605,11 @@ function sbmRelease1SetupStatus_() {
     step2:String(settings['SetupApiGuide']||'NO')==='YES',
     step3:String(settings['ConnectionStatus']||'')==='OK',
     step4:String(settings['ArticleDbUrlBuildComplete']||'NO')==='YES',
-    step5:String(settings['ArticleInfoBuildComplete']||'NO')==='YES',
-    total:Number(counts.total||0),
+    step5:counts.registered>0&&counts.remaining===0,
+    step5Deferred:String(settings['ArticleInfoSetupDeferred']||'NO')==='YES',
+    total:Number(counts.registered||0),
+    eligible:Number(counts.total||0),
+    excluded:Number(counts.excluded||0),
     completed:Number(counts.completed||0),
     remaining:Number(counts.remaining||0)
   };
@@ -16636,7 +16669,7 @@ function sbmShowRelease1SetupStep_(step) {
     5:'未補完記事のタイトル、SEOタイトル、ディスクリプション等を取得します。',
     6:'記事管理と補完状況を確認します。完了後は日次処理の画面へ進めます。'
   };
-  var setupReady = !!(s.step1 && s.step2 && s.step3 && s.step4 && s.step5 && s.total > 0 && s.remaining === 0);
+  var setupReady = !!(s.step1 && s.step2 && s.step3 && s.step4 && s.total > 0 && ((s.step5 && s.remaining === 0)||(s.step5Deferred && s.completed>0)));
   // Display-only snapshot. Do not perform online validation or change license state here.
   var licenseState = sbmLicenseRc4State_();
   var licenseRegistered = licenseState.status === 'ACTIVE' && !!licenseState.lastOk;
@@ -16674,7 +16707,7 @@ function sbmShowRelease1SetupStep_(step) {
       + '<div class="field"><label>Google Cloud プロジェクト番号</label><input id="cloudProjectNumber" inputmode="numeric" placeholder="例：123456789012" value="'+sbmEscapeHtml_(displayedCloudProjectNumber)+'"></div>'+cloudProjectNumberNote
       + '<b>③ Search Console APIを有効化</b><br>'
       + '下のボタンは、入力した同じCloudプロジェクトを指定してSearch Console API画面を開きます。「有効にする」を押してください。<br>'
-      + '<button id="apiHelpBtn" type="button" class="helpLink">Google Search Console APIを開く</button><br><br>'
+      + '<div id="apiNumberHint" role="status" style="color:#b3261e">②のプロジェクト番号を入力してください。</div><a id="apiHelpBtn" class="helpLink" target="_blank" rel="noopener noreferrer" aria-disabled="true">Google Search Console APIを開く</a><br><br>'
       + '<div style="font-size:12px;color:#5f6368">初回認証画面が表示された場合は内容を確認して許可します。プロジェクト番号が未入力のままSTEP3へは進めません。</div>'
       + '</div>';
   } else if (step === 3) {
@@ -16687,13 +16720,13 @@ function sbmShowRelease1SetupStep_(step) {
   } else if (step === 4) {
     body = '<div class="box">記事管理：<b>'+s.total+'件</b><br>このSTEPではURLとSearch Console指標だけを取得します。</div>';
   } else if (step === 5) {
-    body = '<div class="box">補完済み：<b>'+s.completed+'件</b><br>未補完：<b>'+s.remaining+'件</b><br>1回につき設定済み件数を処理します。残りがある場合は同じSTEPを再実行します。</div>';
+    body = '<div class="box">登録記事数：<b>'+s.total+'件</b><br>管理対象外：<b>'+s.excluded+'件</b><br>補完対象：<b>'+s.eligible+'件</b><br>補完済み：<b>'+s.completed+'件</b><br>未補完：<b>'+s.remaining+'件</b><br>' + (s.remaining===0?'補完対象の記事情報の取得が完了しました。次へ進んでください。':'1回につき設定済み件数を処理します。残りがある場合は再実行できます。') + '</div>' + (s.remaining>0?sbmSetupPendingDetailsHtml_():'');
   } else {
     body = '<div class="box">'
       + 'サイト名：<b>'+sbmEscapeHtml_(s.blogName || '未登録')+'</b><br>'
       + '接続テスト：<b>'+(s.step3?'完了':'未完了')+'</b><br>'
       + '記事管理：<b>'+s.total+'件</b><br>'
-      + '記事情報補完：<b>'+s.completed+'件 / '+s.total+'件</b><br>'
+      + '記事情報補完：<b>'+s.completed+'件 / '+s.eligible+'件</b>（管理対象外 '+s.excluded+'件）<br>' + (s.remaining>0&&s.step5Deferred?'<span style="color:#b06000">未補完 '+s.remaining+'件を保留。STEP5で再確認できます。</span><br>':'')
       + 'ライセンス：<b>'+sbmEscapeHtml_(licenseLabel)+'</b><br>'
       + '<span style="font-size:12px;color:#5f6368">ライセンスの有効性は日次処理の実行時に再確認します。'+(licenseRegistered?'':' 未認証の場合は「設定・メンテナンス → ライセンス認証」を実行してください。')+'</span><br><br>' + (setupReady ? ('<b style="color:#137333">初回セットアップの設定項目が完了しました。</b>' + (licenseRegistered ? '<br>日次処理へ進めます。' : '<br><b style="color:#b06000">利用開始にはライセンス認証が必要です。</b>')) : '<b style="color:#b06000">未完了のSTEPを確認してください。</b>')
       + '</div>';
@@ -16709,7 +16742,7 @@ function sbmShowRelease1SetupStep_(step) {
     + body
     + '<div id="msg"></div>'
     + '<div class="actions">'
-    + (step===6 ? (setupReady && licenseRegistered ? '<button id="dailyBtn" type="button" class="run actionBtn">日次処理へ進む</button><button id="completeBtn" type="button" class="skip actionBtn">Homeへ戻る</button>' : (!licenseRegistered ? '<button id="licenseBtn" type="button" class="run actionBtn">ライセンス認証へ進む</button><button id="completeBtn" type="button" class="skip actionBtn">Homeへ戻る</button>' : '<button id="completeBtn" type="button" class="run actionBtn">Homeへ戻る</button>')) : '<button id="runBtn" type="button" class="run actionBtn">実行</button><button id="skipBtn" type="button" class="skip actionBtn">スキップ</button><button id="endBtn" type="button" class="end actionBtn">終了</button>')
+    + (step===6 ? (setupReady && licenseRegistered ? '<button id="dailyBtn" type="button" class="run actionBtn">日次処理へ進む</button><button id="completeBtn" type="button" class="skip actionBtn">Homeへ戻る</button>' : (!licenseRegistered ? '<button id="licenseBtn" type="button" class="run actionBtn">ライセンス認証へ進む</button><button id="completeBtn" type="button" class="skip actionBtn">Homeへ戻る</button>' : '<button id="completeBtn" type="button" class="run actionBtn">Homeへ戻る</button>')) : (step===5 && s.remaining===0 ? '<button id="runBtn" type="button" class="run actionBtn">次へ進む</button><button id="endBtn" type="button" class="end actionBtn">終了</button>' : '<button id="runBtn" type="button" class="run actionBtn">実行</button><button id="skipBtn" type="button" class="skip actionBtn">'+(step===5?'未補完を保留して次へ':'スキップ')+'</button><button id="endBtn" type="button" class="end actionBtn">終了</button>'))
     + '</div>'
     + '<script>'
     + 'var step='+step+';'
@@ -16735,7 +16768,7 @@ function sbmShowRelease1SetupStep_(step) {
     + 'if(el("createProjectBtn"))el("createProjectBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectCreateUrl_()+'");});'
     + 'if(el("cloudSettingsBtn"))el("cloudSettingsBtn").addEventListener("click",function(){openExternal("'+sbmGoogleCloudProjectSettingsUrl_()+'");});'
     + 'if(el("projectHelpBtn"))el("projectHelpBtn").addEventListener("click",function(){openExternal("'+sbmAppsScriptProjectSettingsUrl_()+'");});'
-    + 'if(el("apiHelpBtn"))el("apiHelpBtn").addEventListener("click",function(){var n=String(el("cloudProjectNumber").value||"").trim();if(!/^\\d+$/.test(n)){clearBusy("先に①でCloudプロジェクトを作成し、②でそのプロジェクト番号をSIMS ManagerのApps Scriptへ関連付けてから、同じ番号を入力してください。");return;}openExternal("'+sbmSearchConsoleApiUrl_()+'?project="+encodeURIComponent(n));});'
+    + 'if(el("apiHelpBtn")){var api=el("apiHelpBtn"),num=el("cloudProjectNumber"),hint=el("apiNumberHint");function syncApi(){var n=String(num.value||"").trim(),ok=/^\\d{6,20}$/.test(n);api.setAttribute("aria-disabled",ok?"false":"true");api.style.opacity=ok?"1":"0.5";if(ok){api.href="'+sbmSearchConsoleApiUrl_()+'?project="+encodeURIComponent(n);hint.textContent="番号を確認しました。下のリンクを開いてください。";hint.style.color="#137333";}else{api.removeAttribute("href");hint.textContent="②のプロジェクト番号（数字6～20桁）を入力してください。";hint.style.color="#b3261e";}}num.addEventListener("input",syncApi);api.addEventListener("click",function(e){if(api.getAttribute("aria-disabled")==="true"){e.preventDefault();num.focus();}});syncApi();}' 
     + '</script></body></html>';
 
   sbmShowThemedModalDialog_(
@@ -16832,6 +16865,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
     }else{
       sbmSetupSetSettingsBulk_([
         {key:'ArticleInfoBuildComplete',value:'YES',desc:'記事情報補完完了フラグ'},
+        {key:'ArticleInfoSetupDeferred',value:'NO',desc:'初回補完の残件保留'},
         {key:'ArticleInfoBuildStatus',value:'完了',desc:'記事情報補完の状態'}
       ]);
       sbmShowRelease1SetupStep_(6);
@@ -16850,6 +16884,7 @@ function sbmExecuteRelease1SetupStep(step, payload) {
 
 function sbmSkipRelease1SetupStep(step) {
   step = Number(step || 0);
+  if(step===5){var c=sbmSetupInfoCompletionCountsFast_();if(c.remaining>0&&c.completed===0)throw new Error('補完済み記事がありません。先に記事情報を取得してください。');sbmSetupSetSettingsBulk_([{key:'ArticleInfoSetupDeferred',value:c.remaining>0?'YES':'NO',desc:'初回補完の残件保留'}]);}
   if (step >= 1 && step < 6) {
     sbmShowRelease1SetupStep_(step + 1);
   } else {

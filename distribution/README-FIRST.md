@@ -1,19 +1,8 @@
-# SIMS Manager v9.3.113 — M6互換性監査UAT候補・適用案内
+# SIMS Manager v5.0.0
 
-`apps-script/Code.gs` と `apps-script/appsscript.json` を確認して適用してください。旧版からの更新ではマニフェストも更新し再認証してください。
+配布候補版（開発基準 v9.4.12）。Starter／Full共通。
 
-利用者向け5タブのみ表示。内部シートは削除しません。明示的な保守画面は例外です。測定値の既存空欄は自動補完しません。実機試験待ち。
+新規利用者は正式なGoogle Sheets配布テンプレートをコピーし、Webマニュアルに従って初回セットアップしてください。
+既存利用者の更新は、シートと旧コードをバックアップ後、Apps ScriptのCode.gsを全文置換し保存、シートを再読み込みしてください。appsscript.jsonは基準版と同一です。
 
-改善経路・履歴URLは非表示。測定値・スキーマは変更しません。
-
-Three primary tables use compact widths and 9pt wrapped headers. Effect daily and repair widths are aligned. Strict timezone-bearing ISO history strings are converted to Date without changing their instant; formulas and unrecognized values are untouched. Existing new-row date normalization retained. Live UAT pending.
-
-改善履歴の改善概要を10pt・上詰め・折り返し、判定欄を10ptに設定。表示内容・列幅が変化した場合のみ行高を自動調整。列幅・データ・マニフェストは維持。実機試験待ち。
-
-FULL限定でカニバリ停止後に「利用者判断でSERPを精査する」を表示。サーバー側でライセンスを確認し、既存候補と続行記録を依頼文・再開データへ引き継ぐ。判定基準とマニフェストは変更なし。実機試験待ち。
-
-
-## v9.3.113 M6 UAT注意
-本ZIPは実機未検証のUAT候補であり本番適用HOLD。既存SBM v9.3.105を上書きしないこと。S3受付ゲートはOFF維持。配布版の古い履歴説明は参考情報であり、現行動作の保証ではない。
-
-- v9.3.113: M6承認ゲートの読み取り専用プレビューを追加。登録・公開は引き続きHOLD。
+配布テンプレートの同期・実機確認が終わるまでは公開しないでください。

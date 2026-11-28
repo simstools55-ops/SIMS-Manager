@@ -1,3 +1,24 @@
+# SIMS Manager v5.0.0 — 正式配布候補
+
+開発基準: v9.4.12。Starter／Full共通。機能・Contract・マニフェストは変更しない。
+
+製品番号を5.0.0へ変更。Shared Editorial Knowledgeは実行時の3.5.0を維持し、矛盾した管理情報のみ補正。
+
+GAS実機、ライセンス認証、aシリーズ連携、配布用Google Sheetsの更新は未確認。正式公開は確認後。
+
+# v9.4.12 — Completed STEP5 navigation
+- When remaining is zero, show Next instead of Run and hide deferral; use existing execution endpoint to persist completion and advance.
+- Pending cases retain existing controls. GAS verification pending.
+
+# v9.4.11 — Exclude unmanaged articles from supplementation
+- Shared exclusion predicate for setup selection, counts, pending details and normal information update. Preserve excluded rows; restored rows are eligible again.
+- Setup uses live eligible counts, separately displays registered and excluded counts. GAS verification pending.
+
+# v9.4.10 — Setup API and pending article diagnostics UAT
+- STEP2: validated project-specific direct link and inline guidance.
+- STEP5: pending IDs, URLs and recorded reasons; bypass metadata cache and retry transient failures once; preserve incomplete status while allowing explicit deferral if at least one article is supplemented. Reopen STEP5 to retry. No automatic article exclusion.
+- Existing completion criterion (any title, SEO title, description or query) unchanged. Home and daily code unchanged. GAS verification pending.
+
 # v9.4.9 — Daily rank chart final placement UAT
 - Defer rank image placement until after daily cleanup and log writes; retain manual placement and pie logic. Verify rank anchor after final flush. GAS rendering unverified.
 

@@ -1,1 +1,1 @@
-feat(sbm): add S3 edition license gates and menu visibility (v9.3.127)
+chore(sbm): freeze v9.4.12 functionality for distribution v5.0.0

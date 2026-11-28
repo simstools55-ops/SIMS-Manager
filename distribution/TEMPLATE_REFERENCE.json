@@ -1,17 +1,16 @@
 {
   "product": "SIMS Manager",
-  "repository_version": "6.7.70",
+  "repository_version": "5.0.0",
   "template": {
     "name": "SIMS Manager Full Edition Template v6.7.37",
     "spreadsheet_id": "1pjdZoAUM-h7LcFQxzVcxtdZwrV-4zmc6ffg4GWRQtTY",
     "drive_parent_id": "1iuWMltSDtLzysy4Z95zVoamxbvDbEbjT",
     "verified_drive_template_version": "6.7.37",
     "bound_script_synced_to_repository_version": false,
-    "status": "TEMPLATE_COPY_EXISTS_BOUND_SCRIPT_UPDATE_REQUIRED"
+    "status": "LIVE_TEMPLATE_SYNC_AND_VERIFICATION_REQUIRED"
   },
   "distribution_sources": [
-    "distribution/Code.gs",
-    "distribution/appsscript.json",
-    "src/distribution/Code.gs"
+    "apps-script/Code.gs",
+    "apps-script/appsscript.json"
   ]
 }

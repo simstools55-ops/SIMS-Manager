@@ -9,7 +9,7 @@
   },
   {
     "path": "APPLY-INSTRUCTIONS.md",
-    "sha256": "150ea41b03806618082736328eab5f3efa9e570eac76af4c6bde67338b187c41"
+    "sha256": "4e92814d594e7e82d0d0ab5eea4185ef26bfdd7a1dd2ec3f342b5078aef45898"
   },
   {
     "path": "APPLY-v5.14.10.md",
@@ -49,7 +49,7 @@
   },
   {
     "path": "CHANGELOG.md",
-    "sha256": "ba30aa3f529a41e8e7023c01010ad24ff7b2a23901a264eb42fb549f1daba63c"
+    "sha256": "363c1fd1e2cbd6369531cdddcce9c2b2dbe78de05b430fce595b671ebda7dffb"
   },
   {
     "path": "CLEANUP_AUDIT_v9.3.0.md",
@@ -57,7 +57,7 @@
   },
   {
     "path": "COMMIT_MESSAGE.txt",
-    "sha256": "8fd5a9ff2d600fdc951a858dd9983f84ee5a714e1191a6b678c67cf50d76c90e"
+    "sha256": "e9f7948e7bbb8ba1da920ae88c14cbc9427321bef697e484ce7a1f9f217b5b4b"
   },
   {
     "path": "DEVELOPMENT-NOT-FOR-DEPLOYMENT-v9.2.20.md",
@@ -545,7 +545,7 @@
   },
   {
     "path": "GITHUB_COMMIT_MESSAGE.txt",
-    "sha256": "7ed22f272950d6b5b8556414b36137c64d4f6dd933b66562c1e623db24cdd868"
+    "sha256": "e9f7948e7bbb8ba1da920ae88c14cbc9427321bef697e484ce7a1f9f217b5b4b"
   },
   {
     "path": "GITHUB_COMMIT_MESSAGE_v9.0.13.txt",
@@ -1421,7 +1421,7 @@
   },
   {
     "path": "GITHUB_RELEASE_NOTES.md",
-    "sha256": "8dd8c4be1bd9511910e83589245735508d12c74a4a61caf0a68c9eb040e5814b"
+    "sha256": "107ce614326dcdf657e1af932f386a0800906a6e590c5126005e270cdaa0d86b"
   },
   {
     "path": "HOW_TO_PUBLISH.md",
@@ -1637,7 +1637,7 @@
   },
   {
     "path": "PRODUCT_IDENTITY.json",
-    "sha256": "cbdffa057cdd638a31fa28db3f873043b9211116f2258960e5a21f22e5c78d4a"
+    "sha256": "9634c7a03d2933561f87cf6c624355a8df767da1072f069c763b84e5a02dea29"
   },
   {
     "path": "RC8_14_SITE_DIAGNOSIS_UNIFIED_FLOW_TEST_RESULT.txt",
@@ -1829,7 +1829,7 @@
   },
   {
     "path": "README-FIRST.md",
-    "sha256": "f0f90f253197ac4f550bca2fe486111787d74ae32aaea60bf60838dd49912db3"
+    "sha256": "6110bde5b809a365f417b5b05c311f36529ae002a9904b9da7c136993af3c5fd"
   },
   {
     "path": "README-RC8.17.txt",
@@ -1965,7 +1965,7 @@
   },
   {
     "path": "README.md",
-    "sha256": "ad7f56798920ffbd7c44192c8456691d67be678ed11d4f8b6bf1462ee7c0e498"
+    "sha256": "111dde158b7ff79479eb19c89d2c5902b84ce1480ffa4a5d88669d790392ba16"
   },
   {
     "path": "README.txt",
@@ -2926,6 +2926,10 @@
   {
     "path": "RELEASE_NOTES_v1.0.0-sprint9.9.md",
     "sha256": "57d1e09196322229c35d1c43d2f3df1d442c441396ed475a95a49db5dd5d24a6"
+  },
+  {
+    "path": "RELEASE_NOTES_v5.0.0.md",
+    "sha256": "107ce614326dcdf657e1af932f386a0800906a6e590c5126005e270cdaa0d86b"
   },
   {
     "path": "RELEASE_NOTES_v5.10.0-RC1.md",
@@ -5452,6 +5456,18 @@
     "sha256": "2c06bdd71d43d79bdaa80a2d2c032013f5ce02456827cf87d4cdff353be01c2b"
   },
   {
+    "path": "RELEASE_NOTES_v9.4.10.md",
+    "sha256": "d470d8eabaecc50eb320db2399a31de8a72161d6f5c6ab89387f94185aa89f97"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.11.md",
+    "sha256": "4a1ada7a96180496d63476a05133300487658437bd889010389672e7311b961c"
+  },
+  {
+    "path": "RELEASE_NOTES_v9.4.12.md",
+    "sha256": "f4857f05b47b9d1feb17ddbb00bba0fa202cffb9e6122d0f51d44834fba64d5f"
+  },
+  {
     "path": "RELEASE_NOTES_v9.4.2.md",
     "sha256": "14b5c63ff3d48539e3f1dd5bc20a81f9b6f074fb52539a7cebff263a90e9679d"
   },
@@ -5541,7 +5557,7 @@
   },
   {
     "path": "SHARED_VERSION",
-    "sha256": "5330d23d03a4d4c89feeff07d28b98ee1a00b36405d21e28c6e2b60025abb3ea"
+    "sha256": "76120c1f2c4311c2154c22a6b58e00e411e0ebe76afae0daf608d9196c61f114"
   },
   {
     "path": "SIDEBAR_MENU_PARITY_AUDIT_v9.3.43.md",
@@ -5705,7 +5721,7 @@
   },
   {
     "path": "VERSION",
-    "sha256": "6af925ca39e1a39858f079c616056eab140879fffdbec6794886ea3b20f8e2c9"
+    "sha256": "1cc3d76ac7c21a664e79848fd481e9791016451b244e7de5feeeb9bea5fd2184"
   },
   {
     "path": "VERSION-AUDIT-v5.10.1.md",
@@ -5904,6 +5920,10 @@
     "sha256": "f17e3b2bb259d86ab633924890d3859e724f08844ca5db34799222eecef09ab9"
   },
   {
+    "path": "VERSION_AUDIT_v5.0.0.md",
+    "sha256": "f40a8098fed7d32c68e88c9a1e5377ec3e852f0a40972d5c2fa96d3595bb3ccf"
+  },
+  {
     "path": "VERSION_AUDIT_v9.0.11.md",
     "sha256": "7693153c7133aef4ed3cdfc84c90fcc1afbcbaf5cdc591991f519ae86b337a2f"
   },
@@ -6065,11 +6085,11 @@
   },
   {
     "path": "VERSION_POLICY.md",
-    "sha256": "08430876c330e429ea3e3a48bd17ec525b4b7b2fc13908d075fd09d62bfc6cbd"
+    "sha256": "ac01b2508cc9c3a3b709f5eea576884c777050e0fa96867289bd807e2a733de9"
   },
   {
     "path": "apps-script/Code.gs",
-    "sha256": "cc345f32f95543908665ed7d70efed5a2c80851b84f3e5f51cc4dc8d685b7a45"
+    "sha256": "fb0a0776e8ff18d9061140022d5409994a03504b9424e4ff4802c7a84c770bac"
   },
   {
     "path": "apps-script/SBM_S3_REGISTRATION_DRYRUN_TEST.js",
@@ -6333,15 +6353,15 @@
   },
   {
     "path": "distribution/DISTRIBUTION_POLICY.md",
-    "sha256": "30b942f10342fb05906e0f5c767fdcc9e27ae0bf55cb2e9683aeda267aec5566"
+    "sha256": "39958e5d4bbdd624a43f87c3b31d199bea53a62a664dcb7ea46e28380a3281d7"
   },
   {
     "path": "distribution/README-FIRST.md",
-    "sha256": "d96890cb24ad92281afdf9900d03a5951e29d5f1e8d29eb5e8c30c5d8251dcec"
+    "sha256": "6110bde5b809a365f417b5b05c311f36529ae002a9904b9da7c136993af3c5fd"
   },
   {
     "path": "distribution/TEMPLATE_REFERENCE.json",
-    "sha256": "49d8ec3f7ba3dd4303b8c16d8957fddb076ebea1042431b1c4e677941fec1c7e"
+    "sha256": "c648f12324e3eee73301fba3314f201dae24c00ae699ed7a0f5778eba0c260f0"
   },
   {
     "path": "distribution/appsscript.json",
@@ -6532,12 +6552,12 @@
     "sha256": "a997ed7d3d932148e53d326455aa9ba590886dc1270b120731cd24469b253aae"
   },
   {
-    "path": "docs/daily-workflow.md",
-    "sha256": "e49fb76ec206de1c22dc117a2a75096490ea793b28d0bd8c26feaafdc5efbdec"
-  },
-  {
     "path": "docs/daily-workflow/index.md",
     "sha256": "b15344b77c83320624803171b9af513858018a21e9e26eadae7d482605a22969"
+  },
+  {
+    "path": "docs/daily-workflow.md",
+    "sha256": "e49fb76ec206de1c22dc117a2a75096490ea793b28d0bd8c26feaafdc5efbdec"
   },
   {
     "path": "docs/download.md",
@@ -6548,20 +6568,20 @@
     "sha256": "bfc42f8b49f3e1fa8a9e0c6cc52ac555b396e42b4b79c8ce74712ae6fabb9e20"
   },
   {
-    "path": "docs/faq.md",
-    "sha256": "fb8895bbeb5106b1e6ea587b54862e32f3887e693486a86fc8aaf7c8b53a8cd7"
-  },
-  {
     "path": "docs/faq/index.md",
     "sha256": "c4edd348ff675a992460e04c6b5264fd9c45dc39fc0bc77a596604119285a967"
   },
   {
-    "path": "docs/getting-started.md",
-    "sha256": "8908455958fb09919997b642de3396b3150a85b0200258e1e7c2ff2433fec22d"
+    "path": "docs/faq.md",
+    "sha256": "fb8895bbeb5106b1e6ea587b54862e32f3887e693486a86fc8aaf7c8b53a8cd7"
   },
   {
     "path": "docs/getting-started/index.md",
     "sha256": "de8a1159c73ce595fc2dbec7be18628974c24e2527b5057538a08f5c2e3cf083"
+  },
+  {
+    "path": "docs/getting-started.md",
+    "sha256": "8908455958fb09919997b642de3396b3150a85b0200258e1e7c2ff2433fec22d"
   },
   {
     "path": "docs/google-cloud-api-guide.md",
@@ -6604,14 +6624,6 @@
     "sha256": "e26658f27c056eabb51cb1c1904201e2980ee9e971fd017c54860285581e9573"
   },
   {
-    "path": "docs/setup-guide.md",
-    "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
-  },
-  {
-    "path": "docs/setup.html",
-    "sha256": "1f1b25218ef0513ca9c319b77be8e462090b3ce4e10f3a9370afbe5912935e7d"
-  },
-  {
     "path": "docs/setup/article-db-foundation.md",
     "sha256": "c3f85876300981507686c5fb4c0aac18c3fb09c0524fa355766f3295e57462e3"
   },
@@ -6640,6 +6652,14 @@
     "sha256": "3debc2f280b85cb46865558a51dbbec09df0a38368bc55b089f78bd40923ec0e"
   },
   {
+    "path": "docs/setup-guide.md",
+    "sha256": "061efd79355133b07ca5253ad1c79a8c43be6bdd757b626dd8361d70e949d65e"
+  },
+  {
+    "path": "docs/setup.html",
+    "sha256": "1f1b25218ef0513ca9c319b77be8e462090b3ce4e10f3a9370afbe5912935e7d"
+  },
+  {
     "path": "docs/spreadsheet-guide.md",
     "sha256": "6c089cbe99ff4104887698da7daea77a2c874590f1572c99cb23b2dfffaa023f"
   },
@@ -6650,14 +6670,6 @@
   {
     "path": "docs/todays-improvement.html",
     "sha256": "febaa74b6beb8d716a2cdf0c349f88414a32e69802d4f5244c7a032dc9e43599"
-  },
-  {
-    "path": "docs/troubleshooting.html",
-    "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
-  },
-  {
-    "path": "docs/troubleshooting.md",
-    "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
   },
   {
     "path": "docs/troubleshooting/common-errors.md",
@@ -6678,6 +6690,14 @@
   {
     "path": "docs/troubleshooting/urlfetch-auth.md",
     "sha256": "06482d76ef7657d8cf4a052cb3993def516933b7b22e1aa850e61758184802c7"
+  },
+  {
+    "path": "docs/troubleshooting.html",
+    "sha256": "d5ce22144e1921c884c95ed3947b49b4ab7895133c758574a14819d2d5283817"
+  },
+  {
+    "path": "docs/troubleshooting.md",
+    "sha256": "b80ab072be7802f0f5daf0da094bb8fa570aae41237bd81f60cf10cba1524cc5"
   },
   {
     "path": "docs/user-guide/data-list.md",
@@ -6708,12 +6728,12 @@
     "sha256": "8f3f80a57111dd820de9575dc412343ee7ee79153bf85be716b9ee83552f2c6d"
   },
   {
-    "path": "docs/user-guide/todays-improvement.md",
-    "sha256": "33608c8347948f51e3f1004f164412bda5ea59b5ba76ade16af7cfc28d4521e9"
-  },
-  {
     "path": "docs/user-guide/todays-improvement/index.md",
     "sha256": "ca2c1a7470c3d201da9861849acfe59709698122d8ec4b6c91c7643713010140"
+  },
+  {
+    "path": "docs/user-guide/todays-improvement.md",
+    "sha256": "33608c8347948f51e3f1004f164412bda5ea59b5ba76ade16af7cfc28d4521e9"
   },
   {
     "path": "integration/SBM_BATCH_INTEGRATION.md",
@@ -7485,7 +7505,7 @@
   },
   {
     "path": "shared/PRODUCT_IDENTITY.json",
-    "sha256": "15825149bae71a5c0d0c2bee267e5c78f2a6c27a17a9cc3756ec839666ec23cd"
+    "sha256": "35e95851cd5260fde0f52819e575d33143b3d47a211c9c613c26fb6629c5ee54"
   },
   {
     "path": "shared/README.md",

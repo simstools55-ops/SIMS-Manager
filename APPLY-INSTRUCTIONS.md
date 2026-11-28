@@ -1,21 +1,10 @@
-# SIMS-Blog-Manager v5.13.0 Apply Instructions
+# SIMS Manager v5.0.0
 
-## Apps Script
-Replace only:
-- `Code.gs` — replace
+配布候補版（開発基準 v9.4.12）。Starter／Full共通。
 
-No change:
-- `appsscript.json`
+新規利用者は正式なGoogle Sheets配布テンプレートをコピーし、Webマニュアルに従って初回セットアップしてください。
+既存利用者の更新は、シートと旧コードをバックアップ後、Apps ScriptのCode.gsを全文置換し保存、シートを再読み込みしてください。appsscript.jsonは基準版と同一です。
 
-After saving, reload the spreadsheet.
+配布テンプレートの同期・実機確認が終わるまでは公開しないでください。
 
-## First verification
-1. Open `改善の推移`.
-2. Check one row whose 4 measurements are complete and whose final result needs review.
-3. Run `推移確認` → `4．観察終了後の処置を進める`.
-4. Confirm that a Doctor request is generated.
-5. Register a Doctor `WAIT / MONITOR` result and confirm that the article returns to active monitoring with a new observation history.
-6. Confirm that a successful completed cycle disappears from the active trend sheet but remains in `改善履歴`.
-
-## Recommended commit
-`feat(sbm): release v5.13.0 post-improvement monitoring lifecycle`
+Repositoryの正本: apps-script/Code.gs と apps-script/appsscript.json。
